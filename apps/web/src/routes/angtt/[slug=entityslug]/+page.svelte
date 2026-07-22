@@ -19,6 +19,7 @@
         RATING_MIN_LEVEL,
         applyOptimisticRating
     } from '$lib/components/features/board/post-rating-logic.js';
+    import { getAspectPreset } from '$plugins/angtt-review/lib/aspect-presets';
 
     const { data }: { data: PageData } = $props();
 
@@ -48,6 +49,7 @@
                 count: data.rating.count,
                 my: data.rating.my ?? 0
             };
+            liveAspects = data.aspects;
         }
     });
 
@@ -150,6 +152,62 @@
             rateError = err instanceof Error ? err.message : '별점 등록에 실패했어요.';
         } finally {
             submitting = false;
+        }
+    }
+
+    // ── 항목별 평점(옵트인) — 총점의 부가 시각, 헤드라인 별점과 완전 병렬 ──
+    /** entity.type → 항목 프리셋 (모르는 type 은 default) */
+    const aspectPreset = $derived(getAspectPreset(entity.type));
+    /** 항목별 집계+본인 값의 클라이언트 소유 상태 — 저장 응답으로 통째 교체 */
+    // svelte-ignore state_referenced_locally
+    let liveAspects = $state(data.aspects);
+    /** 히어로 항목 바 — 집계가 1건이라도 있는 항목만, 프리셋 순서로 */
+    const aspectBars = $derived.by(() => {
+        const byKey = new Map(liveAspects.map((a) => [a.aspect, a]));
+        return aspectPreset.flatMap((def) => {
+            const agg = byKey.get(def.key);
+            return agg && agg.count > 0
+                ? [{ key: def.key, label: def.label, avg: agg.avg, count: agg.count }]
+                : [];
+        });
+    });
+
+    let showAspectRater = $state(false);
+    /** 저장 중인 aspect 키(행별 독립 저장 — 한 번에 한 행) */
+    let aspectSubmitting = $state<string | null>(null);
+    let aspectError = $state('');
+    let aspectHover = $state<{ key: string; star: number } | null>(null);
+
+    /** 본인이 해당 항목에 남긴 별점(없으면 0) */
+    function myAspect(key: string): number {
+        return liveAspects.find((a) => a.aspect === key)?.my ?? 0;
+    }
+    /** 항목 행의 입력 위젯 채움 기준: 호버 중이면 호버 값, 아니면 내 기존 값 */
+    function aspectRowValue(key: string): number {
+        return aspectHover?.key === key ? aspectHover.star : myAspect(key);
+    }
+
+    async function submitAspect(key: string, star: number): Promise<void> {
+        if (aspectSubmitting) return;
+        aspectError = '';
+        aspectSubmitting = key;
+        try {
+            const res = await fetch(`/api/angtt/${entity.slug}/rating/aspects`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ aspects: { [key]: star } })
+            });
+            const body = (await res.json().catch(() => null)) as {
+                aspects?: { aspect: string; avg: number; count: number; my: number | null }[];
+                error?: string;
+            } | null;
+            if (!res.ok) throw new Error(body?.error || '항목별 평가 저장에 실패했어요.');
+            if (Array.isArray(body?.aspects)) liveAspects = body.aspects;
+        } catch (err) {
+            aspectError = err instanceof Error ? err.message : '항목별 평가 저장에 실패했어요.';
+        } finally {
+            aspectSubmitting = null;
         }
     }
 
@@ -265,6 +323,34 @@
                         </div>
                     {/if}
                 </div>
+                {#if aspectBars.length > 0}
+                    <!-- 항목별 평균(옵트인 세부) — 집계가 1건이라도 있을 때만 표시 -->
+                    <div class="flex w-full flex-col gap-1.5" aria-label="항목별 평균 별점">
+                        {#each aspectBars as bar (bar.key)}
+                            <div class="flex items-center gap-2 text-xs">
+                                <span class="text-muted-foreground w-12 shrink-0 font-semibold"
+                                    >{bar.label}</span
+                                >
+                                <div
+                                    class="h-1.5 flex-1 overflow-hidden rounded-full bg-amber-200/60 dark:bg-amber-900/40"
+                                    aria-hidden="true"
+                                >
+                                    <div
+                                        class="h-full rounded-full bg-amber-500"
+                                        style="width: {(bar.avg / 5) * 100}%"
+                                    ></div>
+                                </div>
+                                <span
+                                    class="text-foreground w-7 shrink-0 text-right font-bold tabular-nums"
+                                    >{bar.avg.toFixed(1)}</span
+                                >
+                                <span class="text-muted-foreground shrink-0 tabular-nums"
+                                    >({bar.count})</span
+                                >
+                            </div>
+                        {/each}
+                    </div>
+                {/if}
             </div>
 
             <div class="mt-4 flex flex-wrap gap-2.5">
@@ -335,6 +421,88 @@
                                 >
                             {/if}
                         </div>
+                        {#if liveRating.my > 0}
+                            <!-- 항목별 평가(옵트인) — 본인 총점이 있을 때만 접힘 버튼 노출 -->
+                            <div class="mt-3 border-t pt-3">
+                                <button
+                                    type="button"
+                                    onclick={() => (showAspectRater = !showAspectRater)}
+                                    aria-expanded={showAspectRater}
+                                    class="text-muted-foreground hover:text-foreground text-sm font-semibold"
+                                >
+                                    {showAspectRater ? '−' : '+'} 항목별로 자세히 평가
+                                </button>
+                                {#if showAspectRater}
+                                    <div class="mt-2.5 flex flex-col gap-1.5">
+                                        {#each aspectPreset as def (def.key)}
+                                            <div class="flex items-center gap-2">
+                                                <span class="w-14 shrink-0 text-sm font-semibold"
+                                                    >{def.label}</span
+                                                >
+                                                <div
+                                                    class="flex items-center"
+                                                    role="radiogroup"
+                                                    aria-label="{def.label} 별점 선택 (1~5점)"
+                                                >
+                                                    {#each RATE_STARS as star (star)}
+                                                        <button
+                                                            type="button"
+                                                            class="p-0.5 text-xl leading-none transition-transform hover:scale-110 disabled:opacity-50"
+                                                            disabled={aspectSubmitting != null}
+                                                            role="radio"
+                                                            aria-checked={myAspect(def.key) ===
+                                                                star}
+                                                            aria-label="{def.label} {star}점"
+                                                            onclick={() =>
+                                                                submitAspect(def.key, star)}
+                                                            onmouseenter={() =>
+                                                                (aspectHover = {
+                                                                    key: def.key,
+                                                                    star
+                                                                })}
+                                                            onmouseleave={() =>
+                                                                (aspectHover = null)}
+                                                            onfocus={() =>
+                                                                (aspectHover = {
+                                                                    key: def.key,
+                                                                    star
+                                                                })}
+                                                            onblur={() => (aspectHover = null)}
+                                                        >
+                                                            <span
+                                                                class={star <=
+                                                                aspectRowValue(def.key)
+                                                                    ? 'text-amber-500'
+                                                                    : 'text-muted-foreground/40'}
+                                                                >★</span
+                                                            >
+                                                        </button>
+                                                    {/each}
+                                                </div>
+                                                {#if myAspect(def.key) > 0}
+                                                    <span
+                                                        class="text-muted-foreground text-xs tabular-nums"
+                                                        >★{myAspect(def.key)}</span
+                                                    >
+                                                {/if}
+                                            </div>
+                                        {/each}
+                                        <p class="text-muted-foreground text-xs">
+                                            별을 누르면 항목마다 바로 저장돼요. 원하는 항목만 남겨도
+                                            됩니다.
+                                        </p>
+                                    </div>
+                                    {#if aspectError}
+                                        <p
+                                            class="mt-2 text-sm text-red-600 dark:text-red-400"
+                                            role="alert"
+                                        >
+                                            {aspectError}
+                                        </p>
+                                    {/if}
+                                {/if}
+                            </div>
+                        {/if}
                     {/if}
                     {#if rateError}
                         <p class="mt-2 text-sm text-red-600 dark:text-red-400" role="alert">

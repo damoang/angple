@@ -17,6 +17,7 @@
  */
 import pool from '$lib/server/db';
 import { hasAngttTag, normalizeWorkTitle } from './normalize';
+import { validateAspects } from './aspect-presets';
 
 /** 작품 단위 회원 1표 별점의 저장 규약: 작품 페이지 별점은 bo_table 을 이 상수로 둔다. */
 export const ENTITY_RATING_BO_TABLE = '@entity';
@@ -462,4 +463,89 @@ export async function putEntityRating(
     );
 
     return getEntityRating(entityId, mbId);
+}
+
+/** 항목별 평점 집계 행(+요청자 본인 값) */
+export interface AngttAspectRating {
+    aspect: string;
+    avg: number;
+    count: number;
+    /** 로그인 사용자 본인이 이 항목에 남긴 별점(없으면 null) */
+    my: number | null;
+}
+
+interface AspectAggRow {
+    aspect: string;
+    cnt: number;
+    avg: number | string | null;
+    my: number | null;
+}
+
+/**
+ * 작품 단위 항목별 평점 집계 — aspect별 {avg, count} + 요청자 본인 값.
+ *
+ * angple_rating_aspects 는 (bo_table='@entity', wr_id=entity_id) 규약으로
+ * idx_target/PK 프리픽스 시크 1쿼리. 세부 평가가 0건이면 빈 배열(= UI 미표시,
+ * 옵트인 보장). 총점(angple_post_ratings)과는 완전 병렬 — 여기 값은 헤드라인
+ * 별점에 어떤 영향도 주지 않는다.
+ */
+export async function getEntityAspects(
+    entityId: number,
+    mbId?: string
+): Promise<AngttAspectRating[]> {
+    const [result] = await pool.query(
+        `SELECT aspect, COUNT(*) AS cnt, AVG(rating) AS avg,
+                MAX(CASE WHEN mb_id = ? THEN rating END) AS my
+           FROM angple_rating_aspects
+          WHERE bo_table = ? AND wr_id = ?
+          GROUP BY aspect`,
+        [mbId ?? '', ENTITY_RATING_BO_TABLE, entityId]
+    );
+    return (result as AspectAggRow[]).map((r) => ({
+        aspect: String(r.aspect),
+        avg: Number(r.avg ?? 0),
+        count: Number(r.cnt ?? 0),
+        my: r.my == null ? null : Number(r.my)
+    }));
+}
+
+/**
+ * 작품 단위 항목별 평점 등록/수정 — 행별 UPSERT(회원당 작품당 항목당 1표).
+ *
+ * entity.type 프리셋 화이트리스트 밖 aspect 는 저장 자체를 거부한다(자유텍스트
+ * 오염 원천 차단). 부분 입력 허용 — 프리셋 중 일부 항목만 보내도 된다.
+ * 총점(angple_post_ratings)·비정규화 집계(rating_count/avg)는 건드리지 않는다.
+ *
+ * @throws 검증 실패 시 에러(호출부에서 400 으로 매핑 — putEntityRating 관례).
+ * @returns 갱신된 항목별 집계 — getEntityAspects 재사용.
+ */
+export async function putEntityAspects(
+    entityId: number,
+    entityType: string,
+    mbId: string,
+    input: unknown
+): Promise<AngttAspectRating[]> {
+    const validated = validateAspects(entityType, input);
+    if (!validated.ok) {
+        throw new Error(validated.error);
+    }
+
+    const entries = Object.entries(validated.aspects);
+    const placeholders = entries.map(() => '(?, ?, ?, ?, ?, NOW(3), NOW(3))').join(', ');
+    const params = entries.flatMap(([aspect, rating]) => [
+        ENTITY_RATING_BO_TABLE,
+        entityId,
+        mbId,
+        aspect,
+        rating
+    ]);
+    await pool.query(
+        `INSERT INTO angple_rating_aspects
+            (bo_table, wr_id, mb_id, aspect, rating, created_at, updated_at)
+         VALUES ${placeholders}
+         ON DUPLICATE KEY UPDATE rating = VALUES(rating), updated_at = NOW(3)`,
+        params
+    );
+
+    return getEntityAspects(entityId, mbId);
 }

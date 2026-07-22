@@ -25,6 +25,10 @@
     import DraftList from './draft-list.svelte';
     import TagInput from './tag-input.svelte';
     import { TiptapEditor } from '$lib/components/features/editor/index.js';
+    import {
+        DEFAULT_ASPECTS,
+        buildScorecardTableHtml
+    } from '$plugins/angtt-review/lib/aspect-presets';
     import { FileUploader } from '$lib/components/features/uploader/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { apiClient } from '$lib/api/index.js';
@@ -140,6 +144,17 @@
         if (!angttSuggestion) return;
         angttDismissed.add(angttSuggestion.slug);
         angttSuggestion = null;
+    }
+
+    // ── 앙티티 채점표 템플릿(옵트인) ─────────────────────────────────────
+    // 앙티티 연결 상태(제안 칩 [연결] 후 또는 앙티티 태그 존재)에서만 버튼 노출.
+    // 삽입된 표는 자유 편집 — 구조화 저장이 아니라 문화 형성용. 작성폼에서는
+    // 작품 type 을 모르므로 default 프리셋(스토리/완성도/몰입)을 쓴다.
+    let editorRef: TiptapEditor | undefined = $state();
+    const showScorecardButton = $derived(tags.includes(ANGTT_TAG_NAME));
+
+    function insertScorecard(): void {
+        editorRef?.insertContent(buildScorecardTableHtml(DEFAULT_ASPECTS));
     }
 
     // 파일 업로드 상태 (이미지 + 파일 통합)
@@ -775,7 +790,22 @@
             <!-- 내용 입력 (WYSIWYG 에디터) -->
             <div class="space-y-2">
                 <Label for="content">내용 <span class="text-destructive">*</span></Label>
+                {#if showScorecardButton}
+                    <!-- 앙티티 연결 상태에서만 — 미연결 시 DOM 무변화(옵트인 보장) -->
+                    <div class="flex justify-end">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onclick={insertScorecard}
+                            disabled={isLoading}
+                        >
+                            채점표 넣기
+                        </Button>
+                    </div>
+                {/if}
                 <TiptapEditor
+                    bind:this={editorRef}
                     {content}
                     {contentFormat}
                     placeholder={`/ 를 눌러 이미지와 앙티콘을 추가하세요\n\n경어체 사용은 필수이며, 초성 비속어도 이용제한 대상입니다.${board?.insert_content ? `\n\n${board.insert_content}` : ''}`}
