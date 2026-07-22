@@ -1,0 +1,21 @@
+{
+    "id": "trending-groups",
+    "name": "지금 뜨는 소모임",
+    "version": "1.0.0",
+    "description": "최근 활동이 활발한 소모임을 소개해 롱테일 소모임의 발견을 돕는 위젯",
+    "author": { "name": "Angple" },
+    "category": "content",
+    "slots": ["sidebar", "main"],
+    "icon": "Flame",
+    "allowMultiple": false,
+    "main": "index.svelte",
+    "settings": {
+        "item_count": {
+            "type": "number",
+            "label": "표시 개수",
+            "default": 5,
+            "min": 3,
+            "max": 5
+        }
+    }
+}

@@ -26,6 +26,7 @@
     import RecommendedWidget from '../../../../../../widgets/recommended/index.svelte';
     import ExploreWidget from '../../../../../../widgets/explore/index.svelte';
     import GivingWidget from '../../../../../../widgets/giving/index.svelte';
+    import TrendingGroupsWidget from '../../../../../../widgets/trending-groups/index.svelte';
 
     interface Props {
         /** 렌더링할 위젯 존 */
@@ -54,7 +55,8 @@
         'emoji-awards': EmojiAwardsWidget,
         recommended: RecommendedWidget,
         explore: ExploreWidget,
-        giving: GivingWidget
+        giving: GivingWidget,
+        'trending-groups': TrendingGroupsWidget
     };
 
     // 존별 위젯 목록
