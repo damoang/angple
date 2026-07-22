@@ -141,6 +141,9 @@
     // subject(프론트엔드 타입) 또는 name(백엔드 API 응답) 사용
     const boardTitle = $derived(data.board?.subject || data.board?.name || boardId);
 
+    // 소모임(gr_id='group') 게시판이면 구독 버튼을 강화 CTA로 노출한다.
+    const isGroupBoard = $derived(data.board?.group_id === 'group');
+
     // 특수 게시판 타입 감지 (board_type 또는 boardId로 판단)
     const boardType = $derived(
         data.board?.board_type ||
@@ -868,7 +871,11 @@
                         </a>
                     </h1>
                     <BoardFavoriteButton {boardId} {boardTitle} />
-                    <BoardSubscribeButton {boardId} {boardTitle} />
+                    <BoardSubscribeButton
+                        {boardId}
+                        {boardTitle}
+                        variant={isGroupBoard ? 'prominent' : 'icon'}
+                    />
                 </div>
 
                 <div class="flex items-center gap-2">

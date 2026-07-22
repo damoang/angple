@@ -11,15 +11,25 @@
     import Bell from '@lucide/svelte/icons/bell';
     import BellOff from '@lucide/svelte/icons/bell-off';
     import Check from '@lucide/svelte/icons/check';
+    import Users from '@lucide/svelte/icons/users';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { toast } from 'svelte-sonner';
+    import { formatMemberCount, subscribeCtaLabel, subscribeCtaTitle } from './subscribe-cta.js';
 
     interface Props {
         boardId: string;
         boardTitle: string;
+        /**
+         * 'icon'(기본) = 기존 벨 아이콘. 모든 일반 게시판에서 그대로 동작(회귀 0).
+         * 'prominent' = 소모임(gr_id='group') 전용 강화 CTA. 라벨 + 구독자수("멤버 N명")를
+         *               항상 노출하고, 마운트 시 구독 상태를 미리 로드한다.
+         */
+        variant?: 'icon' | 'prominent';
     }
 
-    let { boardId, boardTitle }: Props = $props();
+    let { boardId, boardTitle, variant = 'icon' }: Props = $props();
+
+    const isProminent = $derived(variant === 'prominent');
 
     let isSubscribed = $state(false);
     let level = $state<1 | 2 | 3 | null>(null);
@@ -42,6 +52,16 @@
         level = null;
         subscriberCount = 0;
         busy = false;
+    });
+
+    // 소모임(prominent) CTA 는 구독자수·"멤버" 표기를 즉시 보여줘야 하므로, hover 를 기다리지 않고
+    // 마운트/보드 전환 시 상태를 미리 로드한다. 위 리셋 $effect 뒤에 선언해 리셋 후 실행되도록 한다.
+    // 일반 게시판(variant='icon')은 이 경로를 타지 않아 기존 동작 그대로(회귀 0).
+    $effect(() => {
+        void boardId; // 보드 전환 시 재프라임
+        if (isProminent) {
+            primeSubscribeState();
+        }
     });
 
     async function loadSubscribeState(): Promise<void> {
@@ -149,28 +169,58 @@
 <DropdownMenu.Root {onOpenChange}>
     <DropdownMenu.Trigger>
         {#snippet child({ props })}
-            <Button
-                {...props}
-                variant="ghost"
-                size="icon"
-                onmouseenter={primeSubscribeState}
-                onfocus={primeSubscribeState}
-                disabled={loading}
-                aria-label={isSubscribed ? '구독 설정' : '새 글 알림 구독'}
-                title={isSubscribed
-                    ? `'${boardTitle}' 구독 중 (${subscriberCount}명) — 클릭하여 설정`
-                    : `'${boardTitle}' 구독하기 — 새 글 알림 받기${subscriberCount > 0 ? ` (${subscriberCount}명 구독 중)` : ''}`}
-                class="relative h-8 w-8 {isSubscribed
-                    ? 'text-primary hover:text-primary/80'
-                    : 'text-muted-foreground hover:text-primary'}"
-            >
-                <span class="absolute -inset-2"></span>
-                {#if isSubscribed}
-                    <Bell class="h-4 w-4" fill="currentColor" />
-                {:else}
-                    <BellOff class="h-4 w-4" />
-                {/if}
-            </Button>
+            {#if isProminent}
+                <!-- 소모임 전용 강화 CTA: 라벨 + "멤버 N명" 노출로 구독을 멤버십처럼 -->
+                <Button
+                    {...props}
+                    variant={isSubscribed ? 'secondary' : 'default'}
+                    size="sm"
+                    onmouseenter={primeSubscribeState}
+                    onfocus={primeSubscribeState}
+                    disabled={loading}
+                    aria-label={isSubscribed ? '소모임 멤버 · 알림 설정' : '소모임 구독하기'}
+                    title={subscribeCtaTitle(boardTitle, isSubscribed, subscriberCount)}
+                    class="h-8 gap-1.5 px-3"
+                >
+                    {#if isSubscribed}
+                        <Bell class="h-4 w-4" fill="currentColor" />
+                    {:else}
+                        <Users class="h-4 w-4" />
+                    {/if}
+                    <span class="text-sm font-medium">{subscribeCtaLabel(isSubscribed)}</span>
+                    {#if subscriberCount > 0}
+                        <span
+                            class="ml-0.5 border-l pl-1.5 text-xs font-normal opacity-80"
+                            class:border-primary-foreground={!isSubscribed}
+                        >
+                            {formatMemberCount(subscriberCount)}
+                        </span>
+                    {/if}
+                </Button>
+            {:else}
+                <Button
+                    {...props}
+                    variant="ghost"
+                    size="icon"
+                    onmouseenter={primeSubscribeState}
+                    onfocus={primeSubscribeState}
+                    disabled={loading}
+                    aria-label={isSubscribed ? '구독 설정' : '새 글 알림 구독'}
+                    title={isSubscribed
+                        ? `'${boardTitle}' 구독 중 (${subscriberCount}명) — 클릭하여 설정`
+                        : `'${boardTitle}' 구독하기 — 새 글 알림 받기${subscriberCount > 0 ? ` (${subscriberCount}명 구독 중)` : ''}`}
+                    class="relative h-8 w-8 {isSubscribed
+                        ? 'text-primary hover:text-primary/80'
+                        : 'text-muted-foreground hover:text-primary'}"
+                >
+                    <span class="absolute -inset-2"></span>
+                    {#if isSubscribed}
+                        <Bell class="h-4 w-4" fill="currentColor" />
+                    {:else}
+                        <BellOff class="h-4 w-4" />
+                    {/if}
+                </Button>
+            {/if}
         {/snippet}
     </DropdownMenu.Trigger>
     <DropdownMenu.Content align="end" class="w-56">
