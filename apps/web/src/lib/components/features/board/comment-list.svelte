@@ -1221,6 +1221,12 @@
                                 expandTouchArea
                             />
                             <LevelBadge level={memberLevelStore.getLevel(comment.author_id)} />
+                            {#if replyToAuthor}
+                                <!-- 대댓글 대상 — 기존에는 chat 모드에서 숨겨지는 구 헤더에만 있어 실제로 보이지 않았다 -->
+                                <span class="text-muted-foreground text-xs font-normal"
+                                    >↪ {replyToAuthor}</span
+                                >
+                            {/if}
                             {#if !postDeleted && postAuthorId && comment.author_id === postAuthorId}
                                 <!-- hello 환영 라운지: 원글 작성자 = 새로 온 앙님 (chat 이름 라벨 안이라 chat 전용) -->
                                 <span
