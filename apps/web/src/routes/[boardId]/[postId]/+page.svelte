@@ -40,6 +40,7 @@
     import DeleteConfirmDialog from '$lib/components/features/board/delete-confirm-dialog.svelte';
     import CommentForm from '$lib/components/features/board/comment-form.svelte';
     import CommentList from '$lib/components/features/board/comment-list.svelte';
+    import WelcomeStampBar from '$lib/components/features/board/welcome-stamp-bar.svelte';
     import AuthorActivityPanel from '$lib/components/features/board/author-activity-panel.svelte';
     import RecentPosts from '$lib/components/features/board/recent-posts.svelte';
     import AngttConnectCard from '$lib/components/features/board/angtt-connect-card.svelte';
@@ -2403,6 +2404,18 @@
                         postId={data.post.id}
                     />
                     {#if !data.post.is_comments_disabled}
+                        <!-- hello 환영 라운지: 원터치 환영 스탬프 (가입인사 전용 — 폭죽 하드코딩과 같은 결) -->
+                        {#if boardId === 'hello'}
+                            <WelcomeStampBar
+                                {boardId}
+                                {comments}
+                                onSend={(content) => handleCreateComment(content)}
+                                permissions={data.board?.permissions}
+                                requiredCommentLevel={data.board?.comment_level ?? 3}
+                                isRestricted={data.isRestricted}
+                                disabled={isCreatingComment}
+                            />
+                        {/if}
                         <CommentList
                             {comments}
                             onUpdate={handleUpdateComment}

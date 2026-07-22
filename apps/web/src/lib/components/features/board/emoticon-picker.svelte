@@ -4,9 +4,11 @@
     interface Props {
         onInsertEmoticon: (text: string) => void;
         onClose: () => void;
+        /** 열릴 때 기본 선택할 팩의 prefix (예: 'welcome'). 없거나 못 찾으면 첫 팩 */
+        initialPack?: string;
     }
 
-    let { onInsertEmoticon, onClose }: Props = $props();
+    let { onInsertEmoticon, onClose, initialPack }: Props = $props();
 
     // 이모지 (유니코드) - 기존 리액션 설정에서 가져옴
     const emojis = REACTION_EMOTICONS.filter((e) => e.category === 'emoji');
@@ -47,6 +49,14 @@
         })
         .then((data: { packs: EmoticonPack[] }) => {
             packs = data.packs;
+            if (initialPack) {
+                const idx = packs.findIndex((p) => p.prefix === initialPack);
+                if (idx >= 0) {
+                    activeTab = `pack-${idx}`;
+                    // 접힌 목록 밖의 팩이면 펼쳐야 탭이 보인다
+                    if (idx >= DEFAULT_VISIBLE) expanded = true;
+                }
+            }
             loading = false;
         })
         .catch(() => {
