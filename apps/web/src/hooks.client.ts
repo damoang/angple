@@ -430,11 +430,15 @@ if (typeof window !== 'undefined') {
     //
     // console.error 를 감싸되 원본 동작은 그대로 유지한다. 하이드레이션 관련 메시지만
     // 골라 보내고, 기존 guardedSend 의 중복 스로틀·레이트리밋을 그대로 탄다.
+    // bug/12981: '[upload-fail]' prefix 도 함께 수집 — 업로드/스왑 실패가 전부 무음 catch 로
+    // console.error 에만 남아 js_errors 가 30일간 0건이던 관측 공백을 메운다.
     const originalConsoleError = console.error;
     console.error = function (...args: unknown[]) {
         try {
             const first = String(args[0] ?? '');
-            if (first.includes('hydrat')) {
+            const isHydration = first.includes('hydrat');
+            const isUploadFail = first.startsWith('[upload-fail]');
+            if (isHydration || isUploadFail) {
                 const detail = args
                     .slice(1)
                     .map((a) => (a instanceof Error ? `${a.name}: ${a.message}` : String(a)))
@@ -442,7 +446,7 @@ if (typeof window !== 'undefined') {
                     .slice(0, 300);
                 const err = args.find((a): a is Error => a instanceof Error);
                 guardedSend({
-                    type: 'hydration_error',
+                    type: isHydration ? 'hydration_error' : 'upload_fail',
                     message: `${first} ${detail}`.trim().slice(0, 400),
                     stack: err?.stack?.slice(0, 1500) || '(no stack)',
                     url: window.location.href,

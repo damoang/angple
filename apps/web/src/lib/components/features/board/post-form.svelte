@@ -12,6 +12,7 @@
     import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
     import XIcon from '@lucide/svelte/icons/x';
     import { stripAdminMentions } from '$lib/utils/sanitize-mentions.js';
+    import { stripBlobMedia } from '$lib/utils/strip-blob-media.js';
     import type {
         FreePost,
         CreatePostRequest,
@@ -179,16 +180,19 @@
     }
 
     // 에디터 미디어 업로드 핸들러 (이미지 + 동영상, 드래그앤드롭 / 붙여넣기 / 다이얼로그)
-    async function handleEditorImageUpload(file: File): Promise<string | null> {
+    async function handleEditorImageUpload(
+        file: File
+    ): Promise<{ url: string; originUrl?: string } | null> {
         if (!boardId) return null;
         try {
             const postIdNum = post?.id ? Number(post.id) : undefined;
             const result = await apiClient.uploadFile(boardId, file, postIdNum);
             // 에디터에서 업로드한 이미지는 본문에 직접 삽입되므로
             // uploadedFiles에 추가하지 않음 (submit 시 중복 삽입 방지)
-            return result.url;
+            // originUrl 은 CDN 경로 지연 시 에디터의 폴백 스왑 후보 (bug/12981)
+            return { url: result.url, originUrl: result.origin_url };
         } catch (err) {
-            console.error('Media upload failed:', err);
+            console.error('[upload-fail] media-upload:', err);
             return null;
         }
     }
@@ -206,7 +210,7 @@
             const result = await apiClient.uploadFile(boardId, file, postIdNum, poster);
             return { url: result.url, posterUrl: result.thumbnail_url };
         } catch (err) {
-            console.error('Video upload failed:', err);
+            console.error('[upload-fail] video-upload:', err);
             return null;
         }
     }
@@ -245,7 +249,9 @@
         isSaving = true;
         const draft: DraftData = {
             title,
-            content,
+            // bug/12981: blob: 은 세션 한정 URL — draft 에 박제되면 복원 시 죽은 이미지가
+            // 부활해 제출 가드에 영구히 막힌다. 저장 전 제거.
+            content: stripBlobMedia(content),
             category,
             isSecret,
             tags,
@@ -305,7 +311,8 @@
         const draft = loadDraft();
         if (draft) {
             title = draft.title;
-            content = draft.content;
+            // bug/12981: 스트립 이전에 저장된 기존 draft 의 죽은 blob: 도 복원 시 걷어낸다
+            content = stripBlobMedia(draft.content);
             category = draft.category;
             isSecret = draft.isSecret;
             tags = draft.tags || [];
@@ -447,6 +454,8 @@
             isSubmitting = false;
             // 대기 후에도 blob 이 남으면(변환 지연/실패) 저장 시 깨지므로 안내하고 중단.
             if (content.includes('blob:')) {
+                // bug/12981 계측: 이 경로가 사용자가 본 "이미지 변환이 지연" 데드엔드
+                console.error('[upload-fail] submit-blocked: blob 잔존으로 제출 차단');
                 alert('이미지 변환이 지연되고 있습니다. 잠시 후 다시 시도해 주세요.');
                 return;
             }

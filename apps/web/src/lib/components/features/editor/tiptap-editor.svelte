@@ -88,7 +88,13 @@
          */
         contentFormat?: 'html' | 'markdown';
         onUpdate?: (value: string) => void;
-        onImageUpload?: (file: File) => Promise<string | null>;
+        /**
+         * 이미지 업로드 — CDN URL 문자열 또는 { url, originUrl } 반환.
+         * originUrl(S3 직행)은 CDN 경로가 계속 실패할 때의 폴백 스왑 후보 (bug/12981).
+         */
+        onImageUpload?: (
+            file: File
+        ) => Promise<string | { url: string; originUrl?: string } | null>;
         /**
          * 동영상 전용 업로드 — 포스터(첫 프레임) URL 을 함께 반환할 수 있다.
          * 미제공 시 onImageUpload 폴백 (포스터 없이 현행 동작).
@@ -115,7 +121,8 @@
     async function uploadVideo(file: File): Promise<{ url: string; posterUrl?: string } | null> {
         if (onVideoUpload) return onVideoUpload(file);
         if (!onImageUpload) return null;
-        const url = await onImageUpload(file);
+        const res = await onImageUpload(file);
+        const url = typeof res === 'string' ? res : res?.url;
         return url ? { url } : null;
     }
 
@@ -435,6 +442,12 @@
     // → 올리는 즉시 blob 미리보기(0초, 안 깨짐) 삽입 후, data URL 이 실제 로드 가능해질 때까지
     //   백그라운드 preload(재시도) → 준비되면 해당 노드 src 만 교체. 제출 가드(post-form)가 blob 잔존 차단.
     const IMAGE_SWAP_MAX_MS = 20000;
+    // bug/12981: 1차 20초 내 미준비 시 종전엔 blob 이 영구 잔존해 제출 가드에 계속 막혔다
+    // (탈출 경로 없음). 이제 저빈도 백그라운드 재프로브로 회복한다.
+    const IMAGE_RECOVER_INTERVAL_MS = 10000;
+    const IMAGE_RECOVER_MAX_MS = 280000;
+
+    const sleep = (ms: number) => new Promise<void>((r) => window.setTimeout(r, ms));
 
     // data URL 이 실제 200 으로 로드될 때까지 preload 재시도(지수백오프). 성공 시 true.
     // CDN 이 변환 전 404 를 max-age=300 으로 캐시할 수 있어 프로브엔 캐시버스터를 붙인다.
@@ -457,6 +470,71 @@
             };
             tryLoad();
         });
+    }
+
+    // 단발 프로브 — preloadImage 와 달리 내부 재시도 없이 1회만 확인 (회복 루프용).
+    // 이미지 로드가 onload/onerror 어느 쪽도 안 오는 stall 대비 8초 안전 타임아웃.
+    function probeImageOnce(url: string): Promise<boolean> {
+        return new Promise((resolve) => {
+            const timer = window.setTimeout(() => resolve(false), 8000);
+            const img = new Image();
+            img.onload = () => {
+                window.clearTimeout(timer);
+                resolve(true);
+            };
+            img.onerror = () => {
+                window.clearTimeout(timer);
+                resolve(false);
+            };
+            img.src = url + (url.includes('?') ? '&' : '?') + '_p=' + Date.now();
+        });
+    }
+
+    // 문서에 src 가 일치하는 image 노드가 남아있는지 확인 (회복 루프 조기 종료용).
+    function hasImageBySrc(src: string): boolean {
+        if (!editor) return false;
+        let found = false;
+        editor.state.doc.descendants((node) => {
+            if (found) return false;
+            if (node.type.name === 'image' && node.attrs.src === src) {
+                found = true;
+                return false;
+            }
+            return undefined;
+        });
+        return found;
+    }
+
+    // bug/12981: 1차 preload(20초) 실패 후 백그라운드 회복 루프.
+    // CDN URL 을 계속 재프로브하고, 계속 실패하면 originUrl(S3 직행 — CDN 의 캐시된 403 을
+    // 우회)도 후보로 확인한다. **실제 로드가 확인된 URL 로만 스왑** — 죽은 URL 을 본문에
+    // 박는 일은 없다. 끝내 실패하면 blob 유지(제출 가드가 데이터 유실 방지, 종전과 동일).
+    async function recoverImageSwap(
+        blobUrl: string,
+        dataUrl: string,
+        originUrl?: string
+    ): Promise<void> {
+        const start = Date.now();
+        const candidates = originUrl && originUrl !== dataUrl ? [dataUrl, originUrl] : [dataUrl];
+        while (Date.now() - start < IMAGE_RECOVER_MAX_MS) {
+            await sleep(IMAGE_RECOVER_INTERVAL_MS);
+            // onDestroy 는 editor 를 null 로 되돌리지 않으므로 isDestroyed 로 이탈을 감지 —
+            // 페이지를 떠난 뒤 최대 4.7분 잔존 프로브가 도는 것을 막는다.
+            if (!editor || editor.isDestroyed) return;
+            if (!hasImageBySrc(blobUrl)) {
+                // 사용자가 해당 이미지를 지움 — 회복 불필요
+                URL.revokeObjectURL(blobUrl);
+                return;
+            }
+            for (const candidate of candidates) {
+                if (await probeImageOnce(candidate)) {
+                    swapImageSrc(blobUrl, candidate);
+                    URL.revokeObjectURL(blobUrl);
+                    return;
+                }
+            }
+        }
+        console.error('[upload-fail] image-swap-timeout: 변환본 5분 미준비, blob 잔존 —', dataUrl);
     }
 
     // 문서에서 src 가 oldSrc 인 image 노드를 찾아 newSrc 로 교체 (위치는 교체 시점 기준 재탐색).
@@ -503,21 +581,30 @@
         pendingUploads++;
         void (async () => {
             try {
-                const dataUrl = await onImageUpload!(file);
+                const res = await onImageUpload!(file);
+                const dataUrl = typeof res === 'string' ? res : res?.url;
                 if (!dataUrl) {
                     removeImageBySrc(blobUrl);
                     URL.revokeObjectURL(blobUrl);
                     return;
                 }
+                const originUrl = typeof res === 'string' ? undefined : res?.originUrl;
                 const ready = await preloadImage(dataUrl);
-                if (ready && swapImageSrc(blobUrl, dataUrl)) {
+                if (ready) {
+                    // 스왑 실패(false)는 사용자가 이미지를 이미 지운 경우 — blob 만 정리
+                    swapImageSrc(blobUrl, dataUrl);
                     URL.revokeObjectURL(blobUrl);
                 } else {
-                    // 변환 지연(>20s, 드묾): 로컬 미리보기 유지. 제출 가드가 blob 차단 → 데이터 유실 방지.
-                    console.warn('[image] 변환본 준비 지연 — 로컬 미리보기 유지:', dataUrl);
+                    // 변환 지연(>20s): 로컬 미리보기 유지하되, 백그라운드 회복 루프로 탈출 경로 제공
+                    // (bug/12981 — 종전엔 여기서 포기해 blob 이 영구 잔존, 제출 불가 데드엔드).
+                    console.error(
+                        '[upload-fail] image-swap-delayed: 변환본 20초 미준비, 백그라운드 회복 시작 —',
+                        dataUrl
+                    );
+                    void recoverImageSwap(blobUrl, dataUrl, originUrl);
                 }
             } catch (err) {
-                console.error('Image upload failed:', err);
+                console.error('[upload-fail] editor-upload:', err);
                 removeImageBySrc(blobUrl);
                 URL.revokeObjectURL(blobUrl);
             } finally {
