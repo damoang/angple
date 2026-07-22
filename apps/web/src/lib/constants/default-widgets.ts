@@ -80,11 +80,13 @@ export const DEFAULT_SIDEBAR_WIDGETS: WidgetConfig[] = [
     { id: 'notice', type: 'notice', position: 0, enabled: true },
     { id: 'emoji-awards', type: 'emoji-awards', position: 1, enabled: true },
     { id: 'hidden-gems', type: 'hidden-gems', position: 2, enabled: true },
-    { id: 'celebration', type: 'celebration', position: 3, enabled: true },
+    // 발견 엔진 — 롱테일 소모임 노출 레버(자체 fetch, 활동 0이면 미표시).
+    { id: 'trending-groups', type: 'trending-groups', position: 3, enabled: true },
+    { id: 'celebration', type: 'celebration', position: 4, enabled: true },
     {
         id: 'sidebar-ad-2',
         type: 'ad-slot',
-        position: 4,
+        position: 5,
         enabled: true,
         settings: { position: 'sidebar-2', type: 'image-text', format: 'grid' }
     }
