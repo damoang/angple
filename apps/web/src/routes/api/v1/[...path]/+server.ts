@@ -6,7 +6,7 @@ import type { RowDataPacket } from 'mysql2';
 import { invalidateBoardCache } from '$lib/server/ssr-cache.js';
 import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api.js';
 import { checkCertification } from '$lib/server/certification';
-import { autoLinkAngttEntity } from '$lib/server/angtt-auto-link';
+import { autoLinkAngttEntity, linkEntityFromTags } from '$lib/server/angtt-auto-link';
 
 /**
  * API v1 프록시 핸들러
@@ -360,6 +360,20 @@ async function autoLinkAngtt(path: string, response: Response): Promise<void> {
     if (!wrId) return;
 
     await autoLinkAngttEntity(postMatch[1], wrId);
+    // 작성자가 확정한 태그(제안 칩 [연결] 또는 수동 입력) → 작품 링크.
+    // 자동 연결과 별개 경로: 태그가 있으면 role='mention' 을 추가한다(IGNORE 로 중복 무해).
+    await linkEntityFromTags(postMatch[1], wrId);
+}
+
+/**
+ * 글 수정 시 태그→작품 링크만 동기화한다.
+ * ⛔ 제목 스캔(autoLinkAngttEntity)은 수정 경로에서 절대 재실행하지 않는다 —
+ *    작성자가 unlink 로 해제한 자동 태그가 수정 저장 때 되살아나는 사고 방지.
+ */
+async function linkAngttOnEdit(path: string): Promise<void> {
+    const editMatch = path.match(/^boards\/([a-zA-Z0-9_-]+)\/posts\/(\d+)$/);
+    if (!editMatch) return;
+    await linkEntityFromTags(editMatch[1], Number(editMatch[2]));
 }
 
 // 공통 프록시 로직
@@ -540,6 +554,11 @@ async function proxyRequest(
         if (method === 'PUT' && response.status >= 200 && response.status < 300) {
             syncCelebrationBanner(path).catch((err) => {
                 console.error('[API Proxy] celebration sync error:', err);
+            });
+
+            // 수정 시 태그→앙티티 링크 동기화(추가만, 제목 스캔 없음)
+            linkAngttOnEdit(path).catch((err) => {
+                console.error('[API Proxy] angtt edit-link error:', err);
             });
         }
 

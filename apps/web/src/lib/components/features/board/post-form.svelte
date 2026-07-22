@@ -79,6 +79,67 @@
     let link2 = $state(post?.link2 || initialLink2 || '');
     let errors = $state<{ title?: string; content?: string; category?: string }>({});
 
+    // ── 앙티티 작품 제안 칩 ──────────────────────────────────────────────
+    // 제목에서 작품명이 감지되면 태그 연결을 "제안"한다. 자동 부착이 아니라
+    // 작성자 확인(클릭)을 거치므로 참교육류 일반어 오탐이 커뮤니티를 오염시키지 않는다.
+    const ANGTT_SUGGEST_BOARDS = new Set(['free', 'angtt']);
+    const ANGTT_TAG_NAME = '앙티티';
+
+    interface AngttSuggestion {
+        slug: string;
+        title: string;
+        posterUrl: string | null;
+    }
+
+    let angttSuggestion = $state<AngttSuggestion | null>(null);
+    /** [무시]했거나 이미 [연결]한 작품 — 같은 세션에서 다시 제안하지 않는다 */
+    let angttDismissed = new Set<string>();
+    let angttSeq = 0;
+
+    $effect(() => {
+        const current = title.trim();
+        if (!ANGTT_SUGGEST_BOARDS.has(boardId) || isClaimBoard || current.length < 2) {
+            angttSuggestion = null;
+            return;
+        }
+
+        const seq = ++angttSeq;
+        const timer = setTimeout(async () => {
+            try {
+                const res = await fetch(`/api/angtt/detect?title=${encodeURIComponent(current)}`);
+                if (!res.ok || seq !== angttSeq) return;
+                const body = (await res.json()) as { match: AngttSuggestion | null };
+                if (seq !== angttSeq) return;
+                const match = body.match;
+                if (match && !angttDismissed.has(match.slug) && !tags.includes(match.slug)) {
+                    angttSuggestion = match;
+                } else {
+                    angttSuggestion = null;
+                }
+            } catch {
+                // 감지 실패는 무시 — 칩만 안 뜬다
+            }
+        }, 600);
+
+        return () => clearTimeout(timer);
+    });
+
+    function acceptAngttSuggestion(): void {
+        if (!angttSuggestion) return;
+        const next = [...tags];
+        if (!next.includes(ANGTT_TAG_NAME)) next.push(ANGTT_TAG_NAME);
+        if (!next.includes(angttSuggestion.slug)) next.push(angttSuggestion.slug);
+        tags = next;
+        angttDismissed.add(angttSuggestion.slug);
+        angttSuggestion = null;
+    }
+
+    function dismissAngttSuggestion(): void {
+        if (!angttSuggestion) return;
+        angttDismissed.add(angttSuggestion.slug);
+        angttSuggestion = null;
+    }
+
     // 파일 업로드 상태 (이미지 + 파일 통합)
     let uploadedFiles = $state<UploadedFile[]>([]);
 
@@ -659,6 +720,45 @@
                         <p class="text-destructive text-sm">{errors.title}</p>
                     {/if}
                     <p class="text-muted-foreground text-xs">{title.length}/200</p>
+
+                    {#if angttSuggestion}
+                        <div
+                            class="bg-muted/60 flex items-center gap-3 rounded-md border px-3 py-2"
+                        >
+                            {#if angttSuggestion.posterUrl}
+                                <img
+                                    src={angttSuggestion.posterUrl}
+                                    alt=""
+                                    class="h-10 w-7 shrink-0 rounded object-cover"
+                                    loading="lazy"
+                                />
+                            {:else}
+                                <span class="text-lg">🎬</span>
+                            {/if}
+                            <p class="min-w-0 flex-1 text-sm">
+                                <span class="font-medium">「{angttSuggestion.title}」</span>
+                                작품 이야기라면 태그로 연결할 수 있어요
+                            </p>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onclick={acceptAngttSuggestion}
+                                disabled={isLoading}
+                            >
+                                작품과 연결
+                            </Button>
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onclick={dismissAngttSuggestion}
+                                aria-label="제안 무시"
+                            >
+                                <XIcon class="h-4 w-4" />
+                            </Button>
+                        </div>
+                    {/if}
                 </div>
             {/if}
 
