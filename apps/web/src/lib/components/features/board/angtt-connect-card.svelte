@@ -141,11 +141,18 @@
                 return;
             }
             detectCandidate = null;
-            suggestStatus = {
-                suggestions: [{ slug, title, count: data.count }],
-                myVotes: [slug],
-                linked: data.promoted ? { slug, title } : (suggestStatus?.linked ?? null)
-            };
+            if (data.promoted) {
+                // 승격은 서버가 확정한 사실 — 즉시 연결 표시로 전환
+                suggestStatus = {
+                    suggestions: [{ slug, title, count: data.count }],
+                    myVotes: [slug],
+                    linked: { slug, title }
+                };
+            } else {
+                // 내 표 1건으로 통째 교체하면 같은 글의 다른 작품 제안 현황이
+                // 새로고침까지 사라진다 — 서버 현황을 다시 읽는다.
+                await loadSuggestStatus();
+            }
         } catch {
             suggestError = '제안에 실패했어요. 잠시 후 다시 시도해 주세요.';
         } finally {
@@ -168,11 +175,8 @@
                 suggestError = data?.error ?? '철회에 실패했어요. 잠시 후 다시 시도해 주세요.';
                 return;
             }
-            suggestStatus = {
-                suggestions: data.count > 0 ? [{ slug, title, count: data.count }] : [],
-                myVotes: [],
-                linked: suggestStatus?.linked ?? null
-            };
+            // 서버 현황 재조회 — 로컬 교체는 다른 작품 제안 현황을 지운다
+            await loadSuggestStatus();
         } catch {
             suggestError = '철회에 실패했어요. 잠시 후 다시 시도해 주세요.';
         } finally {

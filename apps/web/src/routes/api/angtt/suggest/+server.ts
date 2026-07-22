@@ -51,12 +51,12 @@ async function parseTarget(request: Request): Promise<SuggestTarget | null> {
     return { boardId, wrId, slug };
 }
 
-/** 이 글·작품 쌍의 서로 다른 제안자 수 (PK 프리픽스 시크) */
+/** 이 글·작품 쌍의 서로 다른 유효(미철회) 제안자 수 (PK 프리픽스 시크) */
 async function countDistinctVoters(target: SuggestTarget, entityId: number): Promise<number> {
     const [rows] = await pool.query(
         `SELECT COUNT(DISTINCT mb_id) AS voters
            FROM angple_entity_post_suggestions
-          WHERE bo_table = ? AND wr_id = ? AND entity_id = ?`,
+          WHERE bo_table = ? AND wr_id = ? AND entity_id = ? AND withdrawn_at IS NULL`,
         [target.boardId, target.wrId, entityId]
     );
     return Number((rows as { voters?: number }[])[0]?.voters ?? 0);
@@ -113,7 +113,9 @@ export const POST: RequestHandler = async ({ request, locals, setHeaders }) => {
         return json({ error: '이미 작품에 연결된 글이에요.' }, { status: 409 });
     }
 
-    // 레이트리밋 — 회원당 24시간 DAILY_SUGGEST_LIMIT 건 (idx_member_recent 시크)
+    // 레이트리밋 — 회원당 24시간 DAILY_SUGGEST_LIMIT 건 (idx_member_recent 시크).
+    // 철회는 소프트(withdrawn_at)라 행이 남고, 철회 후 재제안은 created_at 을 갱신해
+    // 다시 카운트된다 → 제안↔철회 반복으로 리밋을 리셋할 수 없다.
     const [rateRows] = await pool.query(
         `SELECT COUNT(*) AS cnt FROM angple_entity_post_suggestions
           WHERE mb_id = ? AND created_at >= NOW(3) - INTERVAL 1 DAY`,
@@ -127,17 +129,20 @@ export const POST: RequestHandler = async ({ request, locals, setHeaders }) => {
         );
     }
 
-    // 1표 등록 — PK 중복(이미 제안)은 멱등 200 으로 수렴
-    try {
-        await pool.execute(
-            `INSERT INTO angple_entity_post_suggestions
-                (bo_table, wr_id, entity_id, mb_id, created_at)
-             VALUES (?, ?, ?, ?, NOW(3))`,
-            [target.boardId, target.wrId, entity.id, mbId]
-        );
-    } catch (e) {
-        if ((e as { code?: string }).code !== 'ER_DUP_ENTRY') throw e;
-    }
+    // 1표 등록 — PK 중복 시:
+    //  - 유효 표가 이미 있으면 무변화(멱등, created_at 유지 → 쿼터 재소모 없음)
+    //  - 철회된 표면 부활시키고 created_at 을 갱신(제안 행위마다 쿼터 소모 →
+    //    제안↔철회 반복 남용이 리밋에 그대로 걸린다)
+    // 대입 순서 주의: created_at 이 withdrawn_at(구값)을 먼저 봐야 하므로 앞에 둔다.
+    await pool.execute(
+        `INSERT INTO angple_entity_post_suggestions
+            (bo_table, wr_id, entity_id, mb_id, created_at)
+         VALUES (?, ?, ?, ?, NOW(3))
+         ON DUPLICATE KEY UPDATE
+            created_at = IF(withdrawn_at IS NULL, created_at, VALUES(created_at)),
+            withdrawn_at = NULL`,
+        [target.boardId, target.wrId, entity.id, mbId]
+    );
 
     // 승격 판정 — 서로 다른 회원 수가 임계에 닿으면 링크 확정.
     // INSERT IGNORE 멱등이라 동시 요청·재시도에도 링크는 정확히 1행이다(별도 트랜잭션 불요).
@@ -155,7 +160,15 @@ export const POST: RequestHandler = async ({ request, locals, setHeaders }) => {
     return json({ count: voters, promoted, myVote: true });
 };
 
-export const DELETE: RequestHandler = async ({ request, locals, setHeaders }) => {
+/** 관리자 게이트 — POST 와 동일하게 쓰기 시점 g5_member 실측 */
+async function isAdmin(mbId: string): Promise<boolean> {
+    const [rows] = await pool.query(`SELECT mb_level FROM g5_member WHERE mb_id = ? LIMIT 1`, [
+        mbId
+    ]);
+    return Number((rows as { mb_level?: number }[])[0]?.mb_level ?? 0) >= 10;
+}
+
+export const DELETE: RequestHandler = async ({ request, locals, setHeaders, url }) => {
     setHeaders({ 'Cache-Control': 'private, no-store' });
 
     const mbId = locals.user?.id;
@@ -169,10 +182,32 @@ export const DELETE: RequestHandler = async ({ request, locals, setHeaders }) =>
     const entity = await getEntityBySlug(target.slug);
     if (!entity) return json({ error: '작품을 찾을 수 없습니다.' }, { status: 404 });
 
-    // 본인 표만 삭제. 승격 후에는 entity_posts 링크는 유지된다(해제는 관리자 몫).
+    // 관리자 정리 경로: ?scope=all — 이 글·작품의 제안 전량 + 승격 링크(mention)까지 제거.
+    // 크라우드 오연결의 되돌리기 수단(스펙 규칙표 6행). 일반 auto 해제는 기존 unlink 사용.
+    if (url.searchParams.get('scope') === 'all') {
+        if (!(await isAdmin(mbId))) {
+            return json({ error: '관리자만 정리할 수 있습니다.' }, { status: 403 });
+        }
+        await pool.execute(
+            `DELETE FROM angple_entity_post_suggestions
+              WHERE bo_table = ? AND wr_id = ? AND entity_id = ?`,
+            [target.boardId, target.wrId, entity.id]
+        );
+        await pool.execute(
+            `DELETE FROM angple_entity_posts
+              WHERE bo_table = ? AND wr_id = ? AND entity_id = ? AND role = 'mention'`,
+            [target.boardId, target.wrId, entity.id]
+        );
+        return json({ count: 0, promoted: false, myVote: false });
+    }
+
+    // 본인 표 철회 — 소프트(withdrawn_at). 행을 남겨야 레이트리밋(제안↔철회 반복)이
+    // 유지된다. 승격 후에는 entity_posts 링크는 유지된다(해제는 위 관리자 경로).
     await pool.execute(
-        `DELETE FROM angple_entity_post_suggestions
-          WHERE bo_table = ? AND wr_id = ? AND entity_id = ? AND mb_id = ?`,
+        `UPDATE angple_entity_post_suggestions
+            SET withdrawn_at = NOW(3)
+          WHERE bo_table = ? AND wr_id = ? AND entity_id = ? AND mb_id = ?
+            AND withdrawn_at IS NULL`,
         [target.boardId, target.wrId, entity.id, mbId]
     );
 

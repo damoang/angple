@@ -401,7 +401,7 @@ export async function getSuggestionStatus(
         `SELECT e.slug, e.canonical_title AS title, s.mb_id
            FROM angple_entity_post_suggestions s
            JOIN angple_entities e ON e.id = s.entity_id
-          WHERE s.bo_table = ? AND s.wr_id = ?`,
+          WHERE s.bo_table = ? AND s.wr_id = ? AND s.withdrawn_at IS NULL`,
         [boardId, wrId]
     );
 
