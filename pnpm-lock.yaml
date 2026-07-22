@@ -204,6 +204,9 @@ importers:
       kisa-seed:
         specifier: ^1.0.1
         version: 1.0.1
+      leaflet:
+        specifier: ^1.9.4
+        version: 1.9.4
       lowlight:
         specifier: ^3.3.0
         version: 3.3.0
@@ -298,6 +301,9 @@ importers:
       '@types/google-publisher-tag':
         specifier: ^1.20260202.0
         version: 1.20260202.0
+      '@types/leaflet':
+        specifier: ^1.9.21
+        version: 1.9.21
       '@types/mysql':
         specifier: ^2.15.27
         version: 2.15.27
@@ -2663,6 +2669,9 @@ packages:
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
+  '@types/geojson@7946.0.16':
+    resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
+
   '@types/google-publisher-tag@1.20260202.0':
     resolution: {integrity: sha512-+ZPJu9l47RomvjEg8X58n0kfpO1zofJX0COv7SD5/x0ewuPt421VcTt8IIS4J8Xp79izhfaNzGtLBdZaHFj9ww==}
 
@@ -2674,6 +2683,9 @@ packages:
 
   '@types/jsonwebtoken@9.0.10':
     resolution: {integrity: sha512-asx5hIG9Qmf/1oStypjanR7iKTv0gXQ1Ov/jfrX6kS/EO0OFni8orbmGCn0672NHR3kXHwpAwR+B368ZGN/2rA==}
+
+  '@types/leaflet@1.9.21':
+    resolution: {integrity: sha512-TbAd9DaPGSnzp6QvtYngntMZgcRk+igFELwR2N99XZn7RXUdKgsXMR+28bUO0rPsWp8MIu/f47luLIQuSLYv/w==}
 
   '@types/linkify-it@5.0.0':
     resolution: {integrity: sha512-sVDA58zAw4eWAffKOaQH5/5j3XeayukzDk+ewSsnv3p4yJEZHCCzMDiZM8e0OUrRvmpGZ85jf4yDHkHsgBNr9Q==}
@@ -4060,6 +4072,9 @@ packages:
 
   known-css-properties@0.37.0:
     resolution: {integrity: sha512-JCDrsP4Z1Sb9JwG0aJ8Eo2r7k4Ou5MwmThS/6lcIe1ICyb7UBJKGRIUUdqc2ASdE/42lgz6zFUnzAIhtXnBVrQ==}
+
+  leaflet@1.9.4:
+    resolution: {integrity: sha512-nxS1ynzJOmOlHp+iL3FyWqK89GtNL8U8rvlMOsQdTTssxZwCXh8N2NB3GDQOL+YR3XnWyZAxwQixURb+FA74PA==}
 
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
@@ -8552,6 +8567,8 @@ snapshots:
 
   '@types/estree@1.0.8': {}
 
+  '@types/geojson@7946.0.16': {}
+
   '@types/google-publisher-tag@1.20260202.0': {}
 
   '@types/hast@3.0.4':
@@ -8564,6 +8581,10 @@ snapshots:
     dependencies:
       '@types/ms': 2.1.0
       '@types/node': 25.0.10
+
+  '@types/leaflet@1.9.21':
+    dependencies:
+      '@types/geojson': 7946.0.16
 
   '@types/linkify-it@5.0.0': {}
 
@@ -10082,6 +10103,8 @@ snapshots:
   known-css-properties@0.35.0: {}
 
   known-css-properties@0.37.0: {}
+
+  leaflet@1.9.4: {}
 
   levn@0.4.1:
     dependencies:

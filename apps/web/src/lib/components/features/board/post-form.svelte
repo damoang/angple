@@ -11,7 +11,9 @@
     import Clock from '@lucide/svelte/icons/clock';
     import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
     import XIcon from '@lucide/svelte/icons/x';
+    import MapPin from '@lucide/svelte/icons/map-pin';
     import { stripAdminMentions } from '$lib/utils/sanitize-mentions.js';
+    import { findMapLink } from '$lib/utils/angmap-link.js';
     import { stripBlobMedia } from '$lib/utils/strip-blob-media.js';
     import type {
         FreePost,
@@ -155,6 +157,89 @@
 
     function insertScorecard(): void {
         editorRef?.insertContent(buildScorecardTableHtml(DEFAULT_ASPECTS));
+    }
+
+    // ── 앙지도 장소 확인 칩 ──────────────────────────────────────────────
+    // angmap 게시판에서 링크/본문에 지도 링크(naver.me, kko.to, goo.gl 등)가 감지되면
+    // 서버 프록시(/api/angmap/resolve)로 좌표·상호·주소를 해소해 "이 장소 맞나요?"
+    // 확인 칩을 띄운다. 자동 부착이 아니라 작성자 확인(클릭)을 거친다.
+    const isAngmapBoard = $derived(boardId === 'angmap');
+
+    interface AngmapPlaceSuggestion {
+        provider: string;
+        placeId: string | null;
+        name: string | null;
+        roadAddress: string | null;
+        lat: number | null;
+        lng: number | null;
+        sourceUrl: string;
+        status: string;
+    }
+
+    let angmapSuggestion = $state<AngmapPlaceSuggestion | null>(null);
+    let angmapConfirmed = $state<AngmapPlaceSuggestion | null>(null);
+    /** [무시]했거나 이미 확인한 링크 — 같은 세션에서 다시 제안하지 않는다 */
+    let angmapDismissed = new Set<string>();
+    let angmapSeq = 0;
+
+    $effect(() => {
+        if (!isAngmapBoard) return;
+        const candidate = findMapLink(link1) ?? findMapLink(link2) ?? findMapLink(content);
+        if (!candidate) {
+            angmapSeq++; // 늦은 응답이 링크 제거 후 칩을 띄우지 않게 무효화
+            angmapSuggestion = null;
+            return;
+        }
+        if (
+            angmapDismissed.has(candidate) ||
+            angmapSuggestion?.sourceUrl === candidate ||
+            angmapConfirmed?.sourceUrl === candidate
+        ) {
+            return;
+        }
+
+        const seq = ++angmapSeq;
+        const timer = setTimeout(async () => {
+            try {
+                const res = await fetch(`/api/angmap/resolve?url=${encodeURIComponent(candidate)}`);
+                if (!res.ok || seq !== angmapSeq) return;
+                const body = (await res.json()) as { place: AngmapPlaceSuggestion | null };
+                if (seq !== angmapSeq) return;
+                const place = body.place;
+                // 상호 또는 좌표 중 하나는 있어야 칩을 띄운다 (dead_link 등은 무표시)
+                if (
+                    place &&
+                    (place.name || (place.lat != null && place.lng != null)) &&
+                    !angmapDismissed.has(candidate)
+                ) {
+                    angmapSuggestion = { ...place, sourceUrl: candidate };
+                }
+            } catch {
+                // 해소 실패는 무시 — 칩만 안 뜨고 작성 흐름엔 영향 없다
+            }
+        }, 800);
+
+        return () => clearTimeout(timer);
+    });
+
+    function acceptAngmapSuggestion(): void {
+        if (!angmapSuggestion) return;
+        // 링크 필드가 비어 있으면 감지된 지도 링크를 채워 준다
+        // (백필/신규글 resolver 트랙이 wr_link 를 우선 스캔 — 좌표 확보율을 높인다)
+        if (!link1.trim()) {
+            link1 = angmapSuggestion.sourceUrl;
+        } else if (!link2.trim() && !link1.includes(angmapSuggestion.sourceUrl)) {
+            link2 = angmapSuggestion.sourceUrl;
+        }
+        angmapConfirmed = angmapSuggestion;
+        angmapDismissed.add(angmapSuggestion.sourceUrl);
+        angmapSuggestion = null;
+    }
+
+    function dismissAngmapSuggestion(): void {
+        if (!angmapSuggestion) return;
+        angmapDismissed.add(angmapSuggestion.sourceUrl);
+        angmapSuggestion = null;
     }
 
     // 파일 업로드 상태 (이미지 + 파일 통합)
@@ -848,6 +933,62 @@
                     disabled={isLoading}
                 />
             </div>
+
+            <!-- 앙지도 장소 확인 칩 (angmap 게시판 전용) -->
+            {#if isAngmapBoard && angmapSuggestion}
+                <div class="bg-muted/60 flex items-center gap-3 rounded-md border px-3 py-2">
+                    <MapPin class="text-primary h-5 w-5 shrink-0" />
+                    <p class="min-w-0 flex-1 text-sm">
+                        <span class="font-medium">{angmapSuggestion.name ?? '장소'}</span>
+                        {#if angmapSuggestion.roadAddress}
+                            <span class="text-muted-foreground">
+                                · {angmapSuggestion.roadAddress}</span
+                            >
+                        {/if}
+                        — 이 장소가 맞나요?
+                        {#if angmapSuggestion.status === 'no_coords'}
+                            <span class="text-muted-foreground block text-xs">
+                                좌표는 아직 확인하지 못했어요
+                            </span>
+                        {/if}
+                    </p>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onclick={acceptAngmapSuggestion}
+                        disabled={isLoading}
+                    >
+                        장소 확인
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onclick={dismissAngmapSuggestion}
+                        aria-label="장소 제안 무시"
+                    >
+                        <XIcon class="h-4 w-4" />
+                    </Button>
+                </div>
+            {:else if isAngmapBoard && angmapConfirmed}
+                <div
+                    class="flex items-center gap-2 rounded-md border border-green-300 bg-green-50 px-3 py-2 text-sm dark:border-green-800 dark:bg-green-900/20"
+                >
+                    <MapPin class="h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
+                    <span class="min-w-0 truncate">
+                        장소 확인됨:
+                        <span class="font-medium"
+                            >{angmapConfirmed.name ?? angmapConfirmed.sourceUrl}</span
+                        >
+                        {#if angmapConfirmed.roadAddress}
+                            <span class="text-muted-foreground">
+                                · {angmapConfirmed.roadAddress}</span
+                            >
+                        {/if}
+                    </span>
+                </div>
+            {/if}
 
             <!-- 첨부파일 (이미지 + 파일 통합) -->
             <div class="space-y-2">
