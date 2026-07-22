@@ -518,7 +518,9 @@
         const candidates = originUrl && originUrl !== dataUrl ? [dataUrl, originUrl] : [dataUrl];
         while (Date.now() - start < IMAGE_RECOVER_MAX_MS) {
             await sleep(IMAGE_RECOVER_INTERVAL_MS);
-            if (!editor) return;
+            // onDestroy 는 editor 를 null 로 되돌리지 않으므로 isDestroyed 로 이탈을 감지 —
+            // 페이지를 떠난 뒤 최대 4.7분 잔존 프로브가 도는 것을 막는다.
+            if (!editor || editor.isDestroyed) return;
             if (!hasImageBySrc(blobUrl)) {
                 // 사용자가 해당 이미지를 지움 — 회복 불필요
                 URL.revokeObjectURL(blobUrl);
