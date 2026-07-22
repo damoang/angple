@@ -351,6 +351,73 @@ export async function getEntityRating(entityId: number, mbId?: string): Promise<
     return { avg, count, my };
 }
 
+/** 크라우드 제안 현황 — 커넥트 카드 표기용 집계 */
+export interface AngttSuggestionStatus {
+    /** 작품별 제안 수 (제안 많은 순) */
+    suggestions: { slug: string; title: string; count: number }[];
+    /** 요청 회원이 제안한 작품 slug 목록 (비로그인이면 빈 배열) */
+    myVotes: string[];
+    /** 이미 작품에 연결된 글이면 그 작품 — 카드는 제안 UI 대신 연결 안내를 띄운다 */
+    linked: { slug: string; title: string } | null;
+}
+
+interface SuggestionRow {
+    slug: string;
+    title: string;
+    mb_id: string;
+}
+
+interface LinkedEntityRow {
+    slug: string;
+    title: string;
+}
+
+/**
+ * 글 1건의 크라우드 제안 현황을 집계한다.
+ *
+ * 쿼리 2개 전부 PK/인덱스 프리픽스 시크: entity_posts PK(bo_table, wr_id, …),
+ * entity_post_suggestions PK(bo_table, wr_id, …). 글상세 SSR 은 이 함수를 호출하지
+ * 않는다 — 카드(클라)가 마운트 후 지연 조회하는 read 경로 무접촉 규약.
+ */
+export async function getSuggestionStatus(
+    boardId: string,
+    wrId: number,
+    mbId?: string
+): Promise<AngttSuggestionStatus> {
+    // 연결 여부 (any role) — 승격은 태그 없이 링크만 생기므로 태그 기반 SSR 매칭이
+    // notFound 여도 링크는 존재할 수 있다. 카드가 그 간극을 이 값으로 메운다.
+    const [linkResult] = await pool.query(
+        `SELECT e.slug, e.canonical_title AS title
+           FROM angple_entity_posts ep
+           JOIN angple_entities e ON e.id = ep.entity_id
+          WHERE ep.bo_table = ? AND ep.wr_id = ?
+          LIMIT 1`,
+        [boardId, wrId]
+    );
+    const linkedRow = (linkResult as LinkedEntityRow[])[0];
+    const linked = linkedRow ? { slug: linkedRow.slug, title: linkedRow.title } : null;
+
+    const [rowsResult] = await pool.query(
+        `SELECT e.slug, e.canonical_title AS title, s.mb_id
+           FROM angple_entity_post_suggestions s
+           JOIN angple_entities e ON e.id = s.entity_id
+          WHERE s.bo_table = ? AND s.wr_id = ? AND s.withdrawn_at IS NULL`,
+        [boardId, wrId]
+    );
+
+    const bySlug = new Map<string, { slug: string; title: string; count: number }>();
+    const myVotes: string[] = [];
+    for (const r of rowsResult as SuggestionRow[]) {
+        const cur = bySlug.get(r.slug) ?? { slug: r.slug, title: r.title, count: 0 };
+        cur.count += 1;
+        bySlug.set(r.slug, cur);
+        if (mbId && r.mb_id === mbId) myVotes.push(r.slug);
+    }
+    const suggestions = [...bySlug.values()].sort((a, b) => b.count - a.count);
+
+    return { suggestions, myVotes, linked };
+}
+
 /**
  * 작품 단위 별점 등록/수정(회원당 작품당 1표).
  *
