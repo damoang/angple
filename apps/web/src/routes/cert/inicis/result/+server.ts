@@ -142,7 +142,11 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
         await flagDupinfoCollision(mbId, mbDupinfo).catch((e) => {
             console.error('[Cert] DI 충돌 플래그 기록 실패:', e);
         });
-        return certResultPage(false, '입력하신 본인확인 정보로 이미 가입된 내역이 존재합니다.');
+        return certResultPage(
+            false,
+            '이전에 가입하신 계정이 있어 본인인증이 제한되었습니다. ' +
+                '기존 계정으로 로그인하시거나, 계정 복구가 필요하시면 고객센터로 문의해 주세요.'
+        );
     }
 
     // DB 업데이트
