@@ -99,6 +99,7 @@
     $effect(() => {
         const current = title.trim();
         if (!ANGTT_SUGGEST_BOARDS.has(boardId) || isClaimBoard || current.length < 2) {
+            angttSeq++; // 이미 발사된 늦은 응답이 빈 제목 상태에 칩을 띄우지 않게 무효화
             angttSuggestion = null;
             return;
         }
