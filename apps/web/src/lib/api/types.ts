@@ -832,6 +832,8 @@ export interface UploadedFile {
     filename: string;
     original_filename: string;
     url: string;
+    /** S3 직행 URL — CDN 경로 지연 시 에디터 폴백 스왑 후보 (bug/12981) */
+    origin_url?: string;
     thumbnail_url?: string;
     size: number;
     mime_type: string;

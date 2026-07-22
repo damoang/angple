@@ -1715,12 +1715,40 @@ class ApiClient {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
-        const response = await fetch('/api/media/images', {
-            method: 'POST',
-            headers,
-            body: formData,
-            credentials: 'include'
-        });
+        // bug/12981: 자매 uploadImage(아래)와 동일한 타임아웃+재시도 — 모바일 회선에서
+        // POST 가 stall 하면 무기한 hang 해 에디터 blob 이 잔존하던 비대칭 해소.
+        // 동영상은 파일이 커서 30초로는 정상 업로드도 끊길 수 있어 여유를 둔다.
+        const MAX_RETRIES = 2;
+        const UPLOAD_TIMEOUT_MS = file.type.startsWith('video/') ? 120_000 : 30_000;
+        let lastError: Error | null = null;
+        let response: Response | null = null;
+
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+
+                response = await fetch('/api/media/images', {
+                    method: 'POST',
+                    headers,
+                    body: formData,
+                    credentials: 'include',
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                break;
+            } catch (err) {
+                lastError = err instanceof Error ? err : new Error('업로드 실패');
+                if (attempt < MAX_RETRIES) {
+                    await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+                    continue;
+                }
+            }
+        }
+
+        if (!response) {
+            throw lastError ?? new Error('파일 업로드에 실패했습니다. 네트워크를 확인해 주세요.');
+        }
 
         if (!response.ok) {
             const errorBody = await response.text().catch(() => '');
@@ -1755,6 +1783,8 @@ class ApiClient {
             filename: data.filename,
             original_filename: data.filename,
             url: data.cdn_url || data.url,
+            // S3 직행 URL — CDN 경로 지연 시 에디터 폴백 스왑 후보 (bug/12981)
+            origin_url: data.origin_url || undefined,
             // 동영상 포스터 — 서버가 Lambda 처리 확인 후에만 내려줌 (404 URL 박제 방지)
             thumbnail_url: data.poster_url || undefined,
             size: data.size,
