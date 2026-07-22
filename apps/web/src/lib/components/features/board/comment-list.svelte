@@ -1215,6 +1215,25 @@
 
                 <div class={commentLayout === 'chat' ? 'min-w-0 max-w-[80%]' : 'min-w-0'}>
                     <!-- Chat: 이름 라벨 + 메모 + IP (타인 댓글만) -->
+                    {#if isHelloLounge && chatRight && !isDeleted}
+                        <!-- 새 앙님(오른쪽 버블)은 카톡 관례상 이름줄이 없어 배지가 사라진다 —
+                             오른쪽 정렬 라벨로 이름+배지를 되살린다 -->
+                        <p
+                            class="text-foreground mb-1 mr-1 flex items-center justify-end gap-1 text-xs font-semibold"
+                        >
+                            <AuthorLink
+                                authorId={comment.author_id}
+                                authorName={comment.author}
+                                isWithdrawn={!!comment.is_left}
+                                expandTouchArea
+                            />
+                            <LevelBadge level={memberLevelStore.getLevel(comment.author_id)} />
+                            <span
+                                class="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 dark:bg-sky-900/40 dark:text-sky-300"
+                                >새 앙님 🎈</span
+                            >
+                        </p>
+                    {/if}
                     {#if commentLayout === 'chat' && !chatRight && !isDeleted}
                         <p
                             class="text-foreground mb-1 ml-1 flex items-center gap-1 text-xs font-semibold"
