@@ -199,7 +199,7 @@
     let reactionPluginActive = $derived(pluginStore.isPluginActive('da-reaction'));
 
     import TagNav from '$lib/components/ui/tag-nav/tag-nav.svelte';
-    import { launchCelebrationConfetti } from '$lib/utils/confetti.js';
+    import { launchCelebrationConfetti, launchSidesConfetti } from '$lib/utils/confetti.js';
 
     // 동적 import: member-memo 플러그인 컴포넌트
     import type { Component } from 'svelte';
@@ -938,6 +938,9 @@
         };
     });
 
+    // 가입인사 환영 타이틀 오버레이 표시 여부 (아래 onMount 폭죽과 한 쌍)
+    let showWelcomeTitle = $state(false);
+
     // 가입인사 환영 폭죽 — 신입이 자기 인사글을 처음 열 때 한 번만.
     //
     // 왜 "작성자 + 최초 1회" 인가:
@@ -959,11 +962,18 @@
             // localStorage 불가(시크릿 모드 등)면 중복 방지를 포기하고 그냥 띄운다
         }
 
-        // 페이지가 자리를 잡은 뒤 터뜨린다
+        // 페이지가 자리를 잡은 뒤 폭죽 + 영화 타이틀식 환영 문구를 함께 띄운다
         const t = setTimeout(() => {
             void launchCelebrationConfetti();
+            showWelcomeTitle = true;
         }, 600);
-        return () => clearTimeout(t);
+        const t2 = setTimeout(() => {
+            showWelcomeTitle = false;
+        }, 5000);
+        return () => {
+            clearTimeout(t);
+            clearTimeout(t2);
+        };
     });
 
     // 날짜 포맷 헬퍼
@@ -1564,6 +1574,14 @@
                     comments = [...comments, optimisticComment];
                     commentsTotal = commentsTotal + 1;
                 }
+            }
+
+            // hello 환영 라운지: 환영 댓글을 단 순간 작은 폭죽 — 환영하는 쪽도 즐겁게
+            if (
+                boardId === 'hello' &&
+                !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+            ) {
+                void launchSidesConfetti();
             }
 
             // 서버에서 정렬된 댓글 목록 다시 가져오기 (중복 제거 포함)
@@ -2745,3 +2763,48 @@
         </a>
     {/if}
 </div>
+
+{#if showWelcomeTitle}
+    <!-- 가입인사 환영 타이틀 — 신입 본인 최초 1회, 폭죽과 함께 (pointer-events 없음 = 조작 방해 0) -->
+    <div
+        class="pointer-events-none fixed inset-0 z-[90] flex flex-col items-center justify-center px-6 text-center"
+    >
+        <p
+            class="dm-welcome-line text-3xl font-extrabold text-sky-500 drop-shadow-lg sm:text-5xl dark:text-sky-300"
+        >
+            환영해요, {data.post.author} 앙님! 🎈
+        </p>
+        <p
+            class="dm-welcome-line dm-welcome-sub text-foreground/80 mt-3 text-base font-medium sm:text-xl"
+        >
+            다모앙 라이프의 시작을 축하해요
+        </p>
+    </div>
+{/if}
+
+<style>
+    .dm-welcome-line {
+        animation: dm-welcome-pop 4.2s ease forwards;
+    }
+    .dm-welcome-sub {
+        animation-delay: 0.25s;
+        opacity: 0;
+    }
+    @keyframes dm-welcome-pop {
+        0% {
+            opacity: 0;
+            transform: translateY(14px) scale(0.92);
+        }
+        12% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        80% {
+            opacity: 1;
+        }
+        100% {
+            opacity: 0;
+            transform: translateY(-8px);
+        }
+    }
+</style>

@@ -1081,6 +1081,11 @@
             : null}
         {@const isDiscussion = commentLayout === 'discussion'}
         {@const isFeed = commentLayout === 'feed'}
+        {@const chatRight =
+            commentLayout === 'chat' &&
+            (isHelloLounge
+                ? !postDeleted && !!postAuthorId && comment.author_id === postAuthorId
+                : isAuthor)}
         {@const iconUrl = isDeleted
             ? null
             : getAvatarUrl(
@@ -1134,7 +1139,7 @@
                     ? ''
                     : 'overflow-hidden'} transition-colors duration-200
                 {commentLayout === 'chat'
-                    ? 'flex items-start gap-2.5' + (isAuthor ? ' flex-row-reverse' : '')
+                    ? 'flex items-start gap-2.5' + (chatRight ? ' flex-row-reverse' : '')
                     : isDiscussion
                       ? 'border-border/70 border-b py-4 last:border-b-0'
                       : isFeed
@@ -1210,7 +1215,7 @@
 
                 <div class={commentLayout === 'chat' ? 'min-w-0 max-w-[80%]' : 'min-w-0'}>
                     <!-- Chat: 이름 라벨 + 메모 + IP (타인 댓글만) -->
-                    {#if commentLayout === 'chat' && !isAuthor && !isDeleted}
+                    {#if commentLayout === 'chat' && !chatRight && !isDeleted}
                         <p
                             class="text-foreground mb-1 ml-1 flex items-center gap-1 text-xs font-semibold"
                         >
@@ -1231,7 +1236,7 @@
                                 <!-- hello 환영 라운지: 원글 작성자 = 새로 온 앙님 (chat 이름 라벨 안이라 chat 전용) -->
                                 <span
                                     class="rounded px-1.5 py-0.5 text-[10px] font-semibold {isHelloLounge
-                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                                        ? 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-300'
                                         : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}"
                                     >{isHelloLounge ? '새 앙님 🎈' : '작성자'}</span
                                 >
@@ -1273,14 +1278,11 @@
                         class={commentLayout === 'chat'
                             ? isDeleted
                                 ? 'bg-muted/50 rounded-xl px-3.5 py-2.5'
-                                : isAuthor
-                                  ? 'bg-primary/10 rounded-xl rounded-br-sm px-3.5 py-2.5'
-                                  : isHelloLounge &&
-                                      !postDeleted &&
-                                      postAuthorId &&
-                                      comment.author_id === postAuthorId
-                                    ? 'rounded-xl rounded-bl-sm border border-amber-300/70 bg-amber-100/70 px-3.5 py-2.5 dark:border-amber-600/40 dark:bg-amber-900/25'
-                                    : 'bg-muted rounded-xl rounded-bl-sm px-3.5 py-2.5'
+                                : chatRight
+                                  ? isHelloLounge
+                                      ? 'rounded-xl rounded-br-sm border border-sky-300/70 bg-sky-100/70 px-3.5 py-2.5 dark:border-sky-600/40 dark:bg-sky-900/25'
+                                      : 'bg-primary/10 rounded-xl rounded-br-sm px-3.5 py-2.5'
+                                  : 'bg-muted rounded-xl rounded-bl-sm px-3.5 py-2.5'
                             : ''}
                     >
                         <div
