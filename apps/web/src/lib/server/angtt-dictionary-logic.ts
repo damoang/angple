@@ -239,6 +239,34 @@ export function scanAliasesInTitle(
     return null;
 }
 
+/**
+ * 태그 목록에서 작품 별칭 정확 일치를 찾는다 (쓰기 훅용 · 부분일치 없음).
+ *
+ * 「앙티티」 옵트인 태그가 있어야 하고, 나머지 태그를 normalize 해 별칭과 정확 비교한다.
+ * 태그 입력 순서를 존중해 첫 일치를 반환한다. autoLink/contextTerms 는 보지 않는다 —
+ * 작성자가 직접 단 태그는 그 자체가 사람의 확인이기 때문이다.
+ */
+export function matchAliasFromTags(
+    tags: readonly string[],
+    aliases: readonly EntityAlias[]
+): EntityAlias | null {
+    if (!hasAngttTag(tags)) return null;
+
+    const angtt = normalizeWorkTitle(ANGTT_TAG);
+    const byNorm = new Map<string, EntityAlias>();
+    for (const a of aliases) {
+        if (!byNorm.has(a.aliasNorm)) byNorm.set(a.aliasNorm, a);
+    }
+
+    for (const t of tags) {
+        const key = normalizeWorkTitle(t);
+        if (!key || key === angtt) continue;
+        const hit = byNorm.get(key);
+        if (hit) return hit;
+    }
+    return null;
+}
+
 /** 태그 매칭 결과: 일치 작품 / 미등록(유도 카드용 질의) / 후보 태그 없음(null) */
 export type TagMatchResult = { work: AngttWork } | { query: string } | null;
 

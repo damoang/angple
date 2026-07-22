@@ -17,6 +17,7 @@ import pool from '$lib/server/db';
 import {
     ANGTT_TAG,
     scanAliasesInTitle,
+    matchAliasFromTags,
     normalizeWorkTitle,
     type EntityAlias
 } from './angtt-dictionary-logic';
@@ -29,13 +30,26 @@ const SYSTEM_TAG_MB_ID = 'ai';
 
 /** 별칭 사전 캐시 (작품 수가 적고 변경이 드물어 짧은 TTL 로 충분) */
 const ALIAS_TTL_MS = 5 * 60_000;
-let aliasCache: { at: number; aliases: EntityAlias[]; slugToId: Map<string, number> } | null = null;
+
+/** 캐시에 함께 담는 작품 표시 정보 (detect API 응답용) */
+interface EntityInfo {
+    id: number;
+    title: string;
+    posterUrl: string | null;
+}
+
+let aliasCache: {
+    at: number;
+    aliases: EntityAlias[];
+    slugToInfo: Map<string, EntityInfo>;
+} | null = null;
 
 interface EntityRow {
     id: number;
     slug: string;
     canonical_title: string;
     aliases: unknown;
+    poster_url: string | null;
     meta: unknown;
 }
 
@@ -71,16 +85,20 @@ async function loadAliases() {
     if (aliasCache && now - aliasCache.at < ALIAS_TTL_MS) return aliasCache;
 
     const [rows] = await pool.query(
-        `SELECT id, slug, canonical_title, aliases, meta
+        `SELECT id, slug, canonical_title, aliases, poster_url, meta
            FROM angple_entities
           WHERE status = 'active'`
     );
 
     const aliases: EntityAlias[] = [];
-    const slugToId = new Map<string, number>();
+    const slugToInfo = new Map<string, EntityInfo>();
 
     for (const r of rows as EntityRow[]) {
-        slugToId.set(r.slug, Number(r.id));
+        slugToInfo.set(r.slug, {
+            id: Number(r.id),
+            title: r.canonical_title,
+            posterUrl: r.poster_url || null
+        });
         const meta = asObject(r.meta);
         // 기본은 false — 작품별로 명시 옵트인해야만 자동 연결된다
         const autoLink = meta.auto_link === true;
@@ -99,8 +117,82 @@ async function loadAliases() {
         }
     }
 
-    aliasCache = { at: now, aliases, slugToId };
+    aliasCache = { at: now, aliases, slugToInfo };
     return aliasCache;
+}
+
+/** 작성폼 제안 칩의 감지 결과 */
+export interface AngttDetectMatch {
+    slug: string;
+    title: string;
+    posterUrl: string | null;
+    /** true 면 저장 시 서버가 어차피 자동 연결한다(칩은 안내 성격) */
+    canAutoLink: boolean;
+}
+
+/**
+ * 제목에서 작품을 감지한다 — 작성폼 제안 칩 전용 (read-only, 부작용 0).
+ *
+ * 자동연결과 같은 별칭 캐시·스캐너를 쓰되, canAutoLink=false 인 히트(옵트인 안 된
+ * 작품·문맥어 불충족)도 돌려준다. 그 케이스가 바로 "작성자 확인" 제안의 대상이다.
+ * ⛔ 글 상세/목록 read 경로에서 호출 금지 — 작성폼 debounce 입력 전용.
+ */
+export async function detectEntityFromTitle(title: string): Promise<AngttDetectMatch | null> {
+    const trimmed = title?.trim();
+    if (!trimmed || trimmed.length < 2) return null;
+
+    const { aliases, slugToInfo } = await loadAliases();
+    const hit = scanAliasesInTitle(trimmed, aliases);
+    if (!hit) return null;
+
+    const info = slugToInfo.get(hit.entitySlug);
+    if (!info) return null;
+
+    return {
+        slug: hit.entitySlug,
+        title: info.title,
+        posterUrl: info.posterUrl,
+        canAutoLink: hit.canAutoLink
+    };
+}
+
+/**
+ * 글의 태그(작성자가 확정한 것)를 보고 작품 링크를 만든다.
+ *
+ * 「앙티티」+ 별칭 정확 일치 태그가 있으면 entity_posts 에 role='mention' 을
+ * INSERT IGNORE 한다 — 이미 auto/review/mention 행이 있으면 무변화(PK: bo_table,
+ * wr_id, entity_id). 태그는 건드리지 않고(작성자 소유) 링크만 **추가**한다.
+ * 제안 칩 [연결]·수동 태그 입력 양쪽이 이 경로로 작품페이지에 연결된다.
+ *
+ * @returns 링크한 작품 slug, 대상 아니면 null
+ */
+export async function linkEntityFromTags(boardId: string, wrId: number): Promise<string | null> {
+    if (!AUTO_LINK_BOARDS.has(boardId)) return null;
+    if (!/^[a-zA-Z0-9_-]+$/.test(boardId)) return null;
+
+    const [tagRows] = await pool.query(
+        `SELECT tag FROM g5_na_tag_log WHERE bo_table = ? AND wr_id = ?`,
+        [boardId, wrId]
+    );
+    const tags = (tagRows as { tag?: string }[])
+        .map((r) => r.tag ?? '')
+        .filter((t) => t.length > 0);
+    if (tags.length === 0) return null;
+
+    const { aliases, slugToInfo } = await loadAliases();
+    const hit = matchAliasFromTags(tags, aliases);
+    if (!hit) return null;
+
+    const info = slugToInfo.get(hit.entitySlug);
+    if (!info) return null;
+
+    await pool.execute(
+        `INSERT IGNORE INTO angple_entity_posts (entity_id, bo_table, wr_id, role, created_at)
+         VALUES (?, ?, ?, 'mention', NOW(3))`,
+        [info.id, boardId, wrId]
+    );
+
+    return hit.entitySlug;
 }
 
 /** 태그 이름 → tag_id (없으면 생성) */
@@ -215,11 +307,11 @@ export async function autoLinkAngttEntity(
     const title = titleArg ?? (await fetchTitle(boardId, wrId));
     if (!title?.trim()) return null;
 
-    const { aliases, slugToId } = await loadAliases();
+    const { aliases, slugToInfo } = await loadAliases();
     const hit = scanAliasesInTitle(title, aliases);
     if (!hit || !hit.canAutoLink) return null;
 
-    const entityId = slugToId.get(hit.entitySlug);
+    const entityId = slugToInfo.get(hit.entitySlug)?.id;
     if (!entityId) return null;
 
     // 작품명 태그는 canonical slug 를 쓴다(별칭으로 달면 표기가 흩어진다)

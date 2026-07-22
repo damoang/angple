@@ -6,6 +6,7 @@ import {
     buildDictionary,
     matchWorkFromTags,
     scanAliasesInTitle,
+    matchAliasFromTags,
     type EntityAlias
 } from './angtt-dictionary-logic';
 
@@ -226,5 +227,48 @@ describe('scanAliasesInTitle — 제목 내 작품 별칭 스캔 (티어 B)', ()
             { aliasNorm: '동궁 시즌2', entitySlug: 'donggung-s2', autoLink: true }
         ];
         expect(scanAliasesInTitle('동궁 시즌2 후기', withLonger)?.entitySlug).toBe('donggung-s2');
+    });
+});
+
+describe('matchAliasFromTags — 태그 정확 일치로 작품 찾기 (쓰기 훅용)', () => {
+    const ALIASES: EntityAlias[] = [
+        { aliasNorm: '호프', entitySlug: 'hope', autoLink: true, contextTerms: ['영화'] },
+        { aliasNorm: 'hope', entitySlug: 'hope', autoLink: true },
+        { aliasNorm: '참교육', entitySlug: 'chamgyoyuk', autoLink: false }
+    ];
+
+    it('「앙티티」 태그가 없으면 null (옵트인 필수)', () => {
+        expect(matchAliasFromTags(['호프'], ALIASES)).toBeNull();
+    });
+
+    it('앙티티 + 별칭 정확 일치 → 작품 반환', () => {
+        expect(matchAliasFromTags([ANGTT_TAG, '호프'], ALIASES)?.entitySlug).toBe('hope');
+    });
+
+    it('정규화 비교 — 대소문자/공백 차이를 흡수한다', () => {
+        expect(matchAliasFromTags(['앙티티', '  HOPE '], ALIASES)?.entitySlug).toBe('hope');
+    });
+
+    it('부분일치는 절대 매칭하지 않는다', () => {
+        expect(matchAliasFromTags([ANGTT_TAG, '호프집 후기'], ALIASES)).toBeNull();
+    });
+
+    it('autoLink=false 작품도 태그로는 연결된다 (작성자 확인이 곧 사람의 승인)', () => {
+        expect(matchAliasFromTags([ANGTT_TAG, '참교육'], ALIASES)?.entitySlug).toBe('chamgyoyuk');
+    });
+
+    it('autoLink 문맥어 조건은 태그 매칭에 적용되지 않는다', () => {
+        // 제목 스캔과 달리 태그는 명시 선택이므로 문맥어 없이도 통과
+        expect(matchAliasFromTags([ANGTT_TAG, '호프'], ALIASES)?.entitySlug).toBe('hope');
+    });
+
+    it('태그 입력 순서 존중 — 첫 일치 반환', () => {
+        expect(matchAliasFromTags([ANGTT_TAG, '참교육', '호프'], ALIASES)?.entitySlug).toBe(
+            'chamgyoyuk'
+        );
+    });
+
+    it('「앙티티」 태그 자신은 후보에서 제외', () => {
+        expect(matchAliasFromTags([ANGTT_TAG], ALIASES)).toBeNull();
     });
 });
