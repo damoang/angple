@@ -10,6 +10,7 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import {
+    getEntityAspects,
     getEntityBySlug,
     getEntityConnectedPosts,
     getEntityRating
@@ -23,10 +24,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
         throw error(404, '작품을 찾을 수 없습니다.');
     }
 
-    const [posts, rating] = await Promise.all([
+    const [posts, rating, aspects] = await Promise.all([
         getEntityConnectedPosts(entity.id, { sort: 'best', limit: 20 }),
-        getEntityRating(entity.id, locals.user?.id)
+        getEntityRating(entity.id, locals.user?.id),
+        // 항목별 평점(옵트인) — idx_target 시크 1쿼리 편승, 0건이면 빈 배열
+        getEntityAspects(entity.id, locals.user?.id)
     ]);
 
-    return { entity, posts, rating };
+    return { entity, posts, rating, aspects };
 };

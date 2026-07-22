@@ -1233,6 +1233,19 @@
             rawContent = html;
         }
     }
+
+    // 커서 위치에 HTML 콘텐츠 삽입 (외부에서 호출용 — 앙티티 채점표 템플릿 등)
+    export function insertContent(html: string): void {
+        if (editorMode === 'wysiwyg') {
+            editor?.chain().focus().insertContent(html).run();
+        } else if (editorMode === 'markdown') {
+            rawContent = `${rawContent}\n${turndown.turndown(html)}`;
+            void handleRawContentChange();
+        } else {
+            rawContent = `${rawContent}\n${html}`;
+            void handleRawContentChange();
+        }
+    }
 </script>
 
 <div class="tiptap-editor border-input relative rounded-md border {className}">
