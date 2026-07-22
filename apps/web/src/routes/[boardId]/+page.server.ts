@@ -42,6 +42,7 @@ interface PostsCacheData {
 type ListBoardPayload = Pick<
     Board,
     | 'board_id'
+    | 'group_id'
     | 'subject'
     | 'name'
     | 'list_level'
@@ -119,6 +120,7 @@ function toListBoardPayload(board: Board | null): ListBoardPayload | null {
 
     return {
         board_id: board.board_id,
+        group_id: board.group_id,
         subject: board.subject,
         name: board.name,
         list_level: board.list_level,
