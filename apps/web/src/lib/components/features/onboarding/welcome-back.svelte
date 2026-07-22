@@ -19,28 +19,21 @@
      *  4) 닫기 안 누름 (회원별 키)
      *  5) 홀드아웃(10%) 이 아님 — 대조군은 카드를 보지 않지만 자격 이벤트는 남겨 증분을 측정한다
      *
-     * ⚠️ 판정은 `/api/members/{id}/activity`(SvelteKit 프록시 → Go GetMemberActivity) **단일 호출**로 한다.
-     *    apiClient.getMyActivity() 와 getMemberProfile() 은 둘 다 백엔드 라우트가 없는 죽은 메서드다
-     *    (`/api/v1/members/{id}` 는 존재하지 않는 경로와 동일하게 `{"data":null}` 을 돌려준다 — 실측 확인).
-     *    죽은 API 를 게이트에 두면 예외가 catch 로 삼켜져 기능이 조용히 0% 로 죽는다.
-     *    기여 이력 판정도 이 응답으로 대신한다: 목록이 비어 있으면 신규 미기여(실험 A 소관) 이거나
-     *    판정 불가이므로 어느 쪽이든 미노출이 정답이다.
+     * ⚠️ 판정은 `/api/me/onboarding-status` **단일 권위 소스**(fe#1824)로 한다 — 실험 A
+     *    온보딩 카드와 같은 소스라 두 카드의 배타 조건(기여 유무)이 한 곳에서 갈린다.
+     *    - apiClient.getMyActivity()/getMemberProfile() 은 백엔드 라우트가 없는 죽은 메서드다
+     *      (실존 ID 와 가짜 ID 가 똑같이 `{"data":null}` — 실측). 게이트에 두면 조용히 0% 로 죽는다.
+     *    - 이전 안이던 `/api/members/{id}/activity` 는 최근 5건만 반환해, 검색 제외 게시판에만
+     *      기여한 활성 회원을 휴면으로 오판할 수 있었다. onboarding-status 는
+     *      member_activity_feed 전량(is_public=1) 기준이라 이 오탐이 없다.
      */
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { trackEvent } from '$lib/services/ga4';
-    import {
-        cacheKey,
-        dismissKey,
-        isDormantWindow,
-        isHoldout,
-        lastContributionAt,
-        type MemberActivityResponse
-    } from './welcome-back-logic';
+    import { cacheKey, dismissKey, isDormantWindow, isHoldout } from './welcome-back-logic';
 
     const POSITIVE_TTL_MS = 86400000; // 자격 판정 1일 — 복귀해 글을 쓰면 하루 안에 사라진다
     const NEGATIVE_TTL_MS = 3600000; // 미자격/실패 1시간 — 장애 시 재시도 폭주 방지
     const DAY_MS = 86400000;
-    const ACTIVITY_LIMIT = 5;
 
     let show = $state(false);
     let checked = $state(false);
@@ -101,19 +94,22 @@
 
         void (async () => {
             try {
-                const res = await fetch(
-                    `/api/members/${encodeURIComponent(mbId)}/activity?limit=${ACTIVITY_LIMIT}`
-                );
+                // 판정은 /api/me/onboarding-status 단일 권위 소스(fe#1824)로 한다.
+                // 이전 activity 프록시는 최근 5건만 반환해, 검색 제외 게시판에만 기여한
+                // 활성 회원을 휴면으로 오판(false positive)할 수 있었다(리뷰 지적).
+                // onboarding-status 는 member_activity_feed 전량(is_public=1) 기준이라 정확하다.
+                const res = await fetch('/api/me/onboarding-status');
                 if (!res.ok) {
                     writeCache(mbId, false, 0);
                     return;
                 }
-                const activity = (await res.json()) as MemberActivityResponse;
+                const status = (await res.json()) as { last_contribution_at: string | null };
 
-                const last = lastContributionAt(activity);
-                if (last === null) {
-                    // 신규 미기여(실험 A 소관) 이거나, 검색 제외 게시판(158개 중 38개)에만 기여해
-                    // 판정이 불가능한 경우. 어느 쪽이든 미노출이 안전하다(미탐 우선).
+                const last = status.last_contribution_at
+                    ? Date.parse(status.last_contribution_at)
+                    : null;
+                if (last === null || Number.isNaN(last)) {
+                    // 기여 이력 없음 = 신규 미기여(실험 A 소관). 미노출이 안전하다.
                     writeCache(mbId, false, 0);
                     return;
                 }
