@@ -155,6 +155,10 @@
         return comments.find((item) => String(item.id) === commentId) ?? null;
     }
 
+    // hello 환영 라운지: 가입인사 + chat 레이아웃 조합에서만 발동하는 표시 특화.
+    // ⛔ chat 분기 밖(다른 레이아웃·다른 게시판) 렌더에는 절대 영향을 주면 안 된다.
+    const isHelloLounge = $derived(boardId === 'hello' && commentLayout === 'chat');
+
     // 플러그인 활성화 여부
     let memoPluginActive = $derived(pluginStore.isPluginActive('member-memo'));
     let reactionPluginActive = $derived(pluginStore.isPluginActive('da-reaction'));
@@ -1218,9 +1222,12 @@
                             />
                             <LevelBadge level={memberLevelStore.getLevel(comment.author_id)} />
                             {#if !postDeleted && postAuthorId && comment.author_id === postAuthorId}
+                                <!-- hello 환영 라운지: 원글 작성자 = 새로 온 앙님 (chat 이름 라벨 안이라 chat 전용) -->
                                 <span
-                                    class="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                                    >작성자</span
+                                    class="rounded px-1.5 py-0.5 text-[10px] font-semibold {isHelloLounge
+                                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300'
+                                        : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}"
+                                    >{isHelloLounge ? '새 앙님 🎈' : '작성자'}</span
                                 >
                             {/if}
                             {#if authStore.isAuthenticated && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
@@ -1262,7 +1269,12 @@
                                 ? 'bg-muted/50 rounded-xl px-3.5 py-2.5'
                                 : isAuthor
                                   ? 'bg-primary/10 rounded-xl rounded-br-sm px-3.5 py-2.5'
-                                  : 'bg-muted rounded-xl rounded-bl-sm px-3.5 py-2.5'
+                                  : isHelloLounge &&
+                                      !postDeleted &&
+                                      postAuthorId &&
+                                      comment.author_id === postAuthorId
+                                    ? 'rounded-xl rounded-bl-sm border border-amber-300/70 bg-amber-100/70 px-3.5 py-2.5 dark:border-amber-600/40 dark:bg-amber-900/25'
+                                    : 'bg-muted rounded-xl rounded-bl-sm px-3.5 py-2.5'
                             : ''}
                     >
                         <div

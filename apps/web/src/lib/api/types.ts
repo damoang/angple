@@ -757,6 +757,7 @@ export type CommentLayout =
     | 'compact'
     | 'discussion'
     | 'feed'
+    | 'chat'
     | (string & {});
 
 // 게시판 표시 설정
