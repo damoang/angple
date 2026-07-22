@@ -41,10 +41,13 @@ const trendingCache = new TieredCache<TrendingGroup[]>('group-trending', 60_000,
  */
 export async function loadTrendingGroups(limit = MAX_LIMIT): Promise<TrendingGroup[]> {
     const n = clampLimit(limit);
-    const cacheKey = `top:${n}`;
-    const cached = await trendingCache.get(cacheKey);
-    if (cached) return cached;
+    // getOrFetch = singleflight. 60초 만료 순간 홈 최고 트래픽에서 동시 미스가
+    // 몰려도 factory 는 1회만 실행된다(thundering herd 방지). 홈/사이드바에 곱해지는
+    // 위치라 수동 get/set 대신 반드시 이걸 쓴다(2026-07-22 IOPS 민감도 교훈).
+    return trendingCache.getOrFetch(`top:${n}`, () => computeTrendingGroups(n));
+}
 
+async function computeTrendingGroups(n: number): Promise<TrendingGroup[]> {
     // 1) 소모임별 주간/오늘 글수 집계 (subscriber 조인 제외 — 경량).
     //    groups 페이지와 동일한 인덱스 시크 경로(bn_datetime range + bo_table group by).
     const [aggRows] = await readPool.query<RowDataPacket[]>(
@@ -78,12 +81,14 @@ export async function loadTrendingGroups(limit = MAX_LIMIT): Promise<TrendingGro
     );
 
     if (ranked.length === 0) {
-        await trendingCache.set(cacheKey, []);
         return [];
     }
 
     // 2) 상위 N 소모임의 최신 루트글 1건씩 조회 (제목 표시용).
-    //    g5_board_new 는 board_new 인덱스로 bo_table IN + wr_parent=wr_id 시크.
+    //    board_new 인덱스로 bo_table IN + wr_parent=wr_id range 시크 후 최신순.
+    //    N=3~5개 소량이라 boundedness 문제 없음. (상관 서브쿼리 MAX 로 바꾸면
+    //    g5_board_new 대형 테이블에서 보드별 스캔이 돌아 오히려 2분+ — 2026-07-23
+    //    EXPLAIN 실측으로 폐기. 앱측 첫 등장 방식 유지.)
     const topTables = ranked.map((r) => r.bo_table);
     const latestByTable = new Map<string, { wr_id: number; bn_datetime: string }>();
     try {
@@ -143,6 +148,5 @@ export async function loadTrendingGroups(limit = MAX_LIMIT): Promise<TrendingGro
         };
     });
 
-    await trendingCache.set(cacheKey, result);
     return result;
 }
