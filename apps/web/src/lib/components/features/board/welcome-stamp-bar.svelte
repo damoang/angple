@@ -7,6 +7,7 @@
         welcomeStampContent
     } from '$lib/utils/welcome-stamp.js';
     import type { BoardPermissions, FreeComment } from '$lib/api/types.js';
+    import { onMount } from 'svelte';
     import { toast } from 'svelte-sonner';
     import Check from '@lucide/svelte/icons/check';
     import Loader2 from '@lucide/svelte/icons/loader-2';
@@ -55,15 +56,19 @@
     // 글당 1회는 클라 판정만 — 우회해도 일반 댓글과 동일 취급이라 서버 강제 불요
     const stamped = $derived(hasStampedWelcome(comments, authStore.user?.mb_id));
 
-    // welcome 팩이 없거나 API 실패면 조용히 미노출 (스탬프는 부가 기능)
-    fetch('/api/emoticons/list')
-        .then((res) => (res.ok ? res.json() : Promise.reject(new Error('API error'))))
-        .then((data: { packs: Array<{ prefix: string; items: EmoticonItem[] }> }) => {
-            stamps = data.packs.find((p) => p.prefix === WELCOME_PACK_PREFIX)?.items ?? [];
-        })
-        .catch(() => {
-            stamps = [];
-        });
+    // welcome 팩이 없거나 API 실패면 조용히 미노출 (스탬프는 부가 기능).
+    // ⛔ onMount 필수 — 이 컴포넌트는 글상세에 정적 import 되므로 스크립트 최상위 fetch 는
+    //    SSR 에서도 실행되고, 상대 URL fetch 가 서버에서 터진다(emoticon-picker 는 lazy 라 무관).
+    onMount(() => {
+        fetch('/api/emoticons/list')
+            .then((res) => (res.ok ? res.json() : Promise.reject(new Error('API error'))))
+            .then((data: { packs: Array<{ prefix: string; items: EmoticonItem[] }> }) => {
+                stamps = data.packs.find((p) => p.prefix === WELCOME_PACK_PREFIX)?.items ?? [];
+            })
+            .catch(() => {
+                stamps = [];
+            });
+    });
 
     async function sendStamp(file: string): Promise<void> {
         if (stamped || sendingFile || disabled) return;
