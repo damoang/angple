@@ -190,8 +190,25 @@ export async function flagDupinfoCollision(
     );
 
     if (blockingRows.length === 0) {
-        // 정상(활성) 계정 매칭: 추가 차단 없이 감사 로그만.
-        console.warn('[Cert][DI-guard] DI collision with active account(s) — logged only', {
+        // 정상(활성) 계정 매칭: 차단하지 않되, "이전 계정을 잊고 새로 가입"한 회원의
+        // 계정 복구 안내를 위해 매칭 계정을 durable 하게 기록한다.
+        // ⚠️다중이/징계회피가 아니므로 중립 문구를 쓴다. mb_id 만 남기며 DI·이메일은
+        // 저장하지 않는다(개인정보방침 제2조3항 '중복가입 방지 및 계정 복구' 목적 범위).
+        const activeIds = rows.map((r) => r.mb_id).join(', ');
+        const memo =
+            `${formatLeaveDate()} [기존계정확인] 동일 본인확인정보의 기존 활성 계정 ` +
+            `${activeIds} 존재 — 계정 복구 안내 대상`;
+        try {
+            await pool.query(
+                `UPDATE g5_member
+                    SET mb_memo = CONCAT(?, IF(mb_memo IS NULL OR mb_memo = '', '', CONCAT('\n', mb_memo)))
+                  WHERE mb_id = ?`,
+                [memo, mbId]
+            );
+        } catch (e) {
+            console.error('[Cert][DI-guard] active-collision memo write failed:', e);
+        }
+        console.warn('[Cert][DI-guard] DI collision with active account(s) — recovery candidate', {
             mbId,
             dupinfoPrefix: dupinfo.slice(0, 16),
             collisions: rows.map((r) => r.mb_id)
