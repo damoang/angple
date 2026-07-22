@@ -1221,6 +1221,11 @@
                         <p
                             class="text-foreground mb-1 mr-1 flex items-center justify-end gap-1 text-xs font-semibold"
                         >
+                            {#if replyToAuthor}
+                                <span class="text-muted-foreground text-xs font-normal"
+                                    >↪ {replyToAuthor}</span
+                                >
+                            {/if}
                             <AuthorLink
                                 authorId={comment.author_id}
                                 authorName={comment.author}
