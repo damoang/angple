@@ -16,6 +16,14 @@
 
     let { posts }: Props = $props();
 
+    // 같은 글이 여러 소스(추천·모아보기 등)에서 중복 유입되면 keyed each 가
+    // each_key_duplicate 로 하이드레이션을 무너뜨린다(2026-07-22 홈 크래시).
+    // id 기준 첫 등장만 남겨 유니크화 — 크래시 방어 + 중복 표시 제거.
+    const uniquePosts = $derived.by(() => {
+        const seen = new Set<NewsPost['id']>();
+        return posts.filter((p) => (seen.has(p.id) ? false : (seen.add(p.id), true)));
+    });
+
     // 읽은 글 표시 (하이드레이션 깜빡임 방지)
     let showReadState = $state(false);
     onMount(() => {
@@ -27,9 +35,9 @@
     });
 </script>
 
-{#if posts.length > 0}
+{#if uniquePosts.length > 0}
     <ul>
-        {#each posts as post (post.id)}
+        {#each uniquePosts as post (post.id)}
             <li>
                 <a
                     href={post.url}
