@@ -5,6 +5,10 @@
     import PostForm from '$lib/components/features/board/post-form.svelte';
     import { writeFormRegistry } from '$lib/components/features/board/write-form-registry.js';
     import { contentFormatRegistry } from '$lib/components/features/board/content-format-registry.js';
+    import GivingWriteForm from '$lib/features/giving/giving-write-form.svelte';
+
+    // 나눔 게시판: 방식 선택이 포함된 커스텀 글쓰기 폼 등록
+    writeFormRegistry.register('giving', GivingWriteForm, 'core');
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { apiClient } from '$lib/api/index.js';
     import type { PageData } from './$types.js';
