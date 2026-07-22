@@ -127,20 +127,33 @@ export async function getAngttDictionary(): Promise<AngttDictionary> {
     }
 }
 
+/**
+ * 별점 집계 캐시 — 매칭된 글 상세마다 백엔드 HTTP 왕복이던 것을 45초 흡수.
+ * 인기 글 하나에 상세 조회가 몰릴 때 backendFetch 가 그대로 증폭되던 지점
+ * (싱글플라이트 포함이라 동시 유입도 1회로 수렴). null(집계 없음/실패)도
+ * 캐시해 실패 폭주 시 백엔드 반복 타격을 막는다.
+ */
+const ratingCache = createCache<{ avg: number; count: number } | null>({
+    ttl: 45_000,
+    maxSize: 500
+});
+
 /** 작품 글 별점 집계 조회 (공개 API). 실패 시 null — 카드는 별점 줄만 생략. */
 export async function fetchAngttRating(
     wrId: number
 ): Promise<{ avg: number; count: number } | null> {
     try {
-        const res = await backendFetch(`/api/v1/boards/angtt/posts/${wrId}/rating`, {
-            timeout: FETCH_TIMEOUT_MS
+        return await ratingCache.getOrSet(`rating:${wrId}`, async () => {
+            const res = await backendFetch(`/api/v1/boards/angtt/posts/${wrId}/rating`, {
+                timeout: FETCH_TIMEOUT_MS
+            });
+            if (!res.ok) return null;
+            const json = (await res.json()) as { data?: { avg?: number; count?: number } };
+            if (typeof json?.data?.avg !== 'number' || typeof json?.data?.count !== 'number') {
+                return null;
+            }
+            return { avg: json.data.avg, count: json.data.count };
         });
-        if (!res.ok) return null;
-        const json = (await res.json()) as { data?: { avg?: number; count?: number } };
-        if (typeof json?.data?.avg !== 'number' || typeof json?.data?.count !== 'number') {
-            return null;
-        }
-        return { avg: json.data.avg, count: json.data.count };
     } catch {
         return null;
     }
