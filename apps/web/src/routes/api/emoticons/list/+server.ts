@@ -64,7 +64,10 @@ const ALLOWED_EXTENSIONS = new Set(['gif', 'png', 'jpg', 'jpeg', 'webp']);
 // 2026-07-21 재개했다. 이모지 리액션에 닉네임이 공개되면서(#1761, 7/12 시행)
 // 익명 사용이 불가능해져 차단 근거가 해소됐다는 판단.
 const SKIP_FILES = new Set(['onion-license.txt']);
-const HIDDEN_PACKS = new Set(['southsky']);
+// 이대통령(lee-president) 팩은 선택창에서 숨긴다. 정치 인물 이모티콘의 사이트
+// 리스크를 고려한 조치이며, 이미 사용된 글의 인라인 이미지는 그대로 렌더된다
+// (파일은 계속 서빙). 선택창에서만 신규 사용을 막는다.
+const HIDDEN_PACKS = new Set(['southsky', 'lee-president']);
 
 interface EmoticonItem {
     file: string;
