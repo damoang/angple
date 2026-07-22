@@ -70,6 +70,24 @@ export const DELETE: RequestHandler = async ({ params, locals }) => {
             safeCommentId
         ]);
 
+        // 알림에 남은 본문 스니펫 소거.
+        // soft delete 는 wr_content 를 지우지 않고 렌더링에서 가리는 방식이라,
+        // g5_na_noti.rel_msg 에 복사돼 있던 본문이 수신자 알림함에 그대로 남는다.
+        // (2026-07-20 실측: 삭제된 댓글의 원문이 30명 알림함에 119건 잔존 → 백필로 소거)
+        // 파생 표면을 함께 지우지 않으면 soft delete 는 무의미해진다.
+        // rel_bo_table/rel_wr_id 쌍이 본문 스니펫을 담는다(bo_table/wr_id 쌍은 "○○님이
+        // 댓글을 남겼습니다" 안내 문구라 대상 아님).
+        await pool
+            .query(
+                `UPDATE g5_na_noti SET rel_msg = ''
+                  WHERE rel_bo_table = ? AND rel_wr_id = ? AND rel_msg <> ''`,
+                [safeBoardId, safeCommentId]
+            )
+            .catch((err) => {
+                // 알림 정리 실패가 삭제 자체를 되돌리면 안 된다 — 로그만 남긴다.
+                console.error('Comment DELETE: notification snippet cleanup failed:', err);
+            });
+
         return json({ message: '삭제 완료' });
     } catch (error) {
         console.error('Comment DELETE error:', error);

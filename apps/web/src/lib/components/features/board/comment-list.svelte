@@ -10,7 +10,7 @@
     } from '$lib/components/ui/dialog/index.js';
     import { RestrictedBadge } from '$lib/components/ui/restricted-badge/index.js';
     import { DisciplinedContent } from '$lib/components/ui/discipline-related/index.js';
-    import type { FreeComment } from '$lib/api/types.js';
+    import type { FreeComment, BoardPermissions } from '$lib/api/types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
@@ -108,6 +108,13 @@
         initialDislikedCommentIds?: number[]; // SSR에서 전달된 비추천한 댓글 ID 목록
         truthroomCommentMap?: Record<number, number>; // 잠긴 댓글 → 진실의방 글 ID 매핑
         isRestricted?: boolean; // 제한된 유저 (영구정지 등)
+        // ⛔ 답글 폼에 반드시 전달해야 하는 권한 정보 (#hello-reply).
+        //    전달하지 않으면 CommentForm 이 permissions 없이 렌더되어 폴백
+        //    `userLevel >= requiredCommentLevel(기본 3)` 을 타고, 등급 2(앙님❤️)
+        //    회원은 게시판 reply_level 이 1 이어도 답글을 못 단다.
+        //    실제로 가입인사에서 등급 2 의 대댓글이 0건이었다(일반 댓글은 217건).
+        permissions?: BoardPermissions;
+        requiredReplyLevel?: number; // 답글 폴백 기준 등급 (게시판 reply_level)
         // 기대 댓글 수 (SSR 메타의 comments_count). comments 가 아직 비어도 이 값이 0보다 크면
         // "댓글 없음" 대신 "불러오는 중"을 표시 — SPA 네비/하이드레이션 갭의 거짓 empty 방지 (#12663·#12668)
         expectedTotal?: number;
@@ -134,6 +141,8 @@
         initialDislikedCommentIds = [],
         truthroomCommentMap = {},
         isRestricted = false,
+        permissions,
+        requiredReplyLevel = 3,
         expectedTotal = 0,
         // 댓글 수정 정책 (사용자 확정 2026-05-22):
         // - 대댓글 없는 댓글: 항상 무료 수정 (grace 무관)
@@ -590,6 +599,9 @@
 
     // 답글 모드 시작
     function startReply(comment: FreeComment): void {
+        // 이용제한 중에는 답글도 막는다. 원댓글은 CommentForm 의 isRestricted 로
+        // 막히는데 답글 경로만 검사가 빠져 있었다(startReport 에만 있었음).
+        if (isRestricted) return;
         replyingToCommentId = String(comment.id);
         editingCommentId = null; // 수정 모드 해제
     }
@@ -1953,6 +1965,9 @@
                                 isReplyMode={true}
                                 isLoading={isReplying}
                                 {boardId}
+                                {permissions}
+                                requiredCommentLevel={requiredReplyLevel}
+                                {isRestricted}
                             />
                         </div>
                     {/if}

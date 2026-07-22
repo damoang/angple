@@ -507,19 +507,33 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                     // 쿠키에 반드시 담아야 한다(#12789 incident: certified 누락 → 미인증 오판 →
                     // 전원 실명인증 유도). PII 없이 boolean 만.
                     const memberCertified = !!member.mb_certify;
+                    const memberNickname = member.mb_nick || member.mb_name;
+                    const memberLevel = member.mb_level ?? 0;
+                    const memberAsLevel = member.as_level ?? 0;
                     const existingBasic = parseUserBasicCookie(event.cookies.get('user_basic'));
+                    // ⛔ 쿠키에 담는 값은 전부 여기서 비교해야 한다.
+                    //    PUBLIC_USER_BASIC_CLIENT_READ=true 면 클라이언트가 /api/auth/me 대신
+                    //    이 쿠키를 읽으므로(+layout.svelte), 비교에서 빠진 필드는 쿠키 수명
+                    //    30일 동안 옛 값으로 남는다.
+                    //    mb_level 이 빠져 있어 승급해도 옛 등급으로 동작했다(#13055):
+                    //    등급 3 회원이 등급 2 로 취급돼 자유게시판 글쓰기가 잠겼고,
+                    //    쿠키는 기기별이라 "폰은 되는데 태블릿은 안 되는" 증상으로 나타났다.
+                    //    최근 30일 승급자 322명이 영향 범위였다.
                     if (
                         !existingBasic ||
                         existingBasic.id !== member.mb_id ||
                         existingBasic.mb_image_updated_at !== memberImageTs ||
-                        existingBasic.certified !== memberCertified
+                        existingBasic.certified !== memberCertified ||
+                        existingBasic.mb_level !== memberLevel ||
+                        existingBasic.as_level !== memberAsLevel ||
+                        existingBasic.nickname !== memberNickname
                     ) {
                         issueUserBasicCookie(event.cookies, {
                             id: member.mb_id,
                             mb_no: member.mb_no,
-                            nickname: member.mb_nick || member.mb_name,
-                            mb_level: member.mb_level ?? 0,
-                            as_level: member.as_level ?? 0,
+                            nickname: memberNickname,
+                            mb_level: memberLevel,
+                            as_level: memberAsLevel,
                             mb_image: member.mb_image_url || null,
                             mb_image_updated_at: memberImageTs,
                             certified: memberCertified

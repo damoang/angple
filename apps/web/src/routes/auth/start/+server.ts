@@ -24,6 +24,10 @@ export const GET: RequestHandler = async ({ url, cookies, request, locals }) => 
     const isLinkMode = url.searchParams.get('link') === '1';
     // 네이티브 앱 로그인 모드 — 콜백 성공 시 앱 스킴으로 단명 코드 전달
     const isAppMode = url.searchParams.get('app') === '1';
+    // 앱 모드 신규가입 명시 허용 — 미설정 시 매칭 실패해도 조용히 계정 생성하지 않음(#no-account-guard)
+    const allowSignup = url.searchParams.get('signup') === '1';
+    // 클라이언트가 no_account 응답을 이해하는지(신규 앱). 구버전 앱은 미전송 → 가드 미적용(하위호환)
+    const noAccountCapable = url.searchParams.get('nac') === '1';
 
     if (!providerParam || !isValidProvider(providerParam)) {
         return new Response('지원하지 않는 로그인 방식입니다', { status: 400 });
@@ -44,7 +48,15 @@ export const GET: RequestHandler = async ({ url, cookies, request, locals }) => 
     try {
         const origin = resolveOrigin(request);
         const provider = await getProvider(providerName, origin);
-        const state = createOAuthState(cookies, providerName, redirectUrl, linkTo, isAppMode);
+        const state = createOAuthState(
+            cookies,
+            providerName,
+            redirectUrl,
+            linkTo,
+            isAppMode,
+            allowSignup,
+            noAccountCapable
+        );
 
         // Twitter는 PKCE 사용
         if (provider instanceof TwitterProvider) {

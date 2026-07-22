@@ -23,6 +23,7 @@
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import type { Component } from 'svelte';
     import CommentToolbar from './comment-toolbar.svelte';
+    import FirstCommentNudge from '$lib/components/features/onboarding/first-comment-nudge.svelte';
     import { trackEvent } from '$lib/services/ga4.js';
 
     interface Props {
@@ -263,6 +264,15 @@
 </script>
 
 {#if canComment}
+    <!--
+        ⛔ 넛지는 반드시 이 canComment 블록 안에 둘 것.
+        자유게시판은 bo_comment_level=3 이라 신규(등급 2)는 댓글을 못 단다.
+        권한 없는 곳에서 "첫 댓글을 남겨보세요" 를 띄우면 권해놓고 막는 꼴이다.
+        답글 모드에서는 띄우지 않는다(첫 댓글 유도 취지에 안 맞음).
+    -->
+    {#if !isReplyMode}
+        <FirstCommentNudge />
+    {/if}
     <form onsubmit={handleSubmit} class="space-y-2">
         {#if showRating && !isReplyMode}
             <!-- 리뷰 별점 (리뷰=댓글+별점): 원댓글에만, 선택(무평점 가능) -->

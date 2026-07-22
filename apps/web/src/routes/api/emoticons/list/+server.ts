@@ -59,7 +59,11 @@ const PACK_ORDER: string[] = [
 
 const ALLOWED_EXTENSIONS = new Set(['gif', 'png', 'jpg', 'jpeg', 'webp']);
 // 비활성화된 이모티콘(피커에서 제외). 파일도 제거하지만 재추가/잔존 대비 blocklist 유지.
-const SKIP_FILES = new Set(['onion-license.txt', 'damoang-emo-001.gif']);
+//
+// damoang-emo-001.gif 은 2026-06-14 사용 중단 요청으로 차단했다가(#1631)
+// 2026-07-21 재개했다. 이모지 리액션에 닉네임이 공개되면서(#1761, 7/12 시행)
+// 익명 사용이 불가능해져 차단 근거가 해소됐다는 판단.
+const SKIP_FILES = new Set(['onion-license.txt']);
 const HIDDEN_PACKS = new Set(['southsky']);
 
 interface EmoticonItem {

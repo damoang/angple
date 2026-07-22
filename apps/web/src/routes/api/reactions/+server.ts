@@ -293,18 +293,19 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
             await revokeReaction(user.mb_id, safeReaction, safeTargetId);
         }
 
-        // 업데이트된 리액션 반환
-        const [updatedReactions] = await pool.query<ReactionRow[]>(
-            `SELECT target_id, reaction, reaction_count FROM g5_da_reaction
+        // 업데이트된 리액션 반환 — 두 조회는 서로 독립이므로 병렬 실행(왕복 2→1).
+        const [[updatedReactions], [updatedChoices]] = await Promise.all([
+            pool.query<ReactionRow[]>(
+                `SELECT target_id, reaction, reaction_count FROM g5_da_reaction
 			 WHERE target_id = ? ORDER BY id ASC`,
-            [safeTargetId]
-        );
-
-        const [updatedChoices] = await pool.query<ChooseRow[]>(
-            `SELECT target_id, reaction FROM g5_da_reaction_choose
+                [safeTargetId]
+            ),
+            pool.query<ChooseRow[]>(
+                `SELECT target_id, reaction FROM g5_da_reaction_choose
 			 WHERE member_id = ? AND target_id = ?`,
-            [user.mb_id, safeTargetId]
-        );
+                [user.mb_id, safeTargetId]
+            )
+        ]);
 
         const chosenSet = new Set(updatedChoices.map((r) => r.reaction));
         const result: Record<string, ReturnType<typeof parseReaction>[]> = {

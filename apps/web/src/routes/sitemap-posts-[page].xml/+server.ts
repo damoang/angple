@@ -28,14 +28,32 @@ export const GET: RequestHandler = async ({ params, url }) => {
             // 세그먼트 board 는 매니페스트에서 왔지만 방어적으로 재검증.
             if (!/^[a-zA-Z0-9_]+$/.test(seg.board)) continue;
             try {
-                const [posts] = await pool.query<RowDataPacket[]>(
-                    `SELECT wr_id, wr_datetime, wr_last, LEFT(wr_content, 1000) AS content_head
-                     FROM g5_write_${seg.board}
-					 WHERE wr_is_comment = 0
-					 ORDER BY wr_id DESC
-					 LIMIT ? OFFSET ?`,
-                    [seg.limit, seg.offset]
-                );
+                // ⛔ FORCE INDEX (wr_is_comment) 필수 — 옵티마이저가 idx_list_page 를 골라
+                //    138만 행 filesort 를 한다. 크롤러가 사이트맵 여러 페이지를 동시에 당기면
+                //    이 쿼리 100개+ 가 3분씩 물려 DB 커넥션이 고갈되고 사이트 전체가 멎는다
+                //    (2026-07-21 20시 장애: 활성쿼리 170, SELECT 1 이 799ms).
+                //    (wr_is_comment, wr_id) 인덱스는 Backward index scan 으로 filesort 없이
+                //    ORDER BY wr_id DESC 를 소화한다 — 동일 페이지 실측 200s+ → 1.8s.
+                //    인덱스가 없는 테이블(165개 중 4개)은 catch 에서 힌트 없이 재시도한다.
+                const sitemapQuery = (forceIndex: boolean) =>
+                    pool.query<RowDataPacket[]>(
+                        `SELECT wr_id, wr_datetime, wr_last, LEFT(wr_content, 1000) AS content_head
+                         FROM g5_write_${seg.board}${forceIndex ? ' FORCE INDEX (wr_is_comment)' : ''}
+					     WHERE wr_is_comment = 0
+					     ORDER BY wr_id DESC
+					     LIMIT ? OFFSET ?`,
+                        [seg.limit, seg.offset]
+                    );
+                let posts: RowDataPacket[];
+                try {
+                    [posts] = await sitemapQuery(true);
+                } catch (err) {
+                    if (err instanceof Error && err.message.includes('wr_is_comment')) {
+                        [posts] = await sitemapQuery(false);
+                    } else {
+                        throw err;
+                    }
+                }
 
                 for (const post of posts as Array<{
                     wr_id: number;
