@@ -114,7 +114,7 @@
 
     // 특수 게시판 컴포넌트 (플러그인 레지스트리 기반)
     import { boardTypeRegistry } from '$lib/components/features/board/board-type-registry.js';
-    import BoardMapHeader from '$lib/components/features/board/board-map-header.svelte';
+    import AngmapPinMap from '$lib/components/features/board/angmap-pin-map.svelte';
     import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
     import TagNav from '$lib/components/ui/tag-nav/tag-nav.svelte';
     import QAPostList from '$lib/components/features/board/qa-post-list.svelte';
@@ -839,9 +839,9 @@
                 <TagNav />
             </div>
 
-            <!-- 앙지도 헤더 -->
+            <!-- 앙지도 접이식 핀맵 (기존 정적 배너 대체 — 바로가기 링크는 컴팩트하게 유지) -->
             {#if isAngmapBoard}
-                <BoardMapHeader />
+                <AngmapPinMap />
             {/if}
 
             <!-- 알뜰구매 쇼핑 바로가기 -->
