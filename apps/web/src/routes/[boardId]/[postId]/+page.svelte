@@ -946,6 +946,11 @@
         };
     });
 
+    // 2026-07-23: 가입인사 "앙티콘으로 환영하기" 스탬프 바 임시 비활성화.
+    // 되살릴 때는 이 값만 true 로 바꾸면 된다 — 컴포넌트(welcome-stamp-bar.svelte)와
+    // 마운트 코드는 그대로 두어 복구 비용을 0 으로 유지한다.
+    const WELCOME_STAMP_ENABLED = false;
+
     // 가입인사 환영 타이틀 오버레이 표시 여부 (아래 onMount 폭죽과 한 쌍)
     let showWelcomeTitle = $state(false);
 
@@ -2431,7 +2436,8 @@
                     />
                     {#if !data.post.is_comments_disabled}
                         <!-- hello 환영 라운지: 원터치 환영 스탬프 (가입인사 전용 — 폭죽 하드코딩과 같은 결) -->
-                        {#if boardId === 'hello'}
+                        <!-- 2026-07-23 임시 비활성화 — WELCOME_STAMP_ENABLED 참조 -->
+                        {#if boardId === 'hello' && WELCOME_STAMP_ENABLED}
                             <WelcomeStampBar
                                 {boardId}
                                 {comments}
