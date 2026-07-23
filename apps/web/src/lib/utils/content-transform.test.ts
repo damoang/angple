@@ -402,4 +402,28 @@ describe('transformBracketImages - 기존 동작 유지', () => {
         const result = transformBracketImages('[https://example.com/page.html]');
         expect(result).toBe('[https://example.com/page.html]');
     });
+
+    // #12439(댓글 자동 링크 시각 표시 강제) 이후, GIF 피커가 넣은 `[url]` 의 URL 을
+    // tiptap Link 확장이 <a> 로 먼저 감싸면서 대괄호 패턴이 매칭되지 않아
+    // 이미지가 뜨지 않는 회귀가 생겼다. 실제 저장된 hello/29516 형태로 고정한다.
+    it('자동링크로 감싸진 대괄호 GIF 도 img 로 변환', () => {
+        const stored =
+            '<p>[<a target="_blank" rel="noopener noreferrer nofollow" ' +
+            'class="text-primary underline" data-comment-autolink="true" ' +
+            'href="https://static.klipy.com/ii/abc/3a/81/9FtST6op.gif">' +
+            'https://static.klipy.com/ii/abc/3a/81/9FtST6op.gif</a>]</p>';
+        const result = transformBracketImages(stored);
+        expect(result).toContain('<img src="https://static.klipy.com/ii/abc/3a/81/9FtST6op.gif"');
+        expect(result).not.toContain('<a ');
+    });
+
+    it('자동링크라도 이미지 확장자가 아니면 변환 안 함', () => {
+        const stored = '<p>[<a href="https://example.com/page.html">page</a>]</p>';
+        expect(transformBracketImages(stored)).toBe(stored);
+    });
+
+    it('대괄호 없는 자동링크는 건드리지 않음 (일반 링크 보존)', () => {
+        const stored = '<p><a href="https://example.com/image.jpg">사진</a></p>';
+        expect(transformBracketImages(stored)).toBe(stored);
+    });
 });
