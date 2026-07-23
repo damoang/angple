@@ -67,14 +67,30 @@ export function transformEmoticons(text: string): string {
  * 그누보드/나리야 PHP 호환
  */
 export function transformBracketImages(text: string): string {
-    if (!text || !text.includes('[http')) return text;
+    if (!text || !text.includes('[')) return text;
 
-    return text.replace(
+    const imgTag = (url: string) =>
+        `<img src="${url}" alt="이미지" loading="lazy" class="bracket-image" style="max-width:100%;height:auto;">`;
+
+    // ① 순수 대괄호: [https://…/x.gif]
+    let out = text.replace(
         /\[(https?:\/\/[^\]]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg)(?:\?[^\]]*)?)\]/gi,
-        (_match, url: string) => {
-            return `<img src="${url}" alt="이미지" loading="lazy" class="bracket-image" style="max-width:100%;height:auto;">`;
-        }
+        (_match, url: string) => imgTag(url)
     );
+
+    // ② 자동링크로 감싸진 대괄호: [<a href="https://…/x.gif" …>…</a>]
+    //
+    // GIF 피커는 `[${url}]` 로 넣는데(tenor-gif-picker.svelte), #12439 에서 댓글
+    // 자동 링크 시각 표시를 강제하면서 tiptap Link 확장이 URL 을 먼저 <a> 로 감싼다.
+    // 그러면 ①의 정규식이 매칭되지 않아 대괄호만 남고 이미지가 뜨지 않는다.
+    //   저장 형태: <p>[<a href="…gif" data-comment-autolink="true">https://…</a>]</p>
+    // 삽입 쪽을 바꾸지 않고 여기서 흡수하면, 이미 저장된 댓글도 함께 살아난다.
+    out = out.replace(
+        /\[\s*<a\b[^>]*\shref="(https?:\/\/[^"]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg)(?:\?[^"]*)?)"[^>]*>.*?<\/a>\s*\]/gi,
+        (_match, url: string) => imgTag(url)
+    );
+
+    return out;
 }
 
 /**
