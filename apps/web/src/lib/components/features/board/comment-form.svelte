@@ -390,7 +390,6 @@
                             editorRef?.insertImage(`/emoticons/${filename}`, filename);
                         }}
                         disabled={isLoading || isUploading}
-                        {boardId}
                     />
 
                     <div class="ml-auto flex items-center gap-2">
