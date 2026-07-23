@@ -9,9 +9,11 @@
     } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import Loader2 from '@lucide/svelte/icons/loader-2';
-    import type { PageData, ActionData } from './$types.js';
+    import type { PageData } from './$types.js';
 
-    let { data, form }: { data: PageData; form: ActionData } = $props();
+    // 복원 폼은 /register 액션으로 보낸다(세션 생성 로직 재사용). 실패 시 그쪽에서
+    // 에러를 표시하므로 이 페이지에는 form prop 이 없다.
+    let { data }: { data: PageData } = $props();
 
     let isSubmitting = $state(false);
 
@@ -88,12 +90,6 @@
                             </div>
                         </dl>
                     </div>
-
-                    {#if form?.error}
-                        <div class="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
-                            {form.error}
-                        </div>
-                    {/if}
 
                     <form
                         method="POST"
