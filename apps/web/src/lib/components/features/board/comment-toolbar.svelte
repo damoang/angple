@@ -11,20 +11,9 @@
         onSelectImage: () => void;
         onInsertEmoticon?: (filename: string) => void;
         disabled?: boolean;
-        boardId?: string;
     }
 
-    let {
-        onInsertText,
-        onSelectImage,
-        onInsertEmoticon,
-        disabled = false,
-        boardId
-    }: Props = $props();
-
-    // hello 가입인사: 이모티콘 피커 기본 탭 = 환영(welcome) 팩 — 온보딩 겸용.
-    // 두 호출처(comment-form·comment-list 수정 툴바) 모두 boardId 를 이미 넘기므로 여기서 유도.
-    const initialPack = $derived(boardId === 'hello' ? 'welcome' : undefined);
+    let { onInsertText, onSelectImage, onInsertEmoticon, disabled = false }: Props = $props();
 
     let showEmoticonPicker = $state(false);
     let showGifPicker = $state(false);
@@ -109,7 +98,6 @@
                 <LazyEmoticonPicker
                     onInsertEmoticon={handleInsertEmoticon}
                     onClose={() => (showEmoticonPicker = false)}
-                    {initialPack}
                 />
             </div>
         {/if}

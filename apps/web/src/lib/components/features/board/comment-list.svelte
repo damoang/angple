@@ -1681,7 +1681,6 @@
                                             );
                                         }}
                                         disabled={isUpdating}
-                                        {boardId}
                                     />
 
                                     <div class="ml-auto flex items-center gap-2">
