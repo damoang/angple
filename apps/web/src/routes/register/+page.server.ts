@@ -12,7 +12,9 @@ import {
     validateNickname,
     isNicknameTaken,
     isMbIdTaken,
-    createMember
+    createMember,
+    inspectSocialMbIdOccupant,
+    reactivateMember
 } from '$lib/server/auth/register.js';
 import { upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
 import {
@@ -85,6 +87,21 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 
     const isInviteFlow = redirectUrl.includes('ads.damoang.net/invite/');
 
+    // 같은 소셜 계정으로 만들어진 계정이 이미 있으면 재가입이 아니라 복원 대상이다.
+    // 개인정보처리방침상 DI 를 반영구 보관하며 중복 가입을 막고 있으므로, 탈퇴자의
+    // 재가입은 애초에 성립하지 않는다. 그동안 운영에서 수동으로 복원해 주던 것을
+    // 이 경로로 자동화한다.
+    // 초대 플로우는 광고 계정용 임시 계정 발급이라 대상이 아니다.
+    if (!isInviteFlow && socialProfile.identifier) {
+        const occupant = await inspectSocialMbIdOccupant(
+            socialProfile.provider,
+            socialProfile.identifier
+        );
+        if (occupant.kind !== 'none') {
+            redirect(302, '/register/recover');
+        }
+    }
+
     // 약관/개인정보처리방침/이용제한사유 + 광고주 약관(초대 시) 로드
     const [termsContent, privacyContent, policyContent, siteTitle, contractContent] =
         await Promise.all([
@@ -126,6 +143,8 @@ export const actions: Actions = {
         let nickname = (formData.get('nickname') as string)?.trim() || '';
         const agreeTerms = formData.get('agree_terms') === 'on';
         const agreePrivacy = formData.get('agree_privacy') === 'on';
+        // 이전 계정 복구 요청. 새 계정을 만들지 않고 옛 계정으로 로그인시킨다.
+        const isRecovery = formData.get('intent') === 'recover';
 
         // Rate limit 체크 (5회/시간)
         const rateCheck = checkRateLimit(clientIp, 'register', 5, 60 * 60 * 1000);
@@ -137,8 +156,8 @@ export const actions: Actions = {
         }
         recordAttempt(clientIp, 'register');
 
-        // Turnstile CAPTCHA 검증 (초대 플로우는 소셜 인증 완료 상태이므로 스킵)
-        if (!isInviteFlow) {
+        // Turnstile CAPTCHA 검증 (초대·복구 플로우는 소셜 인증 완료 상태이므로 스킵)
+        if (!isInviteFlow && !isRecovery) {
             const turnstileToken = (formData.get('cf-turnstile-response') as string) || '';
             const captchaValid = await verifyTurnstile(turnstileToken, clientIp);
             if (!captchaValid) {
@@ -176,7 +195,33 @@ export const actions: Actions = {
         }
 
         let mbId: string;
-        if (isInviteFlow) {
+        if (isRecovery) {
+            // 복구 경로: 닉네임·약관 절차 없이 옛 계정으로 이어붙인다.
+            // 이 경로에 도달했다는 것 자체가 같은 소셜 sub 으로 로그인했다는 뜻이므로
+            // 본인 확인은 소셜 로그인 자기증명으로 충족된다(DI 보다 강한 근거).
+            const occupant = await inspectSocialMbIdOccupant(
+                socialProfile.provider,
+                socialProfile.identifier
+            );
+            if (occupant.kind !== 'recoverable') {
+                cookies.delete('pending_social_register', { path: '/' });
+                return fail(400, {
+                    error:
+                        occupant.kind === 'blocked'
+                            ? '이용이 제한된 계정입니다. 자세한 내용은 고객센터로 문의해주세요.'
+                            : '복구할 이전 계정을 찾지 못했습니다. 다시 시도해주세요.',
+                    nickname
+                });
+            }
+            mbId = occupant.mbId;
+            nickname = occupant.nick;
+            if (occupant.withdrawn) {
+                await reactivateMember(
+                    mbId,
+                    '[계정복구] 동일 소셜 계정 재로그인으로 본인 확인 후 재활성(F3)'
+                );
+            }
+        } else if (isInviteFlow) {
             nickname = await generateInviteTempNickname(socialProfile.provider);
             mbId = generateSocialMbId(socialProfile.provider, socialProfile.identifier);
             if (await isMbIdTaken(mbId)) {
@@ -200,14 +245,33 @@ export const actions: Actions = {
                 });
             }
 
-            mbId = generateSocialMbId(socialProfile.provider, socialProfile.identifier);
-            if (await isMbIdTaken(mbId)) {
-                mbId = appendMbIdSuffix(mbId);
+            // 같은 소셜 계정으로 만들어진 계정이 이미 있으면 새로 만들지 않는다.
+            // mb_id는 소셜 sub에서 결정적으로 나오므로 충돌 = 동일인이 확실하다.
+            const occupant = await inspectSocialMbIdOccupant(
+                socialProfile.provider,
+                socialProfile.identifier
+            );
+            if (occupant.kind === 'blocked') {
+                cookies.delete('pending_social_register', { path: '/' });
+                return fail(400, {
+                    error: '이용이 제한된 계정입니다. 자세한 내용은 고객센터로 문의해주세요.',
+                    nickname
+                });
             }
+            if (occupant.kind === 'recoverable') {
+                return fail(409, {
+                    error: '이전에 사용하시던 계정이 있습니다. 그 계정으로 이어서 이용하실 수 있습니다.',
+                    nickname,
+                    needsRecovery: true
+                });
+            }
+
+            mbId = occupant.mbId;
         }
 
-        // 이메일 중복 체크: 같은 이메일로 가입된 계정이 있으면 가입 차단
-        if (socialProfile.email) {
+        // 이메일 중복 체크: 같은 이메일로 가입된 계정이 있으면 가입 차단.
+        // 복구 경로는 옛 계정 자신이 걸리므로 건너뛴다.
+        if (!isRecovery && socialProfile.email) {
             const existingByEmail = await findMemberByEmail(socialProfile.email);
             if (existingByEmail) {
                 cookies.delete('pending_social_register', { path: '/' });
@@ -219,14 +283,16 @@ export const actions: Actions = {
         }
 
         try {
-            // g5_member INSERT
-            await createMember({
-                mb_id: mbId,
-                mb_nick: nickname,
-                mb_email: socialProfile.email,
-                mb_name: nickname,
-                mb_ip: clientIp
-            });
+            // g5_member INSERT (복구 경로는 이미 존재하는 계정이므로 생성하지 않는다)
+            if (!isRecovery) {
+                await createMember({
+                    mb_id: mbId,
+                    mb_nick: nickname,
+                    mb_email: socialProfile.email,
+                    mb_name: nickname,
+                    mb_ip: clientIp
+                });
+            }
 
             // 소셜 프로필 연결
             const oauthProfile: OAuthUserProfile = {
