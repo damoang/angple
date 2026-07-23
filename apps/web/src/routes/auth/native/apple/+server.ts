@@ -17,6 +17,7 @@ import { findSocialProfile, upsertSocialProfile } from '$lib/server/auth/oauth/s
 import { getMemberById, findMemberByEmail, isMemberActive } from '$lib/server/auth/oauth/member.js';
 import {
     generateSocialMbId,
+    appendMbIdSuffix,
     isMbIdTaken,
     isNicknameTaken,
     createMember,
@@ -136,7 +137,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
                 const nickname = await generateUniqueTempNickname();
                 mbId = baseMbId;
                 if (await isMbIdTaken(mbId)) {
-                    mbId = `${mbId}_${crypto.randomUUID().replace(/-/g, '').slice(0, 8)}`;
+                    mbId = appendMbIdSuffix(mbId);
                 }
                 await createMember({
                     mb_id: mbId,

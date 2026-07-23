@@ -36,6 +36,7 @@ import { getCertConfig } from '$lib/server/auth/cert-inicis.js';
 import { runSocialLoginPostProcess } from '$lib/server/auth/social-login-postprocess.js';
 import {
     generateSocialMbId,
+    appendMbIdSuffix,
     isMbIdTaken,
     isNicknameTaken,
     createMember,
@@ -252,7 +253,7 @@ async function handleCallback(
                     const nickname = await generateInviteTempNickname(providerName);
                     mbId = baseMbId;
                     if (await isMbIdTaken(mbId)) {
-                        mbId = `${mbId}_${crypto.randomUUID().replace(/-/g, '').slice(0, 8)}`;
+                        mbId = appendMbIdSuffix(mbId);
                     }
 
                     await createMember({
@@ -315,7 +316,7 @@ async function handleCallback(
                     const nickname = await generateInviteTempNickname(providerName);
                     mbId = baseMbId;
                     if (await isMbIdTaken(mbId)) {
-                        mbId = `${mbId}_${crypto.randomUUID().replace(/-/g, '').slice(0, 8)}`;
+                        mbId = appendMbIdSuffix(mbId);
                     }
                     await createMember({
                         mb_id: mbId,
