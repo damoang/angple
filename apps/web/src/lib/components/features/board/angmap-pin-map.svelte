@@ -56,6 +56,37 @@
         return leafletPromise;
     }
 
+    function median(values: number[]): number {
+        const s = [...values].sort((a, b) => a - b);
+        const mid = s.length >> 1;
+        return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+    }
+
+    /**
+     * 초기 뷰용 bounds. **모든 핀은 지도에 그대로 그려지고**, 여기서 정하는 건
+     * "처음 어디를 비춰줄지"뿐이다. 줌아웃하면 제외된 핀도 전부 보인다.
+     *
+     * 대륙 단위로 멀리 떨어진 소수의 핀이 있으면 전체 fitBounds 가 지구 전체로 벌어져
+     * 정작 대부분의 핀이 점으로 뭉개진다(2026-07-23 실측: 해외 핀 12개 때문에 발생).
+     *
+     * ⛔ 특정 국가 범위를 하드코딩하지 말 것 — 다모앙은 글로벌이다.
+     * 중앙값에서의 거리가 MAD(중앙값 절대편차)의 6배를 넘는 핀만 초기 뷰에서 뺀다.
+     * 데이터가 스스로 중심을 정하므로, 핀이 어느 대륙에 몰리든 그곳이 초기 뷰가 된다.
+     */
+    function initialBounds(L: typeof import('leaflet'), pinData: AngmapPin[]) {
+        const pts = pinData.map((p) => [p.lat, p.lng] as [number, number]);
+        if (pts.length < 8) return L.latLngBounds(pts);
+
+        const cLat = median(pts.map((p) => p[0]));
+        const cLng = median(pts.map((p) => p[1]));
+        const dist = pts.map((p) => Math.abs(p[0] - cLat) + Math.abs(p[1] - cLng));
+        // MAD 가 0(핀이 한 점에 몰림)이면 최소 1도는 허용해 bounds 가 무너지지 않게 한다.
+        const threshold = Math.max(median(dist) * 6, 1);
+        const core = pts.filter((_, i) => dist[i] <= threshold);
+
+        return L.latLngBounds(core.length >= 3 ? core : pts);
+    }
+
     async function loadPins(): Promise<AngmapPin[]> {
         if (pins) return pins;
         const res = await fetch('/api/angmap/pins');
@@ -110,8 +141,7 @@
                 .addTo(map);
         }
 
-        const bounds = L.latLngBounds(pinData.map((p) => [p.lat, p.lng] as [number, number]));
-        map.fitBounds(bounds.pad(0.15), { maxZoom: 15 });
+        map.fitBounds(initialBounds(L, pinData).pad(0.15), { maxZoom: 15 });
     }
 
     async function expand(): Promise<void> {
