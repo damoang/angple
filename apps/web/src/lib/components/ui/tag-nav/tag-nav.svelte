@@ -15,7 +15,19 @@
     const menus = $derived(menusProp ?? widgetLayoutStore.tagNavMenus ?? DEFAULT_TAG_NAV_MENUS);
 
     const visibleMenus = $derived(menus.filter((m) => m.show));
+
+    // 하이라이트 판정용 — 경로만 본다.
+    // /free?page=5 도, 글 상세 /free/123 도 '자유게시판' 탭이 활성으로 보여야 한다.
     const currentPath = $derived($page.url.pathname);
+
+    // 클릭 가드용 — 쿼리스트링까지 본다.
+    //
+    // 페이지네이션이 /free?page=5 형태라, 경로만 비교하면 5페이지에서도
+    // currentPath === '/free' 가 되어 navigation 이 취소된다. 그러면 탭을 눌러도
+    // 5페이지가 새로고침될 뿐 1페이지로 가지 않아 "눌러도 아무 일이 없다"로 보인다.
+    // (free/6793410 제보: "하나만 1페이지로 가고 다른 두 개는 더미 같은 느낌")
+    // ?search=·?filter= 등 다른 쿼리에서도 같은 문제라 전체 URL 로 비교한다.
+    const currentUrl = $derived($page.url.pathname + $page.url.search);
 
     function isActive(url: string): boolean {
         if (url === '/') return currentPath === '/';
@@ -33,7 +45,10 @@
                     // 로 새로고침(#12027). 하위 경로(글 상세 /free/123 등)에서는 isActive 가
                     // true(탭 하이라이트용)여도 정상적으로 목록으로 이동해야 한다 — 안 그러면
                     // 글 상세에서 해당 탭 클릭 시 목록이 안 뜨고 무반응처럼 보임.
-                    if (currentPath === menu.url) {
+                    //
+                    // ⛔ currentPath(경로만)가 아니라 currentUrl(쿼리 포함)로 비교할 것.
+                    // /free?page=5 에서 경로만 비교하면 여기 걸려 1페이지로 못 간다.
+                    if (currentUrl === menu.url) {
                         e.preventDefault();
                         invalidateAll();
                         window.scrollTo(0, 0);
