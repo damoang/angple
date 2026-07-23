@@ -37,6 +37,15 @@ export interface GivingDetail {
     wr_id: number;
     title: string;
     host_mb_id: string;
+    /**
+     * 나눔 설정(g5_giving_meta)이 저장돼 있는지.
+     *
+     * false 면 백엔드가 참가·개표를 모두 거부하는 '준비 중' 상태다.
+     * 글 작성이 ①글 생성 → ②설정 저장 두 단계라 ②가 실패하면 이렇게 된다.
+     * 예전에는 백엔드가 기본값(유료)으로 폴백해 주최자가 알아챌 수 없었다.
+     */
+    configured: boolean;
+    /** 미설정(configured=false)이면 빈 문자열 */
     method: GivingMethod;
     capacity: number | null;
     number_max: number | null;

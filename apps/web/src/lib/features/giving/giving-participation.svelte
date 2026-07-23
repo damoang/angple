@@ -51,6 +51,22 @@
     const isEnded = $derived(detail?.status === 'ended');
     const isActive = $derived(detail?.status === 'active');
     const drawn = $derived(!!detail?.draw);
+
+    // 참가를 받을 수 없는 두 가지 미완성 상태.
+    //   ① configured=false : 설정(방식·인원) 자체가 저장되지 않음 → 백엔드가 참가를 거부
+    //   ② no_giving        : 시작·마감 일시가 비어 상태 판정이 안 됨 → 참가 UI가 안 그려짐
+    // 둘 다 주최자는 정상 게시했다고 믿기 쉬운 상태라 명시적으로 알린다.
+    const missingConfig = $derived(detail ? detail.configured === false : false);
+    const missingSchedule = $derived(detail?.status === 'no_giving');
+    const needsSetup = $derived(!drawn && (missingConfig || missingSchedule));
+    const setupReason = $derived(
+        missingConfig && missingSchedule
+            ? '나눔 방식과 일정이 저장되지 않았어요.'
+            : missingConfig
+              ? '나눔 방식이 저장되지 않았어요.'
+              : '시작·마감 일시가 비어 있어요.'
+    );
+
     const parsedPreview = $derived(numbersInput ? parseBidNumbers(numbersInput) : []);
     const estCost = $derived(parsedPreview.length * (detail?.unit_price ?? 0));
 
@@ -173,6 +189,23 @@
                 >
             {/if}
         </header>
+
+        <!-- 설정이 없거나 일정이 비면 아무도 참가할 수 없다. 조용히 두지 않고 알린다.
+             (2026-07-23 첫 나눔이 일정 누락으로 참가 버튼 없이 게시됐다) -->
+        {#if needsSetup}
+            <div
+                class="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+            >
+                {#if detail.is_host}
+                    <p class="font-semibold">아직 참가를 받을 수 없어요</p>
+                    <p class="mt-1">
+                        {setupReason} 아래 설정을 완료하면 회원들이 참가할 수 있어요.
+                    </p>
+                {:else}
+                    <p>주최자가 나눔을 준비하고 있어요. 잠시 후 다시 확인해주세요.</p>
+                {/if}
+            </div>
+        {/if}
 
         <div class="text-muted-foreground mb-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
             <span>참가자 <strong class="text-foreground">{detail.participant_count}</strong>명</span
