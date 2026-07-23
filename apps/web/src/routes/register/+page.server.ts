@@ -8,6 +8,7 @@ import { dev } from '$app/environment';
 import { randomBytes } from 'crypto';
 import {
     generateSocialMbId,
+    appendMbIdSuffix,
     validateNickname,
     isNicknameTaken,
     isMbIdTaken,
@@ -179,7 +180,7 @@ export const actions: Actions = {
             nickname = await generateInviteTempNickname(socialProfile.provider);
             mbId = generateSocialMbId(socialProfile.provider, socialProfile.identifier);
             if (await isMbIdTaken(mbId)) {
-                mbId = mbId + '_' + randomBytes(4).toString('hex');
+                mbId = appendMbIdSuffix(mbId);
             }
         } else {
             // 약관 동의 확인
@@ -201,7 +202,7 @@ export const actions: Actions = {
 
             mbId = generateSocialMbId(socialProfile.provider, socialProfile.identifier);
             if (await isMbIdTaken(mbId)) {
-                mbId = mbId + '_' + randomBytes(4).toString('hex');
+                mbId = appendMbIdSuffix(mbId);
             }
         }
 

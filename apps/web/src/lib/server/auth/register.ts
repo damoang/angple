@@ -34,6 +34,30 @@ export function generateSocialMbId(provider: string, identifier: string): string
     return `${provider.toLowerCase()}_${adlerValue.toString(16).padStart(8, '0')}`;
 }
 
+/** g5_member.mb_id 컬럼 길이. 이 값을 넘기면 DB가 조용히 절단한다. */
+export const MB_ID_MAX_LENGTH = 20;
+
+/**
+ * mb_id가 이미 점유됐을 때 붙이는 충돌 회피 접미사.
+ *
+ * ⚠️ 접미사를 길게 잡으면 안 된다. g5_member.mb_id는 varchar(20)이라 넘치는 부분이
+ * 조용히 잘려 저장되는데, g5_member_social_profiles.mb_id는 varchar(255)라
+ * 잘리지 않는다. 두 테이블의 mb_id가 어긋나면 findSocialProfile이 존재하지 않는
+ * 회원을 가리켜 **그 계정은 소셜 로그인이 영구히 불가능해진다**.
+ * (2026-07-23 실측: 그렇게 갇힌 계정 62건, 최근 두 달에만 46건)
+ *
+ * base는 `provider_adler32` 형태로 최대 15자(google_)이므로 4자 접미사까지 안전하다.
+ */
+export function appendMbIdSuffix(baseMbId: string): string {
+    const suffix = randomBytes(2).toString('hex'); // 4자
+    const candidate = `${baseMbId}_${suffix}`;
+    if (candidate.length > MB_ID_MAX_LENGTH) {
+        // base 자체가 이미 길면 접미사 자리를 확보하기 위해 base를 줄인다.
+        return `${baseMbId.slice(0, MB_ID_MAX_LENGTH - suffix.length - 1)}_${suffix}`;
+    }
+    return candidate;
+}
+
 /** g5_config에서 가입 레벨 조회 */
 export async function getRegisterLevel(): Promise<number> {
     const [rows] = await pool.query<RowDataPacket[]>(
@@ -180,6 +204,14 @@ export async function createMember(params: {
     mb_ip: string;
     skipNickLock?: boolean;
 }): Promise<void> {
+    // 모든 소셜 가입 경로가 이 함수를 지난다. 여기서 막으면 어느 경로로 오든
+    // 절단된 mb_id로 계정이 만들어지지 않는다(조용한 절단 → 시끄러운 실패).
+    if (params.mb_id.length > MB_ID_MAX_LENGTH) {
+        throw new Error(
+            `mb_id 길이 초과(${params.mb_id.length}자 > ${MB_ID_MAX_LENGTH}자): ${params.mb_id}`
+        );
+    }
+
     const registerLevel = await getRegisterLevel();
 
     // mb_password는 소셜 로그인이므로 랜덤 해시 (직접 로그인 불가)
