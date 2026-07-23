@@ -53,6 +53,20 @@
     let adContainer = $state<HTMLElement | null>(null);
     let clipWrapper = $state<HTMLElement | null>(null);
     let panelEl = $state<HTMLElement | null>(null);
+    /**
+     * 모바일 펼침 상태 저장 키 (#13077).
+     *
+     * ⛔ 모바일에만 적용한다. 데스크톱은 접어도 공간이 줄지 않기 때문이다 —
+     * 광고 열이 DESKTOP_AD_MAX_HEIGHT(190px) 로 !important 고정돼 있어,
+     * 활동 카드를 접으면 헤더만 남아도 그 190px 이 그리드 행 높이를 지배한다.
+     * 반면 모바일 블록(sm:hidden)은 광고 그리드와 분리돼 있어 접으면 실제로 줄어든다.
+     *
+     * 서버 동기화(ui-settings)가 아니라 localStorage 를 쓰는 이유:
+     * 화면 크기에 종속된 표시 취향이라 기기 간 공유가 오히려 부자연스럽다.
+     * 같은 디렉터리의 angmap-pin-map.svelte 가 같은 방식을 쓴다.
+     */
+    const MOBILE_EXPANDED_KEY = 'author_activity_mobile_expanded';
+
     let mobileExpanded = $state(false);
     let shouldLoad = $state(false);
     let desktopExpanded = $state(hasInitial);
@@ -191,12 +205,28 @@
         if (mobileExpanded) {
             shouldLoad = true;
         }
+        try {
+            localStorage.setItem(MOBILE_EXPANDED_KEY, mobileExpanded ? '1' : '0');
+        } catch {
+            // 프라이빗 모드 등 — 상태 기억만 포기하고 동작은 유지
+        }
     }
 
     onMount(() => {
         let mutationObserver: MutationObserver | undefined;
         let resizeObserver: ResizeObserver | undefined;
         const handleResize = () => enforceClipHeight();
+
+        // 지난번에 모바일에서 펼쳐뒀다면 복원 (#13077).
+        // 기본값은 접힘 그대로라, 한 번도 펼친 적 없는 사용자에겐 변화가 없다.
+        try {
+            if (localStorage.getItem(MOBILE_EXPANDED_KEY) === '1') {
+                mobileExpanded = true;
+                shouldLoad = true;
+            }
+        } catch {
+            // 프라이빗 모드 등 — 기본값(접힘) 유지
+        }
 
         loadAdSense();
 
