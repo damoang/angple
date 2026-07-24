@@ -23,6 +23,7 @@
         applyOptimisticRating,
         starFillPercent
     } from './post-rating-logic.js';
+    import { shouldShowAverage } from './rating-display.js';
 
     let {
         boardId,
@@ -122,8 +123,13 @@
     </div>
     <span class="text-muted-foreground text-sm">
         {#if rating.count > 0}
-            <span class="text-foreground font-medium">★{rating.avg.toFixed(1)}</span>
-            · 앙님 {rating.count.toLocaleString()}명
+            <!-- n<3 착시 방지: 참여 3명 미만이면 평균 숫자를 내세우지 않는다(rating-display 규약) -->
+            {#if shouldShowAverage(rating.count)}
+                <span class="text-foreground font-medium">★{rating.avg.toFixed(1)}</span>
+                · 앙님 {rating.count.toLocaleString()}명
+            {:else}
+                앙님 {rating.count.toLocaleString()}명 평가
+            {/if}
         {:else}
             첫 별점을 남겨주세요
         {/if}

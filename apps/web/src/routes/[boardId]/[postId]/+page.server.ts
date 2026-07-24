@@ -32,6 +32,7 @@ import { applyFilter } from '$lib/hooks/registry.js';
 import { buildHookContext } from '$lib/hooks/context.js';
 import { prefetchBlueskyDIDs } from '$lib/server/bluesky/transform.js';
 import { resolveAngttMatch, type AngttMatch } from '$lib/server/angtt-dictionary.js';
+import { getAngmapPlace, type AngmapPlaceCoord } from '$lib/server/angmap-place.js';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -754,6 +755,11 @@ export const load: PageServerLoad = async ({
         // 앙티티 커넥트 카드 데이터 — 위에서 병렬 시작한 promise 를 여기서 확정 (reject 없음).
         const angttMatch = await angttMatchPromise;
 
+        // 앙지도(angmap) 상세 미니맵용 좌표 — angmap 보드 + 미삭제 글에서만 조회(읽기 전용).
+        // 좌표 없으면 null → 상세에서 지도 미표시(빈 박스 금지). 실패는 내부 catch → null.
+        const angmapPlace: AngmapPlaceCoord | null =
+            boardId === 'angmap' && !post.deleted_at ? await getAngmapPlace(post.id) : null;
+
         // Phase 1C: 플러그인 enrich filter (member-memo author_memo 등).
         // 미설치 시 pass-through. (premium PR #43 기준 stub)
         // Step A′: 서버 hook 표준 컨텍스트(site/user) 전달.
@@ -781,6 +787,8 @@ export const load: PageServerLoad = async ({
             memberActivity,
             /** 앙티티 커넥트(Phase 1): 태그 「앙티티」+작품명 → 작품 카드 (없으면 undefined) */
             angttMatch,
+            /** 앙지도(angmap) 상세 미니맵 좌표 — angmap 보드 + 좌표 확보 글에서만 (없으면 null) */
+            angmapPlace,
             /** 스트리밍: Promise로 반환 → 클라이언트에서 $effect로 수신 */
             streamed: {
                 auxiliaryData: auxiliaryDataPromise
