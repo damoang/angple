@@ -95,6 +95,7 @@ export interface DisciplineLogDetail {
     created_at: string;
     status: 'pending' | 'approved' | 'rejected';
     claim_post_id?: number;
+    revoked_at?: string; // 소명 인용 등으로 회수된 경우 해제일 (revoked_by·admin_memo는 미노출)
 }
 
 export interface DisciplineLogListResponse {
