@@ -84,6 +84,8 @@ export interface FreePost {
     report_count?: number | string; // wr_7 값: 숫자(신고수) 또는 "lock"(잠김)
     // 별점 집계 (features.rating 보드에서만 백엔드가 동봉 — 없으면 위젯 미표시)
     rating?: PostRating;
+    // 레거시 평점 아카이브 (앙지도 전용, SSR enrichment, 읽기전용 — 신규 rating 과 별개로 나란히 표시)
+    archiveRating?: ArchiveRating;
     // 확장 필드 (PHP wr_1~wr_10 매핑)
     extra_1?: string; // wr_1 - 회원전용 등
     extra_2?: string; // wr_2 - 나눔: 포인트/숫자
@@ -666,6 +668,13 @@ export interface PostRating {
     avg: number; // 평균 별점 (0~5)
     count: number; // 참여 인원
     my: number; // 내 별점 (1~5, 비로그인/미투표 0)
+}
+
+// 레거시 평점 아카이브 (앙지도 — gnuboard 10점 시절 동결 집계).
+// 신규 5점 rating 과 개인식별 매핑이 없어 합칠 수 없어(합치면 날조) 별도로 "과거 평점"만 표시한다.
+export interface ArchiveRating {
+    avg5: number; // 10점 레거시를 5점으로 환산한 평균 (0~5)
+    count: number; // 과거 참여 인원
 }
 
 // 추천/비추천 응답
