@@ -9,6 +9,8 @@ export interface DisciplineEntry {
     penalty_date_from: string;
     sg_types?: string[];
     wr_id?: number;
+    /** 소명 인용 등으로 회수(revoke)된 제재 — 프로필 이력에서는 제외한다 */
+    revoked?: boolean;
 }
 
 /**
@@ -34,6 +36,9 @@ export function parseDisciplineLogContent(row: {
         };
         if (Array.isArray(parsed.sg_types)) {
             entry.sg_types = parsed.sg_types.map((t: unknown) => String(t));
+        }
+        if (typeof parsed.revoked_at === 'string' && parsed.revoked_at !== '') {
+            entry.revoked = true;
         }
         return entry;
     } catch {
