@@ -17,7 +17,7 @@
     import { apiClient } from '$lib/api/client.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { buildGradeDeniedMessage } from '$lib/utils/board-permissions.js';
-    import type { PostRating } from '$lib/api/types.js';
+    import type { PostRating, ArchiveRating } from '$lib/api/types.js';
     import {
         RATING_MIN_LEVEL,
         applyOptimisticRating,
@@ -27,11 +27,14 @@
     let {
         boardId,
         postId,
-        initial
+        initial,
+        archive
     }: {
         boardId: string;
         postId: number | string;
         initial: PostRating;
+        // 레거시 평점 아카이브 (앙지도 — gnuboard 10점 동결 집계, 신규와 별개로 표시만)
+        archive?: ArchiveRating;
     } = $props();
 
     const STARS = [1, 2, 3, 4, 5];
@@ -82,53 +85,72 @@
     }
 </script>
 
-<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-    <div class="flex items-center" role="radiogroup" aria-label="별점 선택 (1~5점)">
-        {#each STARS as star (star)}
-            <button
-                type="button"
-                class="p-0.5 transition-transform {canVote
-                    ? 'cursor-pointer hover:scale-110'
-                    : 'cursor-default'}"
-                disabled={submitting}
-                role="radio"
-                aria-checked={rating.my === star}
-                aria-label="별점 {star}점"
-                onclick={() => vote(star)}
-                onmouseenter={() => {
-                    if (canVote) hoverValue = star;
-                }}
-                onmouseleave={() => (hoverValue = 0)}
-                onfocus={() => {
-                    if (canVote) hoverValue = star;
-                }}
-                onblur={() => (hoverValue = 0)}
-            >
-                <span class="relative block h-5 w-5">
-                    <Star class="text-muted-foreground/40 h-5 w-5" />
-                    <span
-                        class="absolute inset-y-0 left-0 overflow-hidden"
-                        style="width: {starFillPercent(displayValue, star)}%"
-                    >
-                        <Star
-                            class="h-5 w-5 {isMyFill(star)
-                                ? 'fill-primary text-primary'
-                                : 'fill-amber-400 text-amber-400'}"
-                        />
+<div class="space-y-1">
+    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div class="flex items-center" role="radiogroup" aria-label="별점 선택 (1~5점)">
+            {#each STARS as star (star)}
+                <button
+                    type="button"
+                    class="p-0.5 transition-transform {canVote
+                        ? 'cursor-pointer hover:scale-110'
+                        : 'cursor-default'}"
+                    disabled={submitting}
+                    role="radio"
+                    aria-checked={rating.my === star}
+                    aria-label="별점 {star}점"
+                    onclick={() => vote(star)}
+                    onmouseenter={() => {
+                        if (canVote) hoverValue = star;
+                    }}
+                    onmouseleave={() => (hoverValue = 0)}
+                    onfocus={() => {
+                        if (canVote) hoverValue = star;
+                    }}
+                    onblur={() => (hoverValue = 0)}
+                >
+                    <span class="relative block h-5 w-5">
+                        <Star class="text-muted-foreground/40 h-5 w-5" />
+                        <span
+                            class="absolute inset-y-0 left-0 overflow-hidden"
+                            style="width: {starFillPercent(displayValue, star)}%"
+                        >
+                            <Star
+                                class="h-5 w-5 {isMyFill(star)
+                                    ? 'fill-primary text-primary'
+                                    : 'fill-amber-400 text-amber-400'}"
+                            />
+                        </span>
                     </span>
-                </span>
-            </button>
-        {/each}
+                </button>
+            {/each}
+        </div>
+        <span class="text-muted-foreground text-sm">
+            {#if rating.count > 0}
+                <span class="text-foreground font-medium">★{rating.avg.toFixed(1)}</span>
+                · 앙님 {rating.count.toLocaleString()}명
+            {:else}
+                첫 별점을 남겨주세요
+            {/if}
+            {#if rating.my > 0}
+                <span class="text-primary ml-1">내 별점 ★{rating.my}</span>
+            {/if}
+        </span>
     </div>
-    <span class="text-muted-foreground text-sm">
-        {#if rating.count > 0}
-            <span class="text-foreground font-medium">★{rating.avg.toFixed(1)}</span>
-            · 앙님 {rating.count.toLocaleString()}명
-        {:else}
-            첫 별점을 남겨주세요
-        {/if}
-        {#if rating.my > 0}
-            <span class="text-primary ml-1">내 별점 ★{rating.my}</span>
-        {/if}
-    </span>
+    {#if archive}
+        <!-- 레거시 아카이브: gnuboard 10점 시절 동결 집계. 신규 별점과 별개로 "과거 평점"만 표시.
+             n<3 은 평균 대신 인원만(작은 표본 착시 방지 — 설계 §4). -->
+        <div class="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-1 text-xs">
+            <span aria-hidden="true">📜</span>
+            {#if archive.count >= 3}
+                <span>
+                    과거 평점
+                    <span class="text-foreground font-medium">★{archive.avg5.toFixed(1)}</span>
+                    · 앙님 {archive.count.toLocaleString()}명
+                </span>
+            {:else}
+                <span>과거 앙님 {archive.count.toLocaleString()}명 평가</span>
+            {/if}
+            <span class="opacity-70">(아카이브)</span>
+        </div>
+    {/if}
 </div>
