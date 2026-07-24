@@ -63,6 +63,20 @@
     }
 
     /**
+     * 초기 뷰 이상치 판정 배수 (MAD 의 몇 배까지 포함할지).
+     *
+     * ⚠️ 핀 밀도가 올라가면 MAD 가 **작아져** 임계도 같이 줄어든다. 배수가 낮으면
+     * 밀집 지역만 남고 변두리 핀이 잘린다.
+     *   2026-07-23 (핀 239개): MAD 1.19 → ×6 = 7.15  → 국내 잘림 0
+     *   2026-07-24 (핀 1493개): MAD 0.63 → ×6 = 3.76 → **국내 161개 잘림**
+     *   백필 완료로 핀이 6배가 되자 제주·부산·강원이 초기 화면에서 사라졌다.
+     *
+     * ×8 부터 국내 잘림이 0 이 되고, ×20 까지 올려도 해외 핀은 계속 배제된다
+     * (포함 1462 → 1463, 1개 차이). 여유를 두되 대륙 밖은 거르도록 ×10 으로 둔다.
+     */
+    const MAD_MULTIPLIER = 10;
+
+    /**
      * 초기 뷰용 bounds. **모든 핀은 지도에 그대로 그려지고**, 여기서 정하는 건
      * "처음 어디를 비춰줄지"뿐이다. 줌아웃하면 제외된 핀도 전부 보인다.
      *
@@ -70,7 +84,7 @@
      * 정작 대부분의 핀이 점으로 뭉개진다(2026-07-23 실측: 해외 핀 12개 때문에 발생).
      *
      * ⛔ 특정 국가 범위를 하드코딩하지 말 것 — 다모앙은 글로벌이다.
-     * 중앙값에서의 거리가 MAD(중앙값 절대편차)의 6배를 넘는 핀만 초기 뷰에서 뺀다.
+     * 중앙값에서의 거리가 MAD(중앙값 절대편차)의 일정 배수를 넘는 핀만 초기 뷰에서 뺀다.
      * 데이터가 스스로 중심을 정하므로, 핀이 어느 대륙에 몰리든 그곳이 초기 뷰가 된다.
      */
     function initialBounds(L: typeof import('leaflet'), pinData: AngmapPin[]) {
@@ -81,7 +95,7 @@
         const cLng = median(pts.map((p) => p[1]));
         const dist = pts.map((p) => Math.abs(p[0] - cLat) + Math.abs(p[1] - cLng));
         // MAD 가 0(핀이 한 점에 몰림)이면 최소 1도는 허용해 bounds 가 무너지지 않게 한다.
-        const threshold = Math.max(median(dist) * 6, 1);
+        const threshold = Math.max(median(dist) * MAD_MULTIPLIER, 1);
         const core = pts.filter((_, i) => dist[i] <= threshold);
 
         return L.latLngBounds(core.length >= 3 ? core : pts);
