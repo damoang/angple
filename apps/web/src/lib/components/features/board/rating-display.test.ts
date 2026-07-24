@@ -22,7 +22,8 @@ describe('shouldShowAverage — 평균 노출 임계(n>=3)', () => {
 
     it('비유한 수는 노출하지 않음', () => {
         expect(shouldShowAverage(Number.NaN)).toBe(false);
-        expect(shouldShowAverage(Number.POSITIVE_INFINITY)).toBe(true);
+        // 무한대는 실제 참여수가 아니므로(비유한) 노출하지 않는다 — NaN 과 동일하게 안전측
+        expect(shouldShowAverage(Number.POSITIVE_INFINITY)).toBe(false);
     });
 });
 
@@ -59,7 +60,8 @@ describe('bayesianScore — 랭킹 보정(m=5, 전체평균으로 끌어당김)'
         const few = bayesianScore(5, 1, 4);
         const many = bayesianScore(5, 100, 4);
         expect(many).toBeGreaterThan(few);
-        expect(many).toBeCloseTo(500 / 105, 6);
+        // (100/105)*5 + (5/105)*4 = (500 + 20)/105 = 520/105 ≈ 4.952
+        expect(many).toBeCloseTo(520 / 105, 6);
     });
 
     it('n=1 5.0 보정점 < n=100 4.2 보정점 (착시 역전 방지)', () => {
