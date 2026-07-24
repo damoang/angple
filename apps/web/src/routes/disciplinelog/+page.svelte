@@ -179,7 +179,13 @@
                                             >
                                                 {penalty.text}
                                             </Badge>
-                                            {#if penalty.released}
+                                            {#if log.revoked}
+                                                <Badge
+                                                    variant="secondary"
+                                                    class="border-emerald-300 bg-emerald-100 text-xs text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                                    >소명해제</Badge
+                                                >
+                                            {:else if penalty.released}
                                                 <Badge variant="secondary" class="text-xs"
                                                     >해제</Badge
                                                 >
@@ -232,7 +238,13 @@
                                         >
                                             {penalty.text}
                                         </Badge>
-                                        {#if penalty.released}
+                                        {#if log.revoked}
+                                            <Badge
+                                                variant="secondary"
+                                                class="border-emerald-300 bg-emerald-100 text-xs text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                                >소명해제</Badge
+                                            >
+                                        {:else if penalty.released}
                                             <Badge variant="secondary" class="text-xs">해제</Badge>
                                         {/if}
                                     </div>
