@@ -17,15 +17,10 @@ import pool, { readPool } from '$lib/server/db.js';
 import { RATING_MIN_LEVEL } from '$lib/components/features/board/post-rating-logic.js';
 import { buildGradeDeniedMessage } from '$lib/utils/board-permissions.js';
 import { validateAspectsAgainst, type AspectDef } from '$plugins/angtt-review/lib/aspect-presets';
+import type { AspectRating } from '$lib/components/features/board/rating-display.js';
 
-/** 항목별 평점 집계 행(+요청자 본인 값) — 앙티티/일반 공통 표시 모델 */
-export interface AspectRating {
-    aspect: string;
-    avg: number;
-    count: number;
-    /** 로그인 사용자 본인이 이 항목에 남긴 별점(없으면 null) */
-    my: number | null;
-}
+// 표시 모델(AspectRating)은 클라이언트-세이프 모듈(rating-display)에 단일 정의 → 재노출.
+export type { AspectRating };
 
 interface AspectAggRow {
     aspect: string;

@@ -33,6 +33,8 @@ import { buildHookContext } from '$lib/hooks/context.js';
 import { prefetchBlueskyDIDs } from '$lib/server/bluesky/transform.js';
 import { resolveAngttMatch, type AngttMatch } from '$lib/server/angtt-dictionary.js';
 import { getAngmapPlace, type AngmapPlaceCoord } from '$lib/server/angmap-place.js';
+import { getPostAspects, type AspectRating } from '$lib/server/rating-aspects.js';
+import { getBoardAspectPreset } from '$plugins/angtt-review/lib/aspect-presets';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -760,6 +762,14 @@ export const load: PageServerLoad = async ({
         const angmapPlace: AngmapPlaceCoord | null =
             boardId === 'angmap' && !post.deleted_at ? await getAngmapPlace(post.id) : null;
 
+        // 항목별 평점 집계(옵트인 표시·입력용) — 프리셋이 매핑된 보드(angmap) + features.rating
+        // (post.rating 동봉) 글에서만 조회. 총점 위젯이 이 값으로 항목별 UI 를 렌더한다.
+        // 실패는 빈 배열로 수렴(부가 기능 — 상세 로드 무영향).
+        const postAspects: AspectRating[] =
+            !post.deleted_at && post.rating && getBoardAspectPreset(boardId)
+                ? await getPostAspects(boardId, post.id, locals.user?.id).catch(() => [])
+                : [];
+
         // Phase 1C: 플러그인 enrich filter (member-memo author_memo 등).
         // 미설치 시 pass-through. (premium PR #43 기준 stub)
         // Step A′: 서버 hook 표준 컨텍스트(site/user) 전달.
@@ -789,6 +799,8 @@ export const load: PageServerLoad = async ({
             angttMatch,
             /** 앙지도(angmap) 상세 미니맵 좌표 — angmap 보드 + 좌표 확보 글에서만 (없으면 null) */
             angmapPlace,
+            /** 항목별 평점 집계(옵트인 표시·입력용) — 프리셋 매핑 보드에서만 채워짐(그 외 빈 배열) */
+            postAspects,
             /** 스트리밍: Promise로 반환 → 클라이언트에서 $effect로 수신 */
             streamed: {
                 auxiliaryData: auxiliaryDataPromise

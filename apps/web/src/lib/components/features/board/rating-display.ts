@@ -13,6 +13,15 @@
  * DB·Svelte 의존 없음 — vitest 로 규약을 단위 검증한다.
  */
 
+/** 항목별 평점 집계 행(+요청자 본인 값) — 앙지도/앙티티 공통 표시 모델. */
+export interface AspectRating {
+    aspect: string;
+    avg: number;
+    count: number;
+    /** 로그인 사용자 본인이 이 항목에 남긴 별점(없으면 null) */
+    my: number | null;
+}
+
 /** 평균 숫자를 노출하기 위한 최소 참여 수(미만이면 숫자 미노출). */
 export const RATING_DISPLAY_MIN_COUNT = 3;
 

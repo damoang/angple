@@ -23,17 +23,25 @@
         applyOptimisticRating,
         starFillPercent
     } from './post-rating-logic.js';
-    import { shouldShowAverage } from './rating-display.js';
+    import { shouldShowAverage, type AspectRating } from './rating-display.js';
+    import { getBoardAspectPreset } from '$plugins/angtt-review/lib/aspect-presets';
+    import RatingAspects from './rating-aspects.svelte';
 
     let {
         boardId,
         postId,
-        initial
+        initial,
+        aspects
     }: {
         boardId: string;
         postId: number | string;
         initial: PostRating;
+        /** 항목별 평점 집계(SSR 주입). 프리셋 매핑 보드(앙지도 등)에서만 전달됨. */
+        aspects?: AspectRating[];
     } = $props();
+
+    /** 이 게시판의 항목별 프리셋(맛/가성비 등). 없으면 항목별 UI 미표시. */
+    const aspectPreset = $derived(getBoardAspectPreset(boardId));
 
     const STARS = [1, 2, 3, 4, 5];
 
@@ -138,3 +146,17 @@
         {/if}
     </span>
 </div>
+
+<!--
+    항목별 평점(맛/가성비 등) — 프리셋이 매핑된 보드(앙지도)에서만. 표시(평균 바)는 공개,
+    입력 [+ 항목별로 자세히] 는 본인 총점(rating.my>0) + 투표 등급(canVote) 옵트인 게이트.
+-->
+{#if aspectPreset}
+    <RatingAspects
+        {boardId}
+        {postId}
+        preset={aspectPreset}
+        initial={aspects ?? []}
+        canEdit={canVote && rating.my > 0}
+    />
+{/if}
