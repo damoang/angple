@@ -43,6 +43,18 @@ export interface AdTelemetryPayload {
 // 같은 슬롯+이벤트 중복 송신 방지 (페이지 단위)
 const sentKeys = new Set<string>();
 
+/**
+ * 이벤트별 샘플링 배율 (1/N 전송, sample_rate=N 동봉 → 집계 시 sum(sample_rate) 로 총량 복원).
+ *
+ * 원칙(SRE 관측 샘플링): **실패·차단은 전량, 성공만 샘플.**
+ * ad_fallback_success 는 "광고 정상 로드"라는 순수 성공 이벤트로 전체의 대부분을 차지한다.
+ * 1/100 만 기록해도 성공률 추세·주요 슬롯 분석에 충분하다(2026-07-24, dantry 분리와 짝).
+ * 실패 신호(스파이크 감지가 중요)는 100% 유지.
+ */
+const SAMPLE_RATE: Partial<Record<AdTelemetryEventName, number>> = {
+    ad_fallback_success: 100
+};
+
 export function trackAdEvent(name: AdTelemetryEventName, props: AdTelemetryPayload = {}): void {
     if (typeof window === 'undefined') return;
 
@@ -50,13 +62,20 @@ export function trackAdEvent(name: AdTelemetryEventName, props: AdTelemetryPaylo
     if (sentKeys.has(dedupeKey)) return;
     sentKeys.add(dedupeKey);
 
+    // 샘플링: 성공 이벤트는 1/N 확률로만 실제 전송. 통과분에 sample_rate=N 을 실어
+    // 서버(dantry)가 error_logs.ad_telemetry 에 저장하고, 집계에서 총량을 복원한다.
+    // dedupe 뒤에 두어 "페이지당 1회로 줄인 뒤, 그중 1/N" 이 되게 한다.
+    const sampleRate = SAMPLE_RATE[name] ?? 1;
+    if (sampleRate > 1 && Math.random() >= 1 / sampleRate) return;
+
     const payload = {
         message: name,
         type: 'ad_telemetry',
         url: location.href,
         userAgent: navigator.userAgent,
         ts: Date.now(),
-        ...props
+        ...props,
+        sample_rate: sampleRate // props 로 덮이지 않도록 마지막에 둔다
     };
 
     try {
