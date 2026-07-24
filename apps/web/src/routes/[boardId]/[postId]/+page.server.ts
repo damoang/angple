@@ -35,6 +35,7 @@ import { resolveAngttMatch, type AngttMatch } from '$lib/server/angtt-dictionary
 import { getAngmapPlace, type AngmapPlaceCoord } from '$lib/server/angmap-place.js';
 import { getPostAspects, type AspectRating } from '$lib/server/rating-aspects.js';
 import { getBoardAspectPreset } from '$plugins/angtt-review/lib/aspect-presets';
+import { fetchAngmapArchiveRating } from '$lib/server/angmap-archive-rating.js';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -171,6 +172,13 @@ export const load: PageServerLoad = async ({
                 post.comments_count = 0;
             }
             setHeaders({ 'X-Robots-Tag': 'noindex, noarchive' });
+        }
+
+        // 앙지도 레거시 평점(아카이브): gnuboard 10점 시절 동결 집계를 읽기전용으로 별도 표시.
+        // 신규 5점(post.rating)과 합치지 않는다 — 개인식별 매핑이 없어 합치면 날조가 된다.
+        // 조회 실패는 헬퍼가 undefined 로 흡수 → 페이지 렌더에 영향 0.
+        if (boardId === 'angmap' && !post.deleted_at) {
+            post.archiveRating = await fetchAngmapArchiveRating(Number(postId));
         }
 
         let board = null;
