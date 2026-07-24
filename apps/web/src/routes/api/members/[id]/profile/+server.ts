@@ -269,9 +269,6 @@ export const GET: RequestHandler = async ({ params, locals }) => {
             // 테이블 없으면 무시
         }
 
-        // 뷰어가 관리자(level>=10)인지 — 닉 이력 전체 타임라인(new_nick) 노출 게이트.
-        const viewerIsAdmin = (locals.user?.level ?? 0) >= 10;
-
         // 이미지 URL: 원본 값 그대로 전달 (프론트에서 getAvatarUrl로 CDN URL 변환)
         const imageUrl = member.mb_image_url || '';
 
@@ -318,12 +315,14 @@ export const GET: RequestHandler = async ({ params, locals }) => {
                 // 팔로우
                 follower_count: followerRows[0]?.count ?? 0,
                 following_count: followingRows[0]?.count ?? 0,
-                // 닉네임 변경 이력 (과거 별명, 최근순) — #13026.
-                // 회원 공개는 old_nick+시각만. 관리자 뷰어(level>=10)에겐 new_nick 까지(전체 타임라인).
+                // 닉네임 변경 이력 (전체 공개, 최근순) — #13026.
+                // old→new 전 체인을 모든 회원에게 동일하게 전송한다. 권한별 차등 응답을 두지
+                // 않는다: 클라이언트 {#if}로 숨기는 방식은 토큰 위조·스토어 조작 시 노출되므로,
+                // 공개 정책이면 서버가 애초에 누구에게나 같은 데이터를 보낸다(펼치기로 노출).
                 nick_history: nickHistory.map((h) => ({
                     old_nick: h.old_nick,
-                    changed_at: h.changed_at,
-                    ...(viewerIsAdmin ? { new_nick: h.new_nick } : {})
+                    new_nick: h.new_nick,
+                    changed_at: h.changed_at
                 }))
             }
         });
