@@ -343,6 +343,7 @@
                 {boardId}
                 postId={post.id}
                 initial={post.rating}
+                aspects={pageData?.postAspects}
                 archive={post.archiveRating}
             />
         {/if}

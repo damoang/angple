@@ -18,6 +18,7 @@
     import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { SUGGEST_MIN_LEVEL, buildSuggestStatusText } from './angtt-suggest-logic.js';
+    import { shouldShowAverage } from './rating-display.js';
 
     /** 서버 AngttMatch(lib/server/angtt-dictionary.ts)와 구조 동일 — $lib/server 는 클라 import 불가라 별도 선언 */
     type AngttCardMatch =
@@ -348,8 +349,13 @@
                     <p class="text-muted-foreground text-xs">
                         다모앙 추천작 — 앙티티
                         {#if match.rating && match.rating.count > 0}
+                            <!-- n<3 착시 방지: 참여 3명 미만이면 평균 숫자 미노출(rating-display 규약) -->
                             <span class="text-amber-600 dark:text-amber-400">
-                                · ★{match.rating.avg.toFixed(1)} · 앙님 {match.rating.count}명
+                                {#if shouldShowAverage(match.rating.count)}
+                                    · ★{match.rating.avg.toFixed(1)} · 앙님 {match.rating.count}명
+                                {:else}
+                                    · 앙님 {match.rating.count}명 평가
+                                {/if}
                             </span>
                         {:else if match.rating}
                             <span>· 아직 별점이 없어요</span>

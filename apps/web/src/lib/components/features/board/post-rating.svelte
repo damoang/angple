@@ -23,19 +23,28 @@
         applyOptimisticRating,
         starFillPercent
     } from './post-rating-logic.js';
+    import { shouldShowAverage, type AspectRating } from './rating-display.js';
+    import { getBoardAspectPreset } from '$plugins/angtt-review/lib/aspect-presets';
+    import RatingAspects from './rating-aspects.svelte';
 
     let {
         boardId,
         postId,
         initial,
+        aspects,
         archive
     }: {
         boardId: string;
         postId: number | string;
         initial: PostRating;
+        /** 항목별 평점 집계(SSR 주입). 프리셋 매핑 보드(앙지도 등)에서만 전달됨. */
+        aspects?: AspectRating[];
         // 레거시 평점 아카이브 (앙지도 — gnuboard 10점 동결 집계, 신규와 별개로 표시만)
         archive?: ArchiveRating;
     } = $props();
+
+    /** 이 게시판의 항목별 프리셋(맛/가성비 등). 없으면 항목별 UI 미표시. */
+    const aspectPreset = $derived(getBoardAspectPreset(boardId));
 
     const STARS = [1, 2, 3, 4, 5];
 
@@ -126,8 +135,13 @@
         </div>
         <span class="text-muted-foreground text-sm">
             {#if rating.count > 0}
-                <span class="text-foreground font-medium">★{rating.avg.toFixed(1)}</span>
-                · 앙님 {rating.count.toLocaleString()}명
+                <!-- n<3 착시 방지: 참여 3명 미만이면 평균 숫자를 내세우지 않는다(rating-display 규약) -->
+                {#if shouldShowAverage(rating.count)}
+                    <span class="text-foreground font-medium">★{rating.avg.toFixed(1)}</span>
+                    · 앙님 {rating.count.toLocaleString()}명
+                {:else}
+                    앙님 {rating.count.toLocaleString()}명 평가
+                {/if}
             {:else}
                 첫 별점을 남겨주세요
             {/if}
@@ -154,3 +168,17 @@
         </div>
     {/if}
 </div>
+
+<!--
+    항목별 평점(맛/가성비 등) — 프리셋이 매핑된 보드(앙지도)에서만. 표시(평균 바)는 공개,
+    입력 [+ 항목별로 자세히] 는 본인 총점(rating.my>0) + 투표 등급(canVote) 옵트인 게이트.
+-->
+{#if aspectPreset}
+    <RatingAspects
+        {boardId}
+        {postId}
+        preset={aspectPreset}
+        initial={aspects ?? []}
+        canEdit={canVote && rating.my > 0}
+    />
+{/if}

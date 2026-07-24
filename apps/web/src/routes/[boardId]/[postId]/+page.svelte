@@ -44,6 +44,7 @@
     import AuthorActivityPanel from '$lib/components/features/board/author-activity-panel.svelte';
     import RecentPosts from '$lib/components/features/board/recent-posts.svelte';
     import AngttConnectCard from '$lib/components/features/board/angtt-connect-card.svelte';
+    import AngmapPlaceMap from '$lib/components/features/board/angmap-place-map.svelte';
     import { BOARD_LIST_PAGE_SIZE } from '$lib/constants/board';
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import type { FreeComment, FreePost, LikerInfo, PostRevision } from '$lib/api/types.js';
@@ -2307,6 +2308,16 @@
                     {/each}
                 </div>
             </div>
+        {/if}
+
+        <!-- 앙지도 상세 단일 핀 미니맵 — 좌표 확보 글에만(서버 주입). 좌표 없으면 미표시(빈 박스 금지). -->
+        {#if boardType === 'angmap' && data.angmapPlace}
+            <AngmapPlaceMap
+                lat={data.angmapPlace.lat}
+                lng={data.angmapPlace.lng}
+                name={data.angmapPlace.name}
+                mapUrl={data.post.link1 || data.post.link2 || null}
+            />
         {/if}
 
         <!-- 앙티티 커넥트 카드 (Phase 1): 태그 「앙티티」+작품명 규약 — 서버 매칭, SSR 렌더 -->
