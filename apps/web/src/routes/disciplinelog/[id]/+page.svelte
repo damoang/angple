@@ -184,7 +184,23 @@
                             <Badge variant="secondary" class="text-xs">해제</Badge>
                         {/if}
                         <span class="text-muted-foreground text-sm">
-                            ({formatPeriodRange(log)})
+                            {#if log.revoked_at}
+                                <!-- 회수된 제재: 원래 종료일에 취소선 + 조기 해제 표기.
+                                     (기간이 만료된 게 아니라 소명 인용으로 중간에 풀렸음을 명확히) -->
+                                ({log.penalty_date_from} 시작 ·
+                                {#if log.penalty_period !== 0}
+                                    <s class="opacity-60"
+                                        >{log.penalty_period === -1
+                                            ? '영구'
+                                            : log.penalty_date_to || ''}</s
+                                    > ·
+                                {/if}
+                                <span class="text-emerald-700 dark:text-emerald-400"
+                                    >{log.revoked_at} 소명 인용으로 해제</span
+                                >)
+                            {:else}
+                                ({formatPeriodRange(log)})
+                            {/if}
                         </span>
                     </div>
                 </div>
