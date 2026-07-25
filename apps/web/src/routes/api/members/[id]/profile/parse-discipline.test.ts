@@ -21,6 +21,37 @@ describe('parseDisciplineLogContent', () => {
         });
     });
 
+    it('revoked_at 있으면 revoked=true (프로필 이력 제외용)', () => {
+        const row = {
+            wr_id: 4022,
+            wr_content: JSON.stringify({
+                penalty_period: 5,
+                penalty_date_from: '2026-07-24 23:41:55',
+                revoked_at: '2026-07-25 01:01:47',
+                revoked_by: 'appeal'
+            }),
+            wr_datetime: '2026-07-24 23:41:55'
+        };
+        const result = parseDisciplineLogContent(row);
+        expect(result?.revoked).toBe(true);
+        expect(result?.penalty_period).toBe(5);
+    });
+
+    it('revoked_at 없거나 빈 문자열이면 revoked 미설정', () => {
+        const noField = parseDisciplineLogContent({
+            wr_id: 1,
+            wr_content: JSON.stringify({ penalty_period: 3 }),
+            wr_datetime: '2026-07-01 00:00:00'
+        });
+        expect(noField?.revoked).toBeUndefined();
+        const emptyField = parseDisciplineLogContent({
+            wr_id: 2,
+            wr_content: JSON.stringify({ penalty_period: 3, revoked_at: '' }),
+            wr_datetime: '2026-07-01 00:00:00'
+        });
+        expect(emptyField?.revoked).toBeUndefined();
+    });
+
     it('penalty_date_from 누락 시 wr_datetime fallback', () => {
         const row = {
             wr_id: 1041,

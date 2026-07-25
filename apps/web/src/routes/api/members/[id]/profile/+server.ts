@@ -227,7 +227,10 @@ export const GET: RequestHandler = async ({ params, locals }) => {
             );
             for (const row of logRows) {
                 const entry = parseDisciplineLogContent(row);
-                if (entry) {
+                // 소명 인용 등으로 회수(revoke)된 제재는 프로필 이력에서 제외 —
+                // 처분이 취소된 건을 유효한 제재처럼 노출하지 않는다.
+                // 전체 기록(회수 표시 포함)은 /disciplinelog 에서 확인 가능.
+                if (entry && !entry.revoked) {
                     disciplineHistory.push(entry);
                 }
             }
