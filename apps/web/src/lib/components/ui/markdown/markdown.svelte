@@ -223,7 +223,16 @@
             'open',
             'data-original',
             'data-affiliate',
-            'data-original-url'
+            'data-original-url',
+            // 목록·표 구조 속성 (#13086) — 백엔드(sanitize.go)·서버(server/sanitize.ts)는 이미 허용하는데
+            // 렌더러에만 빠져 있어 SSR 단계에서 깎였다. 목록 중간에 문단을 넣어 <ol> 이 둘로 쪼개지면
+            // 두 번째 목록이 start="2" 를 잃고 1 부터 다시 시작했고(1.1.2.), 표는 셀 병합이 풀렸다.
+            // 표현 속성이라 XSS 표면 증가 없음. 데이터는 온전하므로 과거 글도 함께 정상화된다.
+            'start',
+            'reversed',
+            'value',
+            'colspan',
+            'rowspan'
         ]
     };
 
