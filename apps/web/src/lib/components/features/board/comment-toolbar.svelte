@@ -70,6 +70,11 @@
     }
 </script>
 
+<!--
+    툴바 버튼은 모두 tabindex="-1" — 댓글 입력 후 Tab 을 누르면 이모티콘이 아니라
+    '댓글 작성' 버튼으로 바로 가야 한다(#13092 회원 제보). 삽입 도구는 마우스·클릭
+    전용이라 키보드 순회에서 빼도 기능 손실이 없고, 오히려 작성 흐름이 자연스러워진다.
+-->
 <div class="flex items-center gap-1">
     <!-- 이모티콘 버튼 -->
     <div class="relative">
@@ -79,6 +84,7 @@
             size="sm"
             onclick={toggleEmoticonPicker}
             {disabled}
+            tabindex={-1}
             class="h-8 px-2"
             title="이모티콘"
         >
@@ -110,6 +116,7 @@
         size="sm"
         onclick={openGifPicker}
         {disabled}
+        tabindex={-1}
         class="h-8 px-2"
         title="GIF"
     >
@@ -124,6 +131,7 @@
         size="sm"
         onclick={onSelectImage}
         {disabled}
+        tabindex={-1}
         class="h-8 px-2"
         title="사진"
     >
@@ -138,6 +146,7 @@
         size="sm"
         onclick={insertBlankComment}
         {disabled}
+        tabindex={-1}
         class="h-8 px-2"
         title="빈댓글"
     >

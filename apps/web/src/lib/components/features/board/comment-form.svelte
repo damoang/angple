@@ -54,7 +54,10 @@
     let {
         onSubmit,
         onCancel,
-        placeholder = '댓글을 입력하세요. 경어체 사용은 필수이며, 초성 비속어도 이용제한 대상입니다.',
+        // 끝의 단축키 안내 — Ctrl+Enter 제출은 오래전부터 있었으나 아무도 몰라
+        // "마우스로 눌러야 해서 불편하다"는 제보가 반복됐다. 노출로 해소한다.
+        // ⚠️ TipTap Placeholder 는 CSS ::before content 로 그려서 개행(\n)이 무시된다 — 한 줄 유지.
+        placeholder = '댓글을 입력하세요. 경어체 사용은 필수이며, 초성 비속어도 이용제한 대상입니다. (Ctrl+Enter 로 바로 작성)',
         isLoading = false,
         parentId,
         parentAuthor,
