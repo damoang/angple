@@ -2167,13 +2167,6 @@
         <PluginSlot name="board-view-rolling" />
     </div>
 
-    <!-- 마음메시지 아래 구글 광고 -->
-    {#if widgetLayoutStore.hasEnabledAds && !data.post.deleted_at}
-        <div class="mb-3">
-            <AdSlot position="board-content" height="90px" slotKey="board-view-head-ad" />
-        </div>
-    {/if}
-
     <!-- 읽기 권한 체크 -->
     {#if !canRead}
         <div class="bg-muted/50 mx-auto mt-12 max-w-md rounded-lg p-8 text-center">
