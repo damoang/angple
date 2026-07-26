@@ -62,7 +62,12 @@ export const ADFIT_FALLBACK_MAP: Record<string, AdfitFallback> = {
 // 광고 단위 경로 (환경변수로 커스터마이징 가능)
 const unitMain = import.meta.env.VITE_GAM_UNIT_MAIN || 'banner-responsive_main';
 const unitSub = import.meta.env.VITE_GAM_UNIT_SUB || 'banner-responsive_sub';
-const unitCuration = import.meta.env.VITE_GAM_UNIT_CURATION || 'banner-responsive_curation';
+// ⛔ 이 값은 GAM 의 '표시 이름'이 아니라 **광고 단위 코드(ad_unit_code)** 여야 한다.
+//    다른 단위들은 표시 이름과 코드가 같아 우연히 맞았지만, curation 만 다르다:
+//      display_name = banner-responsive_curation / ad_unit_code = curation
+//    표시 이름으로 요청하면 존재하지 않는 경로가 되어 GAM 이 광고를 주지 않는다.
+//    실제로 이 단위는 수집 시작(2026-04-30) 이후 노출·수익이 한 건도 잡히지 않았다.
+const unitCuration = import.meta.env.VITE_GAM_UNIT_CURATION || 'curation';
 const unitArticle = import.meta.env.VITE_GAM_UNIT_ARTICLE || 'banner-responsive_article';
 const unitWing = import.meta.env.VITE_GAM_UNIT_WING || 'banner-responsive_wing';
 
