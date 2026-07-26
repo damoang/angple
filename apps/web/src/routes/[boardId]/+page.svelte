@@ -1345,7 +1345,7 @@
                 <!-- 공지사항 (목록 내부) -->
                 {#if hasNotices && !isSearching}
                     {#if listLayoutId === 'classic'}
-                        {#each importantNotices as notice (notice.id)}
+                        {#each importantNotices as notice (`${notice.source_board ?? boardId}:${notice.id}`)}
                             <a
                                 href={getNoticeHref(notice, boardId)}
                                 class="hover:bg-destructive/10 block px-4 py-1.5 no-underline transition-colors"
@@ -1386,7 +1386,7 @@
                                 </div>
                             </a>
                         {/each}
-                        {#each normalNotices as notice (notice.id)}
+                        {#each normalNotices as notice (`${notice.source_board ?? boardId}:${notice.id}`)}
                             <a
                                 href={getNoticeHref(notice, boardId)}
                                 class="hover:bg-accent block px-4 py-1.5 no-underline transition-colors"
@@ -1426,7 +1426,7 @@
                             </a>
                         {/each}
                     {:else}
-                        {#each importantNotices as notice (notice.id)}
+                        {#each importantNotices as notice (`${notice.source_board ?? boardId}:${notice.id}`)}
                             <a
                                 href={getNoticeHref(notice, boardId)}
                                 class="bg-destructive/5 border-destructive/20 hover:bg-destructive/10 block rounded-lg border px-4 py-3 no-underline transition-colors"
@@ -1447,7 +1447,7 @@
                                 </div>
                             </a>
                         {/each}
-                        {#each normalNotices as notice (notice.id)}
+                        {#each normalNotices as notice (`${notice.source_board ?? boardId}:${notice.id}`)}
                             <a
                                 href={getNoticeHref(notice, boardId)}
                                 class="bg-muted/50 border-border hover:bg-muted block rounded-lg border px-4 py-3 no-underline transition-colors"

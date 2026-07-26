@@ -41,6 +41,8 @@ interface CommentRow extends RowDataPacket {
     wr_deleted_at: string | null;
     wr_deleted_by: string | null;
     wr_7: string | null;
+    /** 소모임 전역 공지의 댓글이 어느 소모임에서 작성됐는지 (백엔드가 검증해 저장). */
+    wr_1: string | null;
 }
 
 interface CountRow extends RowDataPacket {
@@ -77,6 +79,10 @@ interface CommentResponseItem {
     is_blocked?: boolean;
     /** 작성자가 탈퇴 회원인지 — 닉네임 취소선 표시용. */
     is_left?: boolean;
+    /** 소모임 전역 공지 댓글의 유입 소모임 slug. */
+    from_board?: string;
+    /** 위 소모임의 표시 이름 (bo_subject). */
+    from_board_name?: string;
     /** 리뷰 별점(리뷰=댓글+별점): 작성자가 이 댓글에 남긴 리뷰 점수(1~5). 별점 게시판만. */
     review_rating?: number;
 }
@@ -209,7 +215,7 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             `SELECT wr_id, wr_parent, wr_comment, wr_comment_reply, wr_content, wr_link1, wr_link2, wr_option,
 			        wr_good, wr_nogood, mb_id, wr_name, wr_ip, wr_datetime,
 			        wr_edit_count, wr_last_edited_at,
-			        wr_deleted_at, wr_deleted_by, wr_7
+			        wr_deleted_at, wr_deleted_by, wr_7, wr_1
 			 FROM ??
 			 WHERE wr_parent = ? AND wr_is_comment = 1
 			 ORDER BY wr_comment, wr_comment_reply, wr_id
@@ -303,6 +309,27 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
             () => new Set<string>()
         );
 
+        // 유입 소모임 이름 — 소모임 전역 공지(원본 1건을 91개 소모임이 공유)의 댓글에만 붙는다.
+        // wr_1 에 이미 없어진 게시판 slug 가 남아 있을 수 있어 현재 소모임만 인정한다.
+        const fromSlugs = Array.from(
+            new Set(rows.map((r) => (r.wr_1 || '').trim()).filter(Boolean))
+        );
+        const fromBoardNameMap = new Map<string, string>();
+        if (fromSlugs.length > 0) {
+            try {
+                const [boardRows] = await pool.query<RowDataPacket[]>(
+                    `SELECT bo_table, bo_subject FROM g5_board WHERE bo_table IN (?) AND gr_id = 'group'`,
+                    [fromSlugs]
+                );
+                for (const b of boardRows) {
+                    fromBoardNameMap.set(String(b.bo_table), String(b.bo_subject));
+                }
+            } catch (e) {
+                // 표기용 부가 정보라 실패해도 댓글 목록은 그대로 내려보낸다.
+                console.warn('[comments] from_board enrich failed:', e);
+            }
+        }
+
         const comments: CommentResponseItem[] = rows.map((row) => {
             // 비밀댓글은 열람 권한이 없으면 본문·링크를 서버에서 비운다.
             // is_secret 플래그는 그대로 내려 화면이 "비밀댓글입니다" 안내를 유지한다.
@@ -367,6 +394,12 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
                 edit_count: row.wr_edit_count || 0,
                 ...(row.mb_id && blockedSet.has(String(row.mb_id)) ? { is_blocked: true } : {}),
                 ...(row.mb_id && withdrawnSet.has(String(row.mb_id)) ? { is_left: true } : {}),
+                ...(row.wr_1 && fromBoardNameMap.has(row.wr_1.trim())
+                    ? {
+                          from_board: row.wr_1.trim(),
+                          from_board_name: fromBoardNameMap.get(row.wr_1.trim())
+                      }
+                    : {}),
                 ...(disciplineSet.has(row.wr_id) ? { is_discipline_related: true } : {}),
                 ...(reviewRatingMap.has(row.wr_id)
                     ? { review_rating: reviewRatingMap.get(row.wr_id) }
