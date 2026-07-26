@@ -75,6 +75,11 @@
             icon: FolderOpen
         },
         {
+            title: '소모임 당주',
+            href: '/admin/group-owners',
+            icon: Users
+        },
+        {
             title: '내용 관리',
             href: '/admin/contents',
             icon: StickyNote
