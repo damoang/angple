@@ -17,6 +17,7 @@
     import Pencil from '@lucide/svelte/icons/pencil';
     import Ban from '@lucide/svelte/icons/ban';
     import ShieldCheck from '@lucide/svelte/icons/shield-check';
+    import BadgeCheck from '@lucide/svelte/icons/badge-check';
     import ChevronLeft from '@lucide/svelte/icons/chevron-left';
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
@@ -30,6 +31,7 @@
         unbanMember,
         anonymizeMemberByUsername,
         bulkUpdateLevel,
+        certifyMember,
         type AdminMember,
         type MemberListParams,
         type AnonymizeMemberResult
@@ -172,6 +174,62 @@
             alert(err instanceof Error ? err.message : '저장에 실패했습니다.');
         } finally {
             saving = false;
+        }
+    }
+
+    // --- 수동 실명인증 ---------------------------------------------------------
+    // 해외 앙님처럼 국내 휴대폰 인증이 불가능한 회원을 관리자가 직접 처리한다.
+    // ⛔ 권한 판정·검증은 전부 서버가 한다. 여기 분기는 화면 안내일 뿐이다.
+    /**
+     * 이 화면이 다룰 수 있는 상태는 "미인증"과 "수동 인증(abroad)" 둘뿐이다.
+     * ⛔ 차단 목록(simple/ipin/hp)으로 두면 admin·email 같은 그 밖의 값이 뚫린다.
+     *    서버와 같은 규칙(허용 목록)으로 맞춰야 화면 문구와 실제 동작이 어긋나지 않는다.
+     */
+    function isManageableCertify(v: string): boolean {
+        return v === '' || v === 'abroad';
+    }
+
+    let certifyDialogOpen = $state(false);
+    let certifyTarget = $state<AdminMember | null>(null);
+    let certifyReason = $state('');
+    let certifySaving = $state(false);
+    let certifyError = $state('');
+
+    const certifyTargetIsVerified = $derived(
+        !isManageableCertify((certifyTarget?.mb_certify || '').trim())
+    );
+    /** 이미 인증돼 있으면 해제, 아니면 부여 */
+    const certifyWillGrant = $derived(!(certifyTarget?.mb_certify || '').trim());
+
+    function certifyLabel(member: AdminMember): string {
+        const v = (member.mb_certify || '').trim();
+        if (!v) return '수동 인증';
+        if (v === 'abroad') return '해외/수동 인증됨 — 해제';
+        return `본인확인 완료(${v}) — 변경 불가`;
+    }
+
+    function openCertifyDialog(member: AdminMember) {
+        certifyTarget = member;
+        certifyReason = '';
+        certifyError = '';
+        certifyDialogOpen = true;
+    }
+
+    async function submitCertify() {
+        if (!certifyTarget || certifySaving) return;
+        certifySaving = true;
+        certifyError = '';
+        try {
+            await certifyMember(certifyTarget.mb_id, certifyWillGrant, certifyReason.trim());
+            const next = certifyWillGrant ? 'abroad' : '';
+            members = members.map((m) =>
+                m.mb_id === certifyTarget!.mb_id ? { ...m, mb_certify: next } : m
+            );
+            certifyDialogOpen = false;
+        } catch (e) {
+            certifyError = e instanceof Error ? e.message : '처리하지 못했습니다.';
+        } finally {
+            certifySaving = false;
         }
     }
 
@@ -564,6 +622,18 @@
                                         <Button
                                             variant="ghost"
                                             size="icon"
+                                            onclick={() => openCertifyDialog(member)}
+                                            title={certifyLabel(member)}
+                                        >
+                                            <BadgeCheck
+                                                class="h-4 w-4 {member.mb_certify
+                                                    ? 'text-emerald-600'
+                                                    : 'text-muted-foreground/50'}"
+                                            />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
                                             onclick={() => openAnonymizeDialog(member)}
                                             title="익명화"
                                         >
@@ -801,5 +871,76 @@
                 </Button>
             </Dialog.Footer>
         </form>
+    </Dialog.Content>
+</Dialog.Root>
+
+<!-- 수동 실명인증 다이얼로그 -->
+<Dialog.Root bind:open={certifyDialogOpen}>
+    <Dialog.Content class="max-w-lg">
+        <Dialog.Header>
+            <Dialog.Title>
+                {certifyWillGrant ? '수동 실명인증' : '인증 해제'}
+            </Dialog.Title>
+            <Dialog.Description>
+                {certifyTarget?.mb_name}
+                <code class="text-xs">({certifyTarget?.mb_id})</code>
+            </Dialog.Description>
+        </Dialog.Header>
+
+        {#if certifyTargetIsVerified}
+            <p class="text-destructive text-sm">
+                이 회원은 <b>{certifyTarget?.mb_certify}</b> 로 본인확인을 마쳤습니다. 실제 확인을 거친
+                값이라 이 화면에서는 변경할 수 없습니다.
+            </p>
+        {:else}
+            <div class="space-y-3">
+                {#if certifyWillGrant}
+                    <div
+                        class="rounded border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-950/30"
+                    >
+                        <p class="font-medium">수동 인증은 명의 중복 검사(DI)를 거치지 않습니다.</p>
+                        <p class="text-muted-foreground mt-1">
+                            인증하면 <b>인증필수 게시판 글쓰기·쪽지 발송·자동 등급 승급</b> 자격이 열립니다.
+                            왜 인증했는지 남겨 주세요.
+                        </p>
+                    </div>
+                {:else}
+                    <div class="text-muted-foreground rounded border p-3 text-sm">
+                        해제하면 앞으로의 인증 권한만 닫힙니다.
+                        <b
+                            >이미 오른 등급, 인증필수 게시판에 쓴 글, 보낸 쪽지는 되돌아가지
+                            않습니다.</b
+                        >
+                    </div>
+                {/if}
+
+                <div class="space-y-1">
+                    <Label for="certify-reason">사유 (10자 이상)</Label>
+                    <Textarea
+                        id="certify-reason"
+                        rows={3}
+                        bind:value={certifyReason}
+                        placeholder="예) verification/1234 신청 건, 해외 거주 확인"
+                    />
+                    <p class="text-muted-foreground text-xs">
+                        {certifyReason.trim().length} / 최소 10자 — 기록에 남습니다.
+                    </p>
+                </div>
+
+                {#if certifyError}
+                    <p class="text-destructive text-sm">{certifyError}</p>
+                {/if}
+            </div>
+
+            <Dialog.Footer>
+                <Button variant="outline" onclick={() => (certifyDialogOpen = false)}>취소</Button>
+                <Button
+                    disabled={certifySaving || certifyReason.trim().length < 10}
+                    onclick={submitCertify}
+                >
+                    {certifySaving ? '처리 중…' : certifyWillGrant ? '인증 처리' : '인증 해제'}
+                </Button>
+            </Dialog.Footer>
+        {/if}
     </Dialog.Content>
 </Dialog.Root>
