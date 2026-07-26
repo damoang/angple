@@ -1272,6 +1272,15 @@
                                     blur={uiSettingsStore.blurMemo}
                                 />
                             {/if}
+                            <!-- 소모임 전역 공지: 이 의견이 어느 소모임에서 올라왔는지.
+                                 글이 1개를 91개 소모임이 공유하므로 이 배지가 유일한 구분점이다. -->
+                            {#if comment.from_board_name}
+                                <span
+                                    class="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                                    title="{comment.from_board_name} 소모임에서 작성"
+                                    >{comment.from_board_name}</span
+                                >
+                            {/if}
                             {#if comment.author_ip}
                                 <span class="text-muted-foreground font-normal"
                                     >· {comment.author_ip}</span

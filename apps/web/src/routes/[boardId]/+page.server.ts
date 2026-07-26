@@ -91,7 +91,11 @@ function trimFreeListPayload(post: FreePost): FreePost {
         has_video: post.has_video ?? !!post.extra_9,
         has_image: post.has_image ?? !!(post.has_file || post.extra_10),
         deleted_at: post.deleted_at,
-        thumbnail: post.thumbnail
+        thumbnail: post.thumbnail,
+        // 소모임 전역 공지는 원본이 다른 게시판에 있어, 이 두 필드가 없으면 링크가
+        // 현재 소모임의 같은 번호 글로 잘못 걸린다(소모임 91곳 전부 이 trim 대상).
+        global_notice: post.global_notice,
+        source_board: post.source_board
     } as FreePost;
 }
 
