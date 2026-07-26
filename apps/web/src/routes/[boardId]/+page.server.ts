@@ -21,6 +21,7 @@ import { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import { applyFilter } from '$lib/hooks/registry.js';
 import { buildHookContext } from '$lib/hooks/context.js';
+import { getBoardOwnerContext } from '$lib/server/board-owner';
 
 // --- 인메모리 캐시: 비로그인 게시글 목록 (15초 TTL) ---
 interface PostsCacheData {
@@ -771,6 +772,14 @@ export const load: PageServerLoad = async ({
         watermark,
         postsData,
         promotionData,
+        /**
+         * 이 소모임의 당주인지 — 목록에 "소모임 관리" 링크를 띄울지 결정한다.
+         * ⛔ 표시용 힌트일 뿐이고 실제 권한은 /manage 로드와 저장 API 가 각각 다시 본다.
+         */
+        canManageBoard: !!(await getBoardOwnerContext(
+            boardId,
+            locals.user?.id ? { mb_id: locals.user.id, mb_level: locals.user.level ?? 0 } : null
+        ).catch(() => null)),
         streamed: {
             promotionData: promotionDataPromise ?? Promise.resolve([] as unknown[])
         }

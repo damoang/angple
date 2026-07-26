@@ -107,8 +107,19 @@
         searching = true;
         searchError = '';
         try {
-            const res = await listMembers({ search: q, limit: 10 });
-            candidates = res.members ?? [];
+            // 백엔드는 search_field 기본값이 'name'(닉네임)이라 아이디로는 안 잡힌다.
+            // 그런데 이 화면이 보여주는 값은 mb_id 라, 운영진은 화면의 그 값을 그대로
+            // 붙여넣기 마련이다. 두 방식으로 조회해 합친다.
+            const [byNick, byId] = await Promise.allSettled([
+                listMembers({ search: q, limit: 10 }),
+                listMembers({ search: q, searchField: 'id', limit: 10 })
+            ]);
+            const merged = new Map<string, AdminMember>();
+            for (const r of [byNick, byId]) {
+                if (r.status !== 'fulfilled') continue;
+                for (const m of r.value.members ?? []) merged.set(m.mb_id, m);
+            }
+            candidates = [...merged.values()].slice(0, 20);
             if (candidates.length === 0) searchError = '검색 결과가 없습니다.';
         } catch (e) {
             searchError = e instanceof Error ? e.message : '회원 검색에 실패했습니다.';

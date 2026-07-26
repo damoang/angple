@@ -1006,6 +1006,17 @@
                 </div>
             </div>
 
+            <!-- 소모임 당주에게만 보이는 관리 진입점.
+                 서버(+page.server.ts)가 g5_board.bo_admin 으로 판정한 값이라 이 링크가
+                 보인다는 것 자체가 권한이 있다는 뜻이다. 링크가 없으면 URL 을 직접 쳐야 했다. -->
+            {#if data.canManageBoard}
+                <div class="mb-3 text-right">
+                    <a href="/{boardId}/manage" class="text-primary text-sm underline">
+                        소모임 관리
+                    </a>
+                </div>
+            {/if}
+
             <!-- 최상단 자체 배너 (자체 배너 없으면 안 보임) -->
             {#if widgetLayoutStore.hasEnabledAds}
                 <div class="mb-3">

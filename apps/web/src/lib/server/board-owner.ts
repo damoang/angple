@@ -46,15 +46,26 @@ export async function getBoardOwnerContext(
 ): Promise<BoardOwnerContext | null> {
     if (!user?.mb_id) return null;
 
+    // 탈퇴 여부를 판정 시점에 함께 본다. 지정 화면에서 탈퇴자를 걸러도, 지정된 뒤에
+    // 탈퇴하는 경우가 있어 여기가 유일하게 믿을 수 있는 경계다.
+    // (클라이언트에서 버튼을 막는 것은 보호가 아니다 — devtools 로 풀린다.)
     const [rows] = await pool.query<RowDataPacket[]>(
-        `SELECT bo_subject, COALESCE(bo_admin, '') AS bo_admin
-           FROM g5_board
-          WHERE bo_table = ? AND gr_id = 'group'`,
-        [boardId]
+        `SELECT b.bo_subject,
+                COALESCE(b.bo_admin, '')                  AS bo_admin,
+                COALESCE(me.mb_leave_date, '')            AS me_leave_date,
+                (me.mb_id IS NOT NULL)                    AS me_exists
+           FROM g5_board b
+           LEFT JOIN g5_member me ON me.mb_id = ?
+          WHERE b.bo_table = ? AND b.gr_id = 'group'`,
+        [user.mb_id, boardId]
     );
 
     const board = rows[0];
     if (!board) return null; // 없는 게시판이거나 소모임이 아님
+
+    // 요청자 본인이 탈퇴했거나 없는 계정이면 어떤 권한도 주지 않는다.
+    if (!Number(board.me_exists)) return null;
+    if (String(board.me_leave_date || '').trim() !== '') return null;
 
     const ownerId = String(board.bo_admin || '').trim();
     const isSiteAdmin = user.mb_level >= SITE_ADMIN_LEVEL;
