@@ -229,6 +229,9 @@ export const load: PageServerLoad = async ({
                 error: '로그인 후 검색할 수 있습니다.'
             },
             promotionData: [],
+            // 비로그인 경로라 당주일 수 없다. 모든 return 이 같은 필드를 가져야
+            // postsData 타입이 합집합으로 갈라지지 않는다.
+            canManageBoard: false,
             streamed: { promotionData: Promise.resolve([] as unknown[]) }
         };
     }
@@ -338,6 +341,8 @@ export const load: PageServerLoad = async ({
                 searchParams: null,
                 activeTag: null,
                 postsData: cachedPosts,
+                // 비로그인 목록 캐시 경로 — 당주일 수 없다(위 return 과 필드를 맞춘다).
+                canManageBoard: false,
                 streamed: { promotionData: Promise.resolve([] as unknown[]) }
             };
         }
