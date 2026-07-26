@@ -18,7 +18,7 @@ import type { ParamMatcher } from '@sveltejs/kit';
  *    이 일치 여부는 entityslug.test.ts 가 실제 디렉터리를 읽어 검사하므로,
  *    빠뜨리면 사람이 기억하지 못해도 **CI 가 먼저 실패한다**.
  */
-export const RESERVED = new Set(['write']);
+export const RESERVED = new Set(['write', 'manage']);
 
 export const match: ParamMatcher = (param) => {
     if (param.length === 0) return false;

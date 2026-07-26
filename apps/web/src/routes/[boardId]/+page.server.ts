@@ -21,6 +21,7 @@ import { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import { applyFilter } from '$lib/hooks/registry.js';
 import { buildHookContext } from '$lib/hooks/context.js';
+import { getBoardOwnerContext } from '$lib/server/board-owner';
 
 // --- 인메모리 캐시: 비로그인 게시글 목록 (15초 TTL) ---
 interface PostsCacheData {
@@ -228,6 +229,9 @@ export const load: PageServerLoad = async ({
                 error: '로그인 후 검색할 수 있습니다.'
             },
             promotionData: [],
+            // 비로그인 경로라 당주일 수 없다. 모든 return 이 같은 필드를 가져야
+            // postsData 타입이 합집합으로 갈라지지 않는다.
+            canManageBoard: false,
             streamed: { promotionData: Promise.resolve([] as unknown[]) }
         };
     }
@@ -337,6 +341,8 @@ export const load: PageServerLoad = async ({
                 searchParams: null,
                 activeTag: null,
                 postsData: cachedPosts,
+                // 비로그인 목록 캐시 경로 — 당주일 수 없다(위 return 과 필드를 맞춘다).
+                canManageBoard: false,
                 streamed: { promotionData: Promise.resolve([] as unknown[]) }
             };
         }
@@ -763,6 +769,14 @@ export const load: PageServerLoad = async ({
         };
     }
 
+    // 이 소모임의 당주인지 — 목록에 "소모임 관리" 링크를 띄울지 결정한다.
+    // ⛔ 표시용 힌트일 뿐이고 실제 권한은 /manage 로드와 저장 API 가 각각 다시 본다.
+    // (return 리터럴 안에서 await 하면 postsData 의 타입 추론이 흐트러진다 — 밖에서 계산한다.)
+    const canManageBoard = !!(await getBoardOwnerContext(
+        boardId,
+        locals.user?.id ? { mb_id: locals.user.id, mb_level: locals.user.level ?? 0 } : null
+    ).catch(() => null));
+
     return {
         boardId,
         board: toListBoardPayload(board),
@@ -771,6 +785,7 @@ export const load: PageServerLoad = async ({
         watermark,
         postsData,
         promotionData,
+        canManageBoard,
         streamed: {
             promotionData: promotionDataPromise ?? Promise.resolve([] as unknown[])
         }

@@ -36,6 +36,7 @@ import { getAngmapPlace, type AngmapPlaceCoord } from '$lib/server/angmap-place.
 import { getPostAspects, type AspectRating } from '$lib/server/rating-aspects.js';
 import { getBoardAspectPreset } from '$plugins/angtt-review/lib/aspect-presets';
 import { fetchAngmapArchiveRating } from '$lib/server/angmap-archive-rating.js';
+import { getBoardOwnerContext } from '$lib/server/board-owner';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -809,6 +810,16 @@ export const load: PageServerLoad = async ({
             angmapPlace,
             /** 항목별 평점 집계(옵트인 표시·입력용) — 프리셋 매핑 보드에서만 채워짐(그 외 빈 배열) */
             postAspects,
+            /**
+             * 이 소모임의 당주인지 (공지 고정 버튼 노출용).
+             * ⛔ 이건 화면 표시용 힌트일 뿐이고, 실제 권한은 공지 API 가 다시 검증한다.
+             *    소모임이 아니거나 당주가 아니면 false.
+             */
+            canManageBoard: !!(await getBoardOwnerContext(
+                boardId,
+                // locals.user 는 { id, level } 형태다 — 판정 함수가 쓰는 이름으로 옮긴다.
+                locals.user?.id ? { mb_id: locals.user.id, mb_level: locals.user.level ?? 0 } : null
+            ).catch(() => null)),
             /** 스트리밍: Promise로 반환 → 클라이언트에서 $effect로 수신 */
             streamed: {
                 auxiliaryData: auxiliaryDataPromise

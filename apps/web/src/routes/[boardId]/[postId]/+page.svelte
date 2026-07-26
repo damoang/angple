@@ -2248,7 +2248,7 @@
                 board={data.board}
                 {boardId}
                 {isAuthor}
-                isAdmin={authStore.user?.mb_id === 'admin'}
+                isAdmin={authStore.user?.mb_id === 'admin' || data.canManageBoard === true}
                 {canViewSecret}
                 {promotionExpired}
                 {likeCount}
