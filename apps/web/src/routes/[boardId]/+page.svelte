@@ -59,6 +59,7 @@
     import { Card, CardContent } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Badge } from '$lib/components/ui/badge/index.js';
+    import { getNoticeHref } from '$lib/utils/notice-link';
     import type { PageData } from './$types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import {
@@ -1346,7 +1347,7 @@
                     {#if listLayoutId === 'classic'}
                         {#each importantNotices as notice (notice.id)}
                             <a
-                                href="/{boardId}/{notice.id}"
+                                href={getNoticeHref(notice, boardId)}
                                 class="hover:bg-destructive/10 block px-4 py-1.5 no-underline transition-colors"
                                 style="background: rgba(239, 68, 68, 0.04);"
                             >
@@ -1387,7 +1388,7 @@
                         {/each}
                         {#each normalNotices as notice (notice.id)}
                             <a
-                                href="/{boardId}/{notice.id}"
+                                href={getNoticeHref(notice, boardId)}
                                 class="hover:bg-accent block px-4 py-1.5 no-underline transition-colors"
                                 style="background: rgba(255, 255, 255, 0.03);"
                             >
@@ -1427,7 +1428,7 @@
                     {:else}
                         {#each importantNotices as notice (notice.id)}
                             <a
-                                href="/{boardId}/{notice.id}"
+                                href={getNoticeHref(notice, boardId)}
                                 class="bg-destructive/5 border-destructive/20 hover:bg-destructive/10 block rounded-lg border px-4 py-3 no-underline transition-colors"
                             >
                                 <div class="flex items-center gap-3">
@@ -1448,7 +1449,7 @@
                         {/each}
                         {#each normalNotices as notice (notice.id)}
                             <a
-                                href="/{boardId}/{notice.id}"
+                                href={getNoticeHref(notice, boardId)}
                                 class="bg-muted/50 border-border hover:bg-muted block rounded-lg border px-4 py-3 no-underline transition-colors"
                             >
                                 <div class="flex items-center gap-3">

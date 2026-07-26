@@ -60,6 +60,10 @@ export interface FreePost {
     is_comments_disabled?: boolean; // 댓글 비활성화 (읽기 전용 공지)
     is_notice?: boolean; // 공지사항 여부
     notice_type?: 'normal' | 'important'; // 공지 타입 (일반/필수)
+    /** 소모임 전 게시판 공통 공지 — 원본 글 1개를 91개 소모임이 공유한다. */
+    global_notice?: boolean;
+    /** 전역 공지의 원본이 실제로 있는 게시판 slug (링크는 이쪽으로 걸어야 한다). */
+    source_board?: string;
     is_adult?: boolean; // 19금 콘텐츠 여부
     suppress_ads?: boolean; // 작가 기반 광고 억제
     thumbnail?: string; // 썸네일 URL (Lambda 리사이즈)
@@ -117,6 +121,10 @@ export interface FreeComment {
     is_blocked?: boolean;
     /** 작성자 탈퇴 여부 — 닉네임 취소선 표시용. */
     is_left?: boolean;
+    /** 전역 공지에 달린 댓글이 어느 소모임에서 작성됐는지 (slug). 서버가 검증한 값만 내려온다. */
+    from_board?: string;
+    /** 위 소모임의 표시 이름 (bo_subject). */
+    from_board_name?: string;
     /** 리뷰 별점(리뷰=댓글+별점): 작성자가 이 댓글에 남긴 리뷰 점수(1~5). 별점 게시판만. */
     review_rating?: number;
     link1?: string;
@@ -655,6 +663,11 @@ export interface CreateCommentRequest {
     parent_id?: number | string; // 대댓글인 경우 부모 댓글 ID
     is_secret?: boolean; // 선택 (비밀댓글)
     images?: string[]; // 첨부 이미지 URL 배열
+    /**
+     * 전역 공지에 댓글을 달 때, 어느 소모임을 통해 들어왔는지 (URL 의 ?from= 값).
+     * 서버가 소모임 화이트리스트로 검증하므로 위조해도 저장되지 않는다.
+     */
+    from_board?: string;
 }
 
 // 댓글 수정 요청

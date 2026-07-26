@@ -18,6 +18,8 @@
     import { browser } from '$app/environment';
     import { env as publicEnv } from '$env/dynamic/public';
     import { afterNavigate, goto } from '$app/navigation';
+    import { page } from '$app/stores';
+    import { sanitizeFromBoard } from '$lib/utils/notice-link';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import * as Dialog from '$lib/components/ui/dialog/index.js';
@@ -297,6 +299,9 @@
 
     // 게시판 정보
     const boardId = $derived(data.boardId);
+    // 소모임 전역 공지에서 넘어왔다면 어느 소모임에서 눌렀는지 (?from=).
+    // 글이 1개뿐이라 이 값이 없으면 어느 소모임의 의견인지 알 수 없다.
+    const fromBoard = $derived(sanitizeFromBoard($page.url.searchParams.get('from')));
     const boardTitle = $derived(data.board?.subject || data.board?.name || boardId);
 
     // #12920: 이용제한 근거 콘텐츠 공개 워터마크용 열람자 정보를 스토어에 동기화.
@@ -1562,7 +1567,8 @@
                 author: authStore.user.mb_name,
                 parent_id: parentId,
                 is_secret: isSecret,
-                images
+                images,
+                from_board: fromBoard
             });
 
             // 리뷰 별점(리뷰=댓글+별점): 댓글 저장 후 그 댓글 wr_id 에 작성자 본인 별점 기록.
@@ -1645,7 +1651,8 @@
                 author: authStore.user.mb_name,
                 parent_id: parentId,
                 is_secret: isSecret,
-                images
+                images,
+                from_board: fromBoard
             });
 
             // Optimistic update: 대댓글도 즉시 목록에 추가 (#11946, #12228)
