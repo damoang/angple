@@ -180,8 +180,14 @@
     // --- 수동 실명인증 ---------------------------------------------------------
     // 해외 앙님처럼 국내 휴대폰 인증이 불가능한 회원을 관리자가 직접 처리한다.
     // ⛔ 권한 판정·검증은 전부 서버가 한다. 여기 분기는 화면 안내일 뿐이다.
-    /** 실제 본인확인을 거친 값 — 관리자가 덮어쓸 수 없다(서버도 거부한다). */
-    const VERIFIED_CERTIFY = new Set(['simple', 'ipin', 'hp']);
+    /**
+     * 이 화면이 다룰 수 있는 상태는 "미인증"과 "수동 인증(abroad)" 둘뿐이다.
+     * ⛔ 차단 목록(simple/ipin/hp)으로 두면 admin·email 같은 그 밖의 값이 뚫린다.
+     *    서버와 같은 규칙(허용 목록)으로 맞춰야 화면 문구와 실제 동작이 어긋나지 않는다.
+     */
+    function isManageableCertify(v: string): boolean {
+        return v === '' || v === 'abroad';
+    }
 
     let certifyDialogOpen = $state(false);
     let certifyTarget = $state<AdminMember | null>(null);
@@ -190,7 +196,7 @@
     let certifyError = $state('');
 
     const certifyTargetIsVerified = $derived(
-        VERIFIED_CERTIFY.has((certifyTarget?.mb_certify || '').trim())
+        !isManageableCertify((certifyTarget?.mb_certify || '').trim())
     );
     /** 이미 인증돼 있으면 해제, 아니면 부여 */
     const certifyWillGrant = $derived(!(certifyTarget?.mb_certify || '').trim());
@@ -897,6 +903,14 @@
                             인증하면 <b>인증필수 게시판 글쓰기·쪽지 발송·자동 등급 승급</b> 자격이 열립니다.
                             왜 인증했는지 남겨 주세요.
                         </p>
+                    </div>
+                {:else}
+                    <div class="text-muted-foreground rounded border p-3 text-sm">
+                        해제하면 앞으로의 인증 권한만 닫힙니다.
+                        <b
+                            >이미 오른 등급, 인증필수 게시판에 쓴 글, 보낸 쪽지는 되돌아가지
+                            않습니다.</b
+                        >
                     </div>
                 {/if}
 
