@@ -133,7 +133,7 @@
         <Card.Header>
             <Card.Title class="text-base">고정된 공지</Card.Title>
             <Card.Description>
-                글 상세에서 공지로 지정할 수 있습니다. 여기서는 해제만 합니다. 고정은 글 제목 옆의 압정을 누르면 됩니다.
+                고정은 글 제목 옆의 압정을 누르면 됩니다. 여기서는 해제만 합니다.
             </Card.Description>
         </Card.Header>
         <Card.Content>

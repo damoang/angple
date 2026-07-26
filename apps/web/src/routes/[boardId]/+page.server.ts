@@ -764,6 +764,14 @@ export const load: PageServerLoad = async ({
         };
     }
 
+    // 이 소모임의 당주인지 — 목록에 "소모임 관리" 링크를 띄울지 결정한다.
+    // ⛔ 표시용 힌트일 뿐이고 실제 권한은 /manage 로드와 저장 API 가 각각 다시 본다.
+    // (return 리터럴 안에서 await 하면 postsData 의 타입 추론이 흐트러진다 — 밖에서 계산한다.)
+    const canManageBoard = !!(await getBoardOwnerContext(
+        boardId,
+        locals.user?.id ? { mb_id: locals.user.id, mb_level: locals.user.level ?? 0 } : null
+    ).catch(() => null));
+
     return {
         boardId,
         board: toListBoardPayload(board),
@@ -772,14 +780,7 @@ export const load: PageServerLoad = async ({
         watermark,
         postsData,
         promotionData,
-        /**
-         * 이 소모임의 당주인지 — 목록에 "소모임 관리" 링크를 띄울지 결정한다.
-         * ⛔ 표시용 힌트일 뿐이고 실제 권한은 /manage 로드와 저장 API 가 각각 다시 본다.
-         */
-        canManageBoard: !!(await getBoardOwnerContext(
-            boardId,
-            locals.user?.id ? { mb_id: locals.user.id, mb_level: locals.user.level ?? 0 } : null
-        ).catch(() => null)),
+        canManageBoard,
         streamed: {
             promotionData: promotionDataPromise ?? Promise.resolve([] as unknown[])
         }
