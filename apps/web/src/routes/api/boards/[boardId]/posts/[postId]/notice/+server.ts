@@ -1,13 +1,16 @@
 /**
  * 게시글 공지 고정/해제 API
  * PATCH /api/boards/[boardId]/posts/[postId]/notice
- * 관리자(mb_level >= 10)만 사용 가능
+ *
+ * 권한: 사이트 관리자(mb_level >= 10) 또는 **그 소모임의 당주**(g5_board.bo_admin).
+ * 당주는 자기 소모임 하나에만 권한이 있다.
  */
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
+import { getBoardOwnerContext } from '$lib/server/board-owner';
 
 export const PATCH: RequestHandler = async ({ params, request, cookies }) => {
     const { boardId, postId } = params;
@@ -17,9 +20,14 @@ export const PATCH: RequestHandler = async ({ params, request, cookies }) => {
         return json({ success: false, error: '로그인이 필요합니다.' }, { status: 401 });
     }
 
-    // 관리자만 공지 설정 가능
+    // 사이트 관리자 또는 그 소모임의 당주(g5_board.bo_admin)만 공지를 고정할 수 있다.
+    // 당주에게 열어주는 이유: 지금까지 소모임 공지 하나 고정하려 해도 운영진에게
+    // 요청해야 했다. 권한은 자기 소모임 하나로 한정된다(getBoardOwnerContext 가 검사).
     if (user.mb_level < 10) {
-        return json({ success: false, error: '관리자 권한이 필요합니다.' }, { status: 403 });
+        const ctx = await getBoardOwnerContext(boardId, user);
+        if (!ctx) {
+            return json({ success: false, error: '권한이 없습니다.' }, { status: 403 });
+        }
     }
 
     try {
