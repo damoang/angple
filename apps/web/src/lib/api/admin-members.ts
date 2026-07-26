@@ -19,6 +19,10 @@ export interface AdminMember {
     mb_intercept_date?: string;
     post_count?: number;
     comment_count?: number;
+    /** 실명인증 상태. 빈 문자열이면 미인증. (simple=간편인증, abroad=해외/수동, ipin, hp) */
+    mb_certify?: string;
+    /** 명의 중복 검사(DI) 보유 여부. 수동 인증은 DI 를 만들지 않아 인증돼도 false 일 수 있다. */
+    has_dupinfo?: boolean;
 }
 
 export interface AnonymizeMemberInput {
@@ -195,6 +199,36 @@ export async function unbanMember(memberId: string): Promise<void> {
         }
     } catch (error) {
         console.error('❌ 회원 차단 해제 실패:', error);
+        throw error;
+    }
+}
+
+/**
+ * 회원 수동 실명인증 / 해제
+ *
+ * 해외 앙님처럼 국내 휴대폰 인증이 불가능한 회원을 관리자가 직접 처리한다.
+ *
+ * ⛔ 수동 인증은 DI(명의 중복 검사)를 만들지 않는다. 인증 회원 권한(인증필수 게시판·
+ *    쪽지 발송·자동 등급 승급)이 열리므로 사유가 반드시 남아야 한다(서버가 10자 이상 강제).
+ */
+export async function certifyMember(
+    memberId: string,
+    certify: boolean,
+    reason: string
+): Promise<void> {
+    try {
+        const response = await fetch(`${API_BASE}/${memberId}/certify`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ certify, reason })
+        });
+        if (!response.ok) {
+            const errorResult = await safeJson(response);
+            throw new Error(errorResult.error?.message || `HTTP ${response.status}`);
+        }
+    } catch (error) {
+        console.error('❌ 회원 인증 처리 실패:', error);
         throw error;
     }
 }
