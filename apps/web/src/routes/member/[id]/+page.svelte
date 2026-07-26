@@ -37,6 +37,11 @@
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import { formatDate } from '$lib/utils/format-date.js';
+    import {
+        getPostLabel,
+        getCommentLabel,
+        type ContentKind
+    } from '$lib/utils/content-label.js';
     import FollowListDialog from '$lib/components/features/member/follow-list-dialog.svelte';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
 
@@ -153,6 +158,8 @@
         href: string;
         deleted_at?: string | null;
         post_deleted_at?: string | null;
+        /** 백엔드가 내려주는 콘텐츠 종류 — 미배포 시 undefined 라 유틸이 폴백한다 */
+        content_kind?: ContentKind | null;
     }
     interface LikedPost {
         bo_table: string;
@@ -182,14 +189,14 @@
     let commentsLoaded = $state(false);
     let likedLoaded = $state(false);
 
+    // 표기는 content-label 유틸이 단일 판정한다(#13095, #13097).
     function getRecentPostTitle(post: RecentPost): string {
-        return post.deleted_at ? '삭제된 글입니다.' : post.wr_subject;
+        return getPostLabel(post).text;
     }
 
     function getRecentCommentPreview(comment: RecentComment): string {
-        if (comment.deleted_at) return '삭제된 댓글입니다.';
-        if (comment.post_deleted_at) return `[삭제된 글] ${comment.preview || '(내용 없음)'}`;
-        return comment.preview || '(내용 없음)';
+        const label = getCommentLabel(comment);
+        return label.badge ? `${label.badge} ${label.text}` : label.text;
     }
 
     onMount(async () => {

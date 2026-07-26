@@ -7,6 +7,11 @@
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import ChevronUp from '@lucide/svelte/icons/chevron-up';
     import { formatDate } from '$lib/utils/format-date.js';
+    import {
+        getPostLabel,
+        getCommentLabel,
+        type ContentKind
+    } from '$lib/utils/content-label.js';
     import { slide } from 'svelte/transition';
 
     interface RecentPost {
@@ -29,6 +34,8 @@
         href: string;
         deleted_at?: string | null;
         post_deleted_at?: string | null;
+        /** 백엔드가 내려주는 콘텐츠 종류 — 미배포 시 undefined 라 유틸이 폴백한다 */
+        content_kind?: ContentKind | null;
     }
 
     interface Props {
@@ -94,14 +101,16 @@
         import.meta.env.VITE_ADSENSE_ACTIVITY_CLIENT || 'ca-pub-2456249131797827';
     const ADSENSE_ACTIVITY_SLOT = import.meta.env.VITE_ADSENSE_ACTIVITY_SLOT || '1893595467';
 
+    // 표기는 content-label 유틸이 단일 판정한다(#13095, #13097).
+    // 이전엔 화면마다 문구가 갈라졌고, 텍스트 없는 댓글이 이모티콘·이미지·빈댓글 구분 없이
+    // 전부 '(내용 없음)' 으로 뭉개졌다.
     function getRecentPostLabel(post: RecentPost): string {
-        return post.deleted_at ? '삭제된 글입니다.' : post.wr_subject || '(제목 없음)';
+        return getPostLabel(post).text;
     }
 
     function getRecentCommentLabel(comment: RecentComment): string {
-        if (comment.deleted_at) return '삭제된 댓글입니다.';
-        if (comment.post_deleted_at) return `[삭제된 글] ${comment.preview || '(내용 없음)'}`;
-        return comment.preview || '(내용 없음)';
+        const label = getCommentLabel(comment);
+        return label.badge ? `${label.badge} ${label.text}` : label.text;
     }
 
     function getTargetHeight(): number {
