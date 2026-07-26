@@ -18,7 +18,6 @@
     import { browser } from '$app/environment';
     import { env as publicEnv } from '$env/dynamic/public';
     import { afterNavigate, goto } from '$app/navigation';
-    import { page } from '$app/stores';
     import { sanitizeFromBoard } from '$lib/utils/notice-link';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
