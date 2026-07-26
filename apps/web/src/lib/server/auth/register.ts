@@ -58,6 +58,84 @@ export function appendMbIdSuffix(baseMbId: string): string {
     return candidate;
 }
 
+/**
+ * 소셜 재가입 시 이미 그 소셜 계정으로 만들어진 계정이 있는지 판정한다.
+ *
+ * `generateSocialMbId`는 결정적이라 mb_id가 충돌한다는 것은 **같은 소셜 계정**이라는 뜻이다.
+ * 즉 점유 계정은 동일인의 것이 확실하므로, 새 계정을 만들 게 아니라 복구를 안내해야 한다.
+ * (2026-07-23 실측: 같은 base를 공유하는 198계정 90묶음 중 둘 이상이 활동한 묶음 0개
+ *  — 다중이가 아니라 재가입이 막혀 쌓인 빈 계정이었다)
+ *
+ * - `none`        점유 없음 → 정상 가입
+ * - `blocked`     이용제한 중 → 계정 생성 금지. 제재 회피 재가입 통로를 막는다
+ * - `recoverable` 그 외(탈퇴/활성) → 복구 안내 대상
+ */
+export type OccupantKind = 'none' | 'blocked' | 'recoverable';
+
+export interface OccupantInfo {
+    kind: OccupantKind;
+    mbId: string;
+    nick: string;
+    joinedAt: string;
+    postCount: number;
+    withdrawn: boolean;
+}
+
+export async function inspectSocialMbIdOccupant(
+    provider: string,
+    identifier: string
+): Promise<OccupantInfo> {
+    const mbId = generateSocialMbId(provider, identifier);
+    const [rows] = await pool.query<RowDataPacket[]>(
+        `SELECT mb_id, mb_nick, mb_datetime, mb_leave_date, mb_intercept_date
+		   FROM g5_member WHERE mb_id = ? LIMIT 1`,
+        [mbId]
+    );
+    const row = rows[0];
+    if (!row) {
+        return { kind: 'none', mbId, nick: '', joinedAt: '', postCount: 0, withdrawn: false };
+    }
+
+    // mb_intercept_date는 YYYYMMDD 문자열. 99991231 = 영구.
+    // 만료된 제재는 차단 대상이 아니다.
+    const intercept = String(row.mb_intercept_date || '');
+    const today = new Date();
+    const todayStr =
+        `${today.getFullYear()}` +
+        `${String(today.getMonth() + 1).padStart(2, '0')}` +
+        `${String(today.getDate()).padStart(2, '0')}`;
+    const blocked = intercept.length === 8 && intercept >= todayStr;
+
+    const [cnt] = await pool.query<RowDataPacket[]>(
+        'SELECT COUNT(*) AS cnt FROM g5_board_new WHERE mb_id = ?',
+        [mbId]
+    );
+
+    return {
+        kind: blocked ? 'blocked' : 'recoverable',
+        mbId,
+        nick: row.mb_nick || '',
+        joinedAt: row.mb_datetime ? String(row.mb_datetime) : '',
+        postCount: Number(cnt[0]?.cnt || 0),
+        withdrawn: Boolean(row.mb_leave_date)
+    };
+}
+
+/**
+ * 탈퇴 상태인 옛 계정을 되살린다. 소셜 로그인 자기증명이 본인 확인을 대신한다
+ * (같은 소셜 sub이어야만 이 경로에 도달하므로 DI보다 강한 근거다).
+ */
+export async function reactivateMember(mbId: string, reason: string): Promise<void> {
+    await pool.query(
+        `UPDATE g5_member
+		    SET mb_leave_date = '',
+		        mb_leave_reason = '',
+		        mb_memo = CONCAT(IFNULL(mb_memo,''), '\\n', DATE_FORMAT(NOW(),'%Y%m%d'), ' ', ?)
+		  WHERE mb_id = ?`,
+        [reason, mbId]
+    );
+}
+
 /** g5_config에서 가입 레벨 조회 */
 export async function getRegisterLevel(): Promise<number> {
     const [rows] = await pool.query<RowDataPacket[]>(
