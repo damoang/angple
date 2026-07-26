@@ -1031,13 +1031,6 @@
                 </div>
             {/if}
 
-            <!-- 마음메시지 아래 구글 광고 -->
-            {#if widgetLayoutStore.hasEnabledAds}
-                <div class="mb-3">
-                    <AdSlot position="board-list-head" height="90px" slotKey="board-list-head" />
-                </div>
-            {/if}
-
             <!-- 플러그인 슬롯: 필터 영역 직전 — Slot Catalog Sprint 2c -->
             <PluginSlot name="board-list-filter-before" {boardId} />
 
