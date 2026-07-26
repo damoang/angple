@@ -37,11 +37,7 @@
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import { formatDate } from '$lib/utils/format-date.js';
-    import {
-        getPostLabel,
-        getCommentLabel,
-        type ContentKind
-    } from '$lib/utils/content-label.js';
+    import { getPostLabel, getCommentLabel, type ContentKind } from '$lib/utils/content-label.js';
     import FollowListDialog from '$lib/components/features/member/follow-list-dialog.svelte';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
 

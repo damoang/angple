@@ -7,11 +7,7 @@
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import ChevronUp from '@lucide/svelte/icons/chevron-up';
     import { formatDate } from '$lib/utils/format-date.js';
-    import {
-        getPostLabel,
-        getCommentLabel,
-        type ContentKind
-    } from '$lib/utils/content-label.js';
+    import { getPostLabel, getCommentLabel, type ContentKind } from '$lib/utils/content-label.js';
     import { slide } from 'svelte/transition';
 
     interface RecentPost {
