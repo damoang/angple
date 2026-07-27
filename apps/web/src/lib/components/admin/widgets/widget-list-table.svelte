@@ -119,10 +119,10 @@
     <div
         class="text-muted-foreground flex items-center gap-4 border-b px-4 py-2 text-sm font-medium"
     >
-        <div class="w-10 shrink-0"></div>
+        <div class="w-[40px] shrink-0"></div>
         <div class="min-w-0 flex-1">위젯</div>
         <div class="w-[100px] shrink-0">카테고리</div>
-        <div class="w-20 shrink-0 text-center">활성화</div>
+        <div class="w-[80px] shrink-0 text-center">활성화</div>
         <div class="w-[100px] shrink-0 text-right">작업</div>
     </div>
 
@@ -146,7 +146,7 @@
                     !widget.enabled && 'opacity-60'
                 )}
             >
-                <div class="w-10 shrink-0 cursor-grab active:cursor-grabbing">
+                <div class="w-[40px] shrink-0 cursor-grab active:cursor-grabbing">
                     <GripVertical class="text-muted-foreground h-5 w-5" />
                 </div>
 
@@ -181,7 +181,7 @@
                     {/if}
                 </div>
 
-                <div class="flex w-20 shrink-0 justify-center">
+                <div class="flex w-[80px] shrink-0 justify-center">
                     <Switch
                         checked={widget.enabled}
                         onCheckedChange={() => handleToggle(widget.id)}
