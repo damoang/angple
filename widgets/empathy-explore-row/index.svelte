@@ -34,7 +34,17 @@
     });
 </script>
 
-<div class="grid grid-cols-1 gap-2 lg:grid-cols-2">
-    <RecommendedPosts prefetchData={typedData?.recommended} />
-    <ExplorePreview prefetchData={typedData?.explore} excludeIds={recommendedIds} />
+<!--
+    grid 자동배치 → flex (#free-6824455 확장 주입 면역).
+    번역 확장이 래퍼를 주입하면 grid 는 컬럼 배정이 통째로 밀리지만,
+    flex+wrap 은 주입 노드가 다음 줄로 떨어질 뿐 두 컬럼 위치가 불변이다.
+    gap-2(0.5rem) 절반 보정 = 0.25rem.
+-->
+<div class="flex flex-col gap-2 lg:flex-row lg:flex-wrap">
+    <div class="min-w-0 lg:w-[calc(50%-0.25rem)]">
+        <RecommendedPosts prefetchData={typedData?.recommended} />
+    </div>
+    <div class="min-w-0 lg:w-[calc(50%-0.25rem)]">
+        <ExplorePreview prefetchData={typedData?.explore} excludeIds={recommendedIds} />
+    </div>
 </div>

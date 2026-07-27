@@ -37,13 +37,23 @@
             <div
                 class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100"
             >
-                <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
-                    <dt class="text-muted-foreground">신청일</dt>
-                    <dd class="font-medium">{data.leaveDate}</dd>
-                    <dt class="text-muted-foreground">확정 예정일</dt>
-                    <dd class="font-medium">{data.deadline}</dd>
-                    <dt class="text-muted-foreground">남은 기간</dt>
-                    <dd class="font-medium">{data.daysRemaining}일</dd>
+                <!--
+                    grid 자동배치(dt/dd 6자식) → 쌍 단위 flex (#free-6824455 확장 주입 면역).
+                    grid 에선 확장이 요소 하나만 주입해도 라벨-값 짝이 전부 어긋난다.
+                -->
+                <dl class="flex flex-col gap-1.5">
+                    <div class="flex gap-4">
+                        <dt class="text-muted-foreground w-24 shrink-0">신청일</dt>
+                        <dd class="font-medium">{data.leaveDate}</dd>
+                    </div>
+                    <div class="flex gap-4">
+                        <dt class="text-muted-foreground w-24 shrink-0">확정 예정일</dt>
+                        <dd class="font-medium">{data.deadline}</dd>
+                    </div>
+                    <div class="flex gap-4">
+                        <dt class="text-muted-foreground w-24 shrink-0">남은 기간</dt>
+                        <dd class="font-medium">{data.daysRemaining}일</dd>
+                    </div>
                 </dl>
             </div>
 
