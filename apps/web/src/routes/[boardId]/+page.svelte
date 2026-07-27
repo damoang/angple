@@ -1337,12 +1337,13 @@
                             ? ''
                             : 'md:block'}"
                     >
-                        <div class="grid grid-cols-[60px_1fr_auto_auto_auto] items-center gap-0">
-                            <div class="text-center">공감</div>
-                            <div>제목</div>
-                            <div class="w-[120px] pl-1">이름</div>
-                            <div class="w-[70px] pl-1 text-center">날짜</div>
-                            <div class="w-[50px] pl-1 text-center">조회</div>
+                        <!-- 목록 행(classic.svelte)과 동일하게 grid → flex (#free-6824455) -->
+                        <div class="flex items-center gap-0">
+                            <div class="w-[60px] shrink-0 text-center">공감</div>
+                            <div class="min-w-0 flex-1">제목</div>
+                            <div class="w-[120px] shrink-0 pl-1">이름</div>
+                            <div class="w-[70px] shrink-0 pl-1 text-center">날짜</div>
+                            <div class="w-[50px] shrink-0 pl-1 text-center">조회</div>
                         </div>
                     </div>
                 {/if}

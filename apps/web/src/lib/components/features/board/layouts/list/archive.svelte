@@ -53,11 +53,10 @@
         href={isReportLock ? originalLink || href : href}
         class="archive-row bg-background hover:bg-accent block px-4 no-underline transition-colors"
     >
-        <div
-            class="flex items-center gap-2 md:grid md:grid-cols-[50px_1fr_auto_auto_auto] md:items-center md:gap-0"
-        >
+        <!-- grid+contents → flex 전환 (classic.svelte 와 동일 사유, #free-6824455) -->
+        <div class="flex items-center gap-2 md:gap-0">
             <!-- col 1: 배지 (데스크톱) -->
-            <div class="hidden md:flex md:items-center md:justify-center">
+            <div class="hidden md:flex md:w-[50px] md:shrink-0 md:items-center md:justify-center">
                 {#if isReportLock}
                     <Badge
                         variant={isCommentEntry ? 'secondary' : 'default'}
@@ -77,9 +76,9 @@
             </div>
 
             <!-- col 2~5: 콘텐츠 -->
-            <div class="min-w-0 flex-1 space-y-1 md:contents md:space-y-0">
+            <div class="min-w-0 flex-1 space-y-1 md:flex md:items-center md:space-y-0">
                 <!-- 제목 줄 (col 2) -->
-                <div class="flex min-w-0 items-center gap-1">
+                <div class="flex min-w-0 items-center gap-1 md:flex-1">
                     <!-- 모바일 배지 -->
                     {#if isReportLock}
                         <Badge
@@ -124,7 +123,7 @@
 
                 <!-- 이름 (col 3, 데스크톱) -->
                 <span
-                    class="post-meta-text hidden items-center gap-1 truncate md:inline-flex md:w-[120px] md:pl-1"
+                    class="post-meta-text hidden items-center gap-1 truncate md:inline-flex md:w-[120px] md:shrink-0 md:pl-1"
                 >
                     <Avatar
                         path={post.author_image}
@@ -142,7 +141,7 @@
 
                 <!-- 날짜 (col 4, 데스크톱) -->
                 <span
-                    class="post-meta-text hidden md:inline md:w-[70px] md:pl-1 md:text-center {isToday(
+                    class="post-meta-text hidden md:inline md:w-[70px] md:shrink-0 md:pl-1 md:text-center {isToday(
                         post.created_at
                     )
                         ? 'date-today'
@@ -152,7 +151,9 @@
                 </span>
 
                 <!-- 조회수 (col 5, 데스크톱) -->
-                <span class="post-meta-text hidden md:inline md:w-[50px] md:pl-1 md:text-center">
+                <span
+                    class="post-meta-text hidden md:inline md:w-[50px] md:shrink-0 md:pl-1 md:text-center"
+                >
                     {formatCompactNumber(post.views)}
                 </span>
 

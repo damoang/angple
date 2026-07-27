@@ -150,14 +150,21 @@
         class:post-promo={isPromo}
         class:post-notice={post.is_notice}
     >
-        <div
-            class={isMobileView
-                ? 'flex items-center gap-2'
-                : 'flex items-center gap-2 md:grid md:grid-cols-[60px_1fr_auto_auto_auto] md:items-center md:gap-0'}
-        >
+        <!--
+            데스크톱 레이아웃을 grid(60px_1fr_auto_auto_auto) + display:contents 에서
+            flex + 고정폭으로 전환 (#free-6824455).
+            grid 자동 배치는 "자식 수 = 트랙 수" 암묵 계약이라, 번역 확장(DeepL 등)이
+            래퍼 요소 하나만 주입해도 전 컬럼이 한 트랙씩 밀려 제목이 min-content 로
+            수축했다(제목 2~3글자 잘림·작성자/날짜 증발). flex 는 트랙 재배정 개념이
+            없어 주입에 면역이고, 작성자/날짜/조회가 이미 고정폭(120/70/50px)이라
+            컬럼 위치는 픽셀 동일하다.
+        -->
+        <div class={isMobileView ? 'flex items-center gap-2' : 'flex items-center gap-2 md:gap-0'}>
             <!-- 추천 박스 (col 1, 데스크톱만) — legacy: rcmd-box 40×20 rounded-lg -->
             <div
-                class={isMobileView ? 'hidden' : 'hidden md:flex md:items-center md:justify-center'}
+                class={isMobileView
+                    ? 'hidden'
+                    : 'hidden md:flex md:w-[60px] md:shrink-0 md:items-center md:justify-center'}
             >
                 {#if post.is_notice}
                     <div
@@ -176,14 +183,14 @@
                 {/if}
             </div>
 
-            <!-- 콘텐츠 (모바일: block, 데스크톱: contents → 그리드 col 2~5 참여) -->
+            <!-- 콘텐츠 (모바일: block, 데스크톱: flex 행 — 제목이 flex-1로 잔여 폭 차지) -->
             <div
                 class={isMobileView
                     ? 'min-w-0 flex-1 space-y-1'
-                    : 'min-w-0 flex-1 space-y-1 md:contents md:space-y-0'}
+                    : 'min-w-0 flex-1 space-y-1 md:flex md:items-center md:space-y-0'}
             >
                 <!-- 제목 줄 (col 2) -->
-                <div class="flex min-w-0 items-center gap-1">
+                <div class="flex min-w-0 items-center gap-1 md:flex-1">
                     {#if post.is_notice}
                         <span class="mobile-only" class:modern-view={isMobileView}
                             ><Pin class="text-liked h-3.5 w-3.5 shrink-0" /></span
@@ -274,7 +281,7 @@
                 <span
                     class={isMobileView
                         ? 'hidden'
-                        : 'post-meta-text hidden items-center gap-1 truncate md:inline-flex md:w-[120px] md:pl-1'}
+                        : 'post-meta-text hidden items-center gap-1 truncate md:inline-flex md:w-[120px] md:shrink-0 md:pl-1'}
                 >
                     <Avatar
                         path={post.author_image}
@@ -294,7 +301,7 @@
                 <span
                     class={isMobileView
                         ? 'hidden'
-                        : `post-meta-text hidden md:inline md:w-[70px] md:pl-1 md:text-center ${isToday(post.created_at) ? 'date-today' : ''}`}
+                        : `post-meta-text hidden md:inline md:w-[70px] md:shrink-0 md:pl-1 md:text-center ${isToday(post.created_at) ? 'date-today' : ''}`}
                 >
                     {formatDateCompact(post.created_at)}
                 </span>
@@ -303,7 +310,7 @@
                 <span
                     class={isMobileView
                         ? 'hidden'
-                        : 'post-meta-text hidden md:inline md:w-[50px] md:pl-1 md:text-center'}
+                        : 'post-meta-text hidden md:inline md:w-[50px] md:shrink-0 md:pl-1 md:text-center'}
                 >
                     {formatCompactNumber(post.views)}
                 </span>
