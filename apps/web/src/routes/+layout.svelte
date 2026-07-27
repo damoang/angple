@@ -552,6 +552,46 @@
     });
 
     onMount(() => {
+        // 하이드레이션 앵커 판정 — 로그 없는 실패 경로 포착 (app.html 의 앵커 캡처와 한 쌍)
+        //
+        // Svelte 가 HYDRATION_START 주석을 못 찾으면 throw HYDRATION_ERROR 로 빠지는데,
+        // 그 경로는 console 출력이 아예 없어서(render.js:134) warn 후킹으로도 안 잡힌다.
+        // 하이드레이션이 폐기되면 clear_text_content(target) 가 자식 노드를 전부 떼어내므로,
+        // 붙잡아 둔 앵커의 isConnected 로 확정 판정할 수 있다.
+        // 마운트 1회만 검사하고 참조는 즉시 버린다(노드 누수 방지).
+        try {
+            const w = window as unknown as Record<string, unknown>;
+            if ('__angpleHydrationAnchor' in w) {
+                const anchor = w.__angpleHydrationAnchor as Comment | null;
+                const reason =
+                    anchor === null
+                        ? 'anchor_missing' // SSR 마커가 처음부터 없음 (확장이 제거한 경우 등)
+                        : !anchor.isConnected
+                          ? 'anchor_detached' // 하이드레이션 폐기 후 CSR 재마운트됨
+                          : null;
+                if (reason) {
+                    fetch('https://aplog.damoang.net/api/v1/dantry', {
+                        mode: 'cors',
+                        credentials: 'include',
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            type: 'hydration_error',
+                            reason,
+                            channel: 'anchor',
+                            message: `hydration anchor ${reason}`,
+                            stack: '(no stack)',
+                            url: window.location.href,
+                            userAgent: navigator.userAgent
+                        })
+                    }).catch(() => {});
+                }
+                delete w.__angpleHydrationAnchor;
+            }
+        } catch {
+            // 관측용이라 실패해도 무시
+        }
+
         // 디바이스 핑거프린트 수집은 상단 $effect(로그인 확정 후 발화)로 이관.
         // (onMount 는 auth 하이드레이션 전이라 isAuthenticated=false → 스킵되던 문제)
 
