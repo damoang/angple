@@ -11,7 +11,12 @@
     let { config, slot, isEditMode = false, prefetchData }: WidgetProps = $props();
 </script>
 
-<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-    <NewBoard posts={indexWidgetsStore.newsTabs} />
-    <EconomyTabs posts={indexWidgetsStore.economyTabs} />
+<!-- grid 자동배치 → flex (#free-6824455 확장 주입 면역). 설계 근거는 empathy-explore-row 주석 참조 -->
+<div class="flex flex-col gap-4 lg:flex-row lg:flex-wrap">
+    <div class="min-w-0 *:h-full lg:min-w-0 lg:flex-1 lg:basis-0">
+        <NewBoard posts={indexWidgetsStore.newsTabs} />
+    </div>
+    <div class="min-w-0 *:h-full lg:min-w-0 lg:flex-1 lg:basis-0">
+        <EconomyTabs posts={indexWidgetsStore.economyTabs} />
+    </div>
 </div>

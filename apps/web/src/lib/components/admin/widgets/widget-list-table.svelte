@@ -115,14 +115,15 @@
 </script>
 
 <div class="space-y-1">
+    <!-- 행형 grid → flex (#free-6824455 확장 주입 면역, classic.svelte 선례) -->
     <div
-        class="text-muted-foreground grid grid-cols-[40px_1fr_100px_80px_100px] gap-4 border-b px-4 py-2 text-sm font-medium"
+        class="text-muted-foreground flex items-center gap-4 border-b px-4 py-2 text-sm font-medium"
     >
-        <div></div>
-        <div>위젯</div>
-        <div>카테고리</div>
-        <div class="text-center">활성화</div>
-        <div class="text-right">작업</div>
+        <div class="w-[40px] shrink-0"></div>
+        <div class="min-w-0 flex-1">위젯</div>
+        <div class="w-[100px] shrink-0">카테고리</div>
+        <div class="w-[80px] shrink-0 text-center">활성화</div>
+        <div class="w-[100px] shrink-0 text-right">작업</div>
     </div>
 
     <div
@@ -139,20 +140,20 @@
             <div
                 animate:flip={{ duration: flipDurationMs }}
                 class={cn(
-                    'grid grid-cols-[40px_1fr_100px_80px_100px] items-center gap-4 rounded-lg border px-4 py-3 transition-colors',
+                    'flex items-center gap-4 rounded-lg border px-4 py-3 transition-colors',
                     isSelected ? 'border-primary bg-primary/5' : 'bg-card hover:bg-muted/50',
                     isShadow && 'opacity-50',
                     !widget.enabled && 'opacity-60'
                 )}
             >
-                <div class="cursor-grab active:cursor-grabbing">
+                <div class="w-[40px] shrink-0 cursor-grab active:cursor-grabbing">
                     <GripVertical class="text-muted-foreground h-5 w-5" />
                 </div>
 
                 <button
                     type="button"
                     onclick={() => handleSelect(widget.id)}
-                    class="flex items-center gap-3 text-left"
+                    class="flex min-w-0 flex-1 items-center gap-3 text-left"
                 >
                     <div
                         class={cn(
@@ -172,7 +173,7 @@
                     </div>
                 </button>
 
-                <div>
+                <div class="w-[100px] shrink-0">
                     {#if registry}
                         <Badge variant={getCategoryVariant(registry.category)}
                             >{getCategoryLabel(registry.category)}</Badge
@@ -180,14 +181,14 @@
                     {/if}
                 </div>
 
-                <div class="flex justify-center">
+                <div class="flex w-[80px] shrink-0 justify-center">
                     <Switch
                         checked={widget.enabled}
                         onCheckedChange={() => handleToggle(widget.id)}
                     />
                 </div>
 
-                <div class="flex justify-end gap-1">
+                <div class="flex w-[100px] shrink-0 justify-end gap-1">
                     <Button
                         variant="ghost"
                         size="icon"
