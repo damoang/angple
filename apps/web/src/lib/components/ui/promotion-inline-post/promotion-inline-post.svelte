@@ -45,11 +45,10 @@
         class="dm-list-row block px-4 no-underline transition-colors hover:bg-amber-100/10 dark:hover:bg-amber-950/15"
         style="background: rgba(255, 179, 39, 0.06); border-left: 3px solid rgba(255, 179, 39, 0.4); border-bottom: 1px solid color-mix(in oklch, var(--foreground) 8%, transparent);"
     >
-        <div
-            class="flex items-center gap-2 md:grid md:grid-cols-[60px_1fr_auto_auto_auto] md:items-center md:gap-0"
-        >
+        <!-- grid → flex (#free-6824455, classic.svelte 와 동일 사유) -->
+        <div class="flex items-center gap-2 md:gap-0">
             <!-- 홍보 박스 (col 1, 데스크톱만) — legacy step-pai: rgb(255,179,39) bg -->
-            <div class="hidden md:flex md:items-center md:justify-center">
+            <div class="hidden md:flex md:w-[60px] md:shrink-0 md:items-center md:justify-center">
                 <div
                     class="flex h-5 w-10 items-center justify-center rounded-lg text-xs font-semibold leading-5"
                     style="background: rgb(255, 179, 39); color: rgb(78, 78, 78);"
@@ -58,8 +57,8 @@
                 </div>
             </div>
 
-            <!-- 제목 (col 2) -->
-            <div class="min-w-0 flex-1 md:flex-none">
+            <!-- 제목 (col 2) — flex 행에서 잔여 폭 차지 -->
+            <div class="min-w-0 flex-1">
                 <div class="flex min-w-0 items-center gap-1">
                     <span
                         class="inline-flex shrink-0 items-center rounded px-1.5 py-0 text-[10px] font-semibold md:hidden"
@@ -76,7 +75,7 @@
 
             <!-- 광고주 (col 3, 데스크톱만) -->
             <span
-                class="text-muted-foreground hidden w-[120px] truncate pl-1 md:inline-flex"
+                class="text-muted-foreground hidden w-[120px] shrink-0 truncate pl-1 md:inline-flex"
                 style="font-size: 0.9em;"
             >
                 {post.advertiserName}
@@ -84,14 +83,14 @@
 
             <!-- 날짜 (col 4, 데스크톱만) -->
             <span
-                class="text-muted-foreground hidden w-[70px] pl-1 text-center md:inline"
+                class="text-muted-foreground hidden w-[70px] shrink-0 pl-1 text-center md:inline"
                 style="font-size: 0.9em;"
             >
                 {formatDate(post.createdAt)}
             </span>
 
             <!-- 조회 (col 5, 빈칸) -->
-            <span class="hidden w-[50px] pl-1 md:inline"></span>
+            <span class="hidden w-[50px] shrink-0 pl-1 md:inline"></span>
         </div>
     </a>
 {:else}

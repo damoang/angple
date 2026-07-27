@@ -374,21 +374,22 @@
     <div class="space-y-1">
         {#each Array(5) as _, i (i)}
             <div class="bg-background rounded-lg border px-4 py-3">
-                <div
-                    class="flex items-center gap-2 md:grid md:grid-cols-[60px_1fr_auto_auto_auto] md:items-center md:gap-0"
-                >
+                <!-- grid → flex (#free-6824455, classic.svelte 와 동일 사유) -->
+                <div class="flex items-center gap-2 md:gap-0">
+                    <div class="hidden md:flex md:w-[60px] md:shrink-0 md:justify-center">
+                        <div class="bg-muted-foreground/20 h-4 w-8 animate-pulse rounded"></div>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="bg-muted-foreground/20 h-4 w-2/3 animate-pulse rounded"></div>
+                    </div>
                     <div
-                        class="bg-muted-foreground/20 hidden h-4 w-8 animate-pulse rounded md:mx-auto md:block"
-                    ></div>
-                    <div class="bg-muted-foreground/20 h-4 w-2/3 animate-pulse rounded"></div>
-                    <div
-                        class="bg-muted-foreground/20 hidden h-3 w-[100px] animate-pulse rounded md:ml-1 md:block"
-                    ></div>
-                    <div
-                        class="bg-muted-foreground/20 hidden h-3 w-[50px] animate-pulse rounded md:ml-1 md:block"
+                        class="bg-muted-foreground/20 hidden h-3 w-[100px] shrink-0 animate-pulse rounded md:ml-1 md:block"
                     ></div>
                     <div
-                        class="bg-muted-foreground/20 hidden h-3 w-[34px] animate-pulse rounded md:ml-1 md:block"
+                        class="bg-muted-foreground/20 hidden h-3 w-[50px] shrink-0 animate-pulse rounded md:ml-1 md:block"
+                    ></div>
+                    <div
+                        class="bg-muted-foreground/20 hidden h-3 w-[34px] shrink-0 animate-pulse rounded md:ml-1 md:block"
                     ></div>
                 </div>
             </div>
@@ -423,12 +424,13 @@
                     ? ''
                     : 'md:block'}"
             >
-                <div class="grid grid-cols-[60px_1fr_auto_auto_auto] items-center gap-0">
-                    <div class="text-center">공감</div>
-                    <div>제목</div>
-                    <div class="w-[120px] pl-1">이름</div>
-                    <div class="w-[70px] pl-1 text-center">날짜</div>
-                    <div class="w-[50px] pl-1 text-center">조회</div>
+                <!-- 목록 행(classic.svelte)과 동일하게 grid → flex (#free-6824455) -->
+                <div class="flex items-center gap-0">
+                    <div class="w-[60px] shrink-0 text-center">공감</div>
+                    <div class="min-w-0 flex-1">제목</div>
+                    <div class="w-[120px] shrink-0 pl-1">이름</div>
+                    <div class="w-[70px] shrink-0 pl-1 text-center">날짜</div>
+                    <div class="w-[50px] shrink-0 pl-1 text-center">조회</div>
                 </div>
             </div>
         {/if}
