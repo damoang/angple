@@ -314,6 +314,34 @@
     </head>
     <body>
         <div style="display: contents">%sveltekit.body%</div>
+        <!--
+            하이드레이션 앵커 캡처 — 로그가 아예 없는 실패 경로를 잡기 위한 것.
+
+            Svelte 는 하이드레이션 타깃 안에서 HYDRATION_START 주석(<!--[-->)을 못 찾으면 throw
+        HYDRATION_ERROR 하는데, render.js:134 의 `error !== HYDRATION_ERROR` 가 false 라 **console
+        출력이 0** 이다. 그대로 clear_text_content(target) 후 조용히 CSR 재마운트된다. 즉
+        console.warn 후킹으로도 이 경로는 못 잡는다. 번역 확장이 SSR 마커를 건드리는 경우가 여기
+        해당한다. 앵커 노드를 붙잡아 두고 마운트 후 isConnected 를 보면 폐기 여부를 확정할 수 있다.
+        비용은 노드 참조 1개 + boolean 1회. -->
+        <script>
+            (function () {
+                try {
+                    var target = document.body.firstElementChild;
+                    if (!target) return;
+                    for (var n = target.firstChild; n; n = n.nextSibling) {
+                        // Comment 노드이면서 data 가 '[' 이면 HYDRATION_START
+                        if (n.nodeType === 8 && n.data === '[') {
+                            window.__angpleHydrationAnchor = n;
+                            return;
+                        }
+                    }
+                    // 여기 도달 = 앵커가 처음부터 없음
+                    window.__angpleHydrationAnchor = null;
+                } catch (e) {
+                    /* 관측용이라 실패해도 무시 */
+                }
+            })();
+        </script>
         <!-- Safari bfcache 복원 시 stale 상태 방지 (#303) + 스크롤 위치 보존 (#13022) -->
         <script>
             (function () {

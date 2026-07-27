@@ -432,30 +432,82 @@ if (typeof window !== 'undefined') {
     // 골라 보내고, 기존 guardedSend 의 중복 스로틀·레이트리밋을 그대로 탄다.
     // bug/12981: '[upload-fail]' prefix 도 함께 수집 — 업로드/스왑 실패가 전부 무음 catch 로
     // console.error 에만 남아 js_errors 가 30일간 0건이던 관측 공백을 메운다.
-    const originalConsoleError = console.error;
-    console.error = function (...args: unknown[]) {
-        try {
-            const first = String(args[0] ?? '');
-            const isHydration = first.includes('hydrat');
-            const isUploadFail = first.startsWith('[upload-fail]');
-            if (isHydration || isUploadFail) {
-                const detail = args
-                    .slice(1)
-                    .map((a) => (a instanceof Error ? `${a.name}: ${a.message}` : String(a)))
-                    .join(' ')
-                    .slice(0, 300);
-                const err = args.find((a): a is Error => a instanceof Error);
-                guardedSend({
-                    type: isHydration ? 'hydration_error' : 'upload_fail',
-                    message: `${first} ${detail}`.trim().slice(0, 400),
-                    stack: err?.stack?.slice(0, 1500) || '(no stack)',
-                    url: window.location.href,
-                    userAgent: navigator.userAgent
-                });
-            }
-        } catch {
-            // 수집 실패가 원래 로그를 막으면 안 된다
+    // ⛔ 채널이 둘이다. Svelte 5 는 하이드레이션 실패를 **console.warn** 으로 낸다:
+    //      svelte/src/internal/client/render.js:135
+    //      console.warn('Failed to hydrate: ', error);   // DEV 가드 없음 = 프로덕션에도 있음
+    //    그래서 console.error 만 감싸던 동안 hydration_error 는 14일 0건이었다.
+    //    "안 일어난다"가 아니라 **후킹 채널이 틀렸던 것**이다. 관측된 이중 공백
+    //    ("Failed to hydrate:  HierarchyRequestError")이 위 소스 문자열과 정확히 일치한다.
+    //    같은 래퍼의 upload_fail 이 정상 수집되던 것은 앱 코드가 진짜 console.error 를
+    //    부르기 때문이고, 두 타입의 차이를 이걸로 전부 설명할 수 있다.
+    //
+    // ⛔ shouldIgnore() 를 태우지 않는다. IGNORED_PATTERNS 의 'querySelectorAll',
+    //    'getAttribute', 'parentNode.parentNode' 가 하이드레이션 스택을 삼킨다.
+    type ConsoleCapture = { type: string; reason: string };
+
+    function classifyConsoleMessage(first: string): ConsoleCapture | null {
+        // prod 빌드에서는 축약형 'https://svelte.dev/e/hydration_mismatch' 로 나온다.
+        // 둘 다 'hydrat' 를 포함하므로 한 조건으로 잡되 reason 으로 구분한다.
+        if (first.includes('hydrat')) {
+            return {
+                type: 'hydration_error',
+                reason: first.includes('mismatch') ? 'hydration_mismatch' : 'failed_to_hydrate'
+            };
         }
-        originalConsoleError.apply(console, args as []);
-    };
+        if (first.startsWith('[upload-fail]')) {
+            return { type: 'upload_fail', reason: 'upload_fail' };
+        }
+        return null;
+    }
+
+    function captureFromConsole(args: unknown[], channel: 'error' | 'warn') {
+        const first = String(args[0] ?? '');
+        const hit = classifyConsoleMessage(first);
+        if (!hit) return;
+
+        const detail = args
+            .slice(1)
+            .map((a) => (a instanceof Error ? `${a.name}: ${a.message}` : String(a)))
+            .join(' ')
+            .slice(0, 300);
+        const err = args.find((a): a is Error => a instanceof Error);
+        guardedSend({
+            type: hit.type,
+            reason: hit.reason,
+            channel,
+            message: `${first} ${detail}`.trim().slice(0, 400),
+            stack: err?.stack?.slice(0, 1500) || '(no stack)',
+            url: window.location.href,
+            userAgent: navigator.userAgent
+        });
+    }
+
+    // 재래핑 가드. 이게 없으면 HMR·모듈 재평가 때 래퍼가 중첩되어 콘솔 로그가 N 배로 찍힌다.
+    const patchFlag = '__angpleConsolePatched';
+    const w = window as unknown as Record<string, unknown>;
+    if (!w[patchFlag]) {
+        w[patchFlag] = true;
+
+        const originalConsoleError = console.error;
+        console.error = function (...args: unknown[]) {
+            try {
+                captureFromConsole(args, 'error');
+            } catch {
+                // 수집 실패가 원래 로그를 막으면 안 된다
+            }
+            originalConsoleError.apply(console, args as []);
+        };
+
+        // console.warn 은 하이드레이션 전용이다. 앱 내 console.warn 40 곳 중
+        // 'hydrat' 를 포함하는 것은 0 건이라 전송량 순증이 없다(2026-07-28 실측).
+        const originalConsoleWarn = console.warn;
+        console.warn = function (...args: unknown[]) {
+            try {
+                captureFromConsole(args, 'warn');
+            } catch {
+                // 위와 동일
+            }
+            originalConsoleWarn.apply(console, args as []);
+        };
+    }
 }
