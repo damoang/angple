@@ -75,6 +75,7 @@
     import HashIcon from '@lucide/svelte/icons/hash';
     import SmileIcon from '@lucide/svelte/icons/smile';
     import type { Component } from 'svelte';
+    import MannerTip from './manner-tip.svelte';
 
     interface Props {
         content?: string;
@@ -147,6 +148,8 @@
     let rawContent = $state(''); // 마크다운/HTML 직접 편집용
 
     let editorElement: HTMLDivElement;
+    /** 이 에디터에서 첫 글자를 입력했는가 — 작성 매너 풍선 발화 신호 */
+    let hasTyped = $state(false);
     let editor: Editor | null = $state(null);
 
     // 툴바 상태 (reactive하게 추적)
@@ -355,10 +358,15 @@
             },
             onUpdate: ({ editor: ed }) => {
                 onUpdate?.(ed.getHTML());
+                // 첫 글자가 들어온 순간 = placeholder 가 사라지는 순간.
+                // 이때 작성 매너 풍선을 띄운다(하루 1회). manner-tip.svelte 주석 참조.
+                // 트랜잭션 밖에서 바꿔야 state_unsafe_mutation 이 안 난다 — 아래 setTimeout 안에서 처리.
                 // Svelte $state 변경은 Tiptap 트랜잭션 밖에서 실행 (state_unsafe_mutation 방지)
                 setTimeout(() => {
                     updateActiveState();
                     updateCounts(ed);
+                    // 빈 문서 → 내용 있음으로 처음 바뀌는 순간에만 true 가 된다.
+                    if (!hasTyped && !ed.isEmpty) hasTyped = true;
                 }, 0);
             },
             onSelectionUpdate: () => {
@@ -1707,15 +1715,24 @@
 
     <!-- 에디터 영역 -->
     <!-- WYSIWYG: hidden 속성으로 표시/숨김 (DOM 유지 — TipTap 에디터가 참조하는 요소 파괴 방지) -->
-    <div
-        class="tiptap-content min-h-[300px] p-4"
-        class:uploading={isUploading}
-        hidden={editorMode !== 'wysiwyg'}
-        bind:this={editorElement}
-        ondrop={handleDrop}
-        ondragover={(e) => e.preventDefault()}
-        onpaste={handlePaste}
-    ></div>
+    <!--
+        relative 래퍼: 작성 매너 풍선의 기준점. 에디터 본문 상단에 뜨게 하려면
+        .tiptap-editor(툴바 포함) 가 아니라 본문 영역이 기준이어야 한다.
+        ⛔ 에디터 CSS 는 전부 `.tiptap-content .tiptap` 하위 선택자라 이 래퍼는 영향 없다.
+        ⛔ TipTap 이 참조하는 것은 editorElement 자신이지 부모가 아니다.
+    -->
+    <div class="relative">
+        <MannerTip show={hasTyped} />
+        <div
+            class="tiptap-content min-h-[300px] p-4"
+            class:uploading={isUploading}
+            hidden={editorMode !== 'wysiwyg'}
+            bind:this={editorElement}
+            ondrop={handleDrop}
+            ondragover={(e) => e.preventDefault()}
+            onpaste={handlePaste}
+        ></div>
+    </div>
     {#if editorMode !== 'wysiwyg'}
         <!-- 마크다운/HTML 텍스트 에디터 -->
         <textarea
