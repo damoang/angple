@@ -16,7 +16,10 @@
      *    비속어 판단은 회원 스스로 한다(2026-07-28 방침).
      *
      * 표시 규칙:
-     *   - 하루 1회. 매번 뜨면 사흘이면 아무도 안 본다.
+     *   - 화면별로 하루 1회. 매번 뜨면 사흘이면 아무도 안 본다.
+     *     ⛔ 글쓰기와 댓글은 따로 센다. 키를 공유하면 글을 한 편 쓴 사람은
+     *        그날 댓글창에서 안내를 못 본다(2026-07-29 실사용 확인).
+     *        댓글이 글쓰기보다 훨씬 잦으니 오히려 필요한 쪽이 가려졌다.
      *   - 두 문구를 함께, 앙모지와 같이 보여준다.
      *   - 6초 후 자동 소멸. 나타남 0.3초 / 사라짐 0.6초로 놀라지 않게.
      *     (처음엔 3초·한 문구씩이었는데 "너무 빨리 사라진다"는 확인으로 늘렸다.
@@ -25,7 +28,8 @@
     import { onMount } from 'svelte';
     import { browser } from '$app/environment';
 
-    const STORAGE_KEY = 'angple_manner_tip';
+    /** 글쓰기·댓글이 공유하던 옛 키. 남아 있으면 지운다(판정에는 안 쓴다). */
+    const LEGACY_KEY = 'angple_manner_tip';
     const SHOW_MS = 6000;
 
     const TIPS = ['경어체 사용해 주세앙 🙏', '초성 포함 비속어 안돼앙 🙅'] as const;
@@ -37,25 +41,31 @@
      *   'inside' — 입력 영역 안쪽 상단. 글쓰기처럼 높이가 넉넉한 곳에 쓴다.
      *   'above'  — 입력 영역 바깥 위. 댓글처럼 입력창이 낮아 안쪽에 띄우면
      *              방금 친 글자를 가리는 곳에 쓴다.
+     *
+     * scope
+     *   '하루 1회'를 세는 단위. 글쓰기와 댓글이 각각 하루 한 번씩 본다.
+     *   placement 에서 유추할 수도 있지만(현재는 1:1로 대응), 배치는 화면이
+     *   좁아지면 바뀔 수 있는 값이라 세는 단위를 거기 묶지 않는다.
      */
-    let { show = false, placement = 'inside' }: { show?: boolean; placement?: 'inside' | 'above' } =
-        $props();
+    let {
+        show = false,
+        placement = 'inside',
+        scope = 'post'
+    }: {
+        show?: boolean;
+        placement?: 'inside' | 'above';
+        scope?: 'post' | 'comment';
+    } = $props();
+
+    const storageKey = $derived(`angple_manner_tip:${scope}`);
 
     let visible = $state(false);
     let timer: ReturnType<typeof setTimeout> | undefined;
 
-    /** 마지막으로 보여준 날짜(KST). 값이 없거나 깨졌으면 "처음 보는 것"으로 취급한다. */
+    /** 이 화면에서 마지막으로 보여준 날짜(KST). 없거나 깨졌으면 "처음 보는 것"으로 취급한다. */
     function lastShownDate(): string {
         try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (!raw) return '';
-            // 과거에는 {date, next} 객체였다. 두 문구를 함께 띄우면서 next 가 필요 없어졌지만
-            // 이미 저장된 값이 있는 사용자를 위해 두 형태를 모두 읽는다.
-            if (raw.startsWith('{')) {
-                const p = JSON.parse(raw);
-                return typeof p?.date === 'string' ? p.date : '';
-            }
-            return raw;
+            return localStorage.getItem(storageKey) ?? '';
         } catch {
             return '';
         }
@@ -75,7 +85,8 @@
         visible = true;
 
         try {
-            localStorage.setItem(STORAGE_KEY, today);
+            localStorage.setItem(storageKey, today);
+            localStorage.removeItem(LEGACY_KEY);
         } catch {
             // 저장 실패해도 이번 한 번은 보여준다. 다음에 또 뜰 뿐 해가 없다.
         }
