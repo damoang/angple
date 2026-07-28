@@ -24,7 +24,23 @@
  * 종료코드: 위반 1건 이상이면 1
  */
 import { readFileSync, globSync } from 'node:fs';
-import { parse } from 'svelte/compiler';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
+
+// pnpm 워크스페이스라 svelte 는 저장소 루트가 아니라 apps/web/node_modules 에 있다.
+// 루트에서 `import 'svelte/compiler'` 하면 ERR_MODULE_NOT_FOUND 로 죽는다(실제로 CI 에서 겪음).
+// apps/web 기준으로 해석한 뒤 그 경로를 직접 import 한다.
+const req = createRequire(new URL('../apps/web/package.json', import.meta.url));
+const mod = await import(pathToFileURL(req.resolve('svelte/compiler')).href);
+// svelte/compiler 는 CJS 로 해석되어 default 아래에 실린다. 둘 다 대비한다.
+const parse = mod.parse ?? mod.default?.parse;
+
+// ⛔ 여기서 조용히 넘어가면 안 된다. parse 를 못 얻은 채 통과시키면 "검사했는데 0건"
+//    처럼 보여서, 실제 결함이 있어도 CI 가 초록으로 지나간다. 실제로 초안이 그랬다.
+if (typeof parse !== 'function') {
+    console.error('❌ svelte/compiler 의 parse 를 얻지 못했습니다 — 검사를 수행할 수 없습니다.');
+    process.exit(2);
+}
 
 // 인자로 파일/글롭을 주면 그것만 검사한다(테스트·부분검사용). 없으면 기본 범위.
 const patterns =
@@ -37,6 +53,7 @@ const files = patterns.flatMap((p) =>
 
 let violations = 0;
 let scanned = 0;
+let parseFailed = 0;
 
 /** AST 를 훑으며 <a> 조상 아래의 <a> 를 찾는다. */
 function walk(node, file, src, insideAnchor) {
@@ -73,14 +90,25 @@ for (const file of files) {
     let ast;
     try {
         ast = parse(src, { modern: true });
-    } catch {
-        // 파싱 실패는 이 검사의 관심사가 아니다(svelte-check 가 잡는다). 건너뛴다.
+    } catch (e) {
+        // 파싱 실패를 조용히 넘기지 않는다. 못 본 파일은 "검사한 것"이 아니다.
+        console.error(`⚠️  ${file}: 파싱 실패 — ${String(e).slice(0, 120)}`);
+        parseFailed++;
         continue;
     }
     scanned++;
     walk(ast.fragment, file, src, false);
 }
 
+// 검사 대상이 하나도 없으면 글롭이 어긋났다는 뜻이다. 통과로 위장하면 안 된다.
+if (scanned === 0) {
+    console.error(`❌ 검사한 파일이 0개입니다 (대상 ${files.length}개). 경로·글롭을 확인하세요.`);
+    process.exit(2);
+}
+if (parseFailed > 0) {
+    console.error(`❌ 파싱 실패 ${parseFailed}건 — 그 파일들은 검사되지 않았습니다.`);
+    process.exit(2);
+}
 if (violations > 0) {
     console.error(`\n❌ 중첩 <a> ${violations}건. 배포되면 하이드레이션이 실패합니다.`);
     process.exit(1);
