@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { goto } from '$app/navigation';
     import { Badge } from '$lib/components/ui/badge/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
@@ -111,12 +112,19 @@
                         {/if}
                     </span>
 
+                    <!-- ⛔ <a> 금지 — 행 전체가 <a class="archive-row"> 안이라 중첩되면
+                         파서가 트리를 재구성해 하이드레이션이 깨진다.
+                         상세 근거는 classic.svelte 의 같은 위치 주석 참조. -->
                     {#if post.comments_count > 0 && !post.is_comments_disabled}
-                        <a
-                            href="{href}#comments"
+                        <button
+                            type="button"
                             class="comment-count shrink-0"
-                            onclick={(e) => e.stopPropagation()}
-                            >{formatCommentCountBadge(post.comments_count)}</a
+                            aria-label="댓글 {post.comments_count}개 보기"
+                            onclick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                void goto(`${href}#comments`);
+                            }}>{formatCommentCountBadge(post.comments_count)}</button
                         >
                     {/if}
                 </div>
@@ -242,6 +250,13 @@
         font-size: 0.85em;
         font-weight: 600;
         color: var(--color-liked, orangered);
+        /* <a> → <button> 교체(2026-07-28) 후 기존 모양 유지용 리셋 */
+        background: none;
+        border: 0;
+        padding: 0;
+        font-family: inherit;
+        line-height: inherit;
+        cursor: pointer;
     }
 
     .mobile-meta {

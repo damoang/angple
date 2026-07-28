@@ -33,6 +33,34 @@ jobs:
       - name: Check HTML comments
         run: node scripts/check-html-comments.mjs
 
+  # 중첩 <a> 검사 — 하이드레이션을 통째로 깨뜨린다.
+  # 2026-07-28: 게시판 목록 행 <a> 안에 댓글수 <a> 가 있어 시간당 회원 약 1,700명이
+  # 하이드레이션 실패를 겪고 있었다(#1040 도입, 관측 부재로 못 보고 있었음).
+  # svelte/compiler AST 로 검사하므로 pnpm install 이 필요하다.
+  nested-anchors:
+    name: Nested Anchor Guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: |
+          pnpm fetch --frozen-lockfile
+          pnpm install --frozen-lockfile --prefer-offline
+
+      - name: Check nested anchors
+        run: node scripts/check-nested-anchors.mjs
+
   # 전체 lint는 수동 실행만 허용한다.
   # PR에서는 eslint-review/prettier-suggester가 이미 같은 역할을 맡고,
   # main push에서는 빌드/테스트/배포 경로를 막지 않도록 분리한다.
