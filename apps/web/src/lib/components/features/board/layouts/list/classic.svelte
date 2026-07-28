@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { goto } from '$app/navigation';
     import { Badge } from '$lib/components/ui/badge/index.js';
     import {
         RestrictedBadge,
@@ -249,12 +250,33 @@
                         {:else if hasImage}
                             <ImageIcon class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
                         {/if}
+                        <!--
+                            ⛔ 여기에 <a> 를 쓰지 말 것 (#1040 에서 <a> 였다가 2026-07-28 교체).
+
+                            이 행 전체가 <a class="post-row"> 안이다. <a> 안에 <a> 가 오면
+                            HTML5 파서의 adoption agency algorithm 이 발동해 바깥 <a> 를 복제하고
+                            가장 가까운 블록(제목 줄 div)의 자식을 통째로 그 복제본으로 옮긴다.
+                            그러면 SSR 이 찍은 하이드레이션 마커가 클라이언트가 기대하는 부모와
+                            다른 곳에 놓이고, 하이드레이션이 통째로 실패한다.
+
+                            실측(2026-07-28): 시간당 로그인 회원 약 1,700명이 이 실패를 겪고 있었다.
+                            증상은 화면 깜빡임, 글쓰기 버튼 안 보임, 로그인 상태 잘못 표시.
+                            엔진별로 에러 문구만 다를 뿐(Blink: appendChild HierarchyRequestError,
+                            WebKit: incorrect node tree / null is not an object) 같은 단일 결함이다.
+
+                            button 은 포맷팅 요소가 아니라 adoption agency 대상이 아니다.
+                            (콘텐츠 모델상 여전히 이상적이진 않으나 파서가 트리를 바꾸지 않는다.)
+                        -->
                         {#if post.comments_count > 0 && !post.is_comments_disabled}
-                            <a
-                                href="{href}#comments"
+                            <button
+                                type="button"
                                 class="comment-count shrink-0"
-                                onclick={(e) => e.stopPropagation()}
-                                >{formatCommentCountBadge(post.comments_count)}</a
+                                aria-label="댓글 {post.comments_count}개 보기"
+                                onclick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    void goto(`${href}#comments`);
+                                }}>{formatCommentCountBadge(post.comments_count)}</button
                             >
                         {/if}
                     </span>
@@ -416,6 +438,14 @@
         font-size: 0.85em;
         font-weight: 600;
         color: var(--color-liked, orangered);
+        /* <a> → <button> 교체(2026-07-28) 후에도 기존 모양을 그대로 유지하기 위한 리셋.
+           button 기본 배경·테두리·패딩·폰트상속을 없앤다. */
+        background: none;
+        border: 0;
+        padding: 0;
+        font-family: inherit;
+        line-height: inherit;
+        cursor: pointer;
     }
 
     /* ===== 모바일 전용 요소 (scoped → SSR 청크와 동시 로드, 플래시 방지) ===== */
