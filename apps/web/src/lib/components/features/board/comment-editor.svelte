@@ -10,6 +10,7 @@
     import Mention from '@tiptap/extension-mention';
     import { mentionSuggestion } from '$lib/components/features/editor/mention-suggestion';
     import { watchCommentInput, stopWatch } from '$lib/services/comment-input-telemetry';
+    import MannerTip from '$lib/components/features/editor/manner-tip.svelte';
     import Bold from '@lucide/svelte/icons/bold';
     import Italic from '@lucide/svelte/icons/italic';
 
@@ -34,6 +35,8 @@
     }: Props = $props();
 
     let editorElement = $state<HTMLDivElement | null>(null);
+    /** 이 에디터에서 첫 글자를 입력했는가 — 작성 매너 풍선 발화 신호 */
+    let hasTyped = $state(false);
     let editor: Editor | null = null;
     let isBold = $state(false);
     let isItalic = $state(false);
@@ -115,6 +118,12 @@
             },
             onUpdate: ({ editor: e }) => {
                 onUpdate?.(e.getHTML());
+                // 첫 글자가 들어온 순간 작성 매너 풍선을 띄운다(하루 1회, 글쓰기와 공유).
+                // ProseMirror 트랜잭션 중 $state 를 바꾸면 state_unsafe_mutation 이 나므로
+                // 아래 onTransaction 과 같은 규약으로 트랜잭션 밖에서 처리한다.
+                if (!hasTyped && !e.isEmpty) {
+                    setTimeout(() => (hasTyped = true), 0);
+                }
             },
             onFocus: () => {
                 // #12939/#13045 — 작성 중 키보드가 내려가는 현상 진단.
@@ -216,7 +225,15 @@
             <Italic class="size-3.5" />
         </button>
     </div>
-    <div bind:this={editorElement}></div>
+    <!--
+        작성 매너 풍선 — 첫 글자 입력 시 댓글 입력창 위에 잠깐 떠오른다(하루 1회).
+        relative 래퍼가 기준점. absolute + pointer-events-none 이라 레이아웃도
+        클릭도 방해하지 않는다.
+    -->
+    <div class="relative">
+        <MannerTip show={hasTyped} placement="above" />
+        <div bind:this={editorElement}></div>
+    </div>
 </div>
 
 <style>

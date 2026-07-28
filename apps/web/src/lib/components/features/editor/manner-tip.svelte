@@ -28,7 +28,14 @@
 
     const TIPS = ['경어체 사용해 주세앙 🙏', '초성 포함 욕설 안돼앙 🙅'] as const;
 
-    let { show = false }: { show?: boolean } = $props();
+    /**
+     * placement
+     *   'inside' — 입력 영역 안쪽 상단. 글쓰기처럼 높이가 넉넉한 곳에 쓴다.
+     *   'above'  — 입력 영역 바깥 위. 댓글처럼 입력창이 낮아 안쪽에 띄우면
+     *              방금 친 글자를 가리는 곳에 쓴다.
+     */
+    let { show = false, placement = 'inside' }: { show?: boolean; placement?: 'inside' | 'above' } =
+        $props();
 
     let visible = $state(false);
     let message = $state('');
@@ -92,7 +99,10 @@
         pointer-events-none: 풍선이 클릭을 가로채지 않는다. 글쓰기를 절대 방해하지 않는다.
     -->
     <div
-        class="manner-tip pointer-events-none absolute left-1/2 top-2 z-20 -translate-x-1/2"
+        class="manner-tip pointer-events-none absolute left-1/2 z-20 -translate-x-1/2 {placement ===
+        'above'
+            ? '-top-11'
+            : 'top-2'}"
         role="status"
         aria-live="polite"
     >
