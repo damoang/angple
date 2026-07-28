@@ -14,6 +14,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # HTML 주석 조기 종료 검사.
+  # 주석 본문에 닫는 시퀀스가 들어가면 거기서 주석이 끊겨 나머지가 화면에 노출된다.
+  # 2026-07-28 실제로 배포까지 나가 회원 제보로 알았다(bug/13122). 사람 눈에 잘 안 걸리는
+  # 종류라 기계가 막는다. 의존성 설치가 필요 없어 수십 초면 끝난다.
+  html-comments:
+    name: HTML Comment Guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Check HTML comments
+        run: node scripts/check-html-comments.mjs
+
   # 전체 lint는 수동 실행만 허용한다.
   # PR에서는 eslint-review/prettier-suggester가 이미 같은 역할을 맡고,
   # main push에서는 빌드/테스트/배포 경로를 막지 않도록 분리한다.
