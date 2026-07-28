@@ -1722,7 +1722,7 @@
         ⛔ TipTap 이 참조하는 것은 editorElement 자신이지 부모가 아니다.
     -->
     <div class="relative">
-        <MannerTip show={hasTyped} />
+        <MannerTip show={hasTyped} scope="post" />
         <div
             class="tiptap-content min-h-[300px] p-4"
             class:uploading={isUploading}

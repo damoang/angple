@@ -231,7 +231,7 @@
         클릭도 방해하지 않는다.
     -->
     <div class="relative">
-        <MannerTip show={hasTyped} placement="above" />
+        <MannerTip show={hasTyped} placement="above" scope="comment" />
         <div bind:this={editorElement}></div>
     </div>
 </div>
