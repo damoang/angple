@@ -13,6 +13,10 @@ import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
 import { fetchScheduledDeletes } from '$lib/server/scheduled-deletes.js';
 import { createCache } from '$lib/server/cache.js';
+// 검색 결과 썸네일 파생용 (bug/13130). Go 의 TransformToV1Post 와 같은 규칙을 재현한다.
+import { normalizeMediaUrl } from '$lib/utils/media-url.js';
+import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
+import { extractFirstImage } from '$lib/components/features/adult/thumbnail-utils.js';
 import { getCachedBoard, resolveCanonicalBoardId } from '$lib/server/board-cache.js';
 import { resolveGivingMeta } from '$lib/features/giving/model.js';
 import { searchByBoard } from '$lib/server/sphinx-search.js';
@@ -510,7 +514,8 @@ export const load: PageServerLoad = async ({
                                 wr_option,
                                 (wr_deleted_at IS NOT NULL AND wr_deleted_at <> '0000-00-00 00:00:00') AS is_deleted_parent,
                                 wr_1 AS extra_1, wr_2 AS extra_2, wr_3 AS extra_3,
-                                wr_4 AS extra_4, wr_5 AS extra_5, wr_6 AS extra_6, wr_7 AS extra_7
+                                wr_4 AS extra_4, wr_5 AS extra_5, wr_6 AS extra_6, wr_7 AS extra_7,
+                                wr_9 AS extra_9, wr_10 AS extra_10, wr_file
                          FROM ${tableName}
                          WHERE wr_id IN (${ph}) AND wr_is_comment = 0
                            ${
@@ -543,6 +548,25 @@ export const load: PageServerLoad = async ({
                     rows.map((r) => {
                         const deleted = Number(r.is_deleted_parent) === 1;
                         const disciplined = disciplinedIds.has(Number(r.id));
+                        const masked = deleted || disciplined;
+
+                        // 썸네일 파생 — Go 의 TransformToV1Post(transform.go:203-243) 와 같은 규칙.
+                        //
+                        // 검색은 Go 백엔드를 타지 않고 여기서 DB 를 직접 읽는데, 그동안 이 계산이
+                        // 없어서 썸네일을 쓰는 게시판(앙지도 등)은 검색 결과에서 이미지가 통째로
+                        // 사라졌다(bug/13130). 레이아웃은 평소와 같은 컴포넌트를 쓰므로
+                        // 필드만 채우면 된다.
+                        //
+                        // 우선순위: wr_10(지정 썸네일) > 본문 첫 <img>
+                        // ⛔ 마스킹된 글은 썸네일도 비운다. 제목·본문만 가리고 이미지를 남기면
+                        //    삭제·이용제한 마스킹이 그림으로 우회된다.
+                        const rawThumb = masked
+                            ? ''
+                            : String(r.extra_10 || '') ||
+                              extractFirstImage(String(r.content || '')) ||
+                              '';
+                        const normalizedThumb = rawThumb ? normalizeMediaUrl(rawThumb) : '';
+
                         return [
                             r.id,
                             {
@@ -552,8 +576,15 @@ export const load: PageServerLoad = async ({
                                     : disciplined
                                       ? DISCIPLINED_TITLE
                                       : r.title,
-                                content: deleted || disciplined ? '' : r.content,
-                                is_notice: noticeIds.has(Number(r.id))
+                                content: masked ? '' : r.content,
+                                is_notice: noticeIds.has(Number(r.id)),
+                                thumbnail_raw: normalizedThumb,
+                                thumbnail: normalizedThumb
+                                    ? toThumbnailUrl(normalizedThumb, '400x225')
+                                    : '',
+                                has_file: Number(r.wr_file) > 0,
+                                has_image: !masked && (Number(r.wr_file) > 0 || !!r.extra_10),
+                                has_video: !masked && !!r.extra_9
                             }
                         ];
                     })
