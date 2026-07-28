@@ -314,16 +314,21 @@
     </head>
     <body>
         <div style="display: contents">%sveltekit.body%</div>
-        <!--
-            하이드레이션 앵커 캡처 — 로그가 아예 없는 실패 경로를 잡기 위한 것.
-
-            Svelte 는 하이드레이션 타깃 안에서 HYDRATION_START 주석(<!--[-->)을 못 찾으면 throw
-        HYDRATION_ERROR 하는데, render.js:134 의 `error !== HYDRATION_ERROR` 가 false 라 **console
-        출력이 0** 이다. 그대로 clear_text_content(target) 후 조용히 CSR 재마운트된다. 즉
-        console.warn 후킹으로도 이 경로는 못 잡는다. 번역 확장이 SSR 마커를 건드리는 경우가 여기
-        해당한다. 앵커 노드를 붙잡아 두고 마운트 후 isConnected 를 보면 폐기 여부를 확정할 수 있다.
-        비용은 노드 참조 1개 + boolean 1회. -->
         <script>
+            // 하이드레이션 앵커 캡처 — 로그가 아예 없는 실패 경로를 잡기 위한 것.
+            //
+            // ⛔ 이 설명을 HTML 주석으로 쓰지 말 것. HTML 주석은 중첩되지 않아서, 본문에
+            //    닫는 시퀀스가 들어가면 거기서 주석이 끊기고 나머지가 화면에 노출된다.
+            //    실제로 그렇게 유출된 사고가 있었다(bug/13122, 2026-07-28).
+            //    Svelte 마커를 예시로 적어야 할 때는 반드시 JS 주석 안에서만 쓴다.
+            //
+            // Svelte 는 하이드레이션 타깃 안에서 HYDRATION_START 마커(여는 주석 + "[")를
+            // 못 찾으면 throw HYDRATION_ERROR 한다. 그런데 render.js:134 의
+            // `error !== HYDRATION_ERROR` 가 false 라 console 출력이 0 이고, 그대로
+            // clear_text_content(target) 후 조용히 CSR 재마운트된다. 즉 console.warn
+            // 후킹으로도 이 경로는 못 잡는다. 번역 확장이 SSR 마커를 건드리는 경우가
+            // 여기 해당한다. 앵커 노드를 붙잡아 두고 마운트 후 isConnected 를 보면
+            // 폐기 여부를 확정할 수 있다. 비용은 노드 참조 1개 + boolean 1회.
             (function () {
                 try {
                     var target = document.body.firstElementChild;
