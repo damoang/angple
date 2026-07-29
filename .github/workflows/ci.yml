@@ -33,6 +33,12 @@ jobs:
       - name: Check HTML comments
         run: node scripts/check-html-comments.mjs
 
+      # 관리자 API 인증 가드 — 2026-07-29 에 /api/admin 하위 4개 라우트가
+      # 인증 없이 열려 있었다(settings·heap-snapshot·migration 2종).
+      # svelte compiler 가 필요 없어 pnpm install 없이 돈다.
+      - name: Check admin API auth guard
+        run: node scripts/check-admin-api-guard.mjs
+
   # 하이드레이션 AST 가드 — 두 검사가 pnpm install 을 공유한다.
   #
   #  1) 중첩 <a>  (2026-07-28)

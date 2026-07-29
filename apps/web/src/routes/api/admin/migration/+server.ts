@@ -4,17 +4,27 @@
  * POST /api/admin/migration/analyze — 사전 분석
  * POST /api/admin/migration/run — 마이그레이션 실행
  *
- * 주의: 관리자 전용 API. 인증 검증은 hooks.server.ts에서 처리.
+ * ⛔ 2026-07-29: 여기에 "인증 검증은 hooks.server.ts에서 처리" 라고 적혀 있었으나
+ *    **그런 가드는 존재하지 않았다.** 훅에도, 이 핸들러에도 없었다.
+ *    이 엔드포인트는 요청 본문으로 받은 임의의 host/port/user/password 로 외부 DB 에
+ *    접속을 연다. 인증 없이 열려 있었다는 것은 누구나 우리 서버를 발판 삼아 임의
+ *    호스트에 접속을 시도할 수 있었다는 뜻이다(내부망 포트 스캔 포함).
+ *    지금은 훅 가드를 실제로 만들었고, 아래에 라우트 자체 가드도 둔다.
+ *    ⛔ "훅이 막아준다"고 믿고 이 가드를 지우지 말 것.
  */
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { requireAdmin } from '$lib/server/require-admin.js';
 
 /**
  * POST /api/admin/migration/analyze
- * 소스 DB에 연결하여 사전 분석 수행
+ * 소스 DB에 연결하여 사전 분석 수행 (관리자 전용)
  */
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
+    const denied = requireAdmin(locals);
+    if (denied) return denied;
+
     try {
         const body = await request.json();
         const { source } = body;

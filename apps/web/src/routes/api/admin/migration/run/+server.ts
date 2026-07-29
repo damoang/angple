@@ -6,12 +6,19 @@
  * 실제 마이그레이션을 실행합니다.
  * 현재는 dry-run 모드에서 통계만 반환합니다.
  * 실제 쓰기는 @angple/migration 패키지의 migrateGnuboard/migrateRhymix를 호출합니다.
+ *
+ * ⛔ 2026-07-29 까지 인증 없이 열려 있었다. 요청 본문의 임의 DB 접속 정보로 외부 연결을
+ *    연다. 훅 가드와 아래 라우트 가드로 이중 방어한다. 지우지 말 것.
  */
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import { requireAdmin } from '$lib/server/require-admin.js';
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
+    const denied = requireAdmin(locals);
+    if (denied) return denied;
+
     try {
         const body = await request.json();
         const { source, sourceDb, targetDb, dryRun } = body;

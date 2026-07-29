@@ -864,6 +864,33 @@ export const handle: Handle = async ({ event, resolve }) => {
     // SSR 인증
     await authenticateSSR(event);
 
+    // --- /api/admin/* 계층 가드 ---
+    //
+    // 2026-07-29 실측: /api/admin 하위 11개 라우트 중 4개에 인증 코드가 한 줄도 없었다.
+    //   settings(GET,PUT) · heap-snapshot(GET) · migration(POST) · migration/run(POST)
+    // `GET /api/admin/settings` 는 익명으로 200 을 돌려줬고 응답에 oauth clientSecret
+    // 필드가 들어 있었다. PUT 은 누구나 사이트 설정을 덮어쓸 수 있는 상태였다.
+    //
+    // 라우트마다 가드를 다는 방식은 "새로 만들 때 빠뜨리면 뚫린다"는 구조적 결함이 있다.
+    // 실제로 그렇게 4개가 빠졌다. 그래서 여기서 경로 접두사로 한 번에 막는다.
+    // 개별 라우트의 가드는 그대로 두어 이중 방어로 삼는다.
+    //
+    // ⛔ 여기에 DB 조회를 추가하지 말 것. 전체 요청의 74.8% 가 /api/* 다.
+    //    지금은 문자열 접두사 비교 + 이미 채워진 locals.user 참조뿐이라 비용이 없다.
+    // ⛔ mb_level 10 = 관리자. as_level(XP 레벨)과 혼동하지 말 것.
+    if (pathname === '/api/admin' || pathname.startsWith('/api/admin/')) {
+        if (!event.locals.user || event.locals.user.level < 10) {
+            return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+                status: 403,
+                headers: {
+                    'content-type': 'application/json',
+                    // 권한 응답은 절대 캐시되면 안 된다.
+                    'cache-control': 'private, no-store'
+                }
+            });
+        }
+    }
+
     // CDN cache key normalization — ssr_auth=1 / 없음 2-state로 쿠키 다양성 축소
     syncSsrAuthCookie(event);
 
