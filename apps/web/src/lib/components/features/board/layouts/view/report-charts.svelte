@@ -28,6 +28,10 @@
         reportTypes?: Record<string, number>;
         boardStats?: BoardStatEntry[];
         periodDays?: number;
+        // ── 일간 리포트 전용 ──
+        hourlyStats?: number[]; // 시간대별 활동(0~23시, 24칸)
+        groupStats?: BoardStatEntry[]; // 소모임별 활동
+        daily?: boolean; // 일간 모드(제목·부제 문구 분기)
     }
 
     let {
@@ -36,13 +40,18 @@
         weeklyStats,
         reportTypes,
         boardStats,
-        periodDays = 1
+        periodDays = 1,
+        hourlyStats,
+        groupStats,
+        daily = false
     }: Props = $props();
 
     let dailyCanvas: HTMLCanvasElement | undefined = $state();
     let weeklyCanvas: HTMLCanvasElement | undefined = $state();
     let typesCanvas: HTMLCanvasElement | undefined = $state();
     let boardCanvas: HTMLCanvasElement | undefined = $state();
+    let hourlyCanvas: HTMLCanvasElement | undefined = $state();
+    let groupCanvas: HTMLCanvasElement | undefined = $state();
 
     let charts: ChartType[] = [];
 
@@ -276,6 +285,63 @@
                     })
                 );
             }
+
+            // 시간대별 활동 (bar) — 일간 리포트 전용
+            if (hourlyCanvas && hourlyStats && hourlyStats.length > 0) {
+                charts.push(
+                    new Chart(hourlyCanvas, {
+                        type: 'bar',
+                        data: {
+                            labels: hourlyStats.map((_, h) => `${h}시`),
+                            datasets: [
+                                {
+                                    label: '글·댓글',
+                                    data: hourlyStats,
+                                    backgroundColor: '#3b82f6'
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: { grid: { display: false }, ticks: { maxTicksLimit: 12 } },
+                                y: { beginAtZero: true, grid: { color: gridColor } }
+                            },
+                            plugins: { legend: { display: false } }
+                        }
+                    })
+                );
+            }
+
+            // 소모임별 활동 (horizontal bar) — 일간 리포트 전용
+            if (groupCanvas && groupStats && groupStats.length > 0) {
+                charts.push(
+                    new Chart(groupCanvas, {
+                        type: 'bar',
+                        data: {
+                            labels: groupStats.map((g) => g.name || '소모임'),
+                            datasets: [
+                                {
+                                    label: '글·댓글',
+                                    data: groupStats.map((g) => g.count || 0),
+                                    backgroundColor: '#10b981'
+                                }
+                            ]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: { beginAtZero: true, grid: { color: gridColor } },
+                                y: { grid: { display: false } }
+                            },
+                            plugins: { legend: { display: false } }
+                        }
+                    })
+                );
+            }
         });
 
         return () => {
@@ -288,9 +354,13 @@
     {#if dailyStats && Object.keys(dailyStats).length > 0}
         <div class="rounded-xl border p-5">
             <div class="mb-3">
-                <h3 class="text-foreground text-sm font-medium">일별 활동 트렌드</h3>
+                <h3 class="text-foreground text-sm font-medium">
+                    {daily ? '최근 7일 추이' : '일별 활동 트렌드'}
+                </h3>
                 <p class="text-muted-foreground text-xs">
-                    선택 기간 신고/게시글/댓글 현황 ({periodDays}일간)
+                    {daily
+                        ? '신고/글/댓글 — 오늘 포함 7일'
+                        : `선택 기간 신고/게시글/댓글 현황 (${periodDays}일간)`}
                 </p>
             </div>
             <div class="relative h-56">
@@ -323,11 +393,37 @@
         </div>
     {/if}
 
+    {#if hourlyStats && hourlyStats.length > 0}
+        <div class="rounded-xl border p-5">
+            <div class="mb-3">
+                <h3 class="text-foreground text-sm font-medium">시간대별 활동</h3>
+                <p class="text-muted-foreground text-xs">0시~23시 글·댓글 작성량</p>
+            </div>
+            <div class="relative h-56">
+                <canvas bind:this={hourlyCanvas}></canvas>
+            </div>
+        </div>
+    {/if}
+
+    {#if groupStats && groupStats.length > 0}
+        <div class="rounded-xl border p-5">
+            <div class="mb-3">
+                <h3 class="text-foreground text-sm font-medium">소모임 활동</h3>
+                <p class="text-muted-foreground text-xs">소모임별 글·댓글 활동</p>
+            </div>
+            <div class="relative h-56">
+                <canvas bind:this={groupCanvas}></canvas>
+            </div>
+        </div>
+    {/if}
+
     {#if boardStats && boardStats.length > 0}
         <div class="rounded-xl border p-5">
             <div class="mb-3">
                 <h3 class="text-foreground text-sm font-medium">게시판별 현황</h3>
-                <p class="text-muted-foreground text-xs">게시판별 신고 건수</p>
+                <p class="text-muted-foreground text-xs">
+                    {daily ? '게시판별 글·댓글 활동' : '게시판별 신고 건수'}
+                </p>
             </div>
             <div class="relative h-56">
                 <canvas bind:this={boardCanvas}></canvas>
