@@ -343,6 +343,40 @@ describe('transformEmoticons - 기존 동작 유지', () => {
     });
 });
 
+describe('transformEmoticons - 팩별 기본 폭 (bug#13145)', () => {
+    it('밈 팩은 크기를 안 쓰면 200px', () => {
+        const result = transformEmoticons('{emo:damoang-meme-051.gif}');
+        expect(result).toContain('width="200"');
+    });
+
+    it('밈 외 팩은 기존대로 50px', () => {
+        expect(transformEmoticons('{emo:damoang-emo-042.gif}')).toContain('width="50"');
+        expect(transformEmoticons('{emo:onion-133.gif}')).toContain('width="50"');
+        expect(transformEmoticons('{emo:smile.gif}')).toContain('width="50"');
+    });
+
+    it('밈이라도 회원이 지정한 크기가 팩 기본값을 이긴다', () => {
+        expect(transformEmoticons('{emo:damoang-meme-051.gif:80}')).toContain('width="80"');
+    });
+
+    // 밈 기본값(200)이 MAX_WIDTH(200)와 같으므로 상한 자체가 무력화되지 않았는지 확인.
+    it('밈도 상한 200을 넘길 수 없다', () => {
+        expect(transformEmoticons('{emo:damoang-meme-051.gif:9999}')).toContain('width="200"');
+    });
+
+    // 접두사 매칭이라 'damoang-meme' 로 시작만 하면 걸린다. 대소문자 무시.
+    it('대문자 파일명도 밈으로 인식', () => {
+        expect(transformEmoticons('{emo:DAMOANG-MEME-051.GIF}')).toContain('width="200"');
+    });
+
+    // ⛔ 팩 기본값을 파일명 검증보다 먼저 적용하면 경로 탐색이 뚫린다.
+    it('밈 접두사를 흉내낸 경로 탐색도 차단', () => {
+        const result = transformEmoticons('{emo:damoang-meme-../../etc/passwd.gif}');
+        expect(result).not.toContain('passwd');
+        expect(result).toBe('😀');
+    });
+});
+
 describe('transformInlineMarkdown', () => {
     it('**bold** 변환', () => {
         expect(transformInlineMarkdown('마크다운 **테스트**!')).toBe(
