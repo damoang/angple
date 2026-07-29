@@ -279,6 +279,62 @@
         void collectAndReportFingerprint();
     });
 
+    // 서버 read-set(L2, Redis) 병합 — 크로스기기 읽음 표시.
+    // localStorage(L1)에 없는 항목만 추가(기존 로컬 timestamp 보존).
+    //
+    // ⛔ 위 핑거프린트와 정확히 같은 함정으로 죽어 있던 코드다. onMount 안에서
+    //    authStore.isAuthenticated 로 게이트되어 있었는데, onMount 는 auth 하이드레이션
+    //    전에 돌아 항상 false 였다. 2026-07-29 nginx 실측: /api/auth/me 는 6,793건인데
+    //    GET /api/read-posts 는 **0건**. 즉 크로스기기 읽음 표시가 한 번도 동작한 적이 없다.
+    //    (PUT 은 auth 게이트 밖이라 쓰기만 살아 있었다 — 쌓기만 하고 못 읽는 상태)
+    let readSetMerged = false;
+    $effect(() => {
+        if (readSetMerged) return;
+        if (!browser || !authStore.isAuthenticated) return;
+        readSetMerged = true;
+        fetch('/api/read-posts', { headers: { accept: 'application/json' } })
+            .then((res) => (res.ok ? res.json() : null))
+            .then((payload: { posts?: string[] } | null) => {
+                if (payload?.posts?.length) {
+                    readPostsStore.mergeServerReadPosts(payload.posts);
+                }
+            })
+            .catch(() => {
+                // 병합 실패해도 로컬(L1) 읽음 표시는 유지
+            });
+    });
+
+    // UI 설정(L2, MySQL+Redis) 병합 — 크로스기기·ITP 대비(#12891).
+    // 서버 값 있음 → 서버가 진실 원본으로 로컬에 반영.
+    // 서버 비어있음(첫 도입) → 현재 로컬 설정을 서버로 올려 마이그레이션(무손실).
+    //
+    // ⛔ 같은 함정. GET /api/my/ui-settings 실측 **0건**(PUT 만 5건).
+    //    g5_da_member_ui_settings 채택률이 회원 59,869명 중 1,577행(2.6%)으로 낮았던 것도
+    //    이것으로 설명된다 — 저장은 되는데 어느 기기에서도 다시 읽히지 않았다.
+    let uiSettingsMerged = false;
+    $effect(() => {
+        if (uiSettingsMerged) return;
+        if (!browser || !authStore.isAuthenticated) return;
+        uiSettingsMerged = true;
+        fetch('/api/my/ui-settings', { headers: { accept: 'application/json' } })
+            .then((res) => (res.ok ? res.json() : null))
+            .then((payload: { settings?: Record<string, unknown> | null } | null) => {
+                if (payload?.settings) {
+                    uiSettingsStore.mergeServerSettings(
+                        payload.settings as Partial<
+                            import('$lib/stores/ui-settings.svelte').UiSettings
+                        >
+                    );
+                } else {
+                    // 서버에 저장값 없음 → 로컬 설정을 서버로 마이그레이션
+                    uiSettingsStore.syncToServer();
+                }
+            })
+            .catch(() => {
+                // 실패해도 로컬(L1) 설정은 그대로 유지
+            });
+    });
+
     // 메뉴 데이터 변경 시 키보드 단축키 빌드 (모듈 로드 후 활성화)
     $effect(() => {
         if (!keyboardShortcutsMod) return;
@@ -595,43 +651,10 @@
         // 디바이스 핑거프린트 수집은 상단 $effect(로그인 확정 후 발화)로 이관.
         // (onMount 는 auth 하이드레이션 전이라 isAuthenticated=false → 스킵되던 문제)
 
-        // 로그인 회원 서버 read-set(L2, Redis) 병합 — 크로스기기 읽음 표시.
-        // localStorage(L1)에 없는 항목만 추가(기존 로컬 timestamp 보존).
-        if (browser && authStore.isAuthenticated) {
-            fetch('/api/read-posts', { headers: { accept: 'application/json' } })
-                .then((res) => (res.ok ? res.json() : null))
-                .then((payload: { posts?: string[] } | null) => {
-                    if (payload?.posts?.length) {
-                        readPostsStore.mergeServerReadPosts(payload.posts);
-                    }
-                })
-                .catch(() => {
-                    // 병합 실패해도 로컬(L1) 읽음 표시는 유지
-                });
-        }
-
-        // 로그인 회원 UI 설정(L2, MySQL+Redis) 병합 — 크로스기기·ITP 대비(#12891).
-        // 서버 값 있음 → 서버가 진실 원본으로 로컬에 반영. 서버 비어있음(첫 도입)
-        // → 현재 로컬 설정을 서버로 올려 마이그레이션(기존 사용자 설정 무손실).
-        if (browser && authStore.isAuthenticated) {
-            fetch('/api/my/ui-settings', { headers: { accept: 'application/json' } })
-                .then((res) => (res.ok ? res.json() : null))
-                .then((payload: { settings?: Record<string, unknown> | null } | null) => {
-                    if (payload?.settings) {
-                        uiSettingsStore.mergeServerSettings(
-                            payload.settings as Partial<
-                                import('$lib/stores/ui-settings.svelte').UiSettings
-                            >
-                        );
-                    } else {
-                        // 서버에 저장값 없음 → 로컬 설정을 서버로 마이그레이션
-                        uiSettingsStore.syncToServer();
-                    }
-                })
-                .catch(() => {
-                    // 실패해도 로컬(L1) 설정은 그대로 유지
-                });
-        }
+        // read-set / UI 설정의 서버 병합은 위쪽 $effect 로 옮겼다.
+        // onMount 는 auth 하이드레이션 전이라 isAuthenticated 가 항상 false 였고,
+        // 그래서 두 fetch 가 운영에서 한 번도 발화하지 않았다(GET 실측 0건).
+        // ⛔ 여기로 되돌리지 말 것.
 
         const cachedMenus = readCachedMenus();
         if (cachedMenus) {
