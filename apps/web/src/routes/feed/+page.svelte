@@ -90,7 +90,8 @@
 </script>
 
 <svelte:head>
-    <title>새글 모아보기 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
+    <!-- ⛔ '새글' 고정. '새글 모아보기'는 옆 메뉴 '모아보기'(/explore)와 헷갈린다. -->
+    <title>새글 | {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
     <meta
         name="description"
         content="{import.meta.env.VITE_SITE_NAME ||
@@ -120,9 +121,7 @@
                             <Newspaper class="text-primary h-5 w-5" />
                         </div>
                         <div>
-                            <h1 class="text-foreground text-xl font-bold leading-tight">
-                                새글 모아보기
-                            </h1>
+                            <h1 class="text-foreground text-xl font-bold leading-tight">새글</h1>
                             <p class="text-muted-foreground text-sm">
                                 전체 {result.total.toLocaleString()}건
                             </p>
