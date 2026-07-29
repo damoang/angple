@@ -18,6 +18,44 @@ const DEFAULT_WIDTH = 50;
 const ALLOWED_EXTENSIONS = ['.gif', '.png', '.jpg', '.jpeg', '.webp'];
 
 /**
+ * 팩별 기본 표시 폭(px). 접두사가 일치하면 DEFAULT_WIDTH 대신 이 값을 쓴다.
+ *
+ * 왜 필요한가 (bug#13145, 2026-07-29 실측):
+ *   기본 50px 은 정사각형 인라인 이모지에 맞춘 값인데 '밈' 팩은 성격이 다르다.
+ *
+ *     팩              개수  원본폭 중앙  세로비(h/w)   폭200 렌더높이
+ *     damoang-emo      54       60      0.68~1.22   중앙 200 / 최대 245
+ *     damoang-meme     49      282      0.12~1.79   중앙 175 / 최대 358
+ *     onion           264       50      0.98~1.11   중앙 200 / 최대 222
+ *
+ *   밈은 원본 중앙값이 282px 인 '그림'이다. 최대 damoang-meme-051.gif 은
+ *   2668x1740 인데 폭 50 으로 찍으면 50x33px 이 되어 내용을 알아볼 수 없다.
+ *   제보자가 지목한 파일들이 정확히 이 팩이었다.
+ *
+ * ⛔ 이 값은 MAX_WIDTH(200)와 같다. 즉 밈은 기본이 곧 상한이라 회원은
+ *    {emo:파일:80} 처럼 줄일 수만 있고 키울 수는 없다. 의도한 것이다 —
+ *    댓글 목록이 밈 하나로 밀려나는 것을 막는다. 더 키워야 한다는 요구가
+ *    실제로 나오면 MAX_WIDTH 를 팩별로 나누는 게 다음 수순이다.
+ *
+ * ⛔ 기존 글에 소급 적용된다. 저장된 본문은 {emo:...} 숏코드 그대로이고
+ *    폭은 렌더 시점에 정해지기 때문이다. 데이터 마이그레이션은 없지만
+ *    이미 올라간 글의 밈 크기가 한꺼번에 바뀐다(2026-07 자유게시판 기준
+ *    이모티콘 사용 글 3,547건 중 크기를 직접 지정한 글은 4건뿐이었다).
+ */
+const PACK_DEFAULT_WIDTH: ReadonlyArray<readonly [string, number]> = [['damoang-meme-', 200]];
+
+/**
+ * 파일명이 속한 팩의 기본 표시 폭을 반환. 일치하는 팩이 없으면 DEFAULT_WIDTH.
+ */
+function defaultWidthFor(filename: string): number {
+    const lower = filename.toLowerCase();
+    for (const [prefix, width] of PACK_DEFAULT_WIDTH) {
+        if (lower.startsWith(prefix)) return width;
+    }
+    return DEFAULT_WIDTH;
+}
+
+/**
  * 파일명이 허용된 이미지 확장자를 가지는지 확인
  */
 function isValidFilename(filename: string): boolean {
@@ -46,8 +84,9 @@ export function transformEmoticons(text: string): string {
             return '😀'; // fallback 이모지
         }
 
+        // 팩별 기본값은 파일명 검증을 통과한 뒤에 구한다.
         if (isNaN(width) || width <= 0) {
-            width = DEFAULT_WIDTH;
+            width = defaultWidthFor(filename);
         }
         if (width > MAX_WIDTH) {
             width = MAX_WIDTH;
