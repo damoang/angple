@@ -33,10 +33,20 @@ jobs:
       - name: Check HTML comments
         run: node scripts/check-html-comments.mjs
 
-  # 중첩 <a> 검사 — 하이드레이션을 통째로 깨뜨린다.
-  # 2026-07-28: 게시판 목록 행 <a> 안에 댓글수 <a> 가 있어 시간당 회원 약 1,700명이
-  # 하이드레이션 실패를 겪고 있었다(#1040 도입, 관측 부재로 못 보고 있었음).
-  # svelte/compiler AST 로 검사하므로 pnpm install 이 필요하다.
+  # 하이드레이션 AST 가드 — 두 검사가 pnpm install 을 공유한다.
+  #
+  #  1) 중첩 <a>  (2026-07-28)
+  #     게시판 목록 행 <a> 안에 댓글수 <a> 가 있어 시간당 회원 약 1,700명이
+  #     하이드레이션 실패를 겪고 있었다(#1040 도입, 관측 부재로 못 보고 있었음).
+  #
+  #  2) 맞붙은 분기 블록  (2026-07-29)
+  #     푸터에 {/if}{#if …} 로 맞붙은 분기가 5쌍 있었다. SSR 마커가 맞닿아
+  #     번역이 텍스트 노드를 감싸는 순간 뒤따르는 분기가 연쇄로 밀렸다.
+  #     푸터는 모든 페이지에 있어 12시간당 약 2,000명이 영향을 받았다.
+  #
+  # 둘 다 svelte/compiler AST 로 검사하므로 pnpm install 이 필요하다.
+  # ⚠️ 표시 이름(name)은 브랜치 보호의 필수 체크명이라 바꾸지 않았다.
+  #    이름을 넓히려면 저장소 설정의 required check 도 함께 바꿔야 한다.
   nested-anchors:
     name: Nested Anchor Guard
     runs-on: ubuntu-latest
@@ -60,6 +70,9 @@ jobs:
 
       - name: Check nested anchors
         run: node scripts/check-nested-anchors.mjs
+
+      - name: Check adjacent hydration blocks
+        run: node scripts/check-adjacent-blocks.mjs
 
   # 전체 lint는 수동 실행만 허용한다.
   # PR에서는 eslint-review/prettier-suggester가 이미 같은 역할을 맡고,

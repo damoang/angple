@@ -22,6 +22,46 @@
     // site 자체가 없거나(기본 다모앙) business 키가 없으면 DEFAULT 사용.
     const biz = $derived(page.data.site?.business ?? (page.data.site ? null : DEFAULT_BUSINESS));
 
+    /**
+     * 사업자·연락처 줄은 마크업의 {#if} 가 아니라 여기서 문자열로 조립한다.
+     *
+     * ⛔ 인접한 {#if} 로 되돌리지 말 것. 하이드레이션이 통째로 깨진다.
+     *
+     *    {#if} 는 SSR HTML 에 <!--[--> … <!--]--> 마커를 남긴다. 조건을 나란히
+     *    이어 쓰면 마커가 맨텍스트만 사이에 두고 <!--]--><!--[--> 로 맞붙는다.
+     *    번역 확장이나 브라우저 내장 번역이 그 텍스트 노드를 감싸는 순간
+     *    앵커가 이웃 마커를 읽어 분기 판정이 어긋나고, 뒤따르는 마커가 연쇄로
+     *    한 칸씩 밀린다. 종착점이 Svelte skip_nodes() 의 null 참조이고,
+     *    거기서 화면이 통째로 다시 그려진다("되다 안 되다 한다"의 정체).
+     *
+     *    푸터는 모든 페이지에 있어서 피해가 사이트 전체로 퍼진다.
+     *    2026-07-29 실측: 하이드레이션 실패 스택이 이 지점 한 곳으로 수렴했고,
+     *    12시간당 약 2,000명이 영향을 받았다. 회사명·주소는 번역기가 가장 먼저
+     *    건드리는 텍스트라 하필 이곳이 제일 취약했다.
+     *
+     *    같은 원리의 선행 조치: 목록 레이아웃 grid → flex 전환(#1885).
+     */
+    const bizLine = $derived(
+        biz
+            ? [
+                  biz.company,
+                  biz.ceo && `대표: ${biz.ceo}`,
+                  biz.business_no && `사업자등록번호: ${biz.business_no}`,
+                  biz.ecommerce_no && `통신판매업신고: ${biz.ecommerce_no}`
+              ]
+                  .filter(Boolean)
+                  .join(' | ')
+            : ''
+    );
+
+    const contactLine = $derived(
+        biz
+            ? [biz.address, biz.email, biz.report_email && `제보: ${biz.report_email}`]
+                  .filter(Boolean)
+                  .join(' | ')
+            : ''
+    );
+
     type FooterLink = { name: string; href: string; external?: boolean };
 
     // 서비스
@@ -194,43 +234,47 @@
                 </li>
             </ul>
 
-            {#if biz}
+            <!--
+                조건 분기의 내용은 반드시 요소로 감싼다. 마커가 <p> 에 붙어 있으면
+                안쪽 텍스트가 번역기에 감싸여도 앵커가 흔들리지 않는다.
+            -->
+            {#if bizLine || contactLine}
                 <div class="text-muted-foreground mt-3 text-xs leading-relaxed">
-                    <p>
-                        {#if biz.company}{biz.company}{/if}{#if biz.ceo}
-                            | 대표: {biz.ceo}{/if}{#if biz.business_no}
-                            | 사업자등록번호: {biz.business_no}{/if}{#if biz.ecommerce_no}
-                            | 통신판매업신고: {biz.ecommerce_no}{/if}
-                    </p>
-                    {#if biz.address || biz.email || biz.report_email}
-                        <p>
-                            {#if biz.address}{biz.address}{/if}{#if biz.email}
-                                | {biz.email}{/if}{#if biz.report_email}
-                                | 제보: {biz.report_email}{/if}
-                        </p>
-                    {/if}
+                    {#if bizLine}<p>{bizLine}</p>{/if}
+                    {#if contactLine}<p>{contactLine}</p>{/if}
                 </div>
             {/if}
 
             <p class="text-muted-foreground mt-2 text-xs">
-                {#if biz?.copyright}
-                    © {#if biz.copyright_url}<a
+                <!--
+                    중첩 {#if} 를 {:else if} 사슬로 폈다. 중첩이면 마커가 겹쳐 쌓여
+                    바깥쪽이 밀릴 때 안쪽까지 함께 어긋난다. 각 분기는 <span> 안에 둔다.
+                -->
+                {#if biz?.copyright && biz.copyright_url}
+                    <span
+                        >© <a
                             href={biz.copyright_url}
                             target="_blank"
                             rel="noopener noreferrer"
                             class="hover:text-primary transition-colors">{biz.copyright}</a
-                        >{:else}{biz.copyright}{/if}
+                        ></span
+                    >
+                {:else if biz?.copyright}
+                    <span>© {biz.copyright}</span>
                 {:else}
-                    © {new Date().getFullYear()}
-                    {page.data.site?.title?.split(' - ')[0] ?? 'Angple'}
+                    <span
+                        >© {new Date().getFullYear()}
+                        {page.data.site?.title?.split(' - ')[0] ?? 'Angple'}</span
+                    >
                 {/if}
                 {#if biz?.powered_by !== false}
-                    · Powered by
-                    <a
-                        href="https://angple.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="hover:text-primary transition-colors">angple.com</a
+                    <span
+                        >· Powered by <a
+                            href="https://angple.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="hover:text-primary transition-colors">angple.com</a
+                        ></span
                     >
                 {/if}
             </p>
