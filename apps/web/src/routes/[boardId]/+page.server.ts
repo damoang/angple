@@ -633,7 +633,9 @@ export const load: PageServerLoad = async ({
         // 게시글
         let posts: FreePost[] = [];
         let pagination: PostsCacheData['pagination'] = { page, limit, total: 0, totalPages: 0 };
-        let error: string | null = null;
+        // 전면 실패는 아래에서 503 으로 throw 하므로 여기까지 오면 항상 null 이다.
+        // 반환 형태(PostsCacheData)를 유지하려고 남겨둔다.
+        const error: string | null = null;
 
         if (postsResult.status === 'fulfilled') {
             const postsData = postsResult.value;
@@ -665,7 +667,22 @@ export const load: PageServerLoad = async ({
             if (stale) {
                 return { ...stale, error: null };
             }
-            error = '게시글을 불러오는데 실패했습니다.';
+
+            // ⛔ 여기서 200 + 빈 목록을 돌려주면 안 된다.
+            //
+            // 2026-07-29 실측: CDN 캐시 규칙이 이 경로들(/ · /free · /qa 등 76개)의
+            // 200 응답을 edge_ttl override_origin 으로 1,200초 붙잡는다. DB 가 8분 만에
+            // 스스로 복구된 뒤에도 "글이 없습니다" 화면이 비로그인 사용자와 검색 크롤러에게
+            // 20분간 그대로 나갔다. 로그인 사용자는 쿠키 때문에 캐시를 타지 않아 무사했지만,
+            // 구글이 빈 게시판을 수집하는 것은 그대로 손해다.
+            //
+            // 상태 코드를 5xx 로 바꾸면 "성공한 빈 페이지"가 아니게 되어 캐시 대상에서
+            // 빠진다. 사용자에게도 "글이 없다"가 아니라 "지금 문제가 있다"로 정직해진다.
+            // ⚠️ CDN 규칙에 5xx → TTL 0 을 명시하는 작업이 짝이다. 한쪽만 하면 반쪽이다.
+            //
+            // ⛔ stale 이 있으면 위에서 이미 반환했다. 여기는 보여줄 것이 정말 아무것도
+            //    없는 경우뿐이다. 부분 실패(공지·프로필 등)는 여기로 오지 않는다.
+            throw svelteError(503, '게시글을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
         }
 
         const notices = noticesResult.status === 'fulfilled' ? noticesResult.value : [];
