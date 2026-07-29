@@ -5,8 +5,12 @@
  * +page.server.ts에서 SSR 스트리밍으로 직접 호출하여 CDN 요청 제거.
  *
  * #12046 — DB 의 as_level 컬럼이 as_exp 변동을 따라가지 못해 stale 한 케이스가 다수
- * 존재(시스템 광역). 단일 source of truth 인 as_exp + LEVEL_THRESHOLDS 로 항상
- * 동적 계산해 LevelBadge / 프로필 등 모든 표시 위치가 일관된 값을 보도록 함.
+ * 존재(시스템 광역). 단일 source of truth 인 as_exp 로 항상 동적 계산해
+ * LevelBadge / 프로필 등 모든 표시 위치가 일관된 값을 보도록 함.
+ *
+ * bug/13149 (2026-07-29) — 그 "동적 계산"이 백엔드와 다른 곡선이었다는 것이 드러나
+ * 계산 함수를 백엔드와 같은 2차식으로 교체했다($lib/utils/level-thresholds).
+ * 동시에 여기 있던 Math.max(계산값, 저장값) 래칫도 제거했다 — 아래 참조.
  */
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
@@ -53,10 +57,12 @@ async function queryMemberLevels(ids: string[]): Promise<Record<string, number>>
     const levels: Record<string, number> = {};
     for (const row of rows) {
         const exp = Number(row.as_exp) || 0;
-        const calculated = calculateLevelFromExp(exp);
-        // 저장된 as_level 보다 계산값이 더 크면 계산값(최신) 우선.
-        // 두 값 중 큰 쪽을 채택해 backward compat 유지하고 drift 만 보정.
-        levels[row.mb_id] = Math.max(calculated, Number(row.as_level) || 1);
+        // ⛔ 예전에는 Math.max(계산값, 저장값) 이었다. 계산 곡선이 백엔드와 달랐을 때
+        //    저장값을 보정해주려던 장치인데, 그 자체가 **제5의 규칙**이 되어
+        //    "내 프로필의 레벨"과 "내 댓글 옆 배지"가 서로 다르게 굳는 원인이었다.
+        //    2026-07-29 부터 계산 곡선이 백엔드와 동일해졌으므로(bug/13149) 불필요하다.
+        //    남겨두면 옛 부풀려진 저장값이 배지에 영구 고착된다.
+        levels[row.mb_id] = calculateLevelFromExp(exp);
     }
 
     const expiresAt = Date.now() + CACHE_TTL_MS;

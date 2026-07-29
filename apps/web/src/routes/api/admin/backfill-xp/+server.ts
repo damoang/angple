@@ -11,6 +11,7 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool, { readPool } from '$lib/server/db.js';
 import { grantLoginXPForDate } from '$lib/server/auth/xp-grant.js';
+import { calculateLevelFromExp as calculateLevel } from '$lib/utils/level-thresholds';
 
 interface MissingRow extends RowDataPacket {
     mb_id: string;
@@ -29,32 +30,15 @@ interface MemberExpRow extends RowDataPacket {
     mb_level: number;
 }
 
-// Level thresholds — same as xp-grant.ts
-const levelThresholds = [
-    0, 1000, 3000, 6000, 10000, 15000, 21000, 28000, 36000, 45000, 55000, 66000, 78000, 91000,
-    105000, 120000, 136000, 153000, 171000, 190000, 210000, 231000, 253000, 276000, 300000, 325000,
-    351000, 378000, 406000, 435000, 466000, 499000, 534000, 571000, 610000, 651000, 694000, 739000,
-    786000, 835000, 887000, 941000, 998000, 1058000, 1121000, 1187000, 1256000, 1328000, 1403000,
-    1481000, 1563000, 1649000, 1739000, 1833000, 1931000, 2033000, 2139000, 2249000, 2363000,
-    2481000, 2604000, 2732000, 2865000, 3003000, 3146000, 3294000, 3447000, 3605000, 3768000,
-    3936000, 4110000, 4290000, 4476000, 4668000, 4866000, 5070000, 5280000, 5496000, 5718000,
-    5946000, 6181000, 6423000, 6672000, 6928000, 7191000, 7461000, 7738000, 8022000, 8313000,
-    8611000, 8917000, 9231000, 9553000, 9883000, 10221000, 10567000, 10921000, 11283000, 11653000,
-    12031000, 12418000, 12814000, 13219000, 13633000, 14056000, 14488000, 14929000, 15379000,
-    15838000
-];
-
-function calculateLevel(totalExp: number): number {
-    let level = 1;
-    for (let i = 0; i < levelThresholds.length; i++) {
-        if (totalExp >= levelThresholds[i]) {
-            level = i + 1;
-        } else {
-            break;
-        }
-    }
-    return level;
-}
+// 레벨 계산은 정본($lib/utils/level-thresholds)에 위임한다 — 위 import 참조.
+//
+// ⛔ 여기에 임계값 표를 다시 만들지 말 것. 원래 109개짜리 사본이 있었고,
+//    그것이 백엔드와 다른 곡선이라 같은 회원이 화면마다 다른 레벨로 보이는
+//    원인 중 하나였다(bug/13149, 2026-07-29).
+//
+// ⚠️ 이 엔드포인트의 POST 는 MISSING_QUERY 에 LIMIT 이 없어 **전 회원 as_level 을
+//    일괄 UPDATE** 한다. 레벨이 오르는 회원에게는 xp-levelup-toast 가 발화하므로
+//    수천 명에게 동시에 축하 모달이 뜰 수 있다. 함부로 실행하지 말 것.
 
 const MISSING_QUERY = `
 SELECT DISTINCT s.mb_id, DATE(s.created_at) as login_date

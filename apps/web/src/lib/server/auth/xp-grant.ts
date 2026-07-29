@@ -10,16 +10,9 @@
  */
 import pool, { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
+import { calculateLevelFromExp } from '$lib/utils/level-thresholds';
 
 const LOGIN_XP = 500;
-
-// Level thresholds (cumulative exp required for each level) — nariya compatible
-// Formula: 1000 * (n-1)² where n = level
-// Level 1: 0, Level 2: 1000, Level 3: 4000, Level 10: 81000, Level 40: 1521000
-const levelThresholds: number[] = [];
-for (let n = 1; n <= 110; n++) {
-    levelThresholds.push(1000 * (n - 1) * (n - 1));
-}
 
 interface ExistingRow extends RowDataPacket {
     cnt: number;
@@ -31,17 +24,18 @@ interface MemberRow extends RowDataPacket {
     mb_level: number;
 }
 
-function calculateLevel(totalExp: number): number {
-    let level = 1;
-    for (let i = 0; i < levelThresholds.length; i++) {
-        if (totalExp >= levelThresholds[i]) {
-            level = i + 1;
-        } else {
-            break;
-        }
-    }
-    return level;
-}
+/**
+ * ⛔ 여기에 임계값 표를 다시 만들지 말 것 — 정본은 $lib/utils/level-thresholds 다.
+ *
+ * 원래 이 파일이 `1000·(n−1)²` 를 자체 생성해 썼다. 공식 자체는 백엔드와 같아
+ * 저장값은 옳았지만, 웹의 다른 계산부는 109개짜리 계단식 표를 쓰고 있어
+ * 같은 회원이 화면마다 다른 레벨로 보였다(bug/13149, 2026-07-29).
+ * 지금은 정본이 같은 2차식이므로 그대로 위임한다.
+ *
+ * 상한만 달랐다(옛 110 vs 정본 5000). 실측상 as_exp 최대가 8,991,485(Lv.95)로
+ * 110 경계(11,881,000)를 넘는 회원이 0명이라 저장값 변화는 없다.
+ */
+const calculateLevel = calculateLevelFromExp;
 
 /**
  * 로그인 XP 적립
