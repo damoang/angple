@@ -1,20 +1,34 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { siteSettingsProvider } from '$lib/server/settings/site-settings-provider.js';
+import { requireAdmin } from '$lib/server/require-admin.js';
 
-/** 설정 전체 조회 */
-export const GET: RequestHandler = async () => {
+/**
+ * ⛔ 이 라우트는 2026-07-29 까지 인증 없이 열려 있었다.
+ *    GET 은 익명으로 200 을 돌려줬고 응답에 oauth clientSecret 필드가 들어 있었다.
+ *    PUT 은 누구나 사이트 설정을 덮어쓸 수 있었다.
+ *    가드를 지우거나 우회하지 말 것.
+ */
+
+/** 설정 전체 조회 (관리자 전용) */
+export const GET: RequestHandler = async ({ locals }) => {
+    const denied = requireAdmin(locals);
+    if (denied) return denied;
+
     try {
         const settings = await siteSettingsProvider.load();
-        return json(settings);
+        return json(settings, { headers: { 'cache-control': 'private, no-store' } });
     } catch (error) {
         console.error('설정 로드 실패:', error);
         return json({ error: '설정을 불러올 수 없습니다.' }, { status: 500 });
     }
 };
 
-/** 설정 전체 저장 */
-export const PUT: RequestHandler = async ({ request }) => {
+/** 설정 전체 저장 (관리자 전용) */
+export const PUT: RequestHandler = async ({ request, locals }) => {
+    const denied = requireAdmin(locals);
+    if (denied) return denied;
+
     try {
         const data = await request.json();
         await siteSettingsProvider.save(data);
