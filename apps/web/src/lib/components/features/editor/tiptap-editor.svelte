@@ -1365,6 +1365,52 @@
             >
                 <UnderlineIcon class="h-4 w-4" />
             </Button>
+            <!--
+                이미지 삽입 — 자주 쓰는 버튼이라 앞쪽에 둔다.
+                ⛔ 뒤로 옮기지 말 것. 모바일 툴바는 1줄 가로 스크롤(flex-nowrap + overflow-x-auto,
+                   #1809 안드로이드 가림 해소)이라 뒤에 있으면 화면 밖으로 나간다.
+                   특히 iOS 는 스크롤바를 숨겨 "옆으로 밀린다"는 단서가 전혀 없다.
+                   2026-07-29 제보: 아이폰에서 "사진 삽입 메뉴가 없어졌다" — 25개 중 20번째라
+                   375~430px 화면에서 보이지 않았다. 버튼은 그대로 있었고 도달만 못 했다.
+            -->
+            <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onclick={openImageDialog}
+                {disabled}
+                class="h-8 w-8 p-0"
+                title="이미지 삽입"
+            >
+                <ImageIcon class="h-4 w-4" />
+            </Button>
+            {#if isActive.image}
+                <!-- 이미지 선택 시에만: 크기 컨트롤 (저장된 의도만 존중, 렌더 추측 없음) -->
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onclick={toggleImageFitWidth}
+                    {disabled}
+                    class="h-8 whitespace-nowrap px-2 text-xs {getButtonClass(
+                        isActive.imageFitWidth
+                    )}"
+                    title="이미지를 본문 폭에 맞춰 채웁니다"
+                >
+                    ↔ 본문 폭
+                </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onclick={resetImageSize}
+                    {disabled}
+                    class="h-8 whitespace-nowrap px-2 text-xs"
+                    title="이미지를 원본 크기로 되돌립니다"
+                >
+                    원본
+                </Button>
+            {/if}
             <!-- 문단 정렬 (TextAlign extension) -->
             <Button
                 type="button"
@@ -1513,44 +1559,6 @@
             >
                 <LinkIcon class="h-4 w-4" />
             </Button>
-            <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onclick={openImageDialog}
-                {disabled}
-                class="h-8 w-8 p-0"
-                title="이미지 삽입"
-            >
-                <ImageIcon class="h-4 w-4" />
-            </Button>
-            {#if isActive.image}
-                <!-- 이미지 선택 시에만: 크기 컨트롤 (저장된 의도만 존중, 렌더 추측 없음) -->
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onclick={toggleImageFitWidth}
-                    {disabled}
-                    class="h-8 whitespace-nowrap px-2 text-xs {getButtonClass(
-                        isActive.imageFitWidth
-                    )}"
-                    title="이미지를 본문 폭에 맞춰 채웁니다"
-                >
-                    ↔ 본문 폭
-                </Button>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onclick={resetImageSize}
-                    {disabled}
-                    class="h-8 whitespace-nowrap px-2 text-xs"
-                    title="이미지를 원본 크기로 되돌립니다"
-                >
-                    원본
-                </Button>
-            {/if}
             <Button
                 type="button"
                 variant="ghost"
