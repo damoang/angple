@@ -102,10 +102,16 @@ describe('백엔드와 완전 일치 (level + progress)', () => {
 
 describe('calculateLevelInfo — 진행도', () => {
     it('레벨 시작점은 0%', () => expect(calculateLevelInfo(1000).progress).toBe(0));
-    it('다음 레벨 직전은 100% 미만', () => {
-        const info = calculateLevelInfo(3999);
-        expect(info.progress).toBeLessThan(100);
+    it('다음 레벨 직전에도 레벨은 오르지 않고 expToNext 만 1 남는다', () => {
+        const info = calculateLevelInfo(3999); // Lv.2 구간의 마지막 XP
+        expect(info.level).toBe(2);
         expect(info.expToNext).toBe(1);
+        // ⚠️ 여기서 progress 는 100 이 된다. 백엔드의 정수 반올림
+        //    ((x × 200 / range) + 1) / 2 가 레벨업 직전을 100 으로 올리기 때문이다.
+        //    (3999-1000)×200/3000 = 199 → (199+1)/2 = 100
+        //    "100% 인데 아직 레벨업 전"은 의도된 동작이 아니라 공식의 성질이다.
+        //    백엔드와 같게 두는 것이 이 파일의 목적이므로 그대로 단언한다.
+        expect(info.progress).toBe(100);
     });
     it('expToNext 는 음수가 되지 않는다', () => {
         expect(calculateLevelInfo(0).expToNext).toBeGreaterThanOrEqual(0);
