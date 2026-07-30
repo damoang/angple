@@ -42,6 +42,8 @@
     import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
     import Scale from '@lucide/svelte/icons/scale';
     import CalendarDays from '@lucide/svelte/icons/calendar-days';
+    import Eye from '@lucide/svelte/icons/eye';
+    import TrendingUp from '@lucide/svelte/icons/trending-up';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { DisciplinedContent } from '$lib/components/ui/discipline-related';
     import { AdultBlur } from '$lib/components/features/adult/index.js';
@@ -170,9 +172,20 @@
         good_users?: number; // 공감 누른 회원 수
         active_writers?: number; // 글·댓글 쓴 회원 수
         avg_comments?: number; // 글당 평균 댓글
-        hourly_stats?: number[]; // 시간대별 활동(0~23시, 24칸)
+        hourly_stats?: number[]; // 시간대별 활동(0~23시, 24칸, 글+댓글 합)
+        hourly_posts?: number[]; // 시간대별 글(24칸)
+        hourly_comments?: number[]; // 시간대별 댓글(24칸)
+        // 반응이 많았던 글 (일간 카드)
+        reaction_stats?: {
+            max_views?: number;
+            max_comments?: number;
+            over50_comments?: number;
+            over3k_views?: number;
+        };
         group_stats?: BoardStatEntry[]; // 소모임별 활동
         prev_day?: {
+            posts?: number;
+            comments?: number;
             total_reports?: number;
             report_count?: number;
             report_month?: number;
@@ -215,6 +228,7 @@
                   {
                       label: '글',
                       value: stats.total_cases ?? 0,
+                      prev: stats.prev_day?.posts,
                       icon: FileText,
                       color: 'text-blue-600 dark:text-blue-400',
                       bg: 'bg-blue-50 dark:bg-blue-950/30'
@@ -222,6 +236,7 @@
                   {
                       label: '댓글',
                       value: stats.total_month_cases ?? 0,
+                      prev: stats.prev_day?.comments,
                       icon: MessageCircle,
                       color: 'text-green-600 dark:text-green-400',
                       bg: 'bg-green-50 dark:bg-green-950/30'
@@ -386,6 +401,42 @@
 
     const secondaryMetrics = $derived(isDaily ? dailySecondaryMetrics : weeklySecondaryMetrics);
 
+    // 반응이 많았던 글 (일간 전용 카드 4장)
+    const reactionMetrics = $derived(
+        isDaily && stats.reaction_stats
+            ? [
+                  {
+                      label: '최다 조회',
+                      value: stats.reaction_stats.max_views ?? 0,
+                      icon: Eye,
+                      color: 'text-cyan-600 dark:text-cyan-400',
+                      bg: 'bg-cyan-50 dark:bg-cyan-950/30'
+                  },
+                  {
+                      label: '최다 댓글',
+                      value: stats.reaction_stats.max_comments ?? 0,
+                      icon: MessageCircle,
+                      color: 'text-lime-600 dark:text-lime-400',
+                      bg: 'bg-lime-50 dark:bg-lime-950/30'
+                  },
+                  {
+                      label: '댓글 50개 이상',
+                      value: stats.reaction_stats.over50_comments ?? 0,
+                      icon: Flag,
+                      color: 'text-fuchsia-600 dark:text-fuchsia-400',
+                      bg: 'bg-fuchsia-50 dark:bg-fuchsia-950/30'
+                  },
+                  {
+                      label: '조회 3천 이상',
+                      value: stats.reaction_stats.over3k_views ?? 0,
+                      icon: TrendingUp,
+                      color: 'text-violet-600 dark:text-violet-400',
+                      bg: 'bg-violet-50 dark:bg-violet-950/30'
+                  }
+              ]
+            : []
+    );
+
     // 차트 데이터 유무
     const hasChartData = $derived(
         (stats.daily_stats && Object.keys(stats.daily_stats).length > 0) ||
@@ -544,6 +595,21 @@
                                 <p class="text-foreground text-2xl font-bold">
                                     {metric.value.toLocaleString()}
                                 </p>
+                                {#if 'prev' in metric}
+                                    {@const pd = deltaPct(metric.value, metric.prev)}
+                                    {#if pd != null}
+                                        <p
+                                            class="text-xs font-medium {pd > 0
+                                                ? 'text-red-500'
+                                                : pd < 0
+                                                  ? 'text-blue-500'
+                                                  : 'text-muted-foreground'}"
+                                            title="전날 대비"
+                                        >
+                                            {pd > 0 ? '▲' : pd < 0 ? '▼' : '—'}{Math.abs(pd)}%
+                                        </p>
+                                    {/if}
+                                {/if}
                             </div>
                         </div>
                     </div>
@@ -581,6 +647,22 @@
                 {/each}
             </div>
 
+            <!-- 반응이 많았던 글 (일간 전용) -->
+            {#if reactionMetrics.length > 0}
+                <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    {#each reactionMetrics as metric (metric.label)}
+                        {@const Icon = metric.icon}
+                        <div class="rounded-lg border p-3 text-center {metric.bg}">
+                            <Icon class="mx-auto mb-1.5 h-5 w-5 {metric.color}" />
+                            <p class="text-foreground text-lg font-bold">
+                                {metric.value.toLocaleString()}
+                            </p>
+                            <p class="text-muted-foreground text-xs">{metric.label}</p>
+                        </div>
+                    {/each}
+                </div>
+            {/if}
+
             <!-- 차트 영역 -->
             {#if hasChartData}
                 <ReportCharts
@@ -590,6 +672,8 @@
                     reportTypes={stats.report_types}
                     boardStats={stats.board_stats}
                     hourlyStats={stats.hourly_stats}
+                    hourlyPosts={stats.hourly_posts}
+                    hourlyComments={stats.hourly_comments}
                     groupStats={stats.group_stats}
                     daily={isDaily}
                     periodDays={stats.period_days ?? 1}

@@ -29,7 +29,9 @@
         boardStats?: BoardStatEntry[];
         periodDays?: number;
         // ── 일간 리포트 전용 ──
-        hourlyStats?: number[]; // 시간대별 활동(0~23시, 24칸)
+        hourlyStats?: number[]; // 시간대별 활동(0~23시, 24칸, 글+댓글 합)
+        hourlyPosts?: number[]; // 시간대별 글 (있으면 글/댓글 스택으로 렌더)
+        hourlyComments?: number[]; // 시간대별 댓글
         groupStats?: BoardStatEntry[]; // 소모임별 활동
         daily?: boolean; // 일간 모드(제목·부제 문구 분기)
     }
@@ -42,6 +44,8 @@
         boardStats,
         periodDays = 1,
         hourlyStats,
+        hourlyPosts,
+        hourlyComments,
         groupStats,
         daily = false
     }: Props = $props();
@@ -286,29 +290,57 @@
                 );
             }
 
-            // 시간대별 활동 (bar) — 일간 리포트 전용
-            if (hourlyCanvas && hourlyStats && hourlyStats.length > 0) {
+            // 시간대별 활동 (bar) — 일간 리포트 전용.
+            // 글/댓글 분리 데이터가 있으면 스택으로 비율까지, 없으면 합계 단일 막대.
+            const hourlySplit =
+                hourlyPosts &&
+                hourlyComments &&
+                hourlyPosts.length === 24 &&
+                hourlyComments.length === 24;
+            const hourlyBase = hourlySplit ? hourlyPosts : hourlyStats;
+            if (hourlyCanvas && hourlyBase && hourlyBase.length > 0) {
                 charts.push(
                     new Chart(hourlyCanvas, {
                         type: 'bar',
                         data: {
-                            labels: hourlyStats.map((_, h) => `${h}시`),
-                            datasets: [
-                                {
-                                    label: '글·댓글',
-                                    data: hourlyStats,
-                                    backgroundColor: '#3b82f6'
-                                }
-                            ]
+                            labels: hourlyBase.map((_, h) => `${h}시`),
+                            datasets: hourlySplit
+                                ? [
+                                      {
+                                          label: '글',
+                                          data: hourlyPosts,
+                                          backgroundColor: '#3b82f6'
+                                      },
+                                      {
+                                          label: '댓글',
+                                          data: hourlyComments,
+                                          backgroundColor: '#10b981'
+                                      }
+                                  ]
+                                : [
+                                      {
+                                          label: '글·댓글',
+                                          data: hourlyStats ?? [],
+                                          backgroundColor: '#3b82f6'
+                                      }
+                                  ]
                         },
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
                             scales: {
-                                x: { grid: { display: false }, ticks: { maxTicksLimit: 12 } },
-                                y: { beginAtZero: true, grid: { color: gridColor } }
+                                x: {
+                                    stacked: hourlySplit,
+                                    grid: { display: false },
+                                    ticks: { maxTicksLimit: 12 }
+                                },
+                                y: {
+                                    stacked: hourlySplit,
+                                    beginAtZero: true,
+                                    grid: { color: gridColor }
+                                }
                             },
-                            plugins: { legend: { display: false } }
+                            plugins: { legend: { display: hourlySplit } }
                         }
                     })
                 );
@@ -393,11 +425,11 @@
         </div>
     {/if}
 
-    {#if hourlyStats && hourlyStats.length > 0}
+    {#if (hourlyStats && hourlyStats.length > 0) || (hourlyPosts && hourlyPosts.length > 0)}
         <div class="rounded-xl border p-5">
             <div class="mb-3">
                 <h3 class="text-foreground text-sm font-medium">시간대별 활동</h3>
-                <p class="text-muted-foreground text-xs">0시~23시 글·댓글 작성량</p>
+                <p class="text-muted-foreground text-xs">0시~23시 글/댓글 작성량 (스택)</p>
             </div>
             <div class="relative h-56">
                 <canvas bind:this={hourlyCanvas}></canvas>
