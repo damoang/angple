@@ -172,6 +172,14 @@
         good_users?: number; // 공감 누른 회원 수
         active_writers?: number; // 글·댓글 쓴 회원 수
         avg_comments?: number; // 글당 평균 댓글
+        // 자유게시판 쏠림(구성비) — 합계만 보면 나머지 게시판이 묻힌다
+        free_share?: {
+            total?: number;
+            free?: number;
+            free_pct?: number;
+            other?: number;
+            other_boards?: number;
+        };
         hourly_stats?: number[]; // 시간대별 활동(0~23시, 24칸, 글+댓글 합)
         hourly_posts?: number[]; // 시간대별 글(24칸)
         hourly_comments?: number[]; // 시간대별 댓글(24칸)
@@ -646,6 +654,40 @@
                     </div>
                 {/each}
             </div>
+
+            <!-- 자유게시판 쏠림: 합계는 전 게시판인데 90%가 자유게시판이라 구성을 함께 밝힌다 -->
+            {#if isDaily && stats.free_share?.total}
+                {@const fs = stats.free_share}
+                <div class="bg-muted/40 rounded-lg border px-4 py-3">
+                    <div class="mb-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm">
+                        <span class="text-muted-foreground">글·댓글 구성</span>
+                        <span class="text-foreground font-semibold">
+                            자유게시판 {(fs.free ?? 0).toLocaleString()}건
+                        </span>
+                        <span class="text-muted-foreground">({fs.free_pct}%)</span>
+                        <span class="text-muted-foreground/50">·</span>
+                        <span class="text-foreground font-semibold">
+                            그 외 {(fs.other ?? 0).toLocaleString()}건
+                        </span>
+                        <span class="text-muted-foreground">
+                            ({fs.other_boards}곳, {Math.round((100 - (fs.free_pct ?? 0)) * 10) /
+                                10}%)
+                        </span>
+                    </div>
+                    <div class="bg-muted flex h-2 overflow-hidden rounded-full">
+                        <div
+                            class="bg-amber-500"
+                            style="width: {fs.free_pct}%"
+                            title="자유게시판 {(fs.free ?? 0).toLocaleString()}건"
+                        ></div>
+                        <div
+                            class="bg-emerald-500"
+                            style="width: {100 - (fs.free_pct ?? 0)}%"
+                            title="그 외 {fs.other_boards}곳 {(fs.other ?? 0).toLocaleString()}건"
+                        ></div>
+                    </div>
+                </div>
+            {/if}
 
             <!-- 반응이 많았던 글 (일간 전용) -->
             {#if reactionMetrics.length > 0}
