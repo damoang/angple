@@ -164,6 +164,21 @@
         };
         // 직전 4주 요일별 평균(일별 트렌드 겹치기용). key=요일명.
         daily_avg_4w?: Record<string, { reports: number; posts: number; comments: number }>;
+        // ── 일간 리포트 전용 (report_kind='daily') ──
+        report_kind?: string;
+        good_count?: number; // 공감 수
+        good_users?: number; // 공감 누른 회원 수
+        active_writers?: number; // 글·댓글 쓴 회원 수
+        avg_comments?: number; // 글당 평균 댓글
+        hourly_stats?: number[]; // 시간대별 활동(0~23시, 24칸)
+        group_stats?: BoardStatEntry[]; // 소모임별 활동
+        prev_day?: {
+            total_reports?: number;
+            report_count?: number;
+            report_month?: number;
+            reporter_count?: number;
+            active_writers?: number;
+        };
     }
 
     const stats = $derived.by((): ReportStats => {
@@ -190,23 +205,59 @@
         }
     }
 
-    // 주요 지표 카드 정의
-    const primaryMetrics = $derived([
-        {
-            label: '전체 게시글',
-            value: stats.total_cases ?? 0,
-            icon: FileText,
-            color: 'text-blue-600 dark:text-blue-400',
-            bg: 'bg-blue-50 dark:bg-blue-950/30'
-        },
-        {
-            label: '전체 댓글',
-            value: stats.total_month_cases ?? 0,
-            icon: MessageCircle,
-            color: 'text-green-600 dark:text-green-400',
-            bg: 'bg-green-50 dark:bg-green-950/30'
-        }
-    ]);
+    // 일간 리포트 여부 (wr_9 JSON 의 report_kind='daily') — 주간과 카드/차트 구성이 다르다
+    const isDaily = $derived(stats.report_kind === 'daily');
+
+    // 주요 지표 카드 정의 (일간: 글/댓글/공감/공감한 회원, 주간: 전체 게시글/댓글)
+    const primaryMetrics = $derived(
+        isDaily
+            ? [
+                  {
+                      label: '글',
+                      value: stats.total_cases ?? 0,
+                      icon: FileText,
+                      color: 'text-blue-600 dark:text-blue-400',
+                      bg: 'bg-blue-50 dark:bg-blue-950/30'
+                  },
+                  {
+                      label: '댓글',
+                      value: stats.total_month_cases ?? 0,
+                      icon: MessageCircle,
+                      color: 'text-green-600 dark:text-green-400',
+                      bg: 'bg-green-50 dark:bg-green-950/30'
+                  },
+                  {
+                      label: '공감',
+                      value: stats.good_count ?? 0,
+                      icon: Heart,
+                      color: 'text-rose-600 dark:text-rose-400',
+                      bg: 'bg-rose-50 dark:bg-rose-950/30'
+                  },
+                  {
+                      label: '공감한 회원',
+                      value: stats.good_users ?? 0,
+                      icon: Users,
+                      color: 'text-indigo-600 dark:text-indigo-400',
+                      bg: 'bg-indigo-50 dark:bg-indigo-950/30'
+                  }
+              ]
+            : [
+                  {
+                      label: '전체 게시글',
+                      value: stats.total_cases ?? 0,
+                      icon: FileText,
+                      color: 'text-blue-600 dark:text-blue-400',
+                      bg: 'bg-blue-50 dark:bg-blue-950/30'
+                  },
+                  {
+                      label: '전체 댓글',
+                      value: stats.total_month_cases ?? 0,
+                      icon: MessageCircle,
+                      color: 'text-green-600 dark:text-green-400',
+                      bg: 'bg-green-50 dark:bg-green-950/30'
+                  }
+              ]
+    );
 
     // 전주 대비 변화율(%). 직전 주 값이 없거나 0이면 null(뱃지 미표시).
     function deltaPct(cur: number, prev: number | undefined): number | null {
@@ -214,8 +265,75 @@
         return Math.round(((cur - prev) / prev) * 100);
     }
 
-    // 보조 지표 카드 정의 (value=이번 주, prev=직전 주)
-    const secondaryMetrics = $derived([
+    // 보조 지표 카드 정의 (일간: value=오늘·prev=전날 / 주간: value=이번 주·prev=직전 주)
+    const dailySecondaryMetrics = $derived([
+        {
+            label: '글·댓글 쓴 회원',
+            value: stats.active_writers ?? 0,
+            prev: stats.prev_day?.active_writers,
+            icon: Users,
+            color: 'text-sky-600 dark:text-sky-400',
+            bg: 'bg-sky-50 dark:bg-sky-950/30'
+        },
+        {
+            label: '글당 평균 댓글',
+            value: stats.avg_comments ?? 0,
+            prev: undefined,
+            icon: MessageCircle,
+            color: 'text-emerald-600 dark:text-emerald-400',
+            bg: 'bg-emerald-50 dark:bg-emerald-950/30'
+        },
+        {
+            label: '신고 접수',
+            value: stats.total_reports ?? 0,
+            prev: stats.prev_day?.total_reports,
+            icon: Shield,
+            color: 'text-purple-600 dark:text-purple-400',
+            bg: 'bg-purple-50 dark:bg-purple-950/30'
+        },
+        {
+            label: '신고된 글',
+            value: stats.report_count ?? 0,
+            prev: stats.prev_day?.report_count,
+            icon: AlertTriangle,
+            color: 'text-orange-600 dark:text-orange-400',
+            bg: 'bg-orange-50 dark:bg-orange-950/30'
+        },
+        {
+            label: '신고된 댓글',
+            value: stats.report_month ?? 0,
+            prev: stats.prev_day?.report_month,
+            icon: MessageCircle,
+            color: 'text-amber-600 dark:text-amber-400',
+            bg: 'bg-amber-50 dark:bg-amber-950/30'
+        },
+        {
+            label: '신고자 수',
+            value: stats.reporter_count ?? 0,
+            prev: stats.prev_day?.reporter_count,
+            icon: Users,
+            color: 'text-indigo-600 dark:text-indigo-400',
+            bg: 'bg-indigo-50 dark:bg-indigo-950/30'
+        },
+        {
+            label: '이용제한',
+            value: stats.completed_reports ?? 0,
+            prev: undefined,
+            icon: Gavel,
+            color: 'text-red-600 dark:text-red-400',
+            bg: 'bg-red-50 dark:bg-red-950/30'
+        },
+        {
+            label: '소명 접수',
+            value: stats.claim_reports ?? 0,
+            prev: undefined,
+            icon: Scale,
+            color: 'text-teal-600 dark:text-teal-400',
+            bg: 'bg-teal-50 dark:bg-teal-950/30'
+        }
+    ]);
+
+    const weeklySecondaryMetrics = $derived([
         {
             label: '총 신고 처리',
             value: stats.total_reports ?? 0,
@@ -266,12 +384,16 @@
         }
     ]);
 
+    const secondaryMetrics = $derived(isDaily ? dailySecondaryMetrics : weeklySecondaryMetrics);
+
     // 차트 데이터 유무
     const hasChartData = $derived(
         (stats.daily_stats && Object.keys(stats.daily_stats).length > 0) ||
             (stats.weekly_stats && Object.keys(stats.weekly_stats).length > 0) ||
             (stats.report_types && Object.keys(stats.report_types).length > 0) ||
-            (stats.board_stats && stats.board_stats.length > 0)
+            (stats.board_stats && stats.board_stats.length > 0) ||
+            (stats.hourly_stats && stats.hourly_stats.length > 0) ||
+            (stats.group_stats && stats.group_stats.length > 0)
     );
 </script>
 
@@ -429,7 +551,11 @@
             </div>
 
             <!-- 보조 지표 (반응형 그리드: 6col → 3col → 2col → 1col) -->
-            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <div
+                class="grid grid-cols-2 gap-3 sm:grid-cols-3 {isDaily
+                    ? 'lg:grid-cols-4'
+                    : 'lg:grid-cols-6'}"
+            >
                 {#each secondaryMetrics as metric (metric.label)}
                     {@const Icon = metric.icon}
                     {@const d = deltaPct(metric.value, metric.prev)}
@@ -446,7 +572,7 @@
                                     : d < 0
                                       ? 'text-blue-500'
                                       : 'text-muted-foreground'}"
-                                title="직전 주 대비"
+                                title={isDaily ? '전날 대비' : '직전 주 대비'}
                             >
                                 {d > 0 ? '▲' : d < 0 ? '▼' : '—'}{Math.abs(d)}%
                             </p>
@@ -463,6 +589,9 @@
                     weeklyStats={stats.weekly_stats}
                     reportTypes={stats.report_types}
                     boardStats={stats.board_stats}
+                    hourlyStats={stats.hourly_stats}
+                    groupStats={stats.group_stats}
+                    daily={isDaily}
                     periodDays={stats.period_days ?? 1}
                 />
             {/if}
