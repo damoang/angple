@@ -23,7 +23,8 @@
     /** 서버 AngttMatch(lib/server/angtt-dictionary.ts)와 구조 동일 — $lib/server 는 클라 import 불가라 별도 선언 */
     type AngttCardMatch =
         | {
-              wrId: number;
+              /** angtt 글이 아직 없는 작품은 wrId 가 없다 — entitySlug 로만 링크한다. */
+              wrId?: number;
               title: string;
               thumbnail: string;
               rating: { avg: number; count: number } | null;
@@ -193,7 +194,9 @@
             ? ''
             : match.entitySlug
               ? `/angtt/${encodeURIComponent(match.entitySlug)}`
-              : `/angtt/${match.wrId}`
+              : match.wrId
+                ? `/angtt/${match.wrId}`
+                : ''
     );
 
     onMount(() => {
@@ -201,7 +204,7 @@
             board_id: boardId,
             post_id: String(postId),
             matched: matched ? 'yes' : 'no',
-            work_id: 'notFound' in match ? '' : String(match.wrId)
+            work_id: 'notFound' in match ? '' : String(match.wrId ?? match.entitySlug ?? '')
         });
         // 미연결 카드만 제안 현황을 지연 조회한다 (SSR 무접촉)
         if ('notFound' in match) void loadSuggestStatus();
@@ -212,7 +215,7 @@
             board_id: boardId,
             post_id: String(postId),
             cta,
-            work_id: 'notFound' in match ? '' : String(match.wrId)
+            work_id: 'notFound' in match ? '' : String(match.wrId ?? match.entitySlug ?? '')
         });
     }
 </script>
@@ -380,13 +383,17 @@
                         </p>
                     {/if}
                 </div>
-                <a
-                    href={rateHref}
-                    class="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium"
-                    onclick={() => onCtaClick('rate')}
-                >
-                    ⭐ 별점 주러 가기
-                </a>
+                <!-- ⛔ rateHref 가 비면 <a href=""> 가 되어 현재 페이지로 가는 깨진 CTA 가 된다.
+                     (entitySlug·wrId 가 둘 다 없는 경우 — 정상 흐름에선 안 생기지만 방어한다) -->
+                {#if rateHref}
+                    <a
+                        href={rateHref}
+                        class="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium"
+                        onclick={() => onCtaClick('rate')}
+                    >
+                        ⭐ 별점 주러 가기
+                    </a>
+                {/if}
             </div>
         {/if}
     </div>

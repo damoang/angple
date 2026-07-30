@@ -33,8 +33,15 @@ export type { AngttWork, AngttDictionary } from './angtt-dictionary-logic.js';
 /** 글 상세 SSR 에 내려가는 카드 데이터 (일치 / 미등록 유도) */
 export type AngttMatch =
     | {
-          /** angtt 작품 글 번호 — /angtt/{wrId} 링크 대상 */
-          wrId: number;
+          /**
+           * angtt 작품 글 번호 — /angtt/{wrId} 링크 대상.
+           *
+           * ⛔ 선택 필드다. 엔티티만 등록되고 angtt 글이 아직 없는 작품이 있다(실측: 동궁 75건,
+           * 오디세이). 그 경우 wrId 가 없고 entitySlug 로만 링크한다.
+           * 소비처는 entitySlug 를 먼저 보므로 링크는 문제없다 — 다만 wrId 를 그대로
+           * String() 하면 "undefined" 가 되니 반드시 널 가드를 둘 것.
+           */
+          wrId?: number;
           title: string;
           thumbnail: string;
           /** 별점 집계 — 조회 실패 시 null (카드는 별점 줄만 생략) */
@@ -336,6 +343,35 @@ export async function resolveAngttMatch(
         const dict = await getAngttDictionary();
         const match = matchWorkFromTags(strTags, dict);
         if (!match) return undefined;
+
+        // 사전(angtt 글 제목)에 없어도 **엔티티에 있으면** 그것으로 카드를 만든다.
+        //
+        // 왜 (2026-07-30): 정본은 angple_entities 인데 매칭 자격을 angtt 글이 쥐고 있었다.
+        // 그래서 엔티티가 멀쩡히 등록돼 있어도 angtt 글이 없으면 "등록 유도 카드"가 떴다.
+        // 실측: 「앙티티」 태그 글 259건 중 75건이 여기서 막혔고 전부 '동궁'이었다.
+        // 새로 등록한 '오디세이'도 같은 처지였다. 앞뒤가 바뀐 구조라 바로잡는다.
+        //
+        // ⛔ 「앙티티」 태그 제약은 그대로 둔다(위 hasAngttTag). 태그 없는 글까지 훑으면
+        //    '오디세이' 같은 일반명사성 제목에서 오탐이 터진다.
+        if ('notFound' in match) {
+            const index = await getEntityIndex();
+            for (const t of strTags) {
+                const key = normalizeWorkTitle(t);
+                if (key === normalizeWorkTitle(ANGTT_TAG)) continue;
+                const entity = index.get(key);
+                if (!entity) continue;
+                return {
+                    // wrId 없음 — angtt 글이 아직 없는 작품이다. entitySlug 로 링크한다.
+                    title: entity.title,
+                    thumbnail: entity.poster,
+                    rating: { avg: entity.avg, count: entity.count },
+                    entitySlug: entity.slug,
+                    ...(ctx && (await isAutoLinked(ctx.boardId, ctx.wrId))
+                        ? { autoLinked: true }
+                        : {})
+                };
+            }
+        }
 
         if ('work' in match) {
             // 매칭 작품에 활성 엔티티가 있으면 작품 페이지 슬러그 부착(없으면 기존 wrId 폴백).
