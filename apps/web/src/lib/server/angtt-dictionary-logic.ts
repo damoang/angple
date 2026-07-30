@@ -51,6 +51,18 @@ export function extractTitleCandidates(title: string): string[] {
     const add = (raw: string) => {
         const key = normalizeWorkTitle(raw);
         if (key.length >= 2) candidates.add(key);
+        // 구분자(하이픈·콜론) 주변 공백 제거 변형.
+        //
+        // 왜 (2026-07-30 실측): angtt 글 제목 「스파이더맨 - 브랜드뉴데이」 와
+        // 글에 붙은 태그 「스파이더맨-브랜드뉴데이」 가 안 맞아 카드가 안 떴다.
+        // normalizeWorkTitle 은 연속 공백을 1개로 줄일 뿐 구분자 옆 공백은 지우지 않는다.
+        // 태그는 slug 에서 오고 slug 는 하이픈을 공백 없이 쓰므로 이 어긋남이 구조적으로 생긴다.
+        //
+        // ⛔ normalizeWorkTitle 자체는 바꾸지 않는다 — 태그·사전 양쪽에 쓰이는 정본이라
+        //    건드리면 기존 매칭이 통째로 흔들린다. 후보를 늘리는 쪽이 영향 범위가 좁다.
+        // ⛔ 구분자를 아예 제거한 변형(스파이더맨브랜드뉴데이)은 만들지 않는다 — 오탐이 급증한다.
+        const tightened = key.replace(/\s*([-:])\s*/g, '$1');
+        if (tightened !== key && tightened.length >= 2) candidates.add(tightened);
     };
 
     add(title);
