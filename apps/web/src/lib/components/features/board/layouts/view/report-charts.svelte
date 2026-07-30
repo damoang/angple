@@ -18,6 +18,10 @@
     interface BoardStatEntry {
         name: string;
         count: number;
+        // 글/댓글 분리. 발행기가 내려주면 스택 막대로, 없으면 count 단일 막대로 폴백한다.
+        // (과거 발행분에는 없으므로 optional 이어야 한다 — 필수로 바꾸면 옛 리포트가 빈 차트가 된다)
+        posts?: number;
+        comments?: number;
     }
 
     interface Props {
@@ -63,6 +67,55 @@
         import('chart.js').then(({ Chart, registerables }) => {
             Chart.register(...registerables);
             const gridColor = 'rgba(156, 163, 175, 0.2)';
+
+            /**
+             * 순위형 가로 막대 설정. 게시판별·소모임별이 같은 모양이라 공통화한다.
+             *
+             * 정렬은 발행기가 내려준 순서를 그대로 쓴다(활동 많은 곳이 앞). Chart.js 는
+             * indexAxis:'y' 에서 labels[0] 을 **맨 위**에 그리므로 1위가 위에 온다.
+             * 반대로 두려면 entries 를 slice().reverse() 하면 된다.
+             *
+             * 글/댓글이 있으면 스택, 없으면 count 단일 막대 — 시간대별 차트와 같은 폴백 규칙.
+             */
+            const rankedBar = (entries: BoardStatEntry[], fallbackName: string) => {
+                const split = entries.some((e) => e.posts != null || e.comments != null);
+                return {
+                    type: 'bar' as const,
+                    data: {
+                        labels: entries.map((e) => e.name || fallbackName),
+                        datasets: split
+                            ? [
+                                  {
+                                      label: '글',
+                                      data: entries.map((e) => e.posts ?? 0),
+                                      backgroundColor: '#3b82f6'
+                                  },
+                                  {
+                                      label: '댓글',
+                                      data: entries.map((e) => e.comments ?? 0),
+                                      backgroundColor: '#10b981'
+                                  }
+                              ]
+                            : [
+                                  {
+                                      label: '글·댓글',
+                                      data: entries.map((e) => e.count || 0),
+                                      backgroundColor: '#3b82f6'
+                                  }
+                              ]
+                    },
+                    options: {
+                        indexAxis: 'y' as const,
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: split, beginAtZero: true, grid: { color: gridColor } },
+                            y: { stacked: split, grid: { display: false } }
+                        },
+                        plugins: { legend: { display: split, position: 'top' as const } }
+                    }
+                };
+            };
 
             // 일별 활동 트렌드 (line)
             if (dailyCanvas && dailyStats && Object.keys(dailyStats).length > 0) {
@@ -261,33 +314,11 @@
                 );
             }
 
-            // 게시판별 현황 (horizontal bar)
+            // 게시판별 활동 (horizontal bar)
+            // ⛔ 이 차트는 예전에 '신고 건수'(빨강)로 라벨돼 있었으나 실제 데이터는
+            //    g5_board_new 기반 **활동(글+댓글) 건수**였다. 라벨이 틀린 것이라 바로잡았다.
             if (boardCanvas && boardStats && boardStats.length > 0) {
-                charts.push(
-                    new Chart(boardCanvas, {
-                        type: 'bar',
-                        data: {
-                            labels: boardStats.map((b) => b.name || '게시판'),
-                            datasets: [
-                                {
-                                    label: '신고 건수',
-                                    data: boardStats.map((b) => b.count || 0),
-                                    backgroundColor: '#ef4444'
-                                }
-                            ]
-                        },
-                        options: {
-                            indexAxis: 'y',
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                x: { beginAtZero: true, grid: { color: gridColor } },
-                                y: { grid: { display: false } }
-                            },
-                            plugins: { legend: { display: false } }
-                        }
-                    })
-                );
+                charts.push(new Chart(boardCanvas, rankedBar(boardStats, '게시판')));
             }
 
             // 시간대별 활동 (bar) — 일간 리포트 전용.
@@ -348,31 +379,7 @@
 
             // 소모임별 활동 (horizontal bar) — 일간 리포트 전용
             if (groupCanvas && groupStats && groupStats.length > 0) {
-                charts.push(
-                    new Chart(groupCanvas, {
-                        type: 'bar',
-                        data: {
-                            labels: groupStats.map((g) => g.name || '소모임'),
-                            datasets: [
-                                {
-                                    label: '글·댓글',
-                                    data: groupStats.map((g) => g.count || 0),
-                                    backgroundColor: '#10b981'
-                                }
-                            ]
-                        },
-                        options: {
-                            indexAxis: 'y',
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                x: { beginAtZero: true, grid: { color: gridColor } },
-                                y: { grid: { display: false } }
-                            },
-                            plugins: { legend: { display: false } }
-                        }
-                    })
-                );
+                charts.push(new Chart(groupCanvas, rankedBar(groupStats, '소모임')));
             }
         });
 
@@ -453,8 +460,13 @@
         <div class="rounded-xl border p-5">
             <div class="mb-3">
                 <h3 class="text-foreground text-sm font-medium">게시판별 현황</h3>
+                <!--
+                    ⛔ 비일간 부제가 '게시판별 신고 건수' 였으나 board_stats 를 만드는 곳은
+                       report_publish.py 하나이고 거기서 넣는 값은 항상 g5_board_new 기반
+                       **활동(글+댓글) 건수**다. 신고 건수를 넣는 생산자는 없다 → 문구 정정.
+                -->
                 <p class="text-muted-foreground text-xs">
-                    {daily ? '게시판별 글·댓글 활동' : '게시판별 신고 건수'}
+                    {daily ? '게시판별 글·댓글 (자유게시판 제외)' : '게시판별 활동'}
                 </p>
             </div>
             <div class="relative h-56">
