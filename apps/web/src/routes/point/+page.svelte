@@ -121,6 +121,26 @@
                         </p>
                     </div>
                 </div>
+                <!--
+                    유효기간 안내 (2026-07-29).
+                    포인트 만료는 원래부터 '적립일로부터 1년' 정책이고 DB 에도 그렇게 기록된다
+                    (g5_point.po_expire_date = 적립일 + 364일, 1,245만 건).
+                    그런데 안내 페이지에 이 내용이 한 줄도 없었다 — 리뉴얼 과정에서 빠진 것으로 보인다.
+
+                    ⛔ "소멸됩니다" 라고 쓰지 않는다.
+                       소멸 배치(point-expiry)는 현재 의도적으로 꺼져 있고(POINT_EXPIRY_ENABLED 미설정),
+                       켤 계획도 정해지지 않았다. 소멸을 단언하면 곧 집행할 것처럼 읽혀
+                       회원 문의를 부른다. 유효기간이라는 사실만 알린다.
+                -->
+                <div class="flex items-start gap-3">
+                    <Info class="mt-0.5 h-5 w-5 shrink-0 text-blue-500" />
+                    <div>
+                        <p class="text-foreground text-sm font-medium">포인트 유효기간</p>
+                        <p class="text-muted-foreground text-sm">
+                            포인트의 유효기간은 적립일로부터 <b>1년</b>입니다.
+                        </p>
+                    </div>
+                </div>
             </CardContent>
         </Card>
     </section>
