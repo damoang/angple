@@ -68,6 +68,87 @@ const FETCH_TIMEOUT_MS = 2_000;
 const DICT_CACHE_KEY = 'angtt-dictionary';
 const dictCache = createCache<AngttDictionary>({ ttl: 5 * 60_000, maxSize: 2 });
 
+/** 엔티티 별칭 → 엔티티. 정본은 angple_entities 한 곳뿐이다(아래 주석 참조). TTL 5분. */
+interface EntityCard {
+    slug: string;
+    title: string;
+    poster: string;
+    avg: number;
+    count: number;
+}
+const ENTITY_CACHE_KEY = 'angtt-entities';
+const entityCache = createCache<Map<string, EntityCard>>({ ttl: 5 * 60_000, maxSize: 2 });
+
+/**
+ * 엔티티 별칭 색인을 메모리에 만든다.
+ *
+ * ⛔ 예전에는 `angple_entity_aliases` 테이블을 조회했다. 폐기한 이유(2026-07-30):
+ *    같은 "작품 이름"을 네 곳이 각자 들고 있었고 그중 색인 테이블만 정본에서 파생되지
+ *    않았다. 스파이더맨 엔티티는 색인 행이 0개였고(그래서 상세 카드가 안 떴다),
+ *    `slug` 는 아예 색인 대상에서 빠져 있었다. 호프는 slug == canonical == 별칭 이라
+ *    **우연히** 동작했다. 채우는 걸 잊어도 아무 신호가 없는 구조였다.
+ *    → 색인을 별도 테이블로 두지 않고 정본에서 매번 만든다. 어긋날 여지가 사라진다.
+ *
+ * ⛔ 색인 대상에서 `slug` 를 빼지 말 것. 글에 실제로 붙는 태그가 slug 다.
+ *
+ * auto-link(angtt-auto-link.ts)도 같은 방식(전량 로드 + 5분 캐시)으로 동작한다.
+ * 엔티티는 수십~수백 규모라 전량 로드가 인덱스 조회보다 불리하지 않다.
+ */
+async function fetchEntityIndex(): Promise<Map<string, EntityCard>> {
+    const map = new Map<string, EntityCard>();
+    const [rows] = await pool.query(
+        `SELECT slug, canonical_title, aliases, poster_url, rating_avg, rating_count
+           FROM angple_entities
+          WHERE status = 'active'`
+    );
+    for (const r of rows as {
+        slug?: string;
+        canonical_title?: string;
+        aliases?: unknown;
+        poster_url?: string | null;
+        rating_avg?: unknown;
+        rating_count?: unknown;
+    }[]) {
+        const slug = typeof r.slug === 'string' ? r.slug : '';
+        if (!slug) continue;
+        const card: EntityCard = {
+            slug,
+            title: r.canonical_title || slug,
+            poster: r.poster_url || '',
+            avg: Number(r.rating_avg ?? 0),
+            count: Number(r.rating_count ?? 0)
+        };
+        // canonical_title · slug · aliases(JSON) 전부를 키로 건다.
+        const names: string[] = [r.canonical_title ?? '', slug];
+        let parsed: unknown = r.aliases;
+        if (typeof parsed === 'string') {
+            try {
+                parsed = JSON.parse(parsed);
+            } catch {
+                parsed = [];
+            }
+        }
+        if (Array.isArray(parsed)) {
+            for (const a of parsed) if (typeof a === 'string') names.push(a);
+        }
+        for (const n of names) {
+            const key = normalizeWorkTitle(n);
+            // 2글자 미만 제외 — auto-link.ts 의 오탐 방지 기준과 동일하게 맞춘다.
+            if (key.length < 2) continue;
+            if (!map.has(key)) map.set(key, card);
+        }
+    }
+    return map;
+}
+
+async function getEntityIndex(): Promise<Map<string, EntityCard>> {
+    try {
+        return await entityCache.getOrSet(ENTITY_CACHE_KEY, fetchEntityIndex);
+    } catch {
+        return entityCache.getStale(ENTITY_CACHE_KEY) ?? new Map();
+    }
+}
+
 /** 백엔드 목록 응답의 글 항목 (필요 필드만) */
 interface BackendListPost {
     id?: number;
@@ -210,32 +291,10 @@ async function resolveEntity(matchedKey: string): Promise<
       }
     | undefined
 > {
+    // ⛔ angple_entity_aliases 테이블 조회로 되돌리지 말 것 — fetchEntityIndex 주석 참조.
+    //    정본(angple_entities)에서 만든 메모리 색인만 본다.
     try {
-        const [rows] = await pool.query(
-            `SELECT e.slug AS slug, e.canonical_title AS title, e.poster_url AS poster,
-                    e.rating_avg AS avg, e.rating_count AS cnt
-             FROM angple_entity_aliases a
-             JOIN angple_entities e ON e.id = a.entity_id
-             WHERE a.alias_norm = ? AND e.status = 'active'
-             LIMIT 1`,
-            [matchedKey]
-        );
-        const list = rows as {
-            slug?: string;
-            title?: string;
-            poster?: string | null;
-            avg?: unknown;
-            cnt?: unknown;
-        }[];
-        const slug = list[0]?.slug;
-        if (typeof slug !== 'string' || !slug) return undefined;
-        return {
-            slug,
-            title: list[0]?.title || slug,
-            poster: list[0]?.poster || '',
-            avg: Number(list[0]?.avg ?? 0),
-            count: Number(list[0]?.cnt ?? 0)
-        };
+        return (await getEntityIndex()).get(matchedKey);
     } catch {
         return undefined;
     }

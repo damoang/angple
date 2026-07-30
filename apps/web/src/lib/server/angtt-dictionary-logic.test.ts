@@ -136,6 +136,40 @@ describe('extractTitleCandidates — 자유 제목에서 작품명 추출 (실�
         const r = matchWorkFromTags(['앙티티', '호프'], dict);
         expect(r && 'work' in r ? r.work.wrId : null).toBe(7297);
     });
+
+    // ── 구분자 주변 공백 (실전: angtt/7341 스파이더맨, 2026-07-30) ──
+    // 제목은 「스파이더맨 - 브랜드뉴데이」, 태그는 slug 인 「스파이더맨-브랜드뉴데이」.
+    // normalizeWorkTitle 이 구분자 옆 공백을 지우지 않아 매칭이 실패했다.
+    it('하이픈 주변 공백을 없앤 변형을 후보로 추가한다', async () => {
+        const { extractTitleCandidates } = await import('./angtt-dictionary-logic');
+        const c = extractTitleCandidates('스파이더맨 - 브랜드뉴데이');
+        expect(c).toContain('스파이더맨 - 브랜드뉴데이'); // 원형 유지
+        expect(c).toContain('스파이더맨-브랜드뉴데이'); // slug 형
+    });
+
+    it('콜론도 같은 규칙 (스파이더맨: 브랜드 뉴 데이)', async () => {
+        const { extractTitleCandidates } = await import('./angtt-dictionary-logic');
+        expect(extractTitleCandidates('스파이더맨: 브랜드 뉴 데이')).toContain(
+            '스파이더맨:브랜드 뉴 데이'
+        );
+    });
+
+    it('buildDictionary: slug 형 태그가 공백 있는 제목과 매칭됨 (스파이더맨 케이스)', async () => {
+        const { buildDictionary, matchWorkFromTags } = await import('./angtt-dictionary-logic');
+        const dict = buildDictionary([
+            { wrId: 7341, title: '스파이더맨 - 브랜드뉴데이', thumbnail: '' }
+        ]);
+        const r = matchWorkFromTags(['앙티티', '스파이더맨-브랜드뉴데이'], dict);
+        expect(r && 'work' in r ? r.work.wrId : null).toBe(7341);
+    });
+
+    // ⛔ 구분자를 아예 없앤 형태까지 만들면 오탐이 급증한다. 만들지 않는 것이 규약이다.
+    it('구분자를 완전히 제거한 변형은 만들지 않는다', async () => {
+        const { extractTitleCandidates } = await import('./angtt-dictionary-logic');
+        expect(extractTitleCandidates('스파이더맨 - 브랜드뉴데이')).not.toContain(
+            '스파이더맨브랜드뉴데이'
+        );
+    });
 });
 
 describe('scanAliasesInTitle — 제목 내 작품 별칭 스캔 (티어 B)', () => {
