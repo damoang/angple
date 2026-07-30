@@ -38,12 +38,15 @@
     } from '$lib/api/admin-xp';
     import Clock from '@lucide/svelte/icons/clock';
     import Coins from '@lucide/svelte/icons/coins';
+    import { levelExp } from '$lib/utils/level-thresholds';
 
-    // 레벨 구간 데이터
-    const levelThresholds = [
-        0, 1000, 3000, 6000, 10000, 15000, 21000, 28000, 36000, 45000, 55000, 66000, 78000, 91000,
-        105000
-    ];
+    // 레벨 구간 표 — 정본 공식에서 유도한다.
+    //
+    // ⛔ 여기에 숫자를 하드코딩하지 말 것. 원래 15개짜리 표가 박혀 있었는데
+    //    실제 곡선과 달라 관리자 화면이 잘못된 구간을 보여주고 있었다
+    //    (bug/13149, 2026-07-29). 정본은 $lib/utils/level-thresholds 다.
+    const LEVEL_ROWS = 15;
+    const levelThresholds = Array.from({ length: LEVEL_ROWS }, (_, i) => levelExp(i + 1));
 
     // 설정 상태
     let config = $state<XPConfig>({

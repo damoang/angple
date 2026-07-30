@@ -7,6 +7,7 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import { readPool } from '$lib/server/db.js';
 import { isWithdrawnMember } from '../_withdrawn';
+import { calculateLevelFromExp } from '$lib/utils/level-thresholds';
 
 interface FollowerRow extends RowDataPacket {
     mb_id: string;
@@ -14,6 +15,9 @@ interface FollowerRow extends RowDataPacket {
     mb_image_url: string;
     mb_image_updated_at: string;
     mb_level: number;
+    // XP 배지용. ⛔ 저장된 as_level 이 아니라 as_exp 를 읽어 계산한다 —
+    //    다른 화면과 같은 규칙을 쓰기 위해서다(bug/13149).
+    as_exp: number;
     followed_at: string;
 }
 
@@ -41,7 +45,7 @@ export const GET: RequestHandler = async ({ params }) => {
         const total = countRows[0]?.count ?? 0;
 
         const [rows] = await readPool.query<FollowerRow[]>(
-            `SELECT f.mb_id, m.mb_nick, m.mb_image_url, m.mb_image_updated_at, m.mb_level, f.created_at as followed_at
+            `SELECT f.mb_id, m.mb_nick, m.mb_image_url, m.mb_image_updated_at, m.mb_level, m.as_exp, f.created_at as followed_at
 			 FROM g5_member_follow f
 			 JOIN g5_member m ON f.mb_id COLLATE utf8mb4_unicode_ci = m.mb_id COLLATE utf8mb4_unicode_ci
 			 WHERE f.target_id = ?
@@ -60,6 +64,7 @@ export const GET: RequestHandler = async ({ params }) => {
                     mb_image: r.mb_image_url || '',
                     mb_image_updated_at: r.mb_image_updated_at || '',
                     mb_level: r.mb_level,
+                    as_level: calculateLevelFromExp(Number(r.as_exp) || 0),
                     followed_at: r.followed_at
                 }))
             }

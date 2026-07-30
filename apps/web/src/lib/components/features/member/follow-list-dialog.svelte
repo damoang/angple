@@ -9,7 +9,10 @@
         mb_nick: string;
         mb_image: string;
         mb_image_updated_at?: string;
+        /** 등급(1~10). ⛔ LevelBadge 에 넘기지 말 것 — 그건 XP 레벨용이다. */
         mb_level: number;
+        /** XP 레벨(1~109). API 가 as_exp 로부터 계산해 내려준다. */
+        as_level?: number;
         followed_at: string;
     }
 
@@ -107,7 +110,15 @@
 
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center gap-1">
-                                        <LevelBadge level={member.mb_level} size="sm" />
+                                        <!--
+                                            ⛔ mb_level(등급 1~10)을 넘기지 말 것.
+                                            2026-07-29 까지 여기가 mb_level 이어서 팔로워 목록의
+                                            모든 회원이 Lv.1~10 으로 보였다(bug/13149).
+                                            LevelBadge 는 XP 레벨(as_level) 전용이다.
+                                        -->
+                                        {#if member.as_level}
+                                            <LevelBadge level={member.as_level} size="sm" />
+                                        {/if}
                                         <a
                                             href="/member/{member.mb_id}"
                                             class="text-foreground hover:text-primary truncate text-sm font-medium"
