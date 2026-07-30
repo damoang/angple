@@ -1,7 +1,7 @@
 import { error as svelteError, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { FreePost, Board, SearchField } from '$lib/api/types.js';
-import { BOARD_LIST_PAGE_SIZE } from '$lib/constants/board.js';
+import { BOARD_LIST_PAGE_SIZE, MAX_LIST_PAGE } from '$lib/constants/board.js';
 import {
     fetchPromotionPosts,
     fetchPromotionBoardPosts,
@@ -188,6 +188,31 @@ export const load: PageServerLoad = async ({
     const boardId = canonicalBoardId;
     const page = Number(url.searchParams.get('page')) || 1;
     const limit = Number(url.searchParams.get('limit')) || BOARD_LIST_PAGE_SIZE;
+
+    // ⛔ 깊은 페이지 차단 — 2026-07-30 장애의 근본 원인.
+    //
+    // 크롤러가 ?page=17000~21000 대를 계속 긁었다. page=17510 은 오프셋 약 52만이라
+    // MySQL 이 52만 행을 읽고 버리는 동안 결과 처리에서 힙이 순간 폭증했다:
+    //   FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory
+    // 파드가 재시작 루프에 빠지고 회원에게 502/504 가 나갔다.
+    //
+    // robots.txt 에도 Disallow 를 넣었지만(#1908) 그건 **협조 요청**이라 무시하는
+    // 크롤러엔 안 통한다. 오프셋 쿼리 자체가 나가지 않게 여기서 끊는 것이 근본이다.
+    //
+    // 상한 1000 의 근거 (nginx 로그 실측, 2026-07-30):
+    //   page 1-10    25,499건 (92%)   ← 사람 트래픽은 여기 집중
+    //   page 11-100   1,580건
+    //   page 101-1000 1,147건
+    //   page 1000+   12,022건         ← 깊어질수록 급감해야 정상인데 오히려 최다.
+    //                                   자연스러운 감쇠가 아니다 = 자동화 트래픽
+    // 사람이 갈 만한 깊이는 다 통과시키면서 명백한 남용만 끊는 지점이 1000 이다.
+    // page=1000 은 오프셋 30,000 이라 52만에 비하면 부담이 없다.
+    //
+    // ⛔ 404 로 돌려주는 이유: 크롤러에게 "없는 페이지"라고 알려야 다시 안 온다.
+    //    조용히 1페이지로 clamp 하면 크롤러는 계속 긁고, 중복 콘텐츠까지 만든다.
+    if (page > MAX_LIST_PAGE) {
+        svelteError(404, '요청하신 페이지를 찾을 수 없습니다.');
+    }
 
     // 검색 파라미터
     const searchField = (url.searchParams.get('sfl') as SearchField) || null;
