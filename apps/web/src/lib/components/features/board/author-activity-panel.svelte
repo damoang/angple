@@ -7,7 +7,12 @@
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import ChevronUp from '@lucide/svelte/icons/chevron-up';
     import { formatDate } from '$lib/utils/format-date.js';
-    import { getPostLabel, getCommentLabel, type ContentKind } from '$lib/utils/content-label.js';
+    import {
+        getPostLabel,
+        getCommentLabel,
+        type ContentKind,
+        type ContentLabel
+    } from '$lib/utils/content-label.js';
     import { slide } from 'svelte/transition';
 
     interface RecentPost {
@@ -100,12 +105,9 @@
     // 표기는 content-label 유틸이 단일 판정한다(#13095, #13097).
     // 이전엔 화면마다 문구가 갈라졌고, 텍스트 없는 댓글이 이모티콘·이미지·빈댓글 구분 없이
     // 전부 '(내용 없음)' 으로 뭉개졌다.
-    function getRecentPostLabel(post: RecentPost): string {
-        return getPostLabel(post).text;
-    }
-
-    function getRecentCommentLabel(comment: RecentComment): string {
-        const label = getCommentLabel(comment);
+    // #13174: label.linkable 을 실제로 적용한다 — 삭제 항목은 <a> 없이 <span> 으로.
+    // (7/26 수정이 문구만 통일하고 링크 제거는 미적용이었다. 렌더는 아래 snippet 두 개가 단일 정본.)
+    function commentText(label: ContentLabel): string {
         return label.badge ? `${label.badge} ${label.text}` : label.text;
     }
 
@@ -261,6 +263,54 @@
     });
 </script>
 
+<!-- 최근 글/댓글 한 줄 렌더 정본 — 삭제 항목(linkable:false)은 링크 없이 표시 (#13174) -->
+{#snippet postItem(p: RecentPost)}
+    {@const label = getPostLabel(p)}
+    {#if label.linkable}
+        <a href={p.href} class="text-foreground hover:text-primary block min-w-0 truncate text-xs">
+            {label.text}
+        </a>
+    {:else}
+        <span class="text-muted-foreground block min-w-0 truncate text-xs">{label.text}</span>
+    {/if}
+{/snippet}
+
+{#snippet commentItem(c: RecentComment)}
+    {@const label = getCommentLabel(c)}
+    {#if label.linkable}
+        <a
+            href={c.href}
+            class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
+            onclick={(e) => {
+                const hash = c.href.split('#')[1];
+                if (hash && window.location.pathname === c.href.split('#')[0]) {
+                    e.preventDefault();
+                    const el = document.getElementById(hash);
+                    if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        el.style.transition = 'background-color 0.3s ease';
+                        el.style.backgroundColor = 'hsl(var(--primary) / 0.1)';
+                        el.style.borderRadius = '0.5rem';
+                        setTimeout(() => {
+                            el.style.backgroundColor = '';
+                            setTimeout(() => {
+                                el.style.transition = '';
+                                el.style.borderRadius = '';
+                            }, 300);
+                        }, 2000);
+                    }
+                }
+            }}
+        >
+            {commentText(label)}
+        </a>
+    {:else}
+        <span class="text-muted-foreground block min-w-0 truncate text-xs">
+            {commentText(label)}
+        </span>
+    {/if}
+{/snippet}
+
 {#if post.author_id && !post.deleted_at}
     <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3" bind:this={panelEl}>
         <!-- AdSense 광고 -->
@@ -317,12 +367,7 @@
                             <ul class="divide-border divide-y">
                                 {#each recentPosts as p (`${p.bo_table}_${p.wr_id}`)}
                                     <li class="py-1">
-                                        <a
-                                            href={p.href}
-                                            class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
-                                        >
-                                            {getRecentPostLabel(p)}
-                                        </a>
+                                        {@render postItem(p)}
                                     </li>
                                 {/each}
                             </ul>
@@ -340,41 +385,7 @@
                             <ul class="divide-border divide-y">
                                 {#each recentComments as c (`${c.bo_table}_${c.wr_id}`)}
                                     <li class="py-1">
-                                        <a
-                                            href={c.href}
-                                            class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
-                                            onclick={(e) => {
-                                                const hash = c.href.split('#')[1];
-                                                if (
-                                                    hash &&
-                                                    window.location.pathname ===
-                                                        c.href.split('#')[0]
-                                                ) {
-                                                    e.preventDefault();
-                                                    const el = document.getElementById(hash);
-                                                    if (el) {
-                                                        el.scrollIntoView({
-                                                            behavior: 'smooth',
-                                                            block: 'start'
-                                                        });
-                                                        el.style.transition =
-                                                            'background-color 0.3s ease';
-                                                        el.style.backgroundColor =
-                                                            'hsl(var(--primary) / 0.1)';
-                                                        el.style.borderRadius = '0.5rem';
-                                                        setTimeout(() => {
-                                                            el.style.backgroundColor = '';
-                                                            setTimeout(() => {
-                                                                el.style.transition = '';
-                                                                el.style.borderRadius = '';
-                                                            }, 300);
-                                                        }, 2000);
-                                                    }
-                                                }
-                                            }}
-                                        >
-                                            {getRecentCommentLabel(c)}
-                                        </a>
+                                        {@render commentItem(c)}
                                     </li>
                                 {/each}
                             </ul>
@@ -416,12 +427,7 @@
                             <ul class="divide-border divide-y">
                                 {#each recentPosts as p (`${p.bo_table}_${p.wr_id}`)}
                                     <li class="py-1">
-                                        <a
-                                            href={p.href}
-                                            class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
-                                        >
-                                            {getRecentPostLabel(p)}
-                                        </a>
+                                        {@render postItem(p)}
                                     </li>
                                 {/each}
                             </ul>
@@ -443,12 +449,7 @@
                             <ul class="divide-border divide-y">
                                 {#each recentComments as c (`${c.bo_table}_${c.wr_id}`)}
                                     <li class="py-1">
-                                        <a
-                                            href={c.href}
-                                            class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
-                                        >
-                                            {getRecentCommentLabel(c)}
-                                        </a>
+                                        {@render commentItem(c)}
                                     </li>
                                 {/each}
                             </ul>
