@@ -203,6 +203,44 @@ function isMalformedExternalImagePath(pathname: string): boolean {
     return /(avif|gif|jpe?g|png|webp)$/i.test(pathname);
 }
 
+/**
+ * 확장(테마·플러그인) 관리 API 중 **관리자만 호출할 수 있어야 하는 요청**인지.
+ *
+ * 판정 기준은 "상태를 바꾸는가" + "관리 대상인가" 두 가지다.
+ * ⛔ 공개로 남겨야 하는 것 (여기서 true 를 돌려주면 안 되는 것):
+ *   - GET /api/themes, GET /api/themes/active : 공개 테마 로더가 모든 페이지에서 부른다
+ *   - /api/plugins/{id}/{...} : 플러그인 자체 라우트(나눔 게시판 등 회원 기능, POST 포함)
+ *   - GET /api/plugins/active : 레이아웃 초기화가 부른다
+ */
+function isExtensionAdminRequest(pathname: string, method: string): boolean {
+    const isRead = method === 'GET' || method === 'HEAD';
+
+    // 테마: 읽기는 공개, 나머지(설치·삭제·활성화·설정변경)는 전부 관리자
+    if (pathname === '/api/themes' || pathname.startsWith('/api/themes/')) {
+        return !isRead;
+    }
+
+    if (!pathname.startsWith('/api/plugins')) return false;
+
+    // 플러그인: 관리 엔드포인트만 골라 막는다(디스패처를 건드리면 회원 기능이 죽는다)
+    if (
+        pathname === '/api/plugins/upload' ||
+        pathname === '/api/plugins/install-github' ||
+        pathname === '/api/plugins/tokens' ||
+        pathname.startsWith('/api/plugins/marketplace')
+    ) {
+        return true;
+    }
+    // POST /api/plugins = 활성화/비활성화
+    if (pathname === '/api/plugins') return !isRead;
+    // DELETE /api/plugins/{id} = 삭제 (같은 깊이의 디스패처보다 이 라우트가 우선한다)
+    if (/^\/api\/plugins\/[^/]+$/.test(pathname)) return !isRead;
+    // PUT /api/plugins/{id}/settings = 설정 변경
+    if (/^\/api\/plugins\/[^/]+\/settings$/.test(pathname)) return !isRead;
+
+    return false;
+}
+
 function isLegacyMediaPath(pathname: string): boolean {
     return pathname === '/data' || pathname.startsWith('/data/');
 }
@@ -885,6 +923,31 @@ export const handle: Handle = async ({ event, resolve }) => {
                 headers: {
                     'content-type': 'application/json',
                     // 권한 응답은 절대 캐시되면 안 된다.
+                    'cache-control': 'private, no-store'
+                }
+            });
+        }
+    }
+
+    // --- 확장(테마·플러그인) 관리 API 계층 가드 ---
+    //
+    // 위 /api/admin/* 가드와 같은 사유다. 확장 관리 엔드포인트는 /api/admin 아래가
+    // 아니라 /api/themes·/api/plugins 아래에 있어 그 가드를 받지 않았고, 관리자 화면
+    // 에서만 호출된다는 이유로 라우트 자체의 인증이 비어 있었다.
+    // "관리자 화면만 부른다"는 서버가 강제하는 사실이 아니다 — 요청은 화면을 거치지 않는다.
+    //
+    // ⛔ 전면 차단은 안 된다. 다음 둘은 공개 경로다:
+    //     1. GET /api/themes, GET /api/themes/active — 공개 테마 로더(theme-component-loader)
+    //        가 모든 페이지에서 부른다
+    //     2. /api/plugins/{id}/{...} — 플러그인이 정의한 자체 라우트 디스패처.
+    //        나눔 게시판 등 회원 기능이 여기로 온다(POST 포함)
+    //    그래서 "상태를 바꾸는 관리 동작"만 골라 막는다.
+    if (isExtensionAdminRequest(pathname, event.request.method)) {
+        if (!event.locals.user || event.locals.user.level < 10) {
+            return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
+                status: 403,
+                headers: {
+                    'content-type': 'application/json',
                     'cache-control': 'private, no-store'
                 }
             });
