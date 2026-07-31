@@ -19,10 +19,19 @@ interface CarPostRow extends RowDataPacket {
     wr_id: number;
     wr_subject: string;
     wr_name: string;
-    wr_datetime: string;
+    // mysql2 는 DATETIME 을 timezone 설정 시 Date 객체로 반환한다(db.ts 에 dateStrings 없음).
+    // 클라이언트에 문자열만 넘기도록 아래 map 에서 정규화한다.
+    wr_datetime: string | Date;
     wr_hit: number;
     wr_comment: number;
     wr_good: number;
+}
+
+/** mysql2 DATETIME(Date | string) → 'YYYY-MM-DD' 문자열 */
+function toDateStr(v: string | Date | null | undefined): string {
+    if (!v) return '';
+    if (v instanceof Date) return Number.isNaN(v.getTime()) ? '' : v.toISOString().slice(0, 10);
+    return String(v).slice(0, 10);
 }
 
 export const load: PageServerLoad = async ({ params, setHeaders }) => {
@@ -67,7 +76,7 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
             id: r.wr_id,
             subject: r.wr_subject,
             author: r.wr_name,
-            datetime: r.wr_datetime,
+            datetime: toDateStr(r.wr_datetime),
             hit: r.wr_hit ?? 0,
             comments: r.wr_comment ?? 0,
             good: r.wr_good ?? 0
