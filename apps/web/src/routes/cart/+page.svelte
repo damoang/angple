@@ -13,6 +13,8 @@
     const cart = $derived(data.cart);
     const items = $derived(cart?.items ?? []);
     const isEmpty = $derived(items.length === 0);
+    /** 서버가 DB(payment_provider_configs)로 판정한 결제 가능 여부. 판정 불가 시 false(fail-closed). */
+    const paymentAvailable = $derived(data.paymentAvailable === true);
 
     let updating = $state<Record<number, boolean>>({});
 
@@ -56,7 +58,8 @@
 
     let ordering = $state(false);
     async function handleOrder(): Promise<void> {
-        if (ordering || isEmpty) return;
+        // 결제가 닫혀 있으면 주문 레코드를 만들지 않는다 (버튼 비활성과 이중 방어)
+        if (ordering || isEmpty || !paymentAvailable) return;
         ordering = true;
         try {
             const orderItems = items.map((item: any) => ({
@@ -164,8 +167,16 @@
                     <Trash2 class="mr-1 h-4 w-4" />
                     비우기
                 </Button>
-                <Button class="flex-1" size="lg" onclick={handleOrder} disabled={ordering}>
-                    {#if ordering}
+                <Button
+                    class="flex-1"
+                    size="lg"
+                    onclick={handleOrder}
+                    disabled={ordering || !paymentAvailable}
+                    title={!paymentAvailable ? '결제 수단 준비 중입니다' : undefined}
+                >
+                    {#if !paymentAvailable}
+                        결제 준비 중 (곧 오픈)
+                    {:else if ordering}
                         주문 생성 중...
                     {:else}
                         주문하기
