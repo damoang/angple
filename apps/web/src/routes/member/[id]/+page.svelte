@@ -186,14 +186,7 @@
     let likedLoaded = $state(false);
 
     // 표기는 content-label 유틸이 단일 판정한다(#13095, #13097).
-    function getRecentPostTitle(post: RecentPost): string {
-        return getPostLabel(post).text;
-    }
-
-    function getRecentCommentPreview(comment: RecentComment): string {
-        const label = getCommentLabel(comment);
-        return label.badge ? `${label.badge} ${label.text}` : label.text;
-    }
+    // #13174: 렌더에서 label.linkable 분기까지 적용하므로 템플릿이 getPostLabel/getCommentLabel 직접 호출.
 
     onMount(async () => {
         if (!p?.mb_id) return;
@@ -903,13 +896,21 @@
                     {:else}
                         <ul class="divide-border divide-y">
                             {#each recentPosts as post (post.wr_id)}
+                                {@const label = getPostLabel(post)}
                                 <li class="py-2">
-                                    <a
-                                        href={post.href}
-                                        class="text-foreground hover:text-primary block text-sm transition-colors"
-                                    >
-                                        {getRecentPostTitle(post)}
-                                    </a>
+                                    <!-- #13174: 삭제 항목(linkable:false)은 링크 없이 표시 -->
+                                    {#if label.linkable}
+                                        <a
+                                            href={post.href}
+                                            class="text-foreground hover:text-primary block text-sm transition-colors"
+                                        >
+                                            {label.text}
+                                        </a>
+                                    {:else}
+                                        <span class="text-muted-foreground block text-sm">
+                                            {label.text}
+                                        </span>
+                                    {/if}
                                     <div class="text-muted-foreground mt-0.5 flex gap-2 text-xs">
                                         <span class="text-primary/70">{post.bo_subject}</span>
                                         <span>{formatDate(post.wr_datetime)}</span>
@@ -933,13 +934,24 @@
                     {:else}
                         <ul class="divide-border divide-y">
                             {#each recentComments as comment (comment.wr_id)}
+                                {@const label = getCommentLabel(comment)}
+                                {@const text = label.badge
+                                    ? `${label.badge} ${label.text}`
+                                    : label.text}
                                 <li class="py-2">
-                                    <a
-                                        href={comment.href}
-                                        class="text-foreground hover:text-primary block text-sm transition-colors"
-                                    >
-                                        {getRecentCommentPreview(comment)}
-                                    </a>
+                                    <!-- #13174: 삭제 항목(linkable:false)은 링크 없이 표시 -->
+                                    {#if label.linkable}
+                                        <a
+                                            href={comment.href}
+                                            class="text-foreground hover:text-primary block text-sm transition-colors"
+                                        >
+                                            {text}
+                                        </a>
+                                    {:else}
+                                        <span class="text-muted-foreground block text-sm">
+                                            {text}
+                                        </span>
+                                    {/if}
                                     <div class="text-muted-foreground mt-0.5 flex gap-2 text-xs">
                                         <span class="text-primary/70">{comment.bo_subject}</span>
                                         <span>{formatDate(comment.wr_datetime)}</span>

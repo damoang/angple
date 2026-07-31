@@ -538,6 +538,8 @@ export const load: PageServerLoad = async ({
                                 wr_datetime AS created_at, wr_last AS updated_at, ca_name AS category,
                                 wr_option,
                                 (wr_deleted_at IS NOT NULL AND wr_deleted_at <> '0000-00-00 00:00:00') AS is_deleted_parent,
+                                CASE WHEN wr_deleted_at IS NULL OR wr_deleted_at = '0000-00-00 00:00:00'
+                                     THEN NULL ELSE wr_deleted_at END AS deleted_at,
                                 wr_1 AS extra_1, wr_2 AS extra_2, wr_3 AS extra_3,
                                 wr_4 AS extra_4, wr_5 AS extra_5, wr_6 AS extra_6, wr_7 AS extra_7,
                                 wr_9 AS extra_9, wr_10 AS extra_10, wr_file
@@ -567,10 +569,13 @@ export const load: PageServerLoad = async ({
                         .filter((n) => Number.isFinite(n) && n > 0)
                 );
                 // Sphinx 결과 순서 유지 (refetchIds: parentIds dedupe or ids) + is_notice 주입
-                // 댓글 검색 시 삭제된 부모 글은 제목을 가리고 본문은 비운다(#12577).
-                // 일반 검색은 위 쿼리에서 삭제글이 이미 제외되므로 영향 없음.
+                // 댓글 검색 시 삭제된 부모 글은 tombstone(deleted_at + 빈 필드)로만 내린다
+                // (#12577 포함 정책 → #13174 전면 마스킹). 일반 검색은 위 쿼리에서 삭제글이
+                // 이미 제외되므로 영향 없음.
+                // 콜백 반환을 명시 튜플로 표기 — tombstone 분기와 ...r 분기의 객체 모양이
+                // 달라 TS 가 Map 생성자 유니온 추론에 실패한다(런타임 무관, 타입 표기용).
                 const rowMap = new Map(
-                    rows.map((r) => {
+                    rows.map((r): [unknown, Record<string, unknown>] => {
                         const deleted = Number(r.is_deleted_parent) === 1;
                         const disciplined = disciplinedIds.has(Number(r.id));
                         const masked = deleted || disciplined;
@@ -585,6 +590,30 @@ export const load: PageServerLoad = async ({
                         // 우선순위: wr_10(지정 썸네일) > 본문 첫 <img>
                         // ⛔ 마스킹된 글은 썸네일도 비운다. 제목·본문만 가리고 이미지를 남기면
                         //    삭제·이용제한 마스킹이 그림으로 우회된다.
+                        // #13174: 삭제글은 스프레드(...r) 금지 — 최소 tombstone 만 명시 구성한다.
+                        // 종전엔 title/content 만 가리고 author·views·likes·날짜가 ...r 로
+                        // 그대로 실려, 일반 목록에선 전부 마스킹되는 메타데이터가 댓글 작성자
+                        // 검색에서만 노출됐다. deleted_at 을 내려보내면 8개 리스트 레이아웃의
+                        // 기존 `isDeleted = !!post.deleted_at` 분기가 일반 목록과 동일한
+                        // placeholder 행을 렌더한다. (민감 필드는 서버가 drop — 클라 가림 금지)
+                        if (deleted) {
+                            return [
+                                r.id,
+                                {
+                                    id: r.id,
+                                    deleted_at: r.deleted_at,
+                                    is_notice: noticeIds.has(Number(r.id)),
+                                    title: '',
+                                    content: '',
+                                    thumbnail: '',
+                                    thumbnail_raw: '',
+                                    has_file: false,
+                                    has_image: false,
+                                    has_video: false
+                                }
+                            ];
+                        }
+
                         const rawThumb = masked
                             ? ''
                             : String(r.extra_10 || '') ||
@@ -596,11 +625,8 @@ export const load: PageServerLoad = async ({
                             r.id,
                             {
                                 ...r,
-                                title: deleted
-                                    ? '[삭제된 글입니다]'
-                                    : disciplined
-                                      ? DISCIPLINED_TITLE
-                                      : r.title,
+                                deleted_at: null,
+                                title: disciplined ? DISCIPLINED_TITLE : r.title,
                                 content: masked ? '' : r.content,
                                 is_notice: noticeIds.has(Number(r.id)),
                                 thumbnail_raw: normalizedThumb,

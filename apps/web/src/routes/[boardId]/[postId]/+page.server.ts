@@ -167,7 +167,10 @@ export const load: PageServerLoad = async ({
             // 댓글 스레드는 유지한다(#12965 — 댓글은 각 댓글 작성자의 소유·책임).
             // 타인 삭제(관리자/징계 등) 또는 삭제자 미상이면 댓글도 가린다(#12711).
             // 삭제 사유(자진/징계)는 문구로 구분하지 않는다. 댓글 API 게이트와 정합.
-            const selfDeleted = !!post.deleted_by && post.deleted_by === post.author_id;
+            // #13174: 신 백엔드는 삭제글에서 deleted_by/author_id 를 서버 drop 하고
+            // 판정 결과인 self_deleted 만 내려준다. 구 백엔드 호환으로 기존 식을 폴백 유지.
+            const selfDeleted =
+                post.self_deleted ?? (!!post.deleted_by && post.deleted_by === post.author_id);
             if (!selfDeleted) {
                 // 헤더 카운트 라벨/SSR total/클라 backfill 게이트 일치를 위해 권위 카운트 0.
                 post.comments_count = 0;
