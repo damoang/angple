@@ -260,9 +260,25 @@
         }
     }
 
+    // #12991: 종을 열어 목록을 봤으면 확인한 것으로 본다 — 배지를 서버까지 읽음
+    // 처리해 해소한다("모두 읽음"을 따로 누르지 않아도 숫자가 다시 뜨지 않는다).
+    // ⛔ 이번에 연 목록의 '새 알림' 강조(has_unread)는 지우지 않는다 — 무엇이 새로
+    //    왔는지는 보여야 한다. handleMarkAllAsRead(버튼)와 다른 점이 그것뿐이다.
+    // ⛔ 목록 로드가 실패했으면 처리하지 않는다 — 보지도 못한 알림을 읽음으로 만들면 안 된다.
+    async function markSeenOnOpen(): Promise<void> {
+        if (loadError || unreadCount <= 0) return;
+        try {
+            await apiClient.markAllNotificationsAsRead();
+            unreadCount = 0;
+            writeUnreadCache(0);
+        } catch (err) {
+            console.error('Failed to mark notifications seen:', err);
+        }
+    }
+
     function handleOpenChange(open: boolean): void {
         if (open) {
-            void loadNotifications();
+            void loadNotifications().then(markSeenOnOpen);
         }
     }
 
