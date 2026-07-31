@@ -447,6 +447,17 @@
                 <span>♡ 마음메시지 신청하기</span>
                 <span aria-hidden="true" class="leading-none">→</span>
             </a>
+            <!--
+                다모앙 마을(벽돌한장) 1줄 카드. 후원이 벽돌로 쌓이는 곳이라 후원 카드 계열에 붙인다.
+                ⛔ 위 두 카드와 달리 **내부 링크**다 — target="_blank" 를 붙이지 않는다.
+            -->
+            <a
+                href="/brickang"
+                class="border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 mt-2 flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+            >
+                <span>🧱 다모앙 마을</span>
+                <span aria-hidden="true" class="leading-none">→</span>
+            </a>
         {/if}
         <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
             {#if compact}{:else}
