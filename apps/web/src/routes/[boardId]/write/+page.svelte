@@ -144,6 +144,17 @@
                 fetch('/api/boards/promotion/invalidate-cache', { method: 'POST' }).catch(() => {});
             }
 
+            // 앙지도: 지도 링크를 좌표로 해소해 핀에 등록 (fire-and-forget).
+            // ⛔ await 하지 않는다 — 외부 지도 사이트 fetch 가 글쓰기 완료를 붙잡으면 안 된다.
+            //    실패해도 글은 정상이고 핀만 안 뜬다.
+            if (boardId === 'angmap') {
+                fetch('/api/angmap/place', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ boardId, wrId: newPost.id })
+                }).catch(() => {});
+            }
+
             // 상세 페이지로 이동 (새 경로이므로 page load 자동 실행)
             goto(`/${boardId}/${newPost.id}`);
         } catch (err) {

@@ -45,6 +45,18 @@
             await apiClient.updatePost(boardId, String(postId), formData);
             trackEvent('post_edit', { board_id: boardId, post_id: String(postId) });
 
+            // 앙지도: 수정으로 지도 링크가 채워졌을 수 있으므로 좌표를 다시 해소한다.
+            // ⛔ 아래가 window.location.href(풀 리로드)라 일반 fetch 는 중간에 죽는다.
+            //    sendBeacon 은 페이지 이탈 후에도 전송이 보장된다(같은 출처라 쿠키 포함).
+            if (boardId === 'angmap' && typeof navigator !== 'undefined' && navigator.sendBeacon) {
+                navigator.sendBeacon(
+                    '/api/angmap/place',
+                    new Blob([JSON.stringify({ boardId, wrId: Number(postId) })], {
+                        type: 'application/json'
+                    })
+                );
+            }
+
             // 상세 페이지로 풀 리로드 (SPA 캐시로 이전 내용 표시 방지)
             window.location.href = `/${boardId}/${postId}`;
         } catch (err) {
