@@ -572,8 +572,10 @@ export const load: PageServerLoad = async ({
                 // 댓글 검색 시 삭제된 부모 글은 tombstone(deleted_at + 빈 필드)로만 내린다
                 // (#12577 포함 정책 → #13174 전면 마스킹). 일반 검색은 위 쿼리에서 삭제글이
                 // 이미 제외되므로 영향 없음.
+                // 콜백 반환을 명시 튜플로 표기 — tombstone 분기와 ...r 분기의 객체 모양이
+                // 달라 TS 가 Map 생성자 유니온 추론에 실패한다(런타임 무관, 타입 표기용).
                 const rowMap = new Map(
-                    rows.map((r) => {
+                    rows.map((r): [unknown, Record<string, unknown>] => {
                         const deleted = Number(r.is_deleted_parent) === 1;
                         const disciplined = disciplinedIds.has(Number(r.id));
                         const masked = deleted || disciplined;
