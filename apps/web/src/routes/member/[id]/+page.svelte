@@ -163,6 +163,7 @@
         wr_id: number;
         wr_subject: string;
         bg_datetime: string;
+        deleted?: boolean; // #13174 후속: 삭제글은 자리표시자(비링크)
         href: string;
     }
 
@@ -976,24 +977,47 @@
                         <ul class="divide-border divide-y">
                             {#each likedPosts as liked (liked.wr_id)}
                                 <li>
-                                    <a
-                                        href={liked.href}
-                                        class="hover:bg-muted flex items-center gap-2.5 px-4 py-2 no-underline transition-all duration-200 ease-out"
-                                    >
-                                        <span
-                                            class="bg-muted text-muted-foreground hidden shrink-0 rounded px-1.5 py-0.5 text-xs sm:inline-block"
+                                    <!-- #13174 후속: 삭제글은 링크 없는 자리표시자 -->
+                                    {#if liked.deleted}
+                                        <div
+                                            class="flex items-center gap-2.5 px-4 py-2 transition-all duration-200 ease-out"
                                         >
-                                            {liked.bo_subject}
-                                        </span>
-                                        <span class="min-w-0 flex-1 truncate leading-relaxed">
-                                            {liked.wr_subject}
-                                        </span>
-                                        <span
-                                            class="text-muted-foreground hidden shrink-0 text-xs sm:inline-block"
+                                            <span
+                                                class="bg-muted text-muted-foreground hidden shrink-0 rounded px-1.5 py-0.5 text-xs sm:inline-block"
+                                            >
+                                                {liked.bo_subject}
+                                            </span>
+                                            <span
+                                                class="text-muted-foreground min-w-0 flex-1 truncate leading-relaxed"
+                                            >
+                                                [삭제된 게시물]
+                                            </span>
+                                            <span
+                                                class="text-muted-foreground hidden shrink-0 text-xs sm:inline-block"
+                                            >
+                                                {formatDate(liked.bg_datetime)}
+                                            </span>
+                                        </div>
+                                    {:else}
+                                        <a
+                                            href={liked.href}
+                                            class="hover:bg-muted flex items-center gap-2.5 px-4 py-2 no-underline transition-all duration-200 ease-out"
                                         >
-                                            {formatDate(liked.bg_datetime)}
-                                        </span>
-                                    </a>
+                                            <span
+                                                class="bg-muted text-muted-foreground hidden shrink-0 rounded px-1.5 py-0.5 text-xs sm:inline-block"
+                                            >
+                                                {liked.bo_subject}
+                                            </span>
+                                            <span class="min-w-0 flex-1 truncate leading-relaxed">
+                                                {liked.wr_subject}
+                                            </span>
+                                            <span
+                                                class="text-muted-foreground hidden shrink-0 text-xs sm:inline-block"
+                                            >
+                                                {formatDate(liked.bg_datetime)}
+                                            </span>
+                                        </a>
+                                    {/if}
                                 </li>
                             {/each}
                         </ul>
