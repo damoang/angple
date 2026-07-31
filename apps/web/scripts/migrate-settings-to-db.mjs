@@ -66,7 +66,9 @@ async function main() {
         }
         const json = JSON.stringify(value);
         if (DRY) {
-            console.log(`  + ${label} (${key}) — ${json.slice(0, 120)}${json.length > 120 ? '…' : ''}`);
+            // ⛔ 값을 찍지 않는다 — 사이트 설정에는 OAuth client secret 이 들어 있다.
+            //    키와 크기만으로 무엇이 옮겨질지 판단할 수 있다.
+            console.log(`  + ${label} (${key}) — ${json.length} bytes`);
             return;
         }
         await conn.query(

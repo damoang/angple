@@ -225,7 +225,7 @@ export async function updatePluginSettings(
     // ⛔ 캐시 무효화 필수. activate/deactivate 는 하는데 여기만 빠져 있어,
     //    설정을 저장해도 getActivePlugins() 가 실어 나르는 currentSettings 가
     //    TieredCache(L1 30초/L2 300초)에 박힌 채 최대 5분간 반영되지 않았다.
-    invalidateActivePluginsCache();
+    await invalidateActivePluginsCache();
 
     return true;
 }

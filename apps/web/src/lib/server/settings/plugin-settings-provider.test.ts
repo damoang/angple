@@ -10,10 +10,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // DB/Redis 를 타지 않도록 모듈을 대체한다. 계약만 검증한다.
 const dbStore = new Map<string, string>();
 const cacheStore = new Map<string, string>();
+/** true 면 DB 가 순단된 것처럼 예외를 던진다 */
+let dbFail = false;
 
 vi.mock('$lib/server/db', () => ({
     pool: {
         query: vi.fn(async (sql: string, params?: unknown[]) => {
+            if (dbFail && !/CREATE TABLE/i.test(sql)) throw new Error('DB 순단(테스트)');
             if (/CREATE TABLE/i.test(sql)) return [[], []];
             if (/^SELECT setting_value/i.test(sql.trim())) {
                 const key = (params as string[])[0];
@@ -58,6 +61,7 @@ describe('MySqlPluginSettingsProvider — 계약', () => {
     beforeEach(() => {
         dbStore.clear();
         cacheStore.clear();
+        dbFail = false;
         provider = new MySqlPluginSettingsProvider();
     });
 
@@ -127,5 +131,25 @@ describe('MySqlPluginSettingsProvider — 계약', () => {
     it('깨진 JSON 이 DB 에 있어도 기본값으로 견딘다', async () => {
         dbStore.set('active_plugins', '{깨진 값');
         expect(await provider.getActivePlugins()).toEqual([]);
+    });
+
+    it('⛔ DB 읽기 실패 시 활성 목록을 날리지 않는다 (순단 중 토글 방어)', async () => {
+        await provider.activatePlugin('a');
+        await provider.activatePlugin('b');
+        cacheStore.clear(); // 캐시 미스 강제 → DB 로 내려감
+        dbFail = true;
+
+        await expect(provider.activatePlugin('c')).rejects.toThrow();
+        dbFail = false;
+        // 실패했으니 기존 목록이 그대로여야 한다 (a,b 가 c 하나로 덮이면 안 됨)
+        expect(await provider.getActivePlugins()).toEqual(['a', 'b']);
+    });
+
+    it('읽기 전용 경로는 DB 실패를 흡수한다 (화면이 죽지 않게)', async () => {
+        cacheStore.clear();
+        dbFail = true;
+        expect(await provider.getActivePlugins()).toEqual([]);
+        expect(await provider.getPluginSettings('x')).toEqual({});
+        dbFail = false;
     });
 });

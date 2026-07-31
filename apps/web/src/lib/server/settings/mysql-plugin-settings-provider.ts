@@ -84,16 +84,13 @@ export class MySqlPluginSettingsProvider implements PluginSettingsProvider {
 
     private async getFromDB(key: string): Promise<string | null> {
         await this.ensureTable();
-        try {
-            const [rows] = await pool.query<SettingsRow[]>(
-                `SELECT setting_value FROM ${SETTINGS_TABLE} WHERE setting_key = ? LIMIT 1`,
-                [key]
-            );
-            return rows[0]?.setting_value ?? null;
-        } catch (err) {
-            console.error('[PluginSettings] MySQL get 실패:', err);
-            return null;
-        }
+        // ⛔ 예외를 삼키지 않는다. 읽기 실패와 "값 없음"은 다르다 — 삼키면 DB 순단 중
+        //    activatePlugin 이 빈 목록에 하나만 얹어 UPSERT 해 **나머지 플러그인이 전부 꺼진다.**
+        const [rows] = await pool.query<SettingsRow[]>(
+            `SELECT setting_value FROM ${SETTINGS_TABLE} WHERE setting_key = ? LIMIT 1`,
+            [key]
+        );
+        return rows[0]?.setting_value ?? null;
     }
 
     private async setToDB(key: string, value: string): Promise<void> {
@@ -106,8 +103,22 @@ export class MySqlPluginSettingsProvider implements PluginSettingsProvider {
         );
     }
 
-    /** 캐시 → DB 순으로 읽고, DB 히트면 캐시를 채운다 */
+    /**
+     * 읽기 전용 경로용. 실패는 fallback 으로 흡수한다 —
+     * 설정 조회가 안 된다고 화면 전체가 죽으면 안 된다.
+     * ⛔ 쓰기 직전 읽기(read-modify-write)에는 getStrict 를 쓸 것.
+     */
     private async get<T>(key: string, fallback: T): Promise<T> {
+        try {
+            return await this.getStrict<T>(key, fallback);
+        } catch (err) {
+            console.error(`[PluginSettings] 읽기 실패, 기본값 사용 (key=${key}):`, err);
+            return fallback;
+        }
+    }
+
+    /** 실패를 숨기지 않는 읽기 — 목록을 통째로 덮어쓰기 전에 쓴다 */
+    private async getStrict<T>(key: string, fallback: T): Promise<T> {
         const cached = await this.getCache<T>(key);
         if (cached !== null) return cached;
 
@@ -140,13 +151,14 @@ export class MySqlPluginSettingsProvider implements PluginSettingsProvider {
     }
 
     async activatePlugin(pluginId: string): Promise<void> {
-        const active = await this.getActivePlugins();
+        // strict — 읽기 실패 시 던져서 목록을 날려버리지 않는다
+        const active = await this.getStrict<string[]>(KEY_ACTIVE, []);
         if (active.includes(pluginId)) return;
         await this.set(KEY_ACTIVE, [...active, pluginId]);
     }
 
     async deactivatePlugin(pluginId: string): Promise<void> {
-        const active = await this.getActivePlugins();
+        const active = await this.getStrict<string[]>(KEY_ACTIVE, []);
         if (!active.includes(pluginId)) return;
         await this.set(
             KEY_ACTIVE,
