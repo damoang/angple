@@ -396,12 +396,9 @@
                     />
 
                     <div class="ml-auto flex items-center gap-2">
-                        {#if isReplyMode}
-                            <Button type="button" variant="ghost" size="sm" onclick={handleCancel}>
-                                <X class="mr-1 h-4 w-4" />
-                                취소
-                            </Button>
-                        {/if}
+                        <!-- DOM 은 [작성, 취소] 순 — Tab 이 주 액션(작성)에 먼저 닿는다 (bug#13172).
+                             시각 배치는 order-first 로 기존 그대로 [취소][작성] 을 유지한다.
+                             ⛔ tabindex 양수로 풀지 말 것 — 전역 탭 순서를 오염시킨다. -->
                         <Button
                             type="submit"
                             size="sm"
@@ -415,6 +412,18 @@
                                 {isReplyMode ? '답글 작성' : '댓글 작성'}
                             {/if}
                         </Button>
+                        {#if isReplyMode}
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                class="order-first"
+                                onclick={handleCancel}
+                            >
+                                <X class="mr-1 h-4 w-4" />
+                                취소
+                            </Button>
+                        {/if}
                         {#if onRefresh}
                             <button
                                 type="button"
