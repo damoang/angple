@@ -6,7 +6,7 @@
      * - CollectionPage + ItemList + BreadcrumbList 구조화 데이터
      */
     import { SeoHead, getSiteUrl, createBreadcrumbJsonLd } from '$lib/seo/index.js';
-    import type { SeoConfig } from '$lib/seo/types.js';
+    import type { SeoConfig, JsonLdCollectionPage } from '$lib/seo/types.js';
 
     let { data } = $props();
 
@@ -19,7 +19,7 @@
     }
 
     // CollectionPage + ItemList: 이 허브가 "주제 큐레이션 페이지"임을 구글에 명시.
-    const collectionJsonLd = {
+    const collectionJsonLd: JsonLdCollectionPage = {
         '@context': 'https://schema.org',
         '@type': 'CollectionPage',
         name: pageTitle,

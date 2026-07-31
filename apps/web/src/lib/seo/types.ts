@@ -185,6 +185,24 @@ export interface JsonLdRatedItem {
     aggregateRating: JsonLdAggregateRating;
 }
 
+/** 주제 큐레이션 허브(CollectionPage + ItemList) — 자동차 허브 등 */
+export interface JsonLdCollectionPage {
+    '@context': 'https://schema.org';
+    '@type': 'CollectionPage';
+    name: string;
+    description: string;
+    url: string;
+    mainEntity: {
+        '@type': 'ItemList';
+        itemListElement: Array<{
+            '@type': 'ListItem';
+            position: number;
+            url: string;
+            name: string;
+        }>;
+    };
+}
+
 export type JsonLdData =
     | JsonLdWebSite
     | JsonLdArticle
@@ -194,7 +212,8 @@ export type JsonLdData =
     | JsonLdFAQPage
     | JsonLdQAPage
     | JsonLdVideoObject
-    | JsonLdRatedItem;
+    | JsonLdRatedItem
+    | JsonLdCollectionPage;
 
 /** 페이지네이션 SEO 정보 */
 export interface PaginationSeo {
