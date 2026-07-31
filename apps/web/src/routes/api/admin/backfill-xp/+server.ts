@@ -36,9 +36,9 @@ interface MemberExpRow extends RowDataPacket {
 //    그것이 백엔드와 다른 곡선이라 같은 회원이 화면마다 다른 레벨로 보이는
 //    원인 중 하나였다(bug/13149, 2026-07-29).
 //
-// ⚠️ 이 엔드포인트의 POST 는 MISSING_QUERY 에 LIMIT 이 없어 **전 회원 as_level 을
-//    일괄 UPDATE** 한다. 레벨이 오르는 회원에게는 xp-levelup-toast 가 발화하므로
-//    수천 명에게 동시에 축하 모달이 뜰 수 있다. 함부로 실행하지 말 것.
+// ⚠️ 이 엔드포인트의 POST 는 과거 LIMIT 없이 **전 회원 as_level 일괄 UPDATE** 가
+//    가능했다(레벨 오르는 회원마다 xp-levelup-toast 발화 → 대량 동시 축하 사고 위험).
+//    2026-07-31 부터 confirm + 회원 수 상한 가드가 걸려 있다 — POST 가드 주석 참조.
 
 const MISSING_QUERY = `
 SELECT DISTINCT s.mb_id, DATE(s.created_at) as login_date
@@ -97,11 +97,41 @@ export const GET: RequestHandler = async ({ locals }) => {
     }
 };
 
-/** POST: 실제 소급 반영 실행 */
-export const POST: RequestHandler = async ({ locals }) => {
+// POST 실행 가드 (#13149 후속): 실수로 누르면 전 회원 as_level 일괄 UPDATE 가 돌아
+// 레벨업 토스트가 수천 명에게 동시 발화한다(PR#717 계열 사고). 두 겹으로 막는다:
+//   ① body 에 confirm: 'backfill-xp' 명시 없이는 실행 거부
+//   ② 1회 실행당 회원 수 상한(기본 100, 최대 1000) — 남은 수를 응답에 실어
+//      조용히 잘리지 않게 한다. 전량은 상한 반복 실행으로만 가능.
+const BACKFILL_DEFAULT_MEMBER_LIMIT = 100;
+const BACKFILL_MAX_MEMBER_LIMIT = 1000;
+
+/** POST: 실제 소급 반영 실행 (confirm + limit 필수) */
+export const POST: RequestHandler = async ({ locals, request }) => {
     if ((locals.user?.level ?? 0) < 10) {
         return json({ success: false, error: '관리자 권한이 필요합니다.' }, { status: 403 });
     }
+
+    let body: { confirm?: string; limit?: number } = {};
+    try {
+        body = await request.json();
+    } catch {
+        // body 없음 → 아래 confirm 가드에서 거부
+    }
+    if (body.confirm !== 'backfill-xp') {
+        return json(
+            {
+                success: false,
+                error:
+                    "실행하려면 body 에 { confirm: 'backfill-xp', limit: <회원수> } 를 명시해야 합니다. " +
+                    '전량 실행은 대량 레벨업 토스트를 발화시킵니다(#13149). GET 으로 dry-run 먼저 확인하세요.'
+            },
+            { status: 400 }
+        );
+    }
+    const memberLimit = Math.min(
+        Math.max(1, Math.floor(Number(body.limit) || BACKFILL_DEFAULT_MEMBER_LIMIT)),
+        BACKFILL_MAX_MEMBER_LIMIT
+    );
 
     try {
         // 누락된 로그인 레코드 조회
@@ -130,8 +160,13 @@ export const POST: RequestHandler = async ({ locals }) => {
             memberMissingDays.get(row.mb_id)!.push(dateStr);
         }
 
+        // 상한 적용: memberLimit 명까지만 이번 실행에서 처리, 잔여는 응답으로 보고
+        const allMembers = [...memberMissingDays.entries()];
+        const batchMembers = allMembers.slice(0, memberLimit);
+        const remainingMembers = allMembers.length - batchMembers.length;
+
         // 회원별로 일괄 처리
-        for (const [mbId, dates] of memberMissingDays) {
+        for (const [mbId, dates] of batchMembers) {
             let grantedForMember = 0;
 
             for (const dateStr of dates) {
@@ -176,7 +211,8 @@ export const POST: RequestHandler = async ({ locals }) => {
         }
 
         console.log(
-            `[Backfill XP] Completed: ${granted} granted, ${skipped} skipped, ${memberMissingDays.size} members`
+            `[Backfill XP] Completed: ${granted} granted, ${skipped} skipped, ` +
+                `${batchMembers.length}/${allMembers.length} members (remaining ${remainingMembers})`
         );
 
         return json({
@@ -184,8 +220,13 @@ export const POST: RequestHandler = async ({ locals }) => {
             data: {
                 granted,
                 skipped,
-                affected_members: memberMissingDays.size,
-                total_xp_granted: granted * 500
+                affected_members: batchMembers.length,
+                remaining_members: remainingMembers,
+                total_xp_granted: granted * 500,
+                message:
+                    remainingMembers > 0
+                        ? `상한(${memberLimit}명)까지 처리했습니다. ${remainingMembers}명이 남아 있습니다 — 같은 요청을 반복 실행하세요.`
+                        : '전체 처리 완료.'
             }
         });
     } catch (error) {
