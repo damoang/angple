@@ -24,6 +24,30 @@ describe('ratingSchemaTypeForCategory — 앙티티 카테고리 → schema.org 
     });
 });
 
+describe('createRatedItemJsonLd — 리뷰 스니펫 미지원 타입은 블록 생략 (GSC parent_node 오류 방지)', () => {
+    const base = { ratingValue: 4, ratingCount: 5, url: 'https://damoang.net/angtt/1' };
+
+    it('CreativeWork(미지정 카테고리)는 null — 리뷰 스니펫 미지원 타입에 aggregateRating 을 붙이지 않는다', () => {
+        expect(createRatedItemJsonLd({ ...base, name: '무제', category: '음악' })).toBeNull();
+        expect(createRatedItemJsonLd({ ...base, name: '무제' })).toBeNull();
+    });
+
+    it('지원 타입은 정상 생성 — 게임(VideoGame)은 Game∧SoftwareApplication 서브타입이라 지원', () => {
+        expect(createRatedItemJsonLd({ ...base, name: '듄', category: '영화' })?.['@type']).toBe(
+            'Movie'
+        );
+        expect(
+            createRatedItemJsonLd({ ...base, name: '살인자의 기억법', category: '소설' })?.['@type']
+        ).toBe('Book');
+        expect(
+            createRatedItemJsonLd({ ...base, name: '오페라의 유령', category: '공연' })?.['@type']
+        ).toBe('Event');
+        expect(
+            createRatedItemJsonLd({ ...base, name: '발더스 게이트 3', category: '게임' })?.['@type']
+        ).toBe('VideoGame');
+    });
+});
+
 describe('createRatedItemJsonLd — 작품 + AggregateRating', () => {
     it('평점 있으면 Movie + aggregateRating 생성', () => {
         const r = createRatedItemJsonLd({
