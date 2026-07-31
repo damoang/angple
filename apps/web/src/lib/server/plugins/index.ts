@@ -222,6 +222,11 @@ export async function updatePluginSettings(
     // Provider를 통해 플러그인 설정 업데이트
     await pluginSettingsProvider.setPluginSettings(pluginId, newSettings);
 
+    // ⛔ 캐시 무효화 필수. activate/deactivate 는 하는데 여기만 빠져 있어,
+    //    설정을 저장해도 getActivePlugins() 가 실어 나르는 currentSettings 가
+    //    TieredCache(L1 30초/L2 300초)에 박힌 채 최대 5분간 반영되지 않았다.
+    await invalidateActivePluginsCache();
+
     return true;
 }
 

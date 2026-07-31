@@ -55,7 +55,8 @@ export const PUT: RequestHandler = async ({ params, request }) => {
             throw error(400, '플러그인 ID가 필요합니다.');
         }
 
-        if (!isPluginInstalled(id)) {
+        // ⛔ await 필수 — async 함수라 Promise 는 항상 truthy 여서 이 가드가 죽어 있었다
+        if (!(await isPluginInstalled(id))) {
             throw error(404, `플러그인을 찾을 수 없습니다: ${id}`);
         }
 
