@@ -28,6 +28,7 @@ interface WriteRow extends RowDataPacket {
     wr_id: number;
     wr_subject: string;
     wr_datetime: string;
+    is_deleted: number;
 }
 
 interface CountRow extends RowDataPacket {
@@ -112,10 +113,13 @@ export const GET: RequestHandler = async ({ params, url }) => {
         await Promise.all(
             Array.from(groupedByBoard.entries()).map(async ([boTable, wrIds]) => {
                 try {
+                    // #13174 후속: 삭제글도 가져와 [삭제된 게시물] 자리표시자로 표시한다.
+                    // 종전 is_deleted=0 은 공감했던 글이 삭제되면 내역에서 조용히 사라졌다.
                     const [writeRows] = await pool.query<WriteRow[]>(
-                        `SELECT write_id AS wr_id, title AS wr_subject, source_created_at AS wr_datetime
+                        `SELECT write_id AS wr_id, title AS wr_subject, source_created_at AS wr_datetime,
+                                is_deleted
                            FROM member_activity_feed
-                          WHERE board_id = ? AND write_id IN (?) AND activity_type = 1 AND is_deleted = 0`,
+                          WHERE board_id = ? AND write_id IN (?) AND activity_type = 1`,
                         [boTable, wrIds]
                     );
                     for (const w of writeRows) {
@@ -131,14 +135,18 @@ export const GET: RequestHandler = async ({ params, url }) => {
         for (const row of goodRows) {
             const w = writeMap.get(`${row.bo_table}:${row.wr_id}`);
             if (!w) continue;
+            // 삭제글: 피드에 캐시된 원제를 서버에서 비우고 deleted 플래그만 내린다.
+            // (민감 필드는 서버가 drop — 클라 가림 금지)
+            const deleted = Number(w.is_deleted) === 1;
             items.push({
                 bo_table: row.bo_table,
                 bo_subject: boardSubjects.get(row.bo_table) || row.bo_table,
                 wr_id: w.wr_id,
-                wr_subject: w.wr_subject,
+                wr_subject: deleted ? '' : w.wr_subject,
                 wr_datetime: w.wr_datetime,
                 bg_datetime: row.bg_datetime,
-                href: `/${row.bo_table}/${w.wr_id}`
+                deleted,
+                href: deleted ? '' : `/${row.bo_table}/${w.wr_id}`
             });
         }
 
