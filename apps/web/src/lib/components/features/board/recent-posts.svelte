@@ -238,7 +238,10 @@
     // 일시적인 네트워크 오류에도 목록이 영영 비어 있었다).
     async function loadInitial(): Promise<void> {
         if (!browser) return;
-        if (!isValidBoardId(boardId)) return;
+        // 진입 시점에 고정한다 — 아래에 await 가 있어, 그 사이 라우트를 떠나면
+        // boardId 를 다시 읽을 때 undefined 가 되어 URL 에 문자열로 박힌다.
+        const targetBoardId = boardId;
+        if (!isValidBoardId(targetBoardId)) return;
 
         error = null;
         loading = true;
@@ -256,7 +259,7 @@
             ) {
                 try {
                     const r = await fetch(
-                        `/api/boards/${boardId}/posts/${currentPostId}/page-index`
+                        `/api/boards/${targetBoardId}/posts/${currentPostId}/page-index`
                     );
                     if (r.ok) {
                         const body = (await r.json()) as { page?: number };
@@ -267,7 +270,7 @@
                 }
             }
 
-            const response = await apiClient.getBoardPosts(boardId, startPage, limit, {
+            const response = await apiClient.getBoardPosts(targetBoardId, startPage, limit, {
                 summary: useSummaryListResponse
             });
             posts = response.items;
