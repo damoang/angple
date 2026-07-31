@@ -84,7 +84,8 @@ async function main() {
     if (!plugin) {
         console.log('  파일 없음 — 건너뜀');
     } else {
-        await put('active_plugins', plugin.activePlugins ?? [], `활성 ${(plugin.activePlugins ?? []).length}개`);
+        const active = plugin.activePlugins ?? [];
+        await put('active_plugins', active, `활성 ${active.length}개`);
         for (const [id, entry] of Object.entries(plugin.plugins ?? {})) {
             if (!entry?.settings || Object.keys(entry.settings).length === 0) continue;
             await put(`plugin_settings_${id}`, entry.settings, `${id} 설정`);

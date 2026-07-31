@@ -13,11 +13,14 @@ import { sanitizePath } from '$lib/server/path-utils';
 
 /**
  * 이 공개 API 가 내보내도 되는 설정 키 (allowlist).
+ * ⛔ **끝을 앵커링한다** — 접두사 매칭으로 두면 `active_theme_admin_token` 같은 미래 키가
+ *    자동 통과한다. 접두사 허용이 필요한 것(theme_settings_, widget_layout_backup_)만 뒤에 둔다.
+ * 캐멀케이스 키는 json provider(셀프호스팅 경로)가 돌려주는 형태다.
  * ⛔ 새 키를 추가할 때는 "익명에게 보여도 되는가"를 먼저 판단할 것.
  *    angple_settings 는 테마 외 설정도 담는 공용 테이블이다.
  */
 const THEME_PUBLIC_KEY =
-    /^(active_theme|theme_settings_|theme_activated_at|widget_layout|sidebar_widget_layout)/;
+    /^(active_theme|theme_activated_at|widget_layout|sidebar_widget_layout|activeTheme|activatedAt|widgetLayout|sidebarWidgetLayout|themes|version)$|^(theme_settings_|widget_layout_backup_)/;
 
 /**
  * GET /api/themes/active
