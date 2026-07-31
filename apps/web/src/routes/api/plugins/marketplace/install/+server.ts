@@ -26,7 +26,8 @@ export const POST: RequestHandler = async ({ request }) => {
         }
 
         // 플러그인이 설치되어 있는지 확인
-        if (!isPluginInstalled(pluginId)) {
+        // ⛔ await 필수 — async 함수라 Promise 는 항상 truthy 여서 이 가드가 죽어 있었다
+        if (!(await isPluginInstalled(pluginId))) {
             return json(
                 {
                     success: false,
