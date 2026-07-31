@@ -12,6 +12,9 @@ const PACK_NAMES: Record<string, string> = {
     onion: '양파',
     'damoang-emo': '다모앙',
     'damoang-meme': '밈',
+    // #13178: 파일(8종)은 이전돼 있었는데 이 목록에 빠져 픽커에서만 안 보이던 팩.
+    // 접두사가 목록에 없으면 팩이 통째로 떨어진다 — 새 팩 추가 시 여기+PACK_ORDER 둘 다.
+    'damoang-lala': '랄라',
     'DINKIssTyle-3d-ang': '3D앙',
     'moon-emo': '문이모',
     'DINKIssTyle-ang': 'DINKI앙',
@@ -46,6 +49,7 @@ const PACK_ORDER: string[] = [
     'DINKIssTyle-animal',
     'damoang-air',
     'damoang-sol',
+    'damoang-lala',
     'president',
     'lee-president',
     'southsky',
