@@ -286,17 +286,8 @@
         </a>
     {:else if useFallback}
         {#if position === 'sidebar'}
-            <!-- 사이드바: 마음메시지/광고 없으면 빈 플레이스홀더 -->
-            <div
-                class="flex items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 dark:border-slate-700 dark:bg-slate-800/30"
-                style:min-height="40px"
-            >
-                <a
-                    href="/message"
-                    class="text-[10px] text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
-                    >마음메시지가 없습니다</a
-                >
-            </div>
+            <!-- 사이드바: 보여줄 마음메시지가 없으면 **아무것도 그리지 않는다**.
+                 점선 플레이스홀더는 빈 자리를 오히려 부각시켜 사이드바를 어수선하게 만들었다. -->
         {:else if gamFallback}
             <!-- GAM 폴백 (gamFallback=true일 때만) -->
             <AdSlot position={gamPosition} {height} slotKey={`damoang-banner-${position}`} />
