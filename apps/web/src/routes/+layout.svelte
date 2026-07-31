@@ -42,6 +42,7 @@
         trackPageView
     } from '$lib/services/ga4';
     import { detectAdblockOnce } from '$lib/services/ad-telemetry';
+    import { initWebVitalsRum } from '$lib/services/web-vitals-rum';
     import { AdblockNotice } from '$lib/components/features/adblock-notice';
     import type { MenuItem } from '$lib/api/types';
     import { readUserBasicFromCookie } from '$lib/utils/user-basic-client';
@@ -714,6 +715,9 @@
         }
 
         updatePageTargeting(window.location.pathname);
+
+        // 실사용자 Core Web Vitals(CLS/LCP/INP + 범인 요소) → GA4. 유휴 후처리라 성능 영향 0.
+        initWebVitalsRum();
 
         // Built-in Hooks 초기화 (콘텐츠 임베딩, 게시판 필터 등)
         initBuiltinHooks();
