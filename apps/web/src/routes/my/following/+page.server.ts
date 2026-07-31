@@ -6,7 +6,6 @@ interface FollowingRow extends RowDataPacket {
     mb_id: string;
     mb_nick: string;
     mb_level: number;
-    mb_image: string;
     followed_at: string;
 }
 
@@ -15,8 +14,10 @@ export const load: PageServerLoad = async ({ parent }) => {
 
     try {
         const [rows] = await readPool.query<FollowingRow[]>(
+            // ⛔ g5_member 에 mb_image 컬럼은 없다(실제로는 mb_image_url/_exists/_updated_at).
+            //    화면에서 쓰지도 않는 컬럼을 select 하다 쿼리 전체가 ER_BAD_FIELD_ERROR 로 실패했고,
+            //    catch 가 빈 배열을 돌려주어 "팔로우한 사람 없음"처럼 보였다. 필요한 필드만 조회한다.
             `SELECT f.target_id AS mb_id, m.mb_nick, m.mb_level,
-					COALESCE(m.mb_image, '') AS mb_image,
 					f.created_at AS followed_at
 			 FROM g5_member_follow f
 			 JOIN g5_member m
@@ -31,7 +32,6 @@ export const load: PageServerLoad = async ({ parent }) => {
                 mb_id: r.mb_id,
                 mb_nick: r.mb_nick,
                 mb_level: r.mb_level,
-                mb_image: r.mb_image,
                 followed_at: r.followed_at
             }))
         };
