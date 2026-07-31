@@ -325,6 +325,18 @@ pre:hover .hljs-copy-btn {
 img[src*='/emoticons/'] {
     display: inline;
     vertical-align: middle;
+}
+
+/* 크기 명시(width 속성)가 없는 이모티콘만 기본 캡 — 레거시 앙티콘·리액션 등.
+ *
+ * ⛔ 이 캡을 width 속성이 있는 img 에 다시 넓히지 말 것 (bug#13145·13159·13165).
+ *    `width: auto` 는 CSS 명세상 HTML width 속성보다 우선하므로, 파서(코어
+ *    content-transform / premium emoticon 플러그인)가 옳게 계산해 넣는
+ *    width="N"(회원 지정 크기·팩별 기본폭, 20~200 클램프)을 전부 지워버린다.
+ *    2026-03-19(#727)부터 이 규칙이 전체에 걸려 있어 크기 지정이 5개월간
+ *    조용히 죽어 있었고, 코드만 봐서는 파서가 멀쩡해 두 번 오판했다. */
+.emoticon-inline:not([width]),
+img[src*='/emoticons/']:not([width]) {
     max-height: 2.5em;
     width: auto;
 }
