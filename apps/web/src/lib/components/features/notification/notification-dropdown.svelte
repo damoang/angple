@@ -182,8 +182,11 @@
         void loadUnreadCount();
     }
 
-    async function loadNotifications(): Promise<void> {
-        if (!authStore.isAuthenticated) return;
+    // 성공 여부를 반환한다 — markSeenOnOpen 게이트용. loadError 플래그는 #12954 의도로
+    // "기존 목록이 남아 있으면 실패해도 false" 라 실패 판정에 못 쓴다(오래된 목록을
+    // 보여주며 못 본 알림을 읽음 처리하는 구멍이 생긴다).
+    async function loadNotifications(): Promise<boolean> {
+        if (!authStore.isAuthenticated) return false;
 
         isLoading = true;
         loadError = false;
@@ -192,10 +195,12 @@
             notifications = response.items;
             unreadCount = response.unread_count;
             writeUnreadCache(response.unread_count);
+            return true;
         } catch (err) {
             console.error('Failed to load notifications:', err);
             // 실패를 '알림이 없습니다' 로 오표시하지 않도록 에러 상태 노출(#12954).
             if (notifications.length === 0) loadError = true;
+            return false;
         } finally {
             isLoading = false;
         }
@@ -264,9 +269,11 @@
     // 처리해 해소한다("모두 읽음"을 따로 누르지 않아도 숫자가 다시 뜨지 않는다).
     // ⛔ 이번에 연 목록의 '새 알림' 강조(has_unread)는 지우지 않는다 — 무엇이 새로
     //    왔는지는 보여야 한다. handleMarkAllAsRead(버튼)와 다른 점이 그것뿐이다.
-    // ⛔ 목록 로드가 실패했으면 처리하지 않는다 — 보지도 못한 알림을 읽음으로 만들면 안 된다.
+    // ⛔ 이번 로드가 성공했을 때만 처리한다 — 보지도 못한 알림을 읽음으로 만들면 안 된다.
+    //    (loadError 플래그로 게이트하면 안 된다: 이전 목록이 남은 채 실패한 경우
+    //     false 로 남아, 새로 온 알림을 렌더 없이 읽음 처리하게 된다)
     async function markSeenOnOpen(): Promise<void> {
-        if (loadError || unreadCount <= 0) return;
+        if (unreadCount <= 0) return;
         try {
             await apiClient.markAllNotificationsAsRead();
             unreadCount = 0;
@@ -276,9 +283,15 @@
         }
     }
 
+    // 열림·재시도 공용: 로드가 성공한 경우에만 배지를 해소한다.
+    async function loadAndMarkSeen(): Promise<void> {
+        const ok = await loadNotifications();
+        if (ok) await markSeenOnOpen();
+    }
+
     function handleOpenChange(open: boolean): void {
         if (open) {
-            void loadNotifications().then(markSeenOnOpen);
+            void loadAndMarkSeen();
         }
     }
 
@@ -377,7 +390,7 @@
                         variant="outline"
                         size="sm"
                         class="h-7 text-xs"
-                        onclick={loadNotifications}
+                        onclick={loadAndMarkSeen}
                     >
                         다시 시도
                     </Button>
