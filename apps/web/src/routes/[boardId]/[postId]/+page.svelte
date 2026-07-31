@@ -1883,6 +1883,7 @@
                           ''
                       ).trim(),
                       category: data.post.category,
+                      boardId,
                       ratingValue: data.post.rating.avg,
                       ratingCount: data.post.rating.count,
                       url: postUrl,
