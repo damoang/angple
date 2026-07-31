@@ -628,6 +628,9 @@
                       title: sanitizedTitle,
                       content: finalContent,
                       category: category || undefined,
+                      // 작성처럼 수정에서도 비밀글 상태를 보낸다 — 빠뜨리면 백엔드가
+                      // '변경 없음'으로 처리해 체크박스를 바꿔도 저장되지 않는다. (#13161)
+                      is_secret: isSecret,
                       tags: tags.length > 0 ? tags : undefined,
                       // 수정 시엔 빈 문자열('')을 보내야 백엔드가 링크를 삭제한다.
                       // undefined(생략)면 백엔드가 '변경 없음'(nil)으로 처리해 기존 링크가 남는다. (#13043)

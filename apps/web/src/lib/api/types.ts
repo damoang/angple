@@ -647,6 +647,7 @@ export interface UpdatePostRequest {
     title?: string; // 선택, 1-200자
     content?: string; // 선택, 1자 이상
     category?: string; // 선택
+    is_secret?: boolean; // 선택 (비밀글 설정/해제 — 생략 시 변경 없음) (#13161)
     tags?: string[]; // 선택 (태그 목록)
     link1?: string; // 선택 (링크1)
     link2?: string; // 선택 (링크2)
