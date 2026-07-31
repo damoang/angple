@@ -9,6 +9,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
+import { isValidBoardId } from '$lib/utils/board-id.js';
 import {
     applyAffiliateField,
     fetchCommentAffiliateLinks,
@@ -109,7 +110,10 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
     const isAdmin = (locals.user?.level ?? 0) >= 10;
     const isInternalRequest = isInternalAppRequest(request);
 
-    if (!boardId || !postId) {
+    // `!boardId` 만으로는 부족하다 — 클라이언트가 URL 을 템플릿 리터럴로 만들면 값이 없을 때
+    // 문자열 `"undefined"` 가 경로에 박히고, 그대로 `g5_write_undefined` 를 조회하다 실패한다.
+    // 존재하지 않을 게 확실한 이름은 DB 까지 가기 전에 400 으로 끊는다.
+    if (!isValidBoardId(boardId) || !postId) {
         return json({ success: false, message: 'boardId와 postId가 필요합니다.' }, { status: 400 });
     }
 

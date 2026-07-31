@@ -80,6 +80,7 @@
     } from '$lib/seo/index.js';
     import type { SeoConfig } from '$lib/seo/types.js';
     import { deriveVideoPoster } from '$lib/utils/video-poster.js';
+    import { isValidBoardId } from '$lib/utils/board-id.js';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { postSlotRegistry } from '$lib/components/features/board/post-slot-registry.js';
@@ -1398,7 +1399,13 @@
     }
 
     // 서버에서 댓글 목록 다시 가져오기
-    async function refetchComments(): Promise<void> {
+    //
+    // #13xxx: 이 함수는 backfill 타이머/재시도 루프에서 **라우트를 떠난 뒤** 실행될 수 있다.
+    // 그때 `boardId`($derived(data.boardId))를 URL 조립 시점에 읽으면 undefined 가 되어
+    // `/api/boards/undefined/posts/{id}/comments` 로 요청이 나갔다(운영 실측 시간당 42건).
+    // → 진입 시점에 boardId 를 **고정**하고, 무효하면 아예 요청하지 않는다.
+    // `cancel` 은 라우트 이탈 시 후속 시도를 멈추기 위한 신호다.
+    async function refetchComments(cancel?: AbortSignal): Promise<void> {
         // 댓글 작성 / 수정 / 삭제 직후 호출되는 경로라 항상 fresh 응답이 필요.
         // 브라우저 HTTP 캐시 / SvelteKit data 캐시가 옛 응답을 반환하면 optimistic
         // update 로 추가된 새 댓글이 덮어써져 "댓글이 바로 안 보인다" (#12294) 가
@@ -1410,7 +1417,10 @@
         const cacheBuster = Date.now();
         // #12937: SPA 로 다른 글로 이동한 뒤 뒤늦게 도착한 응답이 현재 글의 목록을
         // 덮어쓰지 않도록, 요청 시점의 글 ID 를 고정해 적용 직전에 대조한다.
-        const targetPostId = data.post.id;
+        const targetPostId = data.post?.id;
+        // 요청 시점에 boardId 를 고정 — 이후 라우트가 바뀌어도 URL 이 깨지지 않는다.
+        const targetBoardId = boardId;
+        if (!isValidBoardId(targetBoardId) || !targetPostId || cancel?.aborted) return;
         // #12735: 댓글 API 는 페이지당 최대 200개라, 댓글이 200개를 넘는 글은
         // page=1 한 번만 받으면 나머지가 누락된다("대댓글 많은데 안 보임").
         // total_pages 만큼 순차로 모두 받아 합친다. (안전 상한 MAX_PAGES)
@@ -1418,7 +1428,7 @@
         const MAX_PAGES = 15;
         const fetchCommentPage = (p: number) =>
             fetch(
-                `/api/boards/${boardId}/posts/${targetPostId}/comments?page=${p}&limit=${PAGE_SIZE}&_t=${cacheBuster}`,
+                `/api/boards/${targetBoardId}/posts/${targetPostId}/comments?page=${p}&limit=${PAGE_SIZE}&_t=${cacheBuster}`,
                 {
                     cache: 'no-store',
                     // #12937: 모바일 webview 에서 fetch 가 응답 없이 매달리면
@@ -1440,6 +1450,8 @@
             // 나머지 페이지(2..N)를 병렬 로드 — 순차 await 제거로 긴 스레드/신고댓글 도달 지연 완화.
             // Promise.all 은 입력 순서를 보존하므로 page 순서대로 concat 된다.
             if (pagesToLoad > 1) {
+                // 1페이지 응답을 기다리는 사이 라우트를 떠났으면 후속 페이지는 쏘지 않는다.
+                if (cancel?.aborted) return;
                 const rest = await Promise.all(
                     Array.from({ length: pagesToLoad - 1 }, (_, i) => fetchCommentPage(i + 2))
                 );
@@ -1455,7 +1467,7 @@
                 );
             }
             // #12937: 응답 대기 중 다른 글로 이동했다면 폐기 — 이전 글 댓글로 덮어쓰기 방지.
-            if (data.post.id !== targetPostId) return;
+            if (cancel?.aborted || data.post?.id !== targetPostId) return;
             comments = all;
             commentsTotal = total || all.length;
             // 클라가 전량 로드 완료 — backfill 게이트가 재발화하지 않도록 complete 로 확정.
@@ -1477,19 +1489,23 @@
     // 재시도가 없어 "불러오는 중"에 고착되는 사례(#12668: 간헐 발생, 새로고침하면 보임)가 있어
     // 짧은 백오프로 몇 번 재시도한다. 실제 0개이거나 채워지면 종료.
     let backfillInProgress = false;
-    async function backfillWithRetry(): Promise<void> {
+    async function backfillWithRetry(cancel?: AbortSignal): Promise<void> {
         if (backfillInProgress) return;
         backfillInProgress = true;
         try {
             for (let attempt = 0; attempt < 3; attempt++) {
+                // 라우트를 떠났으면 즉시 중단 — 이 가드가 없어 이탈 후에도 800/1600/2400ms
+                // 간격으로 재시도가 계속됐고, 그 요청들이 boardId=undefined 로 나갔다.
+                if (cancel?.aborted) return;
                 try {
-                    await refetchComments();
+                    await refetchComments(cancel);
                 } catch {
                     // 전송 실패 — 재시도
                 }
                 if (comments.length > 0 || commentsTotal === 0) return;
                 await new Promise((resolve) => setTimeout(resolve, 800 * (attempt + 1)));
             }
+            if (cancel?.aborted) return;
             // 3회 모두 실패 + 여전히 빈 목록 → 에러/복구 UI 노출(무한 "불러오는 중" 고착 방지).
             if (comments.length === 0 && commentsTotal > 0) {
                 commentsError = true;
@@ -1510,9 +1526,15 @@
         if (commentsLoadState === 'complete') return;
         const loaded = comments.length;
 
+        // 이 effect 가 만든 모든 비동기 작업의 공통 중단 신호.
+        // ⛔ 아래 분기 중 **어느 하나라도 cleanup 없이 return 하면** 라우트를 떠난 뒤에도
+        //    작업이 계속 돌아 boardId=undefined 요청이 나간다(운영 실측). 분기마다 반드시 반환할 것.
+        const controller = new AbortController();
+        const cancel = () => controller.abort();
+
         if (commentsLoadState === 'failed' || loaded === 0) {
-            void backfillWithRetry();
-            return;
+            void backfillWithRetry(controller.signal);
+            return cancel;
         }
 
         // 앵커(#c_<댓글ID>)로 진입했는데 대상 댓글이 아직 로드 전이면(신고/딥링크) 1500ms 디바운스를
@@ -1521,8 +1543,8 @@
         if (hash.startsWith('#c_')) {
             const anchorId = hash.slice(3);
             if (anchorId && !comments.some((c) => String(c.id) === anchorId)) {
-                void refetchComments();
-                return;
+                void refetchComments(controller.signal);
+                return cancel;
             }
         }
 
@@ -1533,17 +1555,19 @@
         const scheduleBackfill = (delay: number) => {
             timer = window.setTimeout(() => {
                 const active = document.activeElement as HTMLElement | null;
+                if (controller.signal.aborted) return;
                 if (active?.closest('.ProseMirror, [contenteditable="true"], textarea')) {
                     scheduleBackfill(3000);
                     return;
                 }
-                void refetchComments();
+                void refetchComments(controller.signal);
             }, delay);
         };
         scheduleBackfill(1500);
 
         return () => {
             window.clearTimeout(timer);
+            cancel();
         };
     });
 

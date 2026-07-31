@@ -28,6 +28,7 @@
     // 코어 레이아웃 초기화 (중복 호출 안전)
     initCoreLayouts();
     import { PromotionInlinePost } from '$lib/components/ui/promotion-inline-post/index.js';
+    import { isValidBoardId } from '$lib/utils/board-id.js';
 
     interface PromotionPost {
         wrId: number;
@@ -199,6 +200,10 @@
     // 페이지 변경 (목록 페이지에서는 AJAX, 상세 페이지에서는 list 로 navigate)
     async function goToPage(page: number): Promise<void> {
         if (page < 1 || page > totalPages || page === currentPage) return;
+        // 이 컴포넌트는 글 상세 하단에 붙고 boardId 를 상위의 data.boardId 에서 받는다.
+        // 라우트를 떠나면 그 값이 사라져 `/api/v1/boards/undefined/posts` 로 요청이 나갔다
+        // (백엔드가 200 `{"data":null}` 을 주어 "더 볼 글 없음"처럼 조용히 실패).
+        if (!isValidBoardId(boardId)) return;
 
         if (isOnPostDetail) {
             // #11972: 본문 SSR 없이 목록 페이지로 이동
@@ -233,6 +238,10 @@
     // 일시적인 네트워크 오류에도 목록이 영영 비어 있었다).
     async function loadInitial(): Promise<void> {
         if (!browser) return;
+        // 진입 시점에 고정한다 — 아래에 await 가 있어, 그 사이 라우트를 떠나면
+        // boardId 를 다시 읽을 때 undefined 가 되어 URL 에 문자열로 박힌다.
+        const targetBoardId = boardId;
+        if (!isValidBoardId(targetBoardId)) return;
 
         error = null;
         loading = true;
@@ -250,7 +259,7 @@
             ) {
                 try {
                     const r = await fetch(
-                        `/api/boards/${boardId}/posts/${currentPostId}/page-index`
+                        `/api/boards/${targetBoardId}/posts/${currentPostId}/page-index`
                     );
                     if (r.ok) {
                         const body = (await r.json()) as { page?: number };
@@ -261,7 +270,7 @@
                 }
             }
 
-            const response = await apiClient.getBoardPosts(boardId, startPage, limit, {
+            const response = await apiClient.getBoardPosts(targetBoardId, startPage, limit, {
                 summary: useSummaryListResponse
             });
             posts = response.items;
