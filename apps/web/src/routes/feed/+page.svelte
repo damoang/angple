@@ -4,7 +4,9 @@
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { Button } from '$lib/components/ui/button/index.js';
     import * as Select from '$lib/components/ui/select/index.js';
+    import { browser } from '$app/environment';
     import Newspaper from '@lucide/svelte/icons/newspaper';
+    import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import Eye from '@lucide/svelte/icons/eye';
     import FeedSkeleton from '$lib/components/features/feed/feed-skeleton.svelte';
@@ -13,11 +15,20 @@
 
     let { data }: { data: PageData } = $props();
 
-    // 필터 옵션
+    // 글/댓글 — 「만」을 뺐다. 세그먼트 자체가 배타 선택을 표현하고, 모바일 폭도 아낀다.
     const viewOptions = [
         { value: '', label: '전체' },
-        { value: 'w', label: '글만' },
-        { value: 'c', label: '댓글만' }
+        { value: 'w', label: '글' },
+        { value: 'c', label: '댓글' }
+    ];
+    /**
+     * 범위 — 자유게시판이 새글모음의 89.8%(7일 실측)라 목록의 게시판 이름이 30행 중 27행이
+     * 같은 값이 된다. 이 칩을 눌러야 "다른 게시판에서 무슨 일이 있나"가 비로소 보인다.
+     * ⛔ 값은 서버 `FEED_SCOPE_PRESETS` 와 같은 집합이어야 한다.
+     */
+    const scopeOptions = [
+        { value: '', label: '전체' },
+        { value: 'nofree', label: '자유게시판 제외' }
     ];
     const sortOptions = [
         { value: 'latest', label: '최신순' },
@@ -25,8 +36,20 @@
         { value: 'views', label: '조회순' }
     ];
 
-    const selectedViewLabel = $derived(
-        viewOptions.find((o) => o.value === data.currentView)?.label || '전체'
+    let showAdvanced = $state(false);
+
+    const hasActiveFilter = $derived(
+        Boolean(data.currentView || data.currentScope || data.currentGroup)
+    );
+
+    /** 빈 목록에서 빠져나오는 길. 기억한 값도 함께 지운다 — 안 그러면 다음 방문에 되돌아온다. */
+    function resetFilters(): void {
+        savePrefs({ view: '', scope: '' });
+        goto('/feed');
+    }
+
+    const scopeLabel = $derived(
+        scopeOptions.find((o) => o.value === data.currentScope)?.label || '전체'
     );
 
     const selectedGroupLabel = $derived(
@@ -39,8 +62,58 @@
         sortOptions.find((o) => o.value === data.currentSort)?.label || '최신순'
     );
 
+    /**
+     * 보기 설정 기억.
+     *
+     * ⛔ 쿠키로 하면 안 된다 — 이 응답에는 `Cache-Control: public, s-maxage=10` 이 붙어 있어
+     *    쿠키로 응답을 가르면 공유 캐시가 남의 취향을 서빙한다. 서버는 이 선호를 몰라야 한다.
+     * 실측 근거: `view=w` 가 `page=1` 과 함께 반복 등장 = 매 방문 다시 고르고 있었다.
+     */
+    const PREFS_KEY = 'angple_feed_prefs';
+    let prefsRestored = false;
+
+    function savePrefs(patch: { view?: string; scope?: string }): void {
+        if (!browser) return;
+        try {
+            const cur = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
+            localStorage.setItem(PREFS_KEY, JSON.stringify({ ...cur, ...patch }));
+        } catch {
+            // 저장 실패는 무시 — 기억이 안 될 뿐 화면은 정상이다
+        }
+    }
+
+    $effect(() => {
+        if (!browser || prefsRestored) return;
+        prefsRestored = true;
+
+        // ⛔ 쿼리스트링이 **하나라도** 있으면 복원하지 않는다.
+        //    `?view=c` 같은 공유 링크가 개인 설정에 덮이면 안 된다. URL 이 항상 이긴다.
+        if (window.location.search) return;
+
+        let saved: { view?: string; scope?: string };
+        try {
+            saved = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
+        } catch {
+            return;
+        }
+
+        const params = new URLSearchParams();
+        // 기본값('')은 파라미터 부재로 표현되므로 truthy 인 것만 복원한다 —
+        // "전체를 골랐는데 다시 글만으로 튕기는" 되돌이가 이 조건에서 자연히 끊긴다.
+        if (saved.view && viewOptions.some((o) => o.value === saved.view)) {
+            params.set('view', saved.view);
+        }
+        if (saved.scope && scopeOptions.some((o) => o.value === saved.scope)) {
+            params.set('scope', saved.scope);
+        }
+        if ([...params].length === 0) return;
+
+        goto(`${window.location.pathname}?${params}`, { replaceState: true });
+    });
+
     // 필터 변경
     function updateFilter(key: string, value: string): void {
+        if (key === 'view' || key === 'scope') savePrefs({ [key]: value });
         const url = new URL(window.location.href);
         if (value) {
             url.searchParams.set(key, value);
@@ -123,23 +196,89 @@
                         <div>
                             <h1 class="text-foreground text-xl font-bold leading-tight">새글</h1>
                             <p class="text-muted-foreground text-sm">
-                                전체 {result.total.toLocaleString()}건
+                                {scopeLabel}
+                                {result.total.toLocaleString()}건
                             </p>
                         </div>
                     </div>
 
-                    <!-- 필터 -->
-                    <div class="flex flex-wrap gap-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        class="text-muted-foreground h-9 gap-1.5 text-sm"
+                        aria-expanded={showAdvanced}
+                        onclick={() => (showAdvanced = !showAdvanced)}
+                    >
+                        <SlidersHorizontal class="h-4 w-4" />
+                        {showAdvanced ? '접기' : '자세한 조건'}
+                    </Button>
+                </div>
+
+                <!--
+                    글/댓글(콘텐츠 종류)과 범위(출처)는 직교하는 축이다.
+                    같은 모양을 쓰면 상하 관계로 오해되므로 세그먼트 ↔ 칩으로 모양을 달리한다.
+                    각 그룹을 자기 div 로 감싸 wrap 이 **그룹 단위**로 일어나게 한다
+                    (칩이 낱개로 흩어지면 어느 축인지 알 수 없다).
+                -->
+                <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <!--
+                        ⛔ Tabs 컴포넌트를 쓰지 않는다. 이건 패널 전환이 아니라 **내비게이션**이다.
+                           role="tab" 은 "누르면 tabpanel 이 바뀐다"고 알리는데 여기엔 패널이 없어
+                           보조기기에 거짓을 말하게 된다. 모양만 세그먼트로 하고 의미는 버튼으로 둔다.
+                    -->
+                    <div
+                        role="group"
+                        aria-label="글과 댓글 중 볼 항목"
+                        class="bg-muted flex h-9 items-center gap-0.5 rounded-lg p-0.5"
+                    >
+                        {#each viewOptions as opt (opt.value)}
+                            <button
+                                type="button"
+                                aria-pressed={data.currentView === opt.value}
+                                class="rounded-md px-3 py-1 text-sm transition-colors {data.currentView ===
+                                opt.value
+                                    ? 'bg-background text-foreground font-medium shadow-sm'
+                                    : 'text-muted-foreground hover:text-foreground'}"
+                                onclick={() => updateFilter('view', opt.value)}
+                            >
+                                {opt.label}
+                            </button>
+                        {/each}
+                    </div>
+
+                    <div class="flex items-center gap-1">
+                        {#each scopeOptions as opt (opt.value)}
+                            <button
+                                type="button"
+                                aria-pressed={data.currentScope === opt.value}
+                                class="rounded-md px-2.5 py-1.5 text-sm transition-colors {data.currentScope ===
+                                opt.value
+                                    ? 'bg-accent text-accent-foreground font-medium'
+                                    : 'text-muted-foreground hover:bg-muted'}"
+                                onclick={() => updateFilter('scope', opt.value)}
+                            >
+                                {opt.label}
+                            </button>
+                        {/each}
+                    </div>
+                </div>
+
+                <!--
+                    정렬·그룹은 실측 사용 0회라 접어 둔다. **지우지는 않는다** —
+                    "안 쓴다"가 "없애도 된다"는 아니고, 되돌리기가 {#if} 제거뿐이어야 한다.
+                -->
+                {#if showAdvanced}
+                    <div class="border-border mt-3 flex flex-wrap gap-2 border-t pt-3">
                         <Select.Root
                             type="single"
-                            value={data.currentView}
-                            onValueChange={(v) => updateFilter('view', v || '')}
+                            value={data.currentSort}
+                            onValueChange={(v) => updateFilter('sort', v || 'latest')}
                         >
-                            <Select.Trigger class="h-9 w-[100px] text-sm"
-                                >{selectedViewLabel}</Select.Trigger
+                            <Select.Trigger class="h-9 w-[110px] text-sm"
+                                >{selectedSortLabel}</Select.Trigger
                             >
                             <Select.Content>
-                                {#each viewOptions as opt (opt.value)}
+                                {#each sortOptions as opt (opt.value)}
                                     <Select.Item value={opt.value}>{opt.label}</Select.Item>
                                 {/each}
                             </Select.Content>
@@ -161,23 +300,8 @@
                                 {/each}
                             </Select.Content>
                         </Select.Root>
-
-                        <Select.Root
-                            type="single"
-                            value={data.currentSort}
-                            onValueChange={(v) => updateFilter('sort', v || 'latest')}
-                        >
-                            <Select.Trigger class="h-9 w-[110px] text-sm"
-                                >{selectedSortLabel}</Select.Trigger
-                            >
-                            <Select.Content>
-                                {#each sortOptions as opt (opt.value)}
-                                    <Select.Item value={opt.value}>{opt.label}</Select.Item>
-                                {/each}
-                            </Select.Content>
-                        </Select.Root>
                     </div>
-                </div>
+                {/if}
             </CardHeader>
 
             <!-- 목록 -->
@@ -189,8 +313,22 @@
                         >
                             <Newspaper class="text-muted-foreground h-8 w-8" />
                         </div>
-                        <p class="text-foreground mb-1 text-lg font-medium">아직 새 글이 없어요</p>
-                        <p class="text-muted-foreground text-sm">첫 번째 글을 작성해보세요!</p>
+                        {#if hasActiveFilter}
+                            <!-- 필터 때문에 빈 것을 "글이 없다"고 하면 거짓말이 된다 -->
+                            <p class="text-foreground mb-1 text-lg font-medium">
+                                선택하신 조건에 해당하는 새 글이 없습니다
+                            </p>
+                            <p class="text-muted-foreground mb-4 text-sm">
+                                조건을 바꾸어 다시 확인해 보세요.
+                            </p>
+                            <Button variant="outline" size="sm" onclick={resetFilters}>
+                                전체 보기
+                            </Button>
+                        {:else}
+                            <p class="text-foreground mb-1 text-lg font-medium">
+                                최근 7일 동안 올라온 새 글이 없습니다
+                            </p>
+                        {/if}
                     </div>
                 {:else}
                     <div class="divide-border divide-y">
