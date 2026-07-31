@@ -180,12 +180,25 @@ export function createVideoObjectJsonLd(options: {
     return data;
 }
 
+/** 장소(지도) 게시판 — 카테고리가 지역명이라 board 기반으로 LocalBusiness 매핑. */
+const PLACE_BOARDS: ReadonlySet<string> = new Set(['angmap']);
+
 /**
- * 앙티티 카테고리(ca_name) → schema.org 타입.
+ * 앙티티/앙지도 → schema.org 타입.
  * 구글 리뷰 리치결과(별점 노출) 지원 타입을 우선 매핑. 미지원 카테고리는 CreativeWork
- * (스키마는 유효하나 리치결과는 미보장). 다중 카테고리(병원=LocalBusiness 등)는 후속.
+ * (스키마는 유효하나 리치결과는 미보장).
+ *
+ * ⚠️ 앙지도(angmap)는 ca_name 이 음식종류가 아니라 **지역명(전남·서울…)** 이라 카테고리
+ *    매핑으로는 CreativeWork 로 떨어져 GSC "parent_node 개체유형 잘못" 오류가 났다
+ *    (2026-07-31, angmap/15135). board 기반으로 LocalBusiness 매핑한다 — 회원이 여러
+ *    맛집을 리뷰하는 사이트라 구글 LocalBusiness 리뷰 스니펫 정책("다른 로컬 비즈니스
+ *    리뷰 수집 사이트")에 적격이고, 별점 리치결과도 살아난다.
  */
-export function ratingSchemaTypeForCategory(category?: string): JsonLdRatedItem['@type'] {
+export function ratingSchemaTypeForCategory(
+    category?: string,
+    boardId?: string
+): JsonLdRatedItem['@type'] {
+    if (boardId && PLACE_BOARDS.has(boardId)) return 'LocalBusiness';
     switch ((category || '').trim()) {
         // 드라마도 Movie 로 — Google 리뷰 스니펫 지원 타입은 Movie 이고 TVSeries 는 미지원이라,
         // ★ 리치결과를 실제로 띄우려면 Movie 로 매핑한다(스키마상 무해).
@@ -244,6 +257,7 @@ const REVIEW_SNIPPET_SUPPORTED_TYPES: ReadonlySet<string> = new Set([
 export function createRatedItemJsonLd(options: {
     name: string;
     category?: string;
+    boardId?: string;
     ratingValue: number;
     ratingCount: number;
     url?: string;
@@ -254,7 +268,7 @@ export function createRatedItemJsonLd(options: {
     if (!options.ratingCount || options.ratingCount < 1) return null;
     if (!(options.ratingValue > 0)) return null;
 
-    const type = ratingSchemaTypeForCategory(options.category);
+    const type = ratingSchemaTypeForCategory(options.category, options.boardId);
     if (!REVIEW_SNIPPET_SUPPORTED_TYPES.has(type)) return null;
 
     const item: JsonLdRatedItem = {

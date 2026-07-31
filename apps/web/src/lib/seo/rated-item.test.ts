@@ -22,6 +22,32 @@ describe('ratingSchemaTypeForCategory — 앙티티 카테고리 → schema.org 
         expect(ratingSchemaTypeForCategory(undefined)).toBe('CreativeWork');
         expect(ratingSchemaTypeForCategory('')).toBe('CreativeWork');
     });
+    it('앙지도(angmap)는 board 기반으로 LocalBusiness — ca_name(지역명) 무관', () => {
+        // 지역명이 카테고리라 category 매핑으론 CreativeWork 였던 것을 board 로 교정.
+        expect(ratingSchemaTypeForCategory('전남', 'angmap')).toBe('LocalBusiness');
+        expect(ratingSchemaTypeForCategory('서울', 'angmap')).toBe('LocalBusiness');
+        expect(ratingSchemaTypeForCategory(undefined, 'angmap')).toBe('LocalBusiness');
+        // 다른 게시판은 기존 매핑 유지(회귀 없음)
+        expect(ratingSchemaTypeForCategory('영화', 'angtt')).toBe('Movie');
+    });
+});
+
+describe('createRatedItemJsonLd — angmap 은 LocalBusiness 로 별점 생성(오류 해소 + 리치결과 유지)', () => {
+    const base = { ratingValue: 4, ratingCount: 1, url: 'https://damoang.net/angmap/15135' };
+    it('angmap 장소는 LocalBusiness + aggregateRating (CreativeWork null 아님)', () => {
+        const r = createRatedItemJsonLd({
+            ...base,
+            name: '목포 동부시장내 삼촌네회수산',
+            category: '전남',
+            boardId: 'angmap'
+        });
+        expect(r).not.toBeNull();
+        expect(r?.['@type']).toBe('LocalBusiness');
+        expect(r?.aggregateRating.ratingValue).toBe(4);
+    });
+    it('boardId 없으면 기존대로 category 매핑(회귀 없음)', () => {
+        expect(createRatedItemJsonLd({ ...base, name: '무제', category: '음악' })).toBeNull(); // CreativeWork → 생략
+    });
 });
 
 describe('createRatedItemJsonLd — 리뷰 스니펫 미지원 타입은 블록 생략 (GSC parent_node 오류 방지)', () => {

@@ -177,8 +177,9 @@ export interface JsonLdAggregateRating {
 
 /** JSON-LD - 평점 대상 아이템 (작품/장소 등 + aggregateRating). 앙티티(리뷰) 게시판용. */
 export interface JsonLdRatedItem {
-    // Movie/Book/VideoGame/Event = Google 리뷰 스니펫(★) 지원. CreativeWork = 폴백(스키마 유효, 리치결과 미보장).
-    '@type': 'Movie' | 'Book' | 'VideoGame' | 'Event' | 'CreativeWork';
+    // Movie/Book/VideoGame/Event/LocalBusiness = Google 리뷰 스니펫(★) 지원.
+    // LocalBusiness = 앙지도(angmap) 맛집/장소. CreativeWork = 폴백(스키마 유효, 리치결과 미보장).
+    '@type': 'Movie' | 'Book' | 'VideoGame' | 'Event' | 'LocalBusiness' | 'CreativeWork';
     name: string;
     url?: string;
     image?: string;
