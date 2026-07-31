@@ -39,7 +39,6 @@ interface PostRow extends RowDataPacket {
     mb_id: string;
     wr_link1: string | null;
     wr_link2: string | null;
-    wr_content: string | null;
 }
 
 export const POST: RequestHandler = async ({ request, locals }) => {
@@ -65,7 +64,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
     let post: PostRow | undefined;
     try {
         const [rows] = await readPool.query<PostRow[]>(
-            `SELECT mb_id, wr_link1, wr_link2, LEFT(wr_content, 2000) AS wr_content
+            `SELECT mb_id, wr_link1, wr_link2
                FROM g5_write_angmap
               WHERE wr_id = ? AND wr_is_comment = 0
               LIMIT 1`,
@@ -84,13 +83,19 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         return json({ saved: false, reason: 'forbidden' }, { status: 403 });
     }
 
-    // 링크 후보: 요청값 → 글의 link1/link2 → 본문 순.
+    // 링크 후보: 요청값 → 글의 link1/link2. **본문은 보지 않는다.**
+    //
+    // ⛔ 본문을 스캔하면 작성폼의 동의 절차가 무력해진다. 확인 칩은 "이 장소 맞나요?" 를
+    //    물어 [연결] 을 누른 경우에만 link1/link2 를 채우도록 설계돼 있는데(post-form.svelte
+    //    acceptAngmapSuggestion), 서버가 본문을 다시 훑으면 [무시] 를 누른 사람의 글에도
+    //    핀이 박힌다. 링크 필드만 보면 "작성자가 동의한 것"과 정확히 일치한다.
+    // 본문에만 링크가 있는 기존 글(실측 780건)은 백필 트랙에서 별도로 다룬다.
+    //
     // findMapLink 가 allowlist(MAP_LINK_HOSTS) 밖 URL 을 거부하므로 SSRF 가드는 여기서 걸린다.
     const candidate =
         findMapLink(String(body.url ?? '').slice(0, 500)) ??
         findMapLink(post.wr_link1 ?? '') ??
-        findMapLink(post.wr_link2 ?? '') ??
-        findMapLink(post.wr_content ?? '');
+        findMapLink(post.wr_link2 ?? '');
 
     if (!candidate) {
         return json({ saved: false, reason: 'no_map_link' });
@@ -103,35 +108,51 @@ export const POST: RequestHandler = async ({ request, locals }) => {
         return json({ saved: false, reason: 'resolve_failed' });
     }
 
-    // 좌표가 없으면 저장하지 않는다. status 만 남기면 핀맵이 걸러내긴 하나(resolve_status='ok'
-    // 조건), lat/lng 가 NOT NULL 이라 넣을 값이 없다. 재시도 판단은 링크 유무로 충분하다.
-    if (place.lat === null || place.lng === null || !isValidLatLng(place.lat, place.lng)) {
-        return json({ saved: false, reason: place.status ?? 'no_coords' });
+    // ⛔ 좌표를 못 구해도 **행은 남긴다.** "시도한 적 없음"과 "시도했으나 실패"를 구분해야
+    //    백필·재시도가 근거를 갖는다. 기존 데이터가 이미 그 규약이다(실측: no_coords 124행 +
+    //    ambiguous 6행이 전부 lat=0,lng=0 센티널). NOT NULL 이라 못 넣는다는 건 사실이 아니다.
+    //
+    // ⛔ 축 하나만 0 인 좌표도 저장하지 않는다. 읽기 쪽 isPlottable(핀맵·미니맵)은 어느 한
+    //    축이라도 0 이면 제외하므로, 'ok' 로 넣어봐야 지도에 영원히 안 뜨는 유령 행이 된다.
+    //    쓰기 가드를 읽기 가드와 같은 규약으로 맞춘다.
+    if (
+        place.lat === null ||
+        place.lng === null ||
+        !isValidLatLng(place.lat, place.lng) ||
+        place.lat === 0 ||
+        place.lng === 0
+    ) {
+        const status = place.status === 'ok' ? 'no_coords' : place.status;
+        try {
+            await upsertPlace({
+                wrId,
+                provider: place.provider,
+                placeId: place.placeId,
+                name: place.name,
+                roadAddress: place.roadAddress,
+                lat: 0,
+                lng: 0,
+                sourceUrl: candidate,
+                status
+            });
+        } catch (err) {
+            console.error('[angmap/place] 실패 기록 저장 실패:', err);
+        }
+        return json({ saved: false, reason: status });
     }
 
     try {
-        await pool.query<ResultSetHeader>(
-            `INSERT INTO angmap_places
-                 (wr_id, provider, place_id, name, road_address, lat, lng, source_url,
-                  resolve_status, resolved_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'ok', NOW())
-             ON DUPLICATE KEY UPDATE
-                 provider = VALUES(provider), place_id = VALUES(place_id),
-                 name = VALUES(name), road_address = VALUES(road_address),
-                 lat = VALUES(lat), lng = VALUES(lng),
-                 source_url = VALUES(source_url),
-                 resolve_status = 'ok', resolved_at = NOW()`,
-            [
-                wrId,
-                place.provider,
-                place.placeId,
-                place.name,
-                place.roadAddress,
-                place.lat,
-                place.lng,
-                candidate
-            ]
-        );
+        await upsertPlace({
+            wrId,
+            provider: place.provider,
+            placeId: place.placeId,
+            name: place.name,
+            roadAddress: place.roadAddress,
+            lat: place.lat,
+            lng: place.lng,
+            sourceUrl: candidate,
+            status: 'ok'
+        });
     } catch (err) {
         console.error('[angmap/place] 저장 실패:', err);
         return json({ saved: false, reason: 'write_failed' }, { status: 500 });
@@ -139,3 +160,50 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
     return json({ saved: true, name: place.name, provider: place.provider });
 };
+
+/** varchar(255) 컬럼 — strict mode 에서 초과분은 1406 에러라 저장 자체가 실패한다 */
+function clip(v: string | null | undefined): string | null {
+    if (!v) return null;
+    return v.length > 255 ? v.slice(0, 255) : v;
+}
+
+/**
+ * `angmap_places` UPSERT — PK 는 wr_id 단일이라 같은 글을 몇 번 불러도 행은 하나다.
+ * ⛔ ON DUPLICATE 절이 PK 외 **전 컬럼**을 덮는다. 하나라도 빠뜨리면 실패 기록 위에
+ *    성공 값이 섞여 들어가(또는 그 반대) 어느 쪽도 신뢰할 수 없는 행이 남는다.
+ */
+async function upsertPlace(p: {
+    wrId: number;
+    provider: string;
+    placeId: string | null;
+    name: string | null;
+    roadAddress: string | null;
+    lat: number;
+    lng: number;
+    sourceUrl: string;
+    status: string;
+}): Promise<void> {
+    await pool.query<ResultSetHeader>(
+        `INSERT INTO angmap_places
+             (wr_id, provider, place_id, name, road_address, lat, lng, source_url,
+              resolve_status, resolved_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+         ON DUPLICATE KEY UPDATE
+             provider = VALUES(provider), place_id = VALUES(place_id),
+             name = VALUES(name), road_address = VALUES(road_address),
+             lat = VALUES(lat), lng = VALUES(lng),
+             source_url = VALUES(source_url),
+             resolve_status = VALUES(resolve_status), resolved_at = NOW()`,
+        [
+            p.wrId,
+            p.provider,
+            clip(p.placeId),
+            clip(p.name),
+            clip(p.roadAddress),
+            p.lat,
+            p.lng,
+            clip(p.sourceUrl),
+            p.status
+        ]
+    );
+}
