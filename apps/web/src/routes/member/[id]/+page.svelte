@@ -237,11 +237,17 @@
         commentsLoaded = true;
     }
 
-    async function loadLikedPosts(): Promise<void> {
-        if (likedLoaded || !p?.mb_id || p?.is_left || p?.withdrawn) return;
+    // #13116: 공감 내역 제목 검색. 2자 미만은 서버가 무시하므로 전체 목록과 동일.
+    let likedQuery = $state('');
+    let likedSearchTimer: ReturnType<typeof setTimeout> | null = null;
+
+    async function loadLikedPosts(force = false): Promise<void> {
+        if ((likedLoaded && !force) || !p?.mb_id || p?.is_left || p?.withdrawn) return;
         loadingLiked = true;
         try {
-            const res = await fetch(`/api/members/${p.mb_id}/liked?limit=50`);
+            const qs =
+                likedQuery.trim().length >= 2 ? `&q=${encodeURIComponent(likedQuery.trim())}` : '';
+            const res = await fetch(`/api/members/${p.mb_id}/liked?limit=50${qs}`);
             if (res.ok) {
                 const d = await res.json();
                 likedPosts = d.data ?? [];
@@ -249,6 +255,11 @@
         } catch {}
         loadingLiked = false;
         likedLoaded = true;
+    }
+
+    function handleLikedQueryInput(): void {
+        if (likedSearchTimer) clearTimeout(likedSearchTimer);
+        likedSearchTimer = setTimeout(() => void loadLikedPosts(true), 300);
     }
 
     function handleTabChange(tab: string): void {
@@ -965,13 +976,25 @@
 
                 <!-- 공감 내역 탭 -->
                 <Tabs.Content value="liked" class="p-4">
+                    <!-- #13116: 공감한 글 제목 검색 -->
+                    <div class="mb-3">
+                        <input
+                            type="search"
+                            bind:value={likedQuery}
+                            oninput={handleLikedQueryInput}
+                            placeholder="공감한 글 제목 검색 (2자 이상)"
+                            class="border-border bg-background text-foreground placeholder:text-muted-foreground w-full rounded-md border px-3 py-1.5 text-sm focus:outline-none"
+                        />
+                    </div>
                     {#if loadingLiked}
                         <div class="flex justify-center py-8">
                             <Loader2 class="text-muted-foreground h-5 w-5 animate-spin" />
                         </div>
                     {:else if likedPosts.length === 0}
                         <p class="text-muted-foreground py-8 text-center text-sm">
-                            공감 내역이 없습니다.
+                            {likedQuery.trim().length >= 2
+                                ? '검색 결과가 없습니다.'
+                                : '공감 내역이 없습니다.'}
                         </p>
                     {:else}
                         <ul class="divide-border divide-y">
