@@ -1,4 +1,5 @@
 import type { RequestHandler } from './$types';
+import { CAR_HUB_TOPICS } from '$lib/server/car-hub-topics';
 
 /**
  * 정적 페이지 Sitemap
@@ -17,7 +18,13 @@ export const GET: RequestHandler = async ({ url }) => {
         { loc: '/level', priority: '0.2', changefreq: 'yearly' },
         { loc: '/guide', priority: '0.3', changefreq: 'monthly' },
         { loc: '/faq', priority: '0.3', changefreq: 'monthly' },
-        { loc: '/advertising', priority: '0.2', changefreq: 'monthly' }
+        { loc: '/advertising', priority: '0.2', changefreq: 'monthly' },
+        // 자동차 주제 허브(SEO L0 파일럿). changefreq daily — 최신 글이 매일 갱신됨.
+        ...CAR_HUB_TOPICS.map((t) => ({
+            loc: `/car/hub/${t.slug}`,
+            priority: '0.6',
+            changefreq: 'daily'
+        }))
     ];
 
     const urls = staticPages.map(
