@@ -447,6 +447,19 @@
                 <span>♡ 마음메시지 신청하기</span>
                 <span aria-hidden="true" class="leading-none">→</span>
             </a>
+            <!--
+                월별 후원 현황(/brickang) 1줄 카드. 후원 카드 계열이라 바로 아래에 붙인다.
+                문구가 '다모앙 마을'이 아니라 '월별 후원 현황'인 이유: 이 링크로 가서
+                맨 먼저 보이는 것이 월별 후원 그래프라, 라벨과 도착 지점을 맞춘 것이다.
+                ⛔ 위 두 카드와 달리 **내부 링크**다 — target="_blank" 를 붙이지 않는다.
+            -->
+            <a
+                href="/brickang"
+                class="border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 mt-2 flex items-center justify-between rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+            >
+                <span>♡ 월별 후원 현황</span>
+                <span aria-hidden="true" class="leading-none">→</span>
+            </a>
         {/if}
         <div class:hidden={!widgetLayoutStore.hasEnabledAds}>
             {#if compact}{:else}
