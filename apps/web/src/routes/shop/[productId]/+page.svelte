@@ -11,6 +11,9 @@
 
     let { data }: { data: PageData } = $props();
     const product = $derived(data.product);
+    /** 서버가 DB(payment_provider_configs)로 판정한 결제 가능 여부. 판정 불가 시 false(fail-closed). */
+    const paymentAvailable = $derived(data.paymentAvailable === true);
+    const isSoldOut = $derived(product.stock_status === 'out_of_stock');
 
     let isOrdering = $state(false);
     let isAddingToCart = $state(false);
@@ -51,7 +54,8 @@
             authStore.redirectToLogin();
             return;
         }
-        if (isOrdering) return;
+        // 서버가 결제 불가로 판정했으면 주문 생성을 시도하지 않는다 (버튼 비활성과 이중 방어)
+        if (!paymentAvailable || isOrdering) return;
         isOrdering = true;
 
         try {
@@ -234,17 +238,25 @@
                 {/if}
             </div>
 
-            <!-- 구매 버튼 -->
-            <!-- #12598 임시: 네이버페이 PG 승인 전까지 결제 비활성화. 승인 완료 후 disabled 제거. -->
+            <!-- 구매 버튼 — 결제 가능 여부는 DB 설정(payment_provider_configs)이 결정한다 (#12598) -->
             <div class="mt-6 space-y-2">
                 <Button
                     class="w-full"
                     size="lg"
                     onclick={handleBuy}
-                    disabled={true}
-                    title="네이버페이 PG 승인 대기 중"
+                    disabled={isSoldOut || !paymentAvailable || isOrdering}
+                    title={!paymentAvailable && !isSoldOut ? '결제 수단 준비 중입니다' : undefined}
                 >
-                    🚧 네이버페이 승인 대기 중 (곧 오픈)
+                    {#if isSoldOut}
+                        품절
+                    {:else if !paymentAvailable}
+                        결제 준비 중 (곧 오픈)
+                    {:else if isOrdering}
+                        주문 생성 중...
+                    {:else}
+                        <ShoppingCart class="mr-2 h-5 w-5" />
+                        구매하기
+                    {/if}
                 </Button>
                 {#if product.stock_status !== 'out_of_stock'}
                     <Button
