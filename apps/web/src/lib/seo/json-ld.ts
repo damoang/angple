@@ -211,9 +211,35 @@ export function ratingSchemaTypeForCategory(category?: string): JsonLdRatedItem[
 }
 
 /**
+ * 구글 리뷰 스니펫이 aggregateRating 을 실제 리치결과(★)로 띄우는 schema.org 타입.
+ * 이 집합 밖의 타입에 aggregateRating 을 붙이면 리치결과가 안 뜰 뿐 아니라
+ * GSC 가 "'<parent_node>' 입력란의 개체 유형이 잘못되었습니다" 심각 오류로 잡는다
+ * (2026-07-31 GSC 실측 오류의 원인 = **CreativeWork**(미지정 카테고리) 매핑).
+ * 그래서 미지원 타입은 별점 블록 자체를 생략한다 — 잘못된 구조화 데이터를 내보내지 않는다.
+ *
+ * 지원 근거(developers.google.com/search/docs/appearance/structured-data/review-snippet):
+ * 1차 목록 = Book/Course/Event/LocalBusiness/Movie/Product/Recipe/SoftwareApplication,
+ * "and their subtypes" = Game 등. VideoGame 은 Game ∧ SoftwareApplication 의 서브타입이라
+ * 이중 자격으로 지원된다(제외하면 정당한 게임 별점을 죽이므로 포함).
+ * CreativeWork 는 이 목록에 없다(CreativeWorkSeason/Series 만 있음) → 유일한 제외 대상.
+ */
+const REVIEW_SNIPPET_SUPPORTED_TYPES: ReadonlySet<string> = new Set([
+    'Movie',
+    'Book',
+    'Event',
+    'VideoGame',
+    'Product',
+    'SoftwareApplication',
+    'Recipe',
+    'Course',
+    'LocalBusiness'
+]);
+
+/**
  * 평점 대상(작품) + AggregateRating JSON-LD 생성.
  * 앙티티(리뷰) 게시판 글에 별점 집계가 있을 때 구글 검색결과에 ★ 노출.
  * 참여 0(count<1)·평점 0·이름 없으면 null → buildJsonLd 가 블록 생략.
+ * 리뷰 스니펫 미지원 타입(게임·미지정 등)도 null → GSC 오류 방지.
  */
 export function createRatedItemJsonLd(options: {
     name: string;
@@ -228,8 +254,11 @@ export function createRatedItemJsonLd(options: {
     if (!options.ratingCount || options.ratingCount < 1) return null;
     if (!(options.ratingValue > 0)) return null;
 
+    const type = ratingSchemaTypeForCategory(options.category);
+    if (!REVIEW_SNIPPET_SUPPORTED_TYPES.has(type)) return null;
+
     const item: JsonLdRatedItem = {
-        '@type': ratingSchemaTypeForCategory(options.category),
+        '@type': type,
         name,
         aggregateRating: {
             '@type': 'AggregateRating',
