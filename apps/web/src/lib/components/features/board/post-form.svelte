@@ -493,6 +493,20 @@
     const categoryRequired = $derived(categories.length > 0 && !!board?.use_category);
 
     // 유효성 검증
+    // 빈 본문 판정 (#13195): 에디터는 비어 있어도 `<p style="..."></p>` 껍데기를 남겨
+    // content.trim() 만으로는 빈 글이 통과한다(실사고: 실수 클릭으로 빈 글 게시).
+    // 태그를 걷어낸 텍스트가 없고 미디어(이미지·영상·임베드)도 없으면 빈 본문이다.
+    // 마크다운 모드는 태그가 없어 기존 trim 판정과 동일하게 동작한다.
+    function isContentEmpty(html: string): boolean {
+        if (/<(img|video|iframe|audio|oembed|embed)\b/i.test(html)) return false;
+        const text = html
+            .replace(/<[^>]*>/g, '')
+            .replace(/&nbsp;/gi, ' ')
+            .replace(/[\u200b\u00a0]/g, ' ')
+            .trim();
+        return text.length === 0;
+    }
+
     function validate(): boolean {
         const newErrors: { title?: string; content?: string; category?: string } = {};
 
@@ -502,7 +516,8 @@
             newErrors.title = '제목은 200자 이내로 입력해주세요.';
         }
 
-        if (!content.trim()) {
+        // 첨부파일만으로 쓰는 글(본문 무텍스트)은 허용 — 제출 시 첨부가 본문 <img> 로 합쳐진다.
+        if (isContentEmpty(content) && uploadedFiles.length === 0) {
             newErrors.content = '내용을 입력해주세요.';
         }
 
