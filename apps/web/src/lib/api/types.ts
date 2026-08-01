@@ -1052,6 +1052,11 @@ export interface GroupedNotification {
     has_unread: boolean;
     latest_at: string;
     from_case: string;
+    /** 병합 모드(merge=target) 전용 */
+    target_key?: string;
+    good_count?: number;
+    comment_count?: number;
+    reply_count?: number;
 }
 
 export interface GroupedNotificationListResponse {

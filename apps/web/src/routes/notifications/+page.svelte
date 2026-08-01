@@ -1,5 +1,6 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
+    import { isNotiMergeEnabled } from '$lib/utils/noti-merge-pref.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import type { PageData } from './$types.js';
     import { apiClient } from '$lib/api/index.js';
@@ -111,7 +112,8 @@
             notificationData = await apiClient.getGroupedNotifications(
                 data.page,
                 data.limit,
-                activeFilter
+                activeFilter,
+                isNotiMergeEnabled()
             );
         } catch (err) {
             error = err instanceof Error ? err.message : '알림을 불러오는데 실패했습니다.';
@@ -135,7 +137,8 @@
                 await apiClient.markGroupAsRead(
                     notification.bo_table,
                     notification.wr_id,
-                    notification.from_case
+                    notification.from_case,
+                    notification.target_key
                 );
                 const unreadDelta = notification.unread_count;
                 notification.has_unread = false;
@@ -208,7 +211,8 @@
             await apiClient.deleteNotificationGroup(
                 notification.bo_table,
                 notification.wr_id,
-                notification.from_case
+                notification.from_case,
+                notification.target_key
             );
             if (notificationData) {
                 notificationData.items = notificationData.items.filter(
