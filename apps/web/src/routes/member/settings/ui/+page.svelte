@@ -35,6 +35,7 @@
     import UserPlus from '@lucide/svelte/icons/user-plus';
     import { browser } from '$app/environment';
     import { onMount } from 'svelte';
+    import { isNotiMergeEnabled, setNotiMergeEnabled } from '$lib/utils/noti-merge-pref.js';
     import { page } from '$app/stores';
     import {
         uiSettingsStore,
@@ -304,6 +305,7 @@
         noti_board_subscribe: true,
         like_threshold: 1
     });
+    let notiMerge = $state(true);
     let notiLoading = $state(false);
     let notiSaving = $state(false);
     let notiSaveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -341,6 +343,7 @@
     let hydrated = $state(false);
 
     onMount(() => {
+        notiMerge = isNotiMergeEnabled();
         hydrated = true;
         loadSubscriptions();
         loadFollowing();
@@ -1140,6 +1143,23 @@
                     <CardDescription>알림 종류별 수신 여부를 설정합니다.</CardDescription>
                 </CardHeader>
                 <CardContent class="space-y-4">
+                    <!-- 묶어 보기 — localStorage 기기별 설정(DDL 회피). 수신 여부와 무관한 표시 방식 -->
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <Label>알림 묶어 보기</Label>
+                            <p class="text-muted-foreground text-xs">
+                                같은 글의 좋아요·댓글을 한 줄로 묶어 보여줍니다 (이 기기에만 적용)
+                            </p>
+                        </div>
+                        <Switch
+                            checked={notiMerge}
+                            onCheckedChange={(v) => {
+                                notiMerge = v;
+                                setNotiMergeEnabled(v);
+                            }}
+                        />
+                    </div>
+                    <Separator />
                     {#if notiLoading}
                         <p class="text-muted-foreground text-xs">로딩 중...</p>
                     {:else}

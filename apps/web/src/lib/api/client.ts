@@ -2024,10 +2024,13 @@ class ApiClient {
     async getGroupedNotifications(
         page: number = 1,
         limit: number = 20,
-        filterType: string = ''
+        filterType: string = '',
+        merge: boolean = false
     ): Promise<GroupedNotificationListResponse> {
         const params = new URLSearchParams({ page: String(page), limit: String(limit) });
         if (filterType) params.set('type', filterType);
+        // merge=target: 같은 글의 좋아요·댓글을 한 줄로(대상 단위 통합 묶음)
+        if (merge) params.set('merge', 'target');
         const response = await this.request<GroupedNotificationListResponse>(
             `/notifications/grouped?${params}`,
             {},
@@ -2039,10 +2042,21 @@ class ApiClient {
     /**
      * 그룹 알림 읽음 처리
      */
-    async markGroupAsRead(boTable: string, wrId: number, fromCase: string): Promise<void> {
+    async markGroupAsRead(
+        boTable: string,
+        wrId: number,
+        fromCase: string,
+        targetKey?: string
+    ): Promise<void> {
         await this.request<void>('/notifications/group/read', {
             method: 'POST',
-            body: JSON.stringify({ bo_table: boTable, wr_id: wrId, from_case: fromCase })
+            // target_key 가 있으면 서버가 병합 묶음 키 식으로 읽음 처리한다
+            body: JSON.stringify({
+                bo_table: boTable,
+                wr_id: wrId,
+                from_case: fromCase,
+                ...(targetKey ? { target_key: targetKey } : {})
+            })
         });
     }
 

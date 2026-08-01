@@ -6,6 +6,7 @@
     import type { GroupedNotification } from '$lib/api/types.js';
     import { onMount, tick } from 'svelte';
     import { goto } from '$app/navigation';
+    import { isNotiMergeEnabled } from '$lib/utils/noti-merge-pref.js';
     import { browser } from '$app/environment';
     import { normalizeWebUrl, toRelativeIfSameOrigin } from '$lib/utils/url-normalizer';
     import Bell from '@lucide/svelte/icons/bell';
@@ -191,7 +192,7 @@
         isLoading = true;
         loadError = false;
         try {
-            const response = await apiClient.getGroupedNotifications(1, 10);
+            const response = await apiClient.getGroupedNotifications(1, 10, '', isNotiMergeEnabled());
             notifications = response.items;
             unreadCount = response.unread_count;
             writeUnreadCache(response.unread_count);
@@ -212,7 +213,8 @@
                 await apiClient.markGroupAsRead(
                     notification.bo_table,
                     notification.wr_id,
-                    notification.from_case
+                    notification.from_case,
+                    notification.target_key
                 );
                 notification.has_unread = false;
                 unreadCount = Math.max(0, unreadCount - notification.unread_count);
