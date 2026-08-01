@@ -144,7 +144,10 @@
                                     </p>
                                 {/if}
                             </div>
-                            <time datetime={item.reportedAt} class="text-muted-foreground shrink-0 text-xs">
+                            <time
+                                datetime={item.reportedAt}
+                                class="text-muted-foreground shrink-0 text-xs"
+                            >
                                 {formatDate(item.reportedAt)}
                             </time>
                         </div>
