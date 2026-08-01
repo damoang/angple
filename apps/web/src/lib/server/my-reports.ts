@@ -22,6 +22,8 @@ const LABEL_NO_TITLE = '(제목 없음)';
 
 export interface MyReportItem {
     boardId: string;
+    /** 신고 대상 wr_id — (boardId, targetId) 가 그룹 PK 라 목록 키로 안전하다 */
+    targetId: number;
     boardName: string;
     /** 'post' | 'comment' */
     targetType: 'post' | 'comment';
@@ -196,6 +198,7 @@ export async function getMyReports(
 
         return {
             boardId: g.sg_table,
+            targetId: g.sg_id,
             boardName: boardNames.get(g.sg_table) ?? g.sg_table,
             targetType: isComment ? 'comment' : 'post',
             title,

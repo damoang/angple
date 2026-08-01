@@ -99,7 +99,7 @@
             </div>
         {:else}
             <ul class="divide-border divide-y">
-                {#each reports.items as item (item.boardId + ':' + item.href + ':' + item.reportedAt)}
+                {#each reports.items as item (item.boardId + ':' + item.targetId)}
                     <li class="px-4 py-3">
                         <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0 flex-1">
@@ -144,7 +144,7 @@
                                     </p>
                                 {/if}
                             </div>
-                            <time class="text-muted-foreground shrink-0 text-xs">
+                            <time datetime={item.reportedAt} class="text-muted-foreground shrink-0 text-xs">
                                 {formatDate(item.reportedAt)}
                             </time>
                         </div>
