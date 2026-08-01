@@ -210,12 +210,26 @@
         if (!result?.posts?.length) return;
         const extraParams = [...$page.url.searchParams.keys()].filter((k) => k !== 'page');
         if (extraParams.length > 0) return;
+        // free/hello 는 백엔드가 total 없이 has_next 만 준다(useHasNextPagination).
+        // 그때 totalPages 를 1 로 굳히면 상세 하단 페이징({#if totalPages > 1})이 사라진다
+        // — 8/1 실회귀. apiClient.getBoardPosts 와 동일 관례로 합성한다:
+        // total 있으면 정확 계산, 없고 has_next 면 page+1(다음 있음), 아니면 page.
+        const pg = result.pagination;
+        const carriedPage = pg?.page || listPage;
+        let carriedTotalPages: number;
+        if (typeof pg?.total === 'number' && pg?.limit) {
+            carriedTotalPages = Math.ceil(pg.total / pg.limit);
+        } else if (pg?.hasNext) {
+            carriedTotalPages = carriedPage + 1;
+        } else {
+            carriedTotalPages = carriedPage;
+        }
         rememberBoardList({
             boardId,
-            page: result.pagination?.page || listPage,
+            page: carriedPage,
             posts: result.posts,
-            total: result.pagination?.total ?? result.posts.length,
-            totalPages: result.pagination?.totalPages ?? 1
+            total: pg?.total ?? result.posts.length,
+            totalPages: carriedTotalPages
         });
     });
 
