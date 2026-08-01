@@ -403,7 +403,7 @@
             {:else if notifications.length === 0}
                 <div class="text-muted-foreground py-8 text-center text-sm">알림이 없습니다</div>
             {:else}
-                {#each notifications as notification (notification.bo_table + ':' + notification.wr_id + ':' + notification.from_case)}
+                {#each notifications as notification (notification.bo_table + ':' + notification.wr_id + ':' + notification.from_case + ':' + (notification.target_key ?? ''))}
                     {@const Icon = getNotificationIcon(notification.type)}
                     <DropdownMenu.Item
                         class="flex cursor-pointer items-start gap-2.5 px-3 py-2 {notification.has_unread

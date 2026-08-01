@@ -2063,12 +2063,19 @@ class ApiClient {
     /**
      * 그룹 알림 삭제
      */
-    async deleteNotificationGroup(boTable: string, wrId: number, fromCase: string): Promise<void> {
+    async deleteNotificationGroup(
+        boTable: string,
+        wrId: number,
+        fromCase: string,
+        targetKey?: string
+    ): Promise<void> {
         const params = new URLSearchParams({
             bo_table: boTable,
             wr_id: String(wrId),
             from_case: fromCase
         });
+        // 병합 묶음은 목록·읽음과 같은 파생 키 식으로 삭제한다
+        if (targetKey) params.set('target_key', targetKey);
         await this.request<void>(`/notifications/group?${params}`, {
             method: 'DELETE'
         });

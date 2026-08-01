@@ -211,7 +211,8 @@
             await apiClient.deleteNotificationGroup(
                 notification.bo_table,
                 notification.wr_id,
-                notification.from_case
+                notification.from_case,
+                notification.target_key
             );
             if (notificationData) {
                 notificationData.items = notificationData.items.filter(
