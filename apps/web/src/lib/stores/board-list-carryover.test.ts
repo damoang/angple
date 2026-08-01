@@ -1,9 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
-    rememberBoardList,
-    takeBoardList,
-    clearBoardListCarryover
-} from './board-list-carryover';
+import { rememberBoardList, takeBoardList, clearBoardListCarryover } from './board-list-carryover';
 import type { FreePost } from '$lib/api/types';
 
 const post = (id: number) => ({ id, title: 't' + id }) as FreePost;
