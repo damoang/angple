@@ -2636,6 +2636,7 @@
                 initialPage={Number($page.url.searchParams.get('page')) ||
                     data.recentPosts?.page ||
                     1}
+                pageIndexResolved={true}
                 {promotionPosts}
                 displaySettings={data.board?.display_settings}
             />
