@@ -192,7 +192,12 @@
         isLoading = true;
         loadError = false;
         try {
-            const response = await apiClient.getGroupedNotifications(1, 10, '', isNotiMergeEnabled());
+            const response = await apiClient.getGroupedNotifications(
+                1,
+                10,
+                '',
+                isNotiMergeEnabled()
+            );
             notifications = response.items;
             unreadCount = response.unread_count;
             writeUnreadCache(response.unread_count);
