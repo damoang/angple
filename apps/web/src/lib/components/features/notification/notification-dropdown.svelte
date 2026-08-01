@@ -367,14 +367,12 @@
     </DropdownMenu.Trigger>
 
     <DropdownMenu.Content class="w-80" align="end">
+        <!--
+            「모두 읽음」 버튼은 푸터로 옮겼다(free/6875994 회원 의견). 여기 있던 조건부
+            버튼은 열자마자 auto-read 로 unreadCount 가 0 이 되어 사실상 보이지 않았다.
+        -->
         <div class="flex items-center justify-between border-b px-3 py-2">
             <span class="text-foreground font-semibold">알림</span>
-            {#if unreadCount > 0}
-                <Button variant="ghost" size="sm" class="h-7 text-xs" onclick={handleMarkAllAsRead}>
-                    <Check class="mr-1 h-3 w-3" />
-                    모두 읽음
-                </Button>
-            {/if}
         </div>
 
         <div class="max-h-80 overflow-y-auto">
@@ -448,6 +446,20 @@
                 >
                     모든 알림 보기
                 </a>
+                <!--
+                    명시적 「모두 읽기」 — 종을 열면 배지(숫자)는 풀리지만 새 알림 강조는
+                    남는다(#12991 설계). 강조까지 한 번에 걷어내는 손잡이가 이 버튼이다.
+                    항상 노출한다 - 지울 게 없을 때 눌러도 무해(멱등)하고, 조건부로 숨기면
+                    "버튼이 없어졌다"는 혼란(free/6875994)이 재발한다.
+                -->
+                <button
+                    type="button"
+                    class="hover:bg-accent flex flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-center text-sm transition-colors"
+                    onclick={handleMarkAllAsRead}
+                >
+                    <Check class="h-3.5 w-3.5" />
+                    모두 읽기
+                </button>
                 <a
                     href="/member/settings/ui?tab=notification"
                     class="hover:bg-accent flex flex-1 items-center justify-center gap-1 rounded-md py-1.5 text-center text-sm transition-colors"
