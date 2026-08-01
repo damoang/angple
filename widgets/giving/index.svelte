@@ -34,7 +34,8 @@
     onMount(async () => {
         try {
             // timedFetch: 12s timeout + 1회 retry. (audit 2026-05-01 §3-1)
-            const res = await timedFetch('/api/plugins/giving/list?tab=active&limit=5&sort=urgent');
+            const res = await timedFetch(// tab=all: 진행중(임박순) 우선 + 최신 글 채움 — premium 포크와 동일 정책 (be#605 세트)
+                '/api/plugins/giving/list?tab=all&limit=5&sort=urgent');
             if (res.ok) {
                 const data = await res.json();
                 if (data.success) {
