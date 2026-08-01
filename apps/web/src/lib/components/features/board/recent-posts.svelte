@@ -4,6 +4,7 @@
     import { apiClient } from '$lib/api/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
+    import { takeBoardList } from '$lib/stores/board-list-carryover.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import Search from '@lucide/svelte/icons/search';
     import {
@@ -50,6 +51,8 @@
         initialPosts?: FreePost[];
         initialTotal?: number;
         initialTotalPages?: number;
+        /** 서버(load)가 page-index 를 이미 해소했으면 true — 클라 중복 조회를 건너뛴다 */
+        pageIndexResolved?: boolean;
         promotionPosts?: PromotionPost[];
         displaySettings?: BoardDisplaySettings;
     }
@@ -63,6 +66,7 @@
         initialPosts = [],
         initialTotal = 0,
         initialTotalPages = 1,
+        pageIndexResolved = false,
         promotionPosts = [],
         displaySettings
     }: Props = $props();
@@ -252,6 +256,7 @@
             // 자기 글이 어느 페이지인지 자동 감지해서 그 페이지로 fetch. SSR 가 항상 1 로
             // 고정한 부분을 클라이언트가 보강. PR #1431 의 SPA 재마운트 fix 와 함께 동작.
             if (
+                !pageIndexResolved &&
                 isOnPostDetail &&
                 currentPostId > 0 &&
                 !$pageStore.url.searchParams.has('page') &&
@@ -301,6 +306,22 @@
     onMount(async () => {
         if (!browser) return;
         if (posts.length > 0) return;
+
+        // 목록 → 상세 이동이면 방금 본 목록을 그대로 재사용 — 요청 0회, 스켈레톤 없음.
+        // URL 에 ?page 가 명시돼 있고 들고 온 페이지와 다르면 재사용하지 않는다(공유 링크 우선).
+        const carried = takeBoardList(boardId);
+        if (carried) {
+            const urlPage = Number($pageStore.url.searchParams.get('page')) || 0;
+            if (urlPage === 0 || urlPage === carried.page) {
+                posts = carried.posts;
+                maskAnonymousMessagePosts();
+                totalItems = carried.total;
+                totalPages = carried.totalPages;
+                currentPage = carried.page;
+                loading = false;
+                return;
+            }
+        }
 
         await loadInitial();
         // 일시적 실패(네트워크 순단 등)는 한 번 더 시도하면 대개 성공한다.

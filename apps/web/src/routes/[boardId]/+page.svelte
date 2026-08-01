@@ -78,6 +78,7 @@
     import User from '@lucide/svelte/icons/user';
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import SearchForm from '$lib/components/features/board/search-form.svelte';
+    import { rememberBoardList } from '$lib/stores/board-list-carryover.js';
     import BulkActionsToolbar from '$lib/components/features/board/bulk-actions-toolbar.svelte';
     import { Checkbox } from '$lib/components/ui/checkbox/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
@@ -200,6 +201,23 @@
 
     // 현재 페이지 번호 (글 링크에 전달용)
     const listPage = $derived(Number($page.url.searchParams.get('page')) || 1);
+
+    // 목록 → 상세 재사용: 순수 목록 화면(쿼리가 page 뿐)일 때 현재 목록을 기억해 두면
+    // 글 상세 하단 목록이 요청 없이 즉시 그려진다($effect 는 SSR 미실행 — 클라 전용).
+    // 검색·카테고리·작성자필터·날짜 화면은 상세 하단의 "일반 목록"과 다르므로 제외.
+    $effect(() => {
+        const result = data.postsData;
+        if (!result?.posts?.length) return;
+        const extraParams = [...$page.url.searchParams.keys()].filter((k) => k !== 'page');
+        if (extraParams.length > 0) return;
+        rememberBoardList({
+            boardId,
+            page: result.pagination?.page || listPage,
+            posts: result.posts,
+            total: result.pagination?.total ?? result.posts.length,
+            totalPages: result.pagination?.totalPages ?? 1
+        });
+    });
 
     // #12012: 보드별 "내가 쓴 글/댓글" 빠른 필터
     // 백엔드 ?sfl=author|comment_author&stx={mb_id} 재사용 (Sphinx @(mb_id,wr_name) 매칭)
