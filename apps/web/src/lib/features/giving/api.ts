@@ -11,6 +11,8 @@ const BASE = '/api/plugins/giving';
 export interface GivingDrawResult {
     method: string;
     winner_mb_id: string | null;
+    /** 표시용 mb_id→닉네임 맵 (구 응답에는 없음 — mb_id 폴백) */
+    nicknames?: Record<string, string> | null;
     winning_number: number | null;
     seed: string | null;
     seed_hash: string | null;

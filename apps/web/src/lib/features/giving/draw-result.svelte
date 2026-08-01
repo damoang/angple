@@ -9,6 +9,8 @@
     const winners: string[] = $derived(
         result?.winners ?? (draw.winner_mb_id ? [draw.winner_mb_id] : [])
     );
+    // 표시는 닉네임, 저장·키는 mb_id 정본 유지. 구 응답(맵 없음)은 mb_id 폴백.
+    const nick = (id: string) => draw.nicknames?.[id] ?? id;
 
     // Commit-reveal 검증: SeedHash(seed) === seed_hash 인지 브라우저에서 재계산.
     let seedVerified = $state<null | boolean>(null);
@@ -52,7 +54,7 @@
         {#if draw.method === 'lowest_unique' && draw.winning_number != null}
             <p class="text-foreground text-sm">
                 당첨 번호 <strong class="text-primary">{draw.winning_number}</strong> —
-                <strong>{winners[0]}</strong>
+                <strong>{nick(winners[0])}</strong>
             </p>
         {:else}
             <p class="text-foreground mb-1 text-sm">당첨자</p>
@@ -61,7 +63,7 @@
                     <li
                         class="rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
                     >
-                        {w}
+                        {nick(w)}
                     </li>
                 {/each}
             </ul>
