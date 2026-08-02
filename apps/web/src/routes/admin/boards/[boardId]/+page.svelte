@@ -642,7 +642,8 @@
     // URL 해시로 탭 관리
     function setTab(tab: TabId) {
         activeTab = tab;
-        history.replaceState(null, '', `#${tab}`);
+        // ⛔ 1번 인자에 null 을 넘기면 SvelteKit 히스토리 인덱스가 지워진다. state 는 보존.
+        history.replaceState(history.state, '', `#${tab}`);
     }
 
     onMount(() => {

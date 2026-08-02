@@ -336,8 +336,6 @@ function healPoisonedHistoryPageUrl(): void {
 
 // app.html 통합 핸들러와 연동: exhausted 상태면 상단 배너 대신 1회 강력 새로고침
 if (typeof window !== 'undefined') {
-    healPoisonedHistoryPageUrl();
-
     const currentUrl = new URL(window.location.href);
     const recoveredWithCacheBust = currentUrl.searchParams.get('_v');
     if (recoveredWithCacheBust) {
@@ -346,10 +344,13 @@ if (typeof window !== 'undefined') {
     if (currentUrl.searchParams.has('_v')) {
         currentUrl.searchParams.delete('_v');
         // ⛔ $app/navigation 의 replaceState 를 쓰면 안 된다. 라우터 초기화 전이라
-        // 자리표시자 page.url 이 히스토리에 박히고(위 healPoisonedHistoryPageUrl 참조),
+        // 자리표시자 page.url 이 히스토리에 박히고(아래 healPoisonedHistoryPageUrl 참조),
         // 내부적으로 아직 없는 루트 컴포넌트를 건드려 이 파일의 나머지 초기화까지 중단시킨다.
         window.history.replaceState(window.history.state, '', currentUrl.href);
     }
+
+    // ⛔ 반드시 _v 제거 뒤에 부른다. 먼저 부르면 치유값에 `?_v=` 가 섞여 남는다.
+    healPoisonedHistoryPageUrl();
 
     const chunkError = (window as any).__angpleChunkError;
     if (chunkError) {
