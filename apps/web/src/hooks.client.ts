@@ -1,5 +1,4 @@
 import type { HandleClientError } from '@sveltejs/kit';
-import { replaceState } from '$app/navigation';
 import { loadAllPluginClientHooks } from '$lib/client/plugin-client-loader';
 
 // Phase 11 (open-core plugin loader) — client hooks 자동 활성화.
@@ -306,8 +305,39 @@ function recoverStaleClientSilently(reason: string): boolean {
     return true;
 }
 
+// SvelteKit 이 히스토리 state 에 현재 URL 을 적어 두는 키. 뒤로가기(popstate) 때 이 값이
+// 이동 목적지가 된다.
+const SVELTEKIT_PAGE_URL_KEY = 'sveltekit:pageurl';
+
+/**
+ * 과거 버전이 오염시킨 히스토리 항목을 되돌린다.
+ *
+ * 이 파일의 최상위는 SvelteKit 라우터가 뜨기 전에 실행된다. 그때 `$app/navigation` 의
+ * replaceState 를 부르면 아직 자리표시자(`https://example.com`)인 page.url 이 위 키에
+ * 저장됐고, 그 항목으로 뒤로가기하면 example.com 으로 이동했다. 이미 그런 항목을 들고
+ * 있는 세션이 남아 있으므로 부팅 시 한 번 정리한다. SvelteKit 의 초기화가 기존 state 를
+ * 전개해 물려받기 전에 실행돼야 해서 위치를 옮기면 안 된다.
+ */
+function healPoisonedHistoryPageUrl(): void {
+    try {
+        const state = window.history.state as Record<string, unknown> | null;
+        const stored = state?.[SVELTEKIT_PAGE_URL_KEY];
+        if (typeof stored !== 'string') return;
+        if (new URL(stored).origin === window.location.origin) return;
+        window.history.replaceState(
+            { ...state, [SVELTEKIT_PAGE_URL_KEY]: window.location.href },
+            '',
+            window.location.href
+        );
+    } catch {
+        // 히스토리 접근 실패는 부팅을 막을 사유가 아니다
+    }
+}
+
 // app.html 통합 핸들러와 연동: exhausted 상태면 상단 배너 대신 1회 강력 새로고침
 if (typeof window !== 'undefined') {
+    healPoisonedHistoryPageUrl();
+
     const currentUrl = new URL(window.location.href);
     const recoveredWithCacheBust = currentUrl.searchParams.get('_v');
     if (recoveredWithCacheBust) {
@@ -315,7 +345,10 @@ if (typeof window !== 'undefined') {
     }
     if (currentUrl.searchParams.has('_v')) {
         currentUrl.searchParams.delete('_v');
-        replaceState(currentUrl.href, window.history.state);
+        // ⛔ $app/navigation 의 replaceState 를 쓰면 안 된다. 라우터 초기화 전이라
+        // 자리표시자 page.url 이 히스토리에 박히고(위 healPoisonedHistoryPageUrl 참조),
+        // 내부적으로 아직 없는 루트 컴포넌트를 건드려 이 파일의 나머지 초기화까지 중단시킨다.
+        window.history.replaceState(window.history.state, '', currentUrl.href);
     }
 
     const chunkError = (window as any).__angpleChunkError;
