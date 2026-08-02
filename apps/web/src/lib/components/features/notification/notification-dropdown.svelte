@@ -6,7 +6,7 @@
     import type { GroupedNotification } from '$lib/api/types.js';
     import { onMount, tick } from 'svelte';
     import { goto } from '$app/navigation';
-    import { isNotiMergeEnabled } from '$lib/utils/noti-merge-pref.js';
+    import { isNotiMergeEnabled, isNotiAutoReadEnabled } from '$lib/utils/noti-merge-pref.js';
     import { browser } from '$app/environment';
     import { normalizeWebUrl, toRelativeIfSameOrigin } from '$lib/utils/url-normalizer';
     import Bell from '@lucide/svelte/icons/bell';
@@ -257,9 +257,15 @@
         }
     }
 
+    // 버튼을 눌러도 화면이 그대로라 "체크가 안 풀린다"고 읽혔다(bug/13206).
+    // 눌린 사실이 보이도록 짧게 문구를 바꾼다.
+    let markedJustNow = $state(false);
+
     async function handleMarkAllAsRead(): Promise<void> {
         try {
             await apiClient.markAllNotificationsAsRead();
+            markedJustNow = true;
+            setTimeout(() => (markedJustNow = false), 1600);
             notifications = notifications.map((n) => ({
                 ...n,
                 has_unread: false,
@@ -293,7 +299,8 @@
     // 열림·재시도 공용: 로드가 성공한 경우에만 배지를 해소한다.
     async function loadAndMarkSeen(): Promise<void> {
         const ok = await loadNotifications();
-        if (ok) await markSeenOnOpen();
+        // 자동 읽음을 끈 회원은 열어도 읽음 처리하지 않는다(bug/13206).
+        if (ok && isNotiAutoReadEnabled()) await markSeenOnOpen();
     }
 
     function handleOpenChange(open: boolean): void {
@@ -465,7 +472,7 @@
                     onclick={handleMarkAllAsRead}
                 >
                     <Check class="h-3.5 w-3.5" />
-                    모두 읽기
+                    {markedJustNow ? '읽음 처리했습니다' : '모두 읽기'}
                 </button>
                 <a
                     href="/member/settings/ui?tab=notification"
