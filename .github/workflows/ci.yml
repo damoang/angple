@@ -80,6 +80,9 @@ jobs:
       - name: Check adjacent hydration blocks
         run: node scripts/check-adjacent-blocks.mjs
 
+      - name: Check history state destruction
+        run: node scripts/check-history-state.mjs
+
   # 전체 lint는 수동 실행만 허용한다.
   # PR에서는 eslint-review/prettier-suggester가 이미 같은 역할을 맡고,
   # main push에서는 빌드/테스트/배포 경로를 막지 않도록 분리한다.

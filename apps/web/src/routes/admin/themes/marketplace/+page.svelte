@@ -264,7 +264,9 @@
 
         // URL 정리
         if (autoInstallId || errorMsg) {
-            window.history.replaceState({}, '', window.location.pathname);
+            // ⛔ 1번 인자에 {} 를 넘기면 SvelteKit 이 이 항목에 심어 둔 히스토리 인덱스가
+            // 지워져, 뒤로가기가 정상 경로를 타지 못한다. 기존 state 를 그대로 넘긴다.
+            window.history.replaceState(window.history.state, '', window.location.pathname);
         }
 
         // OAuth 콜백 후 자동 설치
