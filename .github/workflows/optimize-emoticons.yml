@@ -1,0 +1,152 @@
+name: Optimize Emoticons
+
+# ⛔ 이 작업은 운영 서버에서 돌리지 않는다. 이모티콘 재인코딩은 무거운 CPU 작업이라
+#    응답시간을 악화시킨다(2026-08-03 「느리다」 제보 대응 중 확인). 러너에서만 돌린다.
+#
+# 수동 실행 전용. 결과는 브랜치 + PR 로 받아 사람이 확인하고 머지한다.
+# 자동 실행하지 않는 이유: 이미지가 깨져도 CI 는 통과한다. 눈으로 봐야 한다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_width:
+        description: '목표 최대 폭(px). 본문 최대 표시 200px × 레티나 2배 = 400 이 기본'
+        required: false
+        default: '400'
+      min_bytes:
+        description: '이 크기(byte) 미만은 건드리지 않음'
+        required: false
+        default: '102400'
+      apply:
+        description: '실제 반영 여부. false 면 dry-run 으로 결과만 본다'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  optimize:
+    name: Optimize emoticon assets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Pillow
+        run: pip install --quiet 'Pillow>=11'
+
+      - name: Record before
+        id: before
+        run: |
+          SIZE=$(du -sb apps/web/static/emoticons | cut -f1)
+          COUNT=$(ls apps/web/static/emoticons | wc -l)
+          echo "size=$SIZE" >> $GITHUB_OUTPUT
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+          echo "적용 전: ${COUNT}개 / $((SIZE/1048576))MB"
+
+      - name: Optimize
+        id: run
+        run: |
+          set -o pipefail
+          ARGS="apps/web/static/emoticons --max-width ${{ inputs.max_width }} --min-bytes ${{ inputs.min_bytes }}"
+          if [ "${{ inputs.apply }}" = "true" ]; then ARGS="$ARGS --apply"; fi
+          python3 scripts/optimize-emoticons.py $ARGS 2>&1 | tee optimize.log
+          {
+            echo '## 이모티콘 최적화 결과'
+            echo
+            echo '```'
+            tail -60 optimize.log
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY
+
+      # ⛔ 변환이 조용히 깨뜨렸는지 반드시 확인한다. 스크립트 자체 검증과 별개로,
+      #    전 파일을 다시 열어 손상 여부를 본다. 이미지가 깨져도 빌드는 통과한다.
+      - name: Verify all images still open
+        if: inputs.apply
+        run: |
+          python3 - <<'PY'
+          import os, sys
+          from PIL import Image
+          d = 'apps/web/static/emoticons'
+          bad = []
+          for f in sorted(os.listdir(d)):
+              p = os.path.join(d, f)
+              if not os.path.isfile(p):
+                  continue
+              try:
+                  with Image.open(p) as im:
+                      im.verify()
+              except Exception as e:
+                  bad.append(f'{f}: {str(e)[:60]}')
+          if bad:
+              print('❌ 손상된 파일:')
+              for b in bad[:30]:
+                  print('  ', b)
+              sys.exit(1)
+          print(f'✅ 전 파일 정상 ({len(os.listdir(d))}개)')
+          PY
+
+      - name: Create pull request
+        if: inputs.apply
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git diff --quiet; then
+            echo "변경 없음 — PR 생성 생략"; exit 0
+          fi
+          AFTER=$(du -sb apps/web/static/emoticons | cut -f1)
+          BEFORE=${{ steps.before.outputs.size }}
+          SAVED=$(( (BEFORE - AFTER) / 1048576 ))
+          BRANCH="chore/optimize-emoticons-${{ github.run_id }}"
+          git config user.name  'angple'
+          git config user.email 'sdk@sdk.xyz'
+          git checkout -b "$BRANCH"
+          git add apps/web/static/emoticons
+          git commit -m "chore: 이모티콘 해상도 최적화 (${SAVED}MB 절감)
+
+          본문 최대 표시 폭이 200px(parser.ts MAX_WIDTH)인데 원본이 640~925px 라
+          표시 대비 최대 13배였다. 레티나 2배를 감안한 ${{ inputs.max_width }}px 로 줄인다.
+          화면에 보이는 차이는 없다.
+
+          애니메이션 프레임은 보존한다. 파일명·확장자·포맷도 그대로라
+          기존 글의 참조가 깨지지 않는다.
+
+          $((BEFORE/1048576))MB → $((AFTER/1048576))MB
+
+          ⛔ 운영 서버가 아니라 CI 러너에서 변환했다. 재인코딩은 무거운 CPU 작업이라
+          운영에서 돌리면 응답시간이 나빠진다."
+          git push -u origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" \
+            --title "chore: 이모티콘 해상도 최적화 (${SAVED}MB 절감)" \
+            --body "$(cat <<EOF
+          자동 생성 PR (\`optimize-emoticons\` 워크플로, run \`${{ github.run_id }}\`).
+
+          ## 결과
+          $((BEFORE/1048576))MB → $((AFTER/1048576))MB (**${SAVED}MB 절감**)
+
+          목표 최대 폭 \`${{ inputs.max_width }}px\` / 최소 대상 크기 \`${{ inputs.min_bytes }}\` byte
+
+          ## 무엇을 했나
+          해상도만 줄였다. **애니메이션 프레임·파일명·확장자·포맷은 그대로**라
+          기존 글의 \`<img src="/emoticons/...">\` 참조가 깨지지 않는다.
+
+          본문 표시 폭은 최대 200px(\`parser.ts\` \`MAX_WIDTH\`)이고 선택창은 32~40px 인데
+          원본이 640~925px 였다. 레티나 2배를 감안해도 400px 면 충분하다.
+
+          ## ⛔ 머지 전 반드시 확인할 것
+          - [ ] **이모티콘 몇 개를 실제로 열어 눈으로 확인** — 애니메이션이 살아 있는지,
+                화질이 뭉개지지 않았는지. CI 는 이미지가 깨져도 통과한다
+          - [ ] 선택창에서 전체 팩이 정상 표시되는지
+          - [ ] 기존 글의 이모티콘이 그대로 보이는지
+
+          상세 로그는 워크플로 실행 요약(Summary)에 있다.
+          EOF
+          )"
