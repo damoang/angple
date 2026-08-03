@@ -1,0 +1,130 @@
+name: Generate Still Thumbnails
+
+# ⛔ 이 작업은 운영 서버에서 돌리지 않는다. 이미지 재인코딩은 무거운 CPU 작업이라
+#    응답시간을 악화시킨다(2026-08-03 「느리다」 제보 대응 중 확인). 러너에서만 돌린다.
+#
+# 수동 실행 전용. 결과는 브랜치 + PR 로 받아 사람이 확인하고 머지한다.
+# 자동 실행하지 않는 이유: 첫 프레임이 빈 화면인 이모티콘이 있을 수 있는데
+# CI 는 그걸 못 잡는다. 눈으로 봐야 한다.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: '실제 생성 여부. false 면 dry-run 으로 결과만 본다'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  still-thumbs:
+    name: Generate still thumbnails for the emoticon picker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Pillow
+        run: pip install --quiet 'Pillow>=11'
+
+      - name: Generate
+        run: |
+          set -o pipefail
+          ARGS="apps/web/static/emoticons"
+          if [ "${{ inputs.apply }}" = "true" ]; then ARGS="$ARGS --apply"; fi
+          python3 scripts/generate-still-thumbs.py $ARGS 2>&1 | tee still.log
+          {
+            echo '## 정지 썸네일 생성 결과'
+            echo
+            echo '```'
+            tail -40 still.log
+            echo '```'
+          } >> $GITHUB_STEP_SUMMARY
+
+      # ⛔ 생성물이 조용히 깨졌는지 반드시 확인한다. 이미지가 깨져도 빌드는 통과한다.
+      - name: Verify generated stills
+        if: inputs.apply
+        run: |
+          python3 - <<'PY'
+          import os, sys
+          from PIL import Image
+          d = 'apps/web/static/emoticons'
+          bad, checked = [], 0
+          for f in sorted(os.listdir(d)):
+              if not f.endswith('_still.webp'):
+                  continue
+              p = os.path.join(d, f)
+              checked += 1
+              try:
+                  with Image.open(p) as im:
+                      im.verify()
+                  with Image.open(p) as im:
+                      if getattr(im, 'n_frames', 1) != 1:
+                          raise ValueError('정지 이미지가 아니다')
+                      # 첫 프레임이 완전 투명하면 피커에서 빈 칸으로 보인다
+                      a = im.convert('RGBA').getchannel('A')
+                      if a.getextrema()[1] == 0:
+                          raise ValueError('완전 투명 — 빈 칸으로 보인다')
+              except Exception as e:
+                  bad.append(f'{f}: {str(e)[:60]}')
+          if bad:
+              print('❌ 문제 있는 정지 썸네일:')
+              for b in bad[:30]:
+                  print('  ', b)
+              sys.exit(1)
+          print(f'✅ 정지 썸네일 전수 정상 ({checked}개 검사)')
+          PY
+
+      - name: Create pull request
+        if: inputs.apply
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git diff --quiet && [ -z "$(git status --porcelain)" ]; then
+            echo "변경 없음 — PR 생성 생략"; exit 0
+          fi
+          BRANCH="chore/still-thumbs-${{ github.run_id }}"
+          git config user.name  'angple'
+          git config user.email 'sdk@sdk.xyz'
+          git checkout -b "$BRANCH"
+          git add apps/web/static/emoticons
+          git commit -m "chore: 이모티콘 피커용 정지 썸네일 생성
+
+          선택창은 썸네일을 40px 로 그리는데 DINKIssTyle 팩 썸네일 104개가 6.22MB 였다.
+          같은 자리에 쓰이는 onion 팩은 264개가 0.41MB 다.
+
+          원인은 해상도가 아니라 프레임 수다(128px 썸네일에 91~197 프레임).
+          그래서 해상도를 줄여도 27.9% 밖에 안 준다. 첫 프레임만 남기면 98.8% 준다.
+
+          기존 _thumb 파일은 그대로 둔다. 피커는 평소 _still 을 쓰고
+          확대할 때만 _thumb(애니)으로 바꾼다.
+
+          ⛔ 운영 서버가 아니라 CI 러너에서 생성했다."
+          git push -u origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" \
+            --title "chore: 이모티콘 피커용 정지 썸네일 생성" \
+            --body "$(cat <<'EOF'
+          자동 생성 PR (`generate-still-thumbs` 워크플로).
+
+          ## 무엇을 했나
+          `*_thumb.*` 중 여러 프레임짜리만 골라 첫 프레임을 `*_still.webp` 로 **추가** 생성했다.
+          **기존 파일은 하나도 건드리지 않았다.**
+
+          ## ⛔ 머지 전 반드시 확인할 것
+          - [ ] 생성된 `_still` 몇 개를 **실제로 열어 눈으로 확인** —
+                첫 프레임이 빈 화면이거나 의미를 알 수 없는 이모티콘이 없는지
+          - [ ] 이 PR 만으로는 화면이 바뀌지 않는다(피커가 아직 `_still` 을 안 쓴다).
+                컴포넌트 변경 PR 과 함께 배포해야 효과가 있다
+
+          상세 로그는 워크플로 실행 요약(Summary)에 있다.
+          EOF
+          )"

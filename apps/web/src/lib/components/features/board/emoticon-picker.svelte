@@ -1,5 +1,11 @@
 <script lang="ts">
     import { REACTION_EMOTICONS } from '$lib/config/reaction-config.js';
+    import {
+        animatedThumbUrl,
+        hasSeparateAnimation,
+        stillThumbUrl,
+        type EmoticonThumbSource
+    } from '$lib/utils/emoticon-thumb';
 
     interface Props {
         onInsertEmoticon: (text: string) => void;
@@ -14,10 +20,7 @@
     const emojis = REACTION_EMOTICONS.filter((e) => e.category === 'emoji');
 
     // 팩 데이터
-    interface EmoticonItem {
-        file: string;
-        thumb: string | null;
-    }
+    type EmoticonItem = EmoticonThumbSource;
     interface EmoticonPack {
         name: string;
         prefix: string;
@@ -74,8 +77,24 @@
         onClose();
     }
 
-    function thumbUrl(item: EmoticonItem): string {
-        return `/emoticons/${item.thumb || item.file}`;
+    /**
+     * 확대(hover) 시작 — 그때 비로소 애니메이션 파일을 받는다.
+     *
+     * 미리 받아두면 정지 썸네일을 쓰는 의미가 없어지므로 이벤트 시점에 바꾼다.
+     * 원래 주소는 `dataset` 에 넣어 두었다가 벗어날 때 되돌린다.
+     */
+    function playAnimation(e: Event, item: EmoticonItem): void {
+        if (!hasSeparateAnimation(item)) return;
+        const img = (e.currentTarget as HTMLElement).querySelector('img');
+        if (!img) return;
+        if (!img.dataset.still) img.dataset.still = img.src;
+        img.src = animatedThumbUrl(item);
+    }
+
+    /** 확대 종료 — 정지 썸네일로 되돌린다 */
+    function stopAnimation(e: Event): void {
+        const img = (e.currentTarget as HTMLElement).querySelector('img');
+        if (img?.dataset.still) img.src = img.dataset.still;
     }
 
     function setActiveTab(tab: string) {
@@ -125,8 +144,9 @@
                     title="{pack.name} ({pack.count}개)"
                 >
                     {#if pack.items.length > 0}
+                        <!-- 팩 탭 아이콘은 20px 라 애니메이션이 보이지도 않는다. 정지 고정 -->
                         <img
-                            src={thumbUrl(pack.items[0])}
+                            src={stillThumbUrl(pack.items[0])}
                             alt={pack.name}
                             class="size-5 object-contain"
                         />
@@ -201,14 +221,26 @@
                     {#if activeTab === `pack-${i}`}
                         <div class="grid max-h-[240px] grid-cols-6 gap-1.5 overflow-y-auto p-1">
                             {#each pack.items as item}
+                                <!--
+                                    확대 전환은 버튼에 건다. <img> 는 포커스를 못 받아
+                                    키보드로 이동한 사용자에게는 이벤트가 오지 않는다.
+                                -->
                                 <button
                                     type="button"
                                     onclick={() => selectEmoticon(item.file)}
+                                    onmouseenter={(e) => playAnimation(e, item)}
+                                    onmouseleave={stopAnimation}
+                                    onfocusin={(e) => playAnimation(e, item)}
+                                    onfocusout={stopAnimation}
                                     class="hover:bg-muted group/emo relative flex items-center justify-center rounded-lg p-1 transition-colors"
                                     title={item.file}
                                 >
+                                    <!--
+                                        평소엔 정지 썸네일(~2KB), 확대할 때만 애니(~60KB).
+                                        DINKIssTyle 팩 기준 6.22MB → 0.07MB.
+                                    -->
                                     <img
-                                        src={thumbUrl(item)}
+                                        src={stillThumbUrl(item)}
                                         alt={item.file}
                                         class="emoticon-inline size-10 object-contain transition-transform group-hover/emo:z-50 group-hover/emo:scale-[3]"
                                         loading="lazy"

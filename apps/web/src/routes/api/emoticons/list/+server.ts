@@ -71,7 +71,16 @@ const HIDDEN_PACKS = new Set(['southsky', 'lee-president']);
 
 interface EmoticonItem {
     file: string;
+    /** 애니메이션 썸네일 (`X_thumb.webp`). 확대 시에만 쓴다 */
     thumb: string | null;
+    /**
+     * 정지 썸네일 (`X_still.webp`, 첫 프레임만). 평소 표시용.
+     *
+     * 선택창은 40px 로 그리는데 애니 썸네일은 프레임이 91~197개라 장당 60KB 다.
+     * 첫 프레임만 쓰면 1.7KB — DINKIssTyle 팩 기준 6.22MB → 0.07MB.
+     * 아직 만들지 않은 팩은 null 이고, 그 경우 기존대로 thumb 을 쓴다.
+     */
+    still: string | null;
 }
 
 interface EmoticonPack {
@@ -109,18 +118,23 @@ async function scanEmoticons(): Promise<{ packs: EmoticonPack[] }> {
 
     // thumb 파일 맵 구축: "damoang-emo-001" → "damoang-emo-001_thumb.gif"
     const thumbMap = new Map<string, string>();
+    // still 파일 맵 구축: "damoang-emo-001" → "damoang-emo-001_still.webp"
+    const stillMap = new Map<string, string>();
     for (const file of files) {
-        if (!file.includes('_thumb')) continue;
-        const baseName = file.substring(0, file.indexOf('_thumb'));
-        thumbMap.set(baseName, file);
+        if (file.includes('_thumb')) {
+            thumbMap.set(file.substring(0, file.indexOf('_thumb')), file);
+        } else if (file.includes('_still')) {
+            stillMap.set(file.substring(0, file.indexOf('_still')), file);
+        }
     }
 
     // 팩별 그룹핑
     const packMap = new Map<string, EmoticonItem[]>();
 
     for (const file of files) {
-        // _thumb, 비이미지, 특수 파일 제외
-        if (file.includes('_thumb') || SKIP_FILES.has(file)) continue;
+        // ⛔ _thumb 과 _still 은 이모티콘 자체가 아니라 부속 파일이다.
+        //    거르지 않으면 선택창에 같은 이모티콘이 두세 개씩 늘어선다.
+        if (file.includes('_thumb') || file.includes('_still') || SKIP_FILES.has(file)) continue;
 
         const ext = file.split('.').pop()?.toLowerCase() || '';
         if (!ALLOWED_EXTENSIONS.has(ext)) continue;
@@ -140,8 +154,9 @@ async function scanEmoticons(): Promise<{ packs: EmoticonPack[] }> {
         const dotIdx = file.lastIndexOf('.');
         const baseName = dotIdx > 0 ? file.substring(0, dotIdx) : file;
         const thumb = thumbMap.get(baseName) || null;
+        const still = stillMap.get(baseName) || null;
 
-        packMap.get(prefix)!.push({ file, thumb });
+        packMap.get(prefix)!.push({ file, thumb, still });
     }
 
     // 각 팩 내 파일 정렬
