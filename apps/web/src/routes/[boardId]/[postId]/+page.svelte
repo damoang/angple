@@ -1,17 +1,12 @@
 <script lang="ts" module>
-    import type { Snapshot } from './$types.js';
+    import { createScrollSnapshot } from '$lib/utils/scroll-restore.js';
 
-    // 뒤로가기 시 스크롤 위치 즉시 복원
-    export const snapshot: Snapshot<{ scrollY: number }> = {
-        capture: () => ({ scrollY: window.scrollY }),
-        restore: (value) => {
-            // Safari 타이밍 이슈 대응: rAF + setTimeout 이중 보호
-            requestAnimationFrame(() => window.scrollTo(0, value.scrollY));
-            setTimeout(() => {
-                requestAnimationFrame(() => window.scrollTo(0, value.scrollY));
-            }, 100);
-        }
-    };
+    // 뒤로가기 시 스크롤 위치 복원.
+    // ⛔ 예전에는 rAF + setTimeout(100ms) 로 문서 높이를 보지 않고 scrollTo 했다.
+    //    돌아온 직후에는 이미지·임베드·댓글이 아직 없어 문서가 짧아, 브라우저가 맨 아래로
+    //    clamp 하고 그대로 고착됐다(#13221). 목록 페이지에서 같은 증상을 이미 겪고
+    //    고쳤는데(#9401·#13022) 상세에는 적용되지 않았다. 이제 같은 구현을 공유한다.
+    export const snapshot = createScrollSnapshot();
 </script>
 
 <script lang="ts">

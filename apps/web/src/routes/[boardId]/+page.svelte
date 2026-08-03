@@ -1,55 +1,10 @@
 <script lang="ts" module>
-    import type { Snapshot } from './$types.js';
+    import { createScrollSnapshot } from '$lib/utils/scroll-restore.js';
 
-    // 뒤로가기 시 스크롤 위치 복원. 이미지/광고 로드로 문서 높이가 뒤늦게 확장되는 케이스
-    // (특히 iOS Safari) 까지 커버하기 위해 ResizeObserver 로 목표 위치에 도달할 때까지
-    // 반복 재시도 (#9401 — 상세에서 뒤로가기 시 목록 최하단으로 떨어지는 현상).
-    export const snapshot: Snapshot<{ scrollY: number }> = {
-        capture: () => ({ scrollY: window.scrollY }),
-        restore: (value) => {
-            const target = value.scrollY;
-            if (target <= 0) return;
-
-            let tries = 0;
-            let done = false;
-            const maxTries = 60; // requestAnimationFrame 60프레임 (~1s). 이후는 ResizeObserver 가 커버
-
-            // 문서가 목표 높이에 못 미치는 동안에는 scrollTo 를 호출하지 않는다.
-            // 짧은 문서(이미지/광고 로드 전)에 scrollTo(target) 하면 맨 밑으로 clamp 되고,
-            // 높이가 끝내 안 따라오면 그 상태로 고착돼 "목록이 맨 밑으로" 현상이 된다(#13022).
-            const tryScroll = () => {
-                const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-                if (maxScroll >= target - 2) {
-                    window.scrollTo(0, target);
-                    if (Math.abs(window.scrollY - target) <= 2) done = true;
-                }
-            };
-            const attempt = () => {
-                if (done) return;
-                tryScroll();
-                tries++;
-                if (!done && tries < maxTries) requestAnimationFrame(attempt);
-            };
-            requestAnimationFrame(attempt);
-
-            // 이미지/광고가 로드돼 문서 높이가 변경될 때마다 재시도
-            if (typeof ResizeObserver !== 'undefined') {
-                const ro = new ResizeObserver(() => {
-                    if (done) {
-                        ro.disconnect();
-                        return;
-                    }
-                    tryScroll();
-                    if (done) ro.disconnect();
-                });
-                ro.observe(document.documentElement);
-                setTimeout(() => {
-                    done = true;
-                    ro.disconnect();
-                }, 3000);
-            }
-        }
-    };
+    // 뒤로가기 시 스크롤 위치 복원 (#9401·#13022).
+    // 구현은 $lib/utils/scroll-restore 로 옮겼다 — 상세 페이지가 같은 로직을 복붙 없이
+    // 쓰게 하기 위해서다. 한쪽만 고치는 일이 실제로 있었다(#13221).
+    export const snapshot = createScrollSnapshot();
 </script>
 
 <script lang="ts">
