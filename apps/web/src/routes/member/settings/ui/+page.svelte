@@ -1407,6 +1407,20 @@
                 <CardContent class="space-y-4">
                     <div class="flex items-center justify-between">
                         <div>
+                            <Label>차단한 회원의 댓글 완전히 숨기기</Label>
+                            <p class="text-muted-foreground text-xs">
+                                안내문 없이 아예 표시하지 않습니다. 답글이 달린 댓글은 대화가 끊기지
+                                않도록 안내문을 남깁니다
+                            </p>
+                        </div>
+                        <Switch
+                            checked={uiSettingsStore.hideBlockedComments}
+                            onCheckedChange={(v) => uiSettingsStore.setHideBlockedComments(v)}
+                        />
+                    </div>
+                    <Separator />
+                    <div class="flex items-center justify-between">
+                        <div>
                             <Label>메모 배지 가리기</Label>
                             <p class="text-muted-foreground text-xs">
                                 게시글 상세에서 메모 배지를 숨깁니다
