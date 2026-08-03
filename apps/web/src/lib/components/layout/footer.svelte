@@ -23,6 +23,24 @@
     const biz = $derived(page.data.site?.business ?? (page.data.site ? null : DEFAULT_BUSINESS));
 
     /**
+     * 앱 스토어 링크와 QR.
+     * QR SVG 는 `static/qr/` 의 정적 파일이며, 생성 시 실제 디코딩으로 URL 일치를 검증했다.
+     * 주소를 바꾸면 QR 도 다시 만들어야 한다 — `triage/tools/gen_app_qr.py`.
+     */
+    const appStores = [
+        {
+            name: 'Google Play',
+            href: 'https://play.google.com/store/apps/details?id=net.damoang.community',
+            qr: '/qr/play.svg'
+        },
+        {
+            name: 'App Store',
+            href: 'https://apps.apple.com/kr/app/id6765814344',
+            qr: '/qr/appstore.svg'
+        }
+    ];
+
+    /**
      * 사업자·연락처 줄은 마크업의 {#if} 가 아니라 여기서 문자열로 조립한다.
      *
      * ⛔ 인접한 {#if} 로 되돌리지 말 것. 하이드레이션이 통째로 깨진다.
@@ -181,6 +199,69 @@
                     <ExternalLink class="h-3 w-3" />
                 </a>
             {/each}
+        </div>
+
+        <!--
+            앱 설치 안내 (#앱배지).
+
+            ⛔ 조건부 렌더링({#if})을 쓰지 않는다. 이 파일 상단 주석 참조 —
+               푸터의 인접 {#if} 가 하이드레이션을 통째로 깨뜨려 12시간당 약 2,000명이
+               영향을 받은 이력이 있다(2026-07-29). 푸터는 전 페이지에 있어 피해가
+               사이트 전체로 퍼진다.
+            → 모바일/PC 분기는 **CSS(sm: 브레이크포인트)만으로** 한다. 마크업은 항상 동일하게
+               렌더되므로 SSR 과 클라이언트가 어긋날 여지가 없다.
+
+            QR 은 정적 SVG 다(`static/qr/`). 런타임 생성·외부 요청이 없어 CSP 와 무관하고,
+            생성 시 실제 디코딩으로 URL 일치를 검증했다(triage/tools/gen_app_qr.py).
+        -->
+        <div class="mt-6 border-t pt-4">
+            <div class="mb-3 flex items-center gap-2">
+                <span class="text-foreground text-xs font-medium">다모앙 앱</span>
+                <span
+                    class="border-primary/30 text-primary rounded border px-1.5 py-0.5 text-[10px] leading-none"
+                    >베타</span
+                >
+            </div>
+
+            <!-- PC: QR (폰으로 스캔). 모바일에서는 자기 기기를 스캔할 수 없으므로 숨긴다 -->
+            <div class="hidden gap-6 sm:flex">
+                {#each appStores as store (store.name)}
+                    <a
+                        href={store.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="group flex flex-col items-center gap-1.5"
+                    >
+                        <img
+                            src={store.qr}
+                            alt="{store.name}에서 다모앙 앱 받기 (QR 코드)"
+                            width="88"
+                            height="88"
+                            loading="lazy"
+                            class="border-border rounded border bg-white p-1"
+                        />
+                        <span
+                            class="text-muted-foreground group-hover:text-primary text-[11px] transition-colors"
+                            >{store.name}</span
+                        >
+                    </a>
+                {/each}
+            </div>
+
+            <!-- 모바일: 스토어로 바로 이동 -->
+            <div class="flex flex-wrap gap-2 sm:hidden">
+                {#each appStores as store (store.name)}
+                    <a
+                        href={store.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="border-border text-muted-foreground hover:text-primary hover:border-primary/40 flex items-center gap-1.5 rounded border px-3 py-1.5 text-xs transition-colors"
+                    >
+                        {store.name}
+                        <ExternalLink class="h-3 w-3" />
+                    </a>
+                {/each}
+            </div>
         </div>
     </div>
 
