@@ -3,39 +3,30 @@ import { describe, expect, it } from 'vitest';
 /**
  * 차단 회원 댓글 숨김 규칙 (#13224).
  *
- * 지키는 계약:
- *   1. 설정이 꺼져 있으면 목록이 그대로다 (기본값 OFF — 현행 100% 유지)
- *   2. 답글이 없는 차단 댓글만 제외한다
- *   3. ⛔ **답글이 달린 차단 댓글은 제외하지 않는다.** 부모를 없애면 거기 답글을 단
- *      제3자의 댓글이 부모를 잃는다 — 차단 대상이 아닌 사람이 피해를 본다.
+ * ⛔ 이 테스트는 **실제 구현을 import 한다.** 예전 판은 같은 로직을 복제해 두어
+ *    구현이 바뀌어도 영원히 초록이었다(계약이 아니라 계약의 사본을 고정했다).
  *
- * ⛔ "답글 있음" 판정은 parent_id 가 아니라 **다음 항목의 depth** 로 한다.
- *    운영 경로는 API 가 내려주는 depth 를 그대로 쓰는 평면 목록이라 parent_id 맵이 없다.
- *    이 테스트는 그 평면 구조를 그대로 흉내낸다.
+ * 지키는 계약:
+ *   1. 설정이 꺼져 있으면 **원본 배열을 그대로**(참조 동일) 돌려준다
+ *   2. 답글이 없는 차단 댓글만 제외한다
+ *   3. ⛔ 답글이 달린 차단 댓글은 제외하지 않는다 — 제3자의 답글이 부모를 잃는다
  */
+import { filterVisibleComments } from './blocked-comment-filter';
 
 type C = { id: number; depth: number; blocked: boolean };
 
-/** comment-list.svelte 의 visibleComments 와 동일한 규칙 */
-function visible(tree: C[], hide: boolean): C[] {
-    if (!hide) return tree;
-    return tree.filter((c, i) => {
-        if (!c.blocked) return true;
-        const next = tree[i + 1];
-        return !!next && (next.depth ?? 0) > (c.depth ?? 0);
-    });
-}
+const visible = (tree: C[], hide: boolean) => filterVisibleComments(tree, hide, (c) => c.blocked);
 
 const ids = (list: C[]) => list.map((c) => c.id);
 
 describe('차단 회원 댓글 숨김 규칙', () => {
-    it('설정 OFF 면 아무것도 바뀌지 않는다 (기본값)', () => {
+    it('설정 OFF 면 원본을 그대로 돌려준다 (참조 동일 — 불필요한 재렌더 방지)', () => {
         const tree: C[] = [
             { id: 1, depth: 0, blocked: false },
             { id: 2, depth: 0, blocked: true },
             { id: 3, depth: 0, blocked: false }
         ];
-        expect(ids(visible(tree, false))).toEqual([1, 2, 3]);
+        expect(visible(tree, false)).toBe(tree);
     });
 
     it('답글 없는 차단 댓글은 제외한다', () => {
