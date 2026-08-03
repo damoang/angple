@@ -92,6 +92,9 @@ def make_still(path: str, out_path: str) -> tuple[int, int] | None:
         print(f"  ⚠️  {os.path.basename(path)}: 이득 없음 ({after} >= {before}) — 생략")
         return None
 
+    # ⛔ mkstemp 는 0600 으로 만든다. 그대로 두면 이 스크립트를 호스트 서빙 디렉터리
+    #    (/home/damoang/legacy-data/emoticons)에 직접 돌렸을 때 웹서버가 못 읽는다.
+    os.chmod(tmp, 0o644)
     os.replace(tmp, out_path)
     return before, after
 
