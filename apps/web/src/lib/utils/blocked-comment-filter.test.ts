@@ -15,8 +15,7 @@ import { filterVisibleComments } from './blocked-comment-filter';
 
 type C = { id: number; depth: number; blocked: boolean };
 
-const visible = (tree: C[], hide: boolean) =>
-    filterVisibleComments(tree, hide, (c) => c.blocked);
+const visible = (tree: C[], hide: boolean) => filterVisibleComments(tree, hide, (c) => c.blocked);
 
 const ids = (list: C[]) => list.map((c) => c.id);
 

@@ -424,11 +424,7 @@
      * 쓰게 하려는 것이다. 여기 인라인으로 복사하지 말 것.
      */
     const visibleComments = $derived.by(() =>
-        filterVisibleComments(
-            commentTree,
-            uiSettingsStore.hideBlockedComments,
-            isBlockedComment
-        )
+        filterVisibleComments(commentTree, uiSettingsStore.hideBlockedComments, isBlockedComment)
     );
 
     function toggleBlockedComment(commentId: string): void {
