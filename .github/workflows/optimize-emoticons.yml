@@ -76,11 +76,16 @@ jobs:
           import os, sys
           from PIL import Image
           d = 'apps/web/static/emoticons'
+          # ⛔ 이미지가 아닌 파일이 섞여 있다(onion-license.txt 등). 확장자로 걸러야 한다.
+          #    안 거르면 라이선스 텍스트를 이미지로 열려다 실패해 '손상'으로 오탐한다.
+          EXTS = ('.webp', '.gif', '.png', '.jpg', '.jpeg')
           bad = []
+          checked = 0
           for f in sorted(os.listdir(d)):
               p = os.path.join(d, f)
-              if not os.path.isfile(p):
+              if not os.path.isfile(p) or not f.lower().endswith(EXTS):
                   continue
+              checked += 1
               try:
                   with Image.open(p) as im:
                       im.verify()
@@ -91,7 +96,7 @@ jobs:
               for b in bad[:30]:
                   print('  ', b)
               sys.exit(1)
-          print(f'✅ 전 파일 정상 ({len(os.listdir(d))}개)')
+          print(f'✅ 이미지 전수 정상 ({checked}개 검사)')
           PY
 
       - name: Create pull request
