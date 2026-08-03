@@ -13,7 +13,12 @@ import { json, type RequestHandler } from '@sveltejs/kit';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { env } from '$env/dynamic/private';
 import { getOAuthKeys } from '$lib/server/auth/oauth/config.js';
-import { findSocialProfile, upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
+import {
+    findSocialProfile,
+    findSocialProfilesByMemberProvider,
+    upsertSocialProfile
+} from '$lib/server/auth/oauth/social-profile.js';
+import { observeBinding } from '$lib/server/auth/oauth/binding-observer.js';
 import { getMemberById, findMemberByEmail, isMemberActive } from '$lib/server/auth/oauth/member.js';
 import {
     generateSocialMbId,
@@ -113,8 +118,17 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         let mbId: string | null = existingProfile?.mb_id ?? null;
 
         if (!mbId && verifiedEmail) {
+            // Apple 은 검증된 이메일이라 위험도가 낮지만, 계측 공백을 만들지 않기 위해
+            // 같은 기준으로 관측한다. ⛔ 여기서 막지 않는다(관측 단계).
             const byEmail = await findMemberByEmail(verifiedEmail);
             if (byEmail) {
+                const bound = await findSocialProfilesByMemberProvider(byEmail.mb_id, 'apple');
+                if (bound.length > 0 && !bound.some((r) => r.identifier === identifier)) {
+                    await observeBinding('email_match_into_bound_account', {
+                        mbId: byEmail.mb_id,
+                        provider: 'apple'
+                    });
+                }
                 mbId = byEmail.mb_id;
             }
         }
