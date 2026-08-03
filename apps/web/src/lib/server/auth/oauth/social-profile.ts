@@ -6,6 +6,7 @@ import pool from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import type { OAuthUserProfile, SocialProfileRow } from './types.js';
 import { createHash } from 'crypto';
+import { observeBinding } from './binding-observer.js';
 
 /** 프로바이더 + identifier로 소셜 프로필 조회 */
 export async function findSocialProfile(
@@ -29,6 +30,23 @@ export async function findSocialProfileByMember(
         [mbId, provider.toLowerCase()]
     );
     return (rows[0] as SocialProfileRow) || null;
+}
+
+/**
+ * mb_id + provider 의 **모든** 소셜 프로필 조회.
+ *
+ * `findSocialProfileByMember` 는 `LIMIT 1` 인데 `ORDER BY` 가 없어, 식별자가 2개 이상인
+ * 계정(실측 69건)에서 어느 행이 나올지 정해져 있지 않다. 로그인 신원 판정에는 이 함수를 쓴다.
+ */
+export async function findSocialProfilesByMemberProvider(
+    mbId: string,
+    provider: string
+): Promise<SocialProfileRow[]> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+        'SELECT * FROM g5_member_social_profiles WHERE mb_id = ? AND provider = ? ORDER BY mp_register_day',
+        [mbId, provider.toLowerCase()]
+    );
+    return rows as SocialProfileRow[];
 }
 
 /** mb_id로 연결된 모든 소셜 프로필 조회 */
@@ -128,17 +146,38 @@ export async function upsertSocialProfile(
     const providerLower = provider.toLowerCase();
     const objectSha = createHash('sha1').update(JSON.stringify(profile)).digest('hex');
 
-    // 다른 회원에게 연결된 동일 프로바이더+identifier 레코드 삭제
-    await pool.query(
-        'DELETE FROM g5_member_social_profiles WHERE provider = ? AND identifier = ? AND mb_id != ?',
-        [providerLower, profile.identifier, mbId]
-    );
+    // ⛔ 예전에는 여기서 다른 회원의 동일 (provider, identifier) 행을 DELETE 했다.
+    //    로그인 한 번에 남의 연동이 조용히 끊기고, 사고 흔적까지 사라졌다.
+    //    이제 지우지 않고 관측만 한다(로그인 동작은 종전과 동일).
+    const conflicting = await findSocialProfile(providerLower, profile.identifier);
+    if (conflicting && conflicting.mb_id !== mbId) {
+        await observeBinding('identifier_bound_other_member_delete_skipped', {
+            mbId,
+            provider: providerLower,
+            otherMbId: conflicting.mb_id
+        });
+    }
 
-    // 기존 레코드 확인
-    const existing = await findSocialProfileByMember(mbId, providerLower);
+    // 이 회원 + 이 provider 의 **모든** 행을 본다.
+    // ⛔ 한 행만 보면 안 된다 — 식별자가 2개 이상인 계정이 실측 69건 있고,
+    //    LIMIT 1 은 ORDER BY 가 없어 어느 행이 나올지 정해져 있지 않다.
+    //    그 계정 주인이 '다른 쪽' 신원으로 로그인할 때 오판하게 된다.
+    const rows = await findSocialProfilesByMemberProvider(mbId, providerLower);
+    const mine = rows.find((r) => r.identifier === profile.identifier);
 
-    if (existing) {
-        // 업데이트
+    if (!mine && rows.length > 0) {
+        // 로그인한 신원이 이 계정에 등록돼 있지 않다.
+        // ⛔ 예전에는 기존 행의 identifier 를 이 신원으로 **덮어썼다.** 그래서 원 주인의
+        //    연동이 사라지고 조회하면 언제나 1:1 로 보였다. 이제 쓰지 않고 관측만 한다.
+        await observeBinding('identifier_mismatch_write_skipped', {
+            mbId,
+            provider: providerLower
+        });
+        return;
+    }
+
+    if (mine) {
+        // 같은 신원 — 표시명·프로필 이미지 등만 갱신 (identifier 는 그대로)
         await pool.query(
             `UPDATE g5_member_social_profiles
 			 SET object_sha = ?, identifier = ?, profileurl = ?, photourl = ?,
@@ -150,7 +189,7 @@ export async function upsertSocialProfile(
                 profile.profileUrl || '',
                 profile.photoUrl || '',
                 profile.displayName || '',
-                existing.mp_no
+                mine.mp_no
             ]
         );
     } else {
