@@ -1146,7 +1146,9 @@
                     class="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs transition-colors"
                 >
                     <EyeOff class="h-3.5 w-3.5" />
-                    {isBlocked ? '내가 차단한 회원의 댓글입니다' : '신고 누적으로 가려진 댓글입니다'}
+                    {isBlocked
+                        ? '내가 차단한 회원의 댓글입니다'
+                        : '신고 누적으로 가려진 댓글입니다'}
                 </button>
             </li>
         {:else}
