@@ -418,13 +418,32 @@
     }
 
     /**
+     * ⛔ localStorage 기반 설정을 렌더 **구조**에 그대로 쓰면 하이드레이션이 깨진다.
+     *    SSR 은 DEFAULTS(꺼짐)라 전체 목록을, 클라이언트는 저장값을 읽어 줄어든 목록을
+     *    그리므로 노드 수가 갈린다. 그래서 마운트 이후에만 반영한다.
+     *    (같은 이유의 선례: routes/member/settings/ui/+page.svelte 의 `hydrated`)
+     *
+     * 대가: 설정을 켠 사용자에게 차단 댓글 자리표시자가 아주 잠깐 보였다 사라진다.
+     * 본문이 아니라 한 줄짜리 자리표시자라 노출 문제는 없고, 구조 불일치를 아예
+     * 만들지 않는 편이 안전하다.
+     */
+    let commentsHydrated = $state(false);
+    onMount(() => {
+        commentsHydrated = true;
+    });
+
+    /**
      * 실제로 그릴 댓글 목록 (#13224).
      *
      * 규칙 본체는 $lib/utils/blocked-comment-filter 에 있다 — 구현과 테스트가 같은 것을
      * 쓰게 하려는 것이다. 여기 인라인으로 복사하지 말 것.
      */
     const visibleComments = $derived.by(() =>
-        filterVisibleComments(commentTree, uiSettingsStore.hideBlockedComments, isBlockedComment)
+        filterVisibleComments(
+            commentTree,
+            commentsHydrated && uiSettingsStore.hideBlockedComments,
+            isBlockedComment
+        )
     );
 
     function toggleBlockedComment(commentId: string): void {
