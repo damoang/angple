@@ -50,6 +50,13 @@ export interface UiSettings {
     // 검색
     pinSearch: boolean;
     pinMemoSearch: boolean;
+    /**
+     * 차단한 회원의 댓글을 안내문 없이 아예 표시하지 않음 (#13224).
+     * ⛔ 기본값은 false 다. 켜는 사람만 켠다 — 차단이 기본으로 강해지면 새로 온 회원이
+     *    자기 글에 왜 반응이 없는지 모른 채 겉돌게 된다. 그 비용을 전원에게 물리지 않는다.
+     * 답글이 달린 댓글은 이 설정과 무관하게 안내문을 남긴다(제3자 답글 보호).
+     */
+    hideBlockedComments: boolean;
     // 기타 (메모)
     hideMemo: boolean;
     hideMemoInList: boolean;
@@ -84,6 +91,7 @@ const DEFAULTS: UiSettings = {
     enableTouchGestures: false,
     swipeThreshold: 50,
     doubleTapInterval: 300,
+    hideBlockedComments: false,
     hideMemo: false,
     hideMemoInList: false,
     blurMemo: false,
@@ -395,6 +403,9 @@ function createUiSettingsStore() {
             save();
         },
         // 메모
+        get hideBlockedComments() {
+            return settings.hideBlockedComments;
+        },
         get hideMemo() {
             return settings.hideMemo;
         },
@@ -450,6 +461,10 @@ function createUiSettingsStore() {
         },
         removeMuteKeyword(keyword: string) {
             settings.muteKeywords = settings.muteKeywords.filter((k) => k !== keyword);
+            save();
+        },
+        setHideBlockedComments(v: boolean) {
+            settings.hideBlockedComments = v;
             save();
         },
         setHideMemo(v: boolean) {

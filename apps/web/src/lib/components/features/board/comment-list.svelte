@@ -416,6 +416,29 @@
         return comment.is_blocked === true || blockedUsersStore.isBlocked(comment.author_id);
     }
 
+    /**
+     * 실제로 그릴 댓글 목록 (#13224).
+     *
+     * 설정이 켜져 있으면 차단한 회원의 댓글을 안내문 없이 아예 제외한다.
+     * ⛔ 단 **답글이 달린 댓글은 제외하지 않는다.** 부모를 없애면 거기 답글을 단
+     *    제3자의 댓글이 부모를 잃고 맥락이 끊긴다 — 차단 대상이 아닌 사람이 피해를 본다.
+     *
+     * ⛔ "답글 있음" 을 parent_id 로 판정하면 안 된다. 운영 경로는 API 가 내려주는
+     *    depth 를 그대로 쓰는 **평면 목록**이라(위 commentTree 참조) parent_id 맵이 없다.
+     *    두 경로 모두 depth 순서가 보존된 평면 배열이므로
+     *    **다음 항목의 depth 가 더 크면 답글 있음** 으로 판정한다.
+     */
+    const visibleComments = $derived.by(() => {
+        const tree = commentTree;
+        if (!uiSettingsStore.hideBlockedComments) return tree;
+        return tree.filter((c, i) => {
+            if (!isBlockedComment(c)) return true;
+            const next = tree[i + 1];
+            const hasReplies = !!next && (next.depth ?? 0) > (c.depth ?? 0);
+            return hasReplies;
+        });
+    });
+
     function toggleBlockedComment(commentId: string): void {
         if (expandedBlockedComments.has(commentId)) {
             expandedBlockedComments.delete(commentId);
@@ -1060,7 +1083,7 @@
                     ? 'space-y-2'
                     : 'space-y-3'}
 >
-    {#each commentTree as comment, commentIndex (comment.id)}
+    {#each visibleComments as comment, commentIndex (comment.id)}
         {@const isDeleted = !!comment.deleted_at}
         {@const isBlocked = isBlockedComment(comment)}
         {@const isLocked = isLockedComment(comment)}
@@ -1073,8 +1096,13 @@
         {@const replyToAuthor = isReply
             ? (() => {
                   for (let i = commentIndex - 1; i >= 0; i--) {
-                      const prev = commentTree[i];
-                      if ((prev.depth ?? 0) < depth) return prev.author;
+                      const prev = visibleComments[i];
+                      if ((prev.depth ?? 0) < depth) {
+                          // ⛔ 이 표시는 본문 글자가 아니라 우리가 트리를 거슬러 올라가
+                          //    그려주는 UI 장식이다. 차단한 회원이면 닉네임을 가린다.
+                          //    (본문에 직접 쓴 멘션은 제3자의 글이므로 건드리지 않는다)
+                          return isBlockedComment(prev) ? '차단한 회원' : prev.author;
+                      }
                   }
                   return null;
               })()
@@ -1118,7 +1146,7 @@
                     class="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs transition-colors"
                 >
                     <EyeOff class="h-3.5 w-3.5" />
-                    {isBlocked ? '차단된 사용자의 댓글입니다' : '신고 누적으로 가려진 댓글입니다'}
+                    {isBlocked ? '내가 차단한 회원의 댓글입니다' : '신고 누적으로 가려진 댓글입니다'}
                 </button>
             </li>
         {:else}
@@ -1179,7 +1207,7 @@
                         class="text-muted-foreground hover:text-foreground mb-1 flex items-center gap-1.5 text-xs transition-colors"
                     >
                         <EyeOff class="h-3.5 w-3.5" />
-                        차단된 사용자의 댓글 — 접기
+                        내가 차단한 회원의 댓글 — 접기
                     </button>
                 {:else if isLocked}
                     <!-- #12420: 신고 누적으로 잠긴 댓글 (펼쳐진 상태) — 접기 -->
