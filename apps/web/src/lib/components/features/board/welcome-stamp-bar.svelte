@@ -7,6 +7,7 @@
         welcomeStampContent
     } from '$lib/utils/welcome-stamp.js';
     import type { BoardPermissions, FreeComment } from '$lib/api/types.js';
+    import { stillThumbUrl, type EmoticonThumbSource } from '$lib/utils/emoticon-thumb';
     import { onMount } from 'svelte';
     import { toast } from 'svelte-sonner';
     import Check from '@lucide/svelte/icons/check';
@@ -35,10 +36,8 @@
         disabled = false
     }: Props = $props();
 
-    interface EmoticonItem {
-        file: string;
-        thumb: string | null;
-    }
+    // 썸네일 URL 규칙은 emoticon-thumb.ts 하나만 안다. 여기서 다시 조립하지 않는다.
+    type EmoticonItem = EmoticonThumbSource;
 
     let stamps = $state<EmoticonItem[]>([]);
     let sendingFile = $state<string | null>(null);
@@ -110,7 +109,7 @@
                         : '탭 한 번으로 환영 댓글 남기기'}
                 >
                     <img
-                        src="/emoticons/{item.thumb || item.file}"
+                        src={stillThumbUrl(item)}
                         alt="환영 앙티콘"
                         class="size-9 object-contain {stamped ? 'opacity-40 grayscale' : ''}"
                         loading="lazy"
