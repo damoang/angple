@@ -10,7 +10,12 @@ import { normalizeProviderName, getProvider } from '$lib/server/auth/oauth/provi
 import { resolveOrigin } from '$lib/server/auth/oauth/config.js';
 import { safeRedirectUrl } from '$lib/server/safe-redirect.js';
 import { validateOAuthState } from '$lib/server/auth/oauth/state.js';
-import { findSocialProfile, upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
+import {
+    findSocialProfile,
+    findSocialProfilesByMemberProvider,
+    upsertSocialProfile
+} from '$lib/server/auth/oauth/social-profile.js';
+import { observeBinding } from '$lib/server/auth/oauth/binding-observer.js';
 import { getMemberById, findMemberByEmail, isMemberActive } from '$lib/server/auth/oauth/member.js';
 import { generateRefreshToken } from '$lib/server/auth/jwt.js';
 import {
@@ -90,8 +95,27 @@ async function handleCallback(
         if (existingProfile?.mb_id) {
             mbId = existingProfile.mb_id;
         } else if (profile.email) {
+            // 레거시(그누보드) 회원의 소셜 전환용 매칭.
+            //
+            // ⛔ 프로바이더가 준 이메일을 이 사람이 실제로 통제하는지는 확인할 수 없다.
+            //    프로바이더의 "등록 이메일"은 외부 주소를 그대로 넣을 수 있는 값이라,
+            //    대상 계정이 이미 다른 신원과 연결돼 있으면 전환이 아니라 교차 접근이다.
+            //    다만 여기서 곧바로 막으면 몇 명이 걸리는지 모른 채 사람을 끊게 된다
+            //    (사전 계산 불가 — 소셜 프로필 테이블에 프로바이더 이메일이 없다).
+            //    그래서 이번 단계는 **관측만** 하고, 실측 후 차단으로 전환한다.
             const memberByEmail = await findMemberByEmail(profile.email);
             if (memberByEmail) {
+                const bound = await findSocialProfilesByMemberProvider(
+                    memberByEmail.mb_id,
+                    providerName
+                );
+                if (bound.length > 0 && !bound.some((r) => r.identifier === profile.identifier)) {
+                    await observeBinding('email_match_into_bound_account', {
+                        mbId: memberByEmail.mb_id,
+                        provider: providerName,
+                        clientIp
+                    });
+                }
                 mbId = memberByEmail.mb_id;
             }
         }
