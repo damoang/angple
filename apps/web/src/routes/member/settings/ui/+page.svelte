@@ -766,6 +766,32 @@
                 <CardHeader>
                     <CardTitle class="flex items-center gap-2">
                         <Ban class="h-5 w-5" />
+                        차단 회원 표시
+                    </CardTitle>
+                    <CardDescription>차단한 회원의 댓글을 어떻게 보여줄지 정합니다.</CardDescription
+                    >
+                </CardHeader>
+                <CardContent class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <Label>차단한 회원의 댓글 완전히 숨기기</Label>
+                            <p class="text-muted-foreground text-xs">
+                                안내문 없이 아예 표시하지 않습니다. 답글이 달린 댓글은 대화가 끊기지
+                                않도록 안내문을 남깁니다
+                            </p>
+                        </div>
+                        <Switch
+                            checked={uiSettingsStore.hideBlockedComments}
+                            onCheckedChange={(v) => uiSettingsStore.setHideBlockedComments(v)}
+                        />
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <Ban class="h-5 w-5" />
                         제목 필터링 (뮤트)
                     </CardTitle>
                     <CardDescription>특정 단어가 포함된 게시글을 목록에서 숨깁니다.</CardDescription
@@ -1405,20 +1431,6 @@
                     <CardDescription>메모 플러그인의 표시 방식을 설정합니다.</CardDescription>
                 </CardHeader>
                 <CardContent class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <Label>차단한 회원의 댓글 완전히 숨기기</Label>
-                            <p class="text-muted-foreground text-xs">
-                                안내문 없이 아예 표시하지 않습니다. 답글이 달린 댓글은 대화가 끊기지
-                                않도록 안내문을 남깁니다
-                            </p>
-                        </div>
-                        <Switch
-                            checked={uiSettingsStore.hideBlockedComments}
-                            onCheckedChange={(v) => uiSettingsStore.setHideBlockedComments(v)}
-                        />
-                    </div>
-                    <Separator />
                     <div class="flex items-center justify-between">
                         <div>
                             <Label>메모 배지 가리기</Label>

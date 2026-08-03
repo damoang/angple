@@ -47,6 +47,7 @@
     import History from '@lucide/svelte/icons/history';
     import Heart from '@lucide/svelte/icons/heart';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
+    import { filterVisibleComments } from '$lib/utils/blocked-comment-filter.js';
 
     // 동적 플러그인 임포트: member-memo
     let MemoBadge = $state<Component | null>(null);
@@ -419,25 +420,16 @@
     /**
      * 실제로 그릴 댓글 목록 (#13224).
      *
-     * 설정이 켜져 있으면 차단한 회원의 댓글을 안내문 없이 아예 제외한다.
-     * ⛔ 단 **답글이 달린 댓글은 제외하지 않는다.** 부모를 없애면 거기 답글을 단
-     *    제3자의 댓글이 부모를 잃고 맥락이 끊긴다 — 차단 대상이 아닌 사람이 피해를 본다.
-     *
-     * ⛔ "답글 있음" 을 parent_id 로 판정하면 안 된다. 운영 경로는 API 가 내려주는
-     *    depth 를 그대로 쓰는 **평면 목록**이라(위 commentTree 참조) parent_id 맵이 없다.
-     *    두 경로 모두 depth 순서가 보존된 평면 배열이므로
-     *    **다음 항목의 depth 가 더 크면 답글 있음** 으로 판정한다.
+     * 규칙 본체는 $lib/utils/blocked-comment-filter 에 있다 — 구현과 테스트가 같은 것을
+     * 쓰게 하려는 것이다. 여기 인라인으로 복사하지 말 것.
      */
-    const visibleComments = $derived.by(() => {
-        const tree = commentTree;
-        if (!uiSettingsStore.hideBlockedComments) return tree;
-        return tree.filter((c, i) => {
-            if (!isBlockedComment(c)) return true;
-            const next = tree[i + 1];
-            const hasReplies = !!next && (next.depth ?? 0) > (c.depth ?? 0);
-            return hasReplies;
-        });
-    });
+    const visibleComments = $derived.by(() =>
+        filterVisibleComments(
+            commentTree,
+            uiSettingsStore.hideBlockedComments,
+            isBlockedComment
+        )
+    );
 
     function toggleBlockedComment(commentId: string): void {
         if (expandedBlockedComments.has(commentId)) {

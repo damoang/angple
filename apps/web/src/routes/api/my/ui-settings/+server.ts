@@ -42,6 +42,7 @@ const ALLOWED_KEYS = new Set<string>([
     'recommendFontSize',
     'pinSearch',
     'pinMemoSearch',
+    'hideBlockedComments',
     'hideMemo',
     'hideMemoInList',
     'blurMemo',
