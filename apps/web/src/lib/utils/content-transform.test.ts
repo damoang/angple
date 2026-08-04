@@ -349,9 +349,32 @@ describe('transformEmoticons - 팩별 기본 폭 (bug#13145)', () => {
         expect(result).toContain('width="200"');
     });
 
-    it('밈 외 팩은 기존대로 50px', () => {
-        expect(transformEmoticons('{emo:damoang-emo-042.gif}')).toContain('width="50"');
+    // 2026-08-04 — 원본이 큰 팩만 개별 상향했다. 일괄 상향은 실측으로 기각.
+    it('원본이 큰 팩은 개별 상향값을 쓴다', () => {
+        expect(transformEmoticons('{emo:damoang-emo-042.gif}')).toContain('width="80"');
+        expect(transformEmoticons('{emo:moon-emo-001.gif}')).toContain('width="100"');
+        expect(transformEmoticons('{emo:damoang-sol-003.gif}')).toContain('width="100"');
+        expect(transformEmoticons('{emo:president-001.jpg}')).toContain('width="100"');
+    });
+
+    // ⛔ startsWith 라 'president-' 는 'lee-president-001' 을 잡지 못한다.
+    //    별도 항목이 없으면 이 팩만 50px 로 남는다.
+    it('lee-president 도 따로 잡힌다', () => {
+        expect(transformEmoticons('{emo:lee-president-002.webp}')).toContain('width="100"');
+    });
+
+    // ⛔ 이 테스트가 이번 변경의 안전장치다. onion 은 264개짜리 최대 팩인데
+    //    원본이 50px 라, 키우면 확대되어 계단이 보인다. 절대 올리지 말 것.
+    it('onion 은 원본이 50px 라 그대로 둔다 — 올리면 뭉개진다', () => {
         expect(transformEmoticons('{emo:onion-133.gif}')).toContain('width="50"');
+    });
+
+    it('DINKIssTyle 계열도 여유가 없어 그대로 50px', () => {
+        expect(transformEmoticons('{emo:DINKIssTyle-face-003.webp}')).toContain('width="50"');
+        expect(transformEmoticons('{emo:DINKIssTyle-3d-ang-001.webp}')).toContain('width="50"');
+    });
+
+    it('팩에 속하지 않는 파일은 기본 50px', () => {
         expect(transformEmoticons('{emo:smile.gif}')).toContain('width="50"');
     });
 
