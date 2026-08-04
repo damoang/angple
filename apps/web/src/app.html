@@ -108,6 +108,29 @@
         <link rel="dns-prefetch" href="https://s3.damoang.net" />
         <link rel="preconnect" href="https://r2.damoang.net" crossorigin />
         <link rel="dns-prefetch" href="https://r2.damoang.net" />
+        <!--
+          광고 호스트 연결 비용 절감 (2026-08-04 모바일 실측).
+
+          ⛔ preconnect 는 "곧 쓸 연결"에만 건다. 늦게 붙는 호스트에 걸면 연결 슬롯만
+             차지해 초반 자원과 경쟁한다. 그래서 첫 요청 시점을 기준으로 골랐다.
+
+            호스트                                연결비용   첫요청     판정
+            pagead2.googlesyndication.com          79ms      150ms   preconnect ✅
+            cdn.jsdelivr.net                       36ms      150ms   이미 있음(그래서 36ms)
+            fundingchoicesmessages.google.com      95ms    1,127ms   dns-prefetch 만
+            safeframe.googlesyndication.com        93ms    1,422ms   ⛔ 너무 늦음
+            ep1.adtrafficquality.google            74ms    1,587ms   ⛔ 너무 늦음
+            www.google.co.kr                       85ms    1,810ms   ⛔ 너무 늦음
+
+          preconnect 가 걸린 jsdelivr 는 36ms, 안 걸린 호스트는 79~95ms 였다.
+          같은 페이지 안에서 대조되므로 효과 근거가 된다.
+
+          ⛔ securepubads.g.doubleclick.net 은 넣지 않는다 — 실측에서 연결 비용이
+             잡히지 않았다(앞선 요청의 연결을 재사용). 넣으면 슬롯만 낭비한다.
+        -->
+        <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin />
+        <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
+        <link rel="dns-prefetch" href="https://fundingchoicesmessages.google.com" />
         <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -->
         <link
             rel="preload"
