@@ -1729,16 +1729,13 @@
                                         disabled={isUpdating}
                                     />
 
+                                    <!-- DOM 은 [저장, 취소] 순 — Tab 이 주 액션(저장)에 먼저 닿는다 (bug#13248).
+                                         시각 배치는 order-first 로 기존 그대로 [취소][저장] 을 유지한다.
+                                         ⛔ tabindex 양수로 풀지 말 것 — 전역 탭 순서를 오염시킨다.
+                                         ⛔ 댓글 '작성' 폼(comment-form.svelte)은 7/31 에 같은 이유로 고쳤는데
+                                            '수정' 폼인 여기를 빠뜨려 같은 제보가 다시 올라왔다. 두 폼은
+                                            파일이 달라 한쪽만 고치기 쉽다 — 한쪽을 바꾸면 다른 쪽도 확인할 것. -->
                                     <div class="ml-auto flex items-center gap-2">
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            onclick={cancelEdit}
-                                            disabled={isUpdating}
-                                        >
-                                            취소
-                                        </Button>
                                         <Button
                                             type="button"
                                             size="sm"
@@ -1746,6 +1743,16 @@
                                             disabled={isUpdating || !editContent.trim()}
                                         >
                                             {isUpdating ? '저장 중...' : '저장'}
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            class="order-first"
+                                            onclick={cancelEdit}
+                                            disabled={isUpdating}
+                                        >
+                                            취소
                                         </Button>
                                     </div>
                                 </div>
