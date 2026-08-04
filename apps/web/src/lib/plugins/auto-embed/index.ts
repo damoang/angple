@@ -56,6 +56,19 @@ export { default as EmbedContainer } from './components/embed-container.svelte';
 /**
  * CSS 스타일 (전역에서 import 필요)
  */
+/**
+ * ⛔ **이 문자열은 현재 어디에도 주입되지 않는다.** (2026-08-04 확인)
+ *
+ * 실제로 적용되는 임베드 CSS 는 `apps/web/src/styles/components.css` 다.
+ * 운영 HTML 에 이 규칙이 등장하는 횟수는 0 이고, `embedStyles` 를 import 하는 곳도 없다.
+ *
+ * ⛔ **여기를 고쳐도 화면은 바뀌지 않는다.** bug#13049(X 임베드 잘림)에서
+ *    실제로 이 함정에 빠져, 고쳤다고 회원에게 안내까지 나갔으나 증상이 그대로였다.
+ *    임베드 스타일을 바꿔야 하면 `styles/components.css` 를 고칠 것.
+ *
+ * 같은 이유로 `components/EmbedContainer.svelte`(대문자)도 참조 0건인 사본이다.
+ * 실제 컴포넌트는 아래 54행이 가리키는 소문자 `embed-container.svelte` 다.
+ */
 export const embedStyles = `
 .embed-container {
 	position: relative;
