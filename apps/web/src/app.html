@@ -109,28 +109,31 @@
         <link rel="preconnect" href="https://r2.damoang.net" crossorigin />
         <link rel="dns-prefetch" href="https://r2.damoang.net" />
         <!--
-          광고 호스트 연결 비용 절감 (2026-08-04 모바일 실측).
+          ⛔ **광고 호스트에 preconnect 를 걸지 말 것.** 시도했고 효과가 없었다(2026-08-04 실측).
 
-          ⛔ preconnect 는 "곧 쓸 연결"에만 건다. 늦게 붙는 호스트에 걸면 연결 슬롯만
-             차지해 초반 자원과 경쟁한다. 그래서 첫 요청 시점을 기준으로 골랐다.
+          `pagead2.googlesyndication.com` 에 preconnect + dns-prefetch 를 넣고
+          카나리/운영을 각 5회 반복 측정했다. 캐시 없는 새 컨텍스트로 쟀다.
 
-            호스트                                연결비용   첫요청     판정
-            pagead2.googlesyndication.com          79ms      150ms   preconnect ✅
-            cdn.jsdelivr.net                       36ms      150ms   이미 있음(그래서 36ms)
-            fundingchoicesmessages.google.com      95ms    1,127ms   dns-prefetch 만
-            safeframe.googlesyndication.com        93ms    1,422ms   ⛔ 너무 늦음
-            ep1.adtrafficquality.google            74ms    1,587ms   ⛔ 너무 늦음
-            www.google.co.kr                       85ms    1,810ms   ⛔ 너무 늦음
+            연결비용(중앙)   preconnect 없음 73ms  →  있음 86ms
+            LOAD(중앙)       preconnect 없음 1,559ms → 있음 1,639ms
 
-          preconnect 가 걸린 jsdelivr 는 36ms, 안 걸린 호스트는 79~95ms 였다.
-          같은 페이지 안에서 대조되므로 효과 근거가 된다.
+          효과가 없는 정도가 아니라 소폭 나빴다. 그래서 되돌렸다(#1961 → revert).
 
-          ⛔ securepubads.g.doubleclick.net 은 넣지 않는다 — 실측에서 연결 비용이
-             잡히지 않았다(앞선 요청의 연결을 재사용). 넣으면 슬롯만 낭비한다.
+          ## 왜 안 되는가
+
+          처음에 "cdn.jsdelivr.net 은 preconnect 가 있어서 36ms, 광고 호스트는 없어서
+          79~95ms" 라고 판단했는데 **상관관계를 인과로 읽은 것**이었다. jsdelivr 가 빠른
+          이유는 preconnect 가 아니라 엣지 위치·연결 재사용 쪽이다.
+
+          광고 스크립트는 head 안에서 곧바로 로드를 시작하므로 preconnect 가 몇 ms
+          앞서봐야 실익이 없다. 오히려 연결 슬롯을 미리 잡아 초기 자원과 경쟁한다.
+
+          ## 다시 시도하려면
+
+          단발 측정으로 판단하지 말 것. 광고 서버 응답은 회차 편차가 커서
+          1회 측정은 무의미하다. **최소 5회 반복 + 중앙값 + 대조군**이 필요하다.
         -->
-        <link rel="preconnect" href="https://pagead2.googlesyndication.com" crossorigin />
-        <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com" />
-        <link rel="dns-prefetch" href="https://fundingchoicesmessages.google.com" />
+        <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -->
         <!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity -->
         <link
             rel="preload"
