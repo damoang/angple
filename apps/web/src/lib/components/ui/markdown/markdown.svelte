@@ -615,12 +615,31 @@
         display: none !important;
     }
 
+    /*
+     * ⛔ **여기가 X 임베드 높이의 실제 정본이다.** (bug#13049, 2026-08-04 CDP 로 확인)
+     *
+     * 같은 규칙이 네 곳에 있는데 이 스코프 스타일이 가장 구체적이라(.prose 클래스 +
+     * 속성 선택자) 나머지를 전부 이긴다. 다른 곳만 고치면 화면은 안 바뀐다:
+     *   - styles/components.css                        (덜 구체적 → 짐)
+     *   - lib/plugins/auto-embed/index.ts embedStyles  (아예 주입 안 됨)
+     *   - components/EmbedContainer.svelte(대문자)      (참조 0건 사본)
+     *
+     * 2026-07-21 #1822 가 components.css 만 고치고 완료 안내까지 냈으나 증상이 그대로였던
+     * 이유가 이것이다. 제보자가 카나리 포함 미해결이라고 다시 알려주셨다(bug#13234).
+     *
+     * ⛔ height:auto + min-height:500px 고정이 문제였다. 트위터 widgets.js 가
+     *    postMessage 로 실제 높이(예: 697px)를 알려주고 twitter-resize.ts 가 그것을
+     *    --twitter-embed-height 에 넣는데, 이 규칙이 !important 로 눌러 500px 에
+     *    가둬버렸다. 그 결과 iframe 안에 스크롤바가 생기며 트윗이 잘렸다.
+     *
+     * 이제 변수를 그대로 쓴다. 변수가 아직 없을 때만 500px 을 임시 높이로 쓴다.
+     */
     .prose :global(.embed-container[data-platform='twitter'] iframe) {
         position: relative !important;
         display: block !important;
         width: 100% !important;
-        height: auto !important;
-        min-height: 500px !important;
+        height: var(--twitter-embed-height, 500px) !important;
+        min-height: var(--twitter-embed-height, 500px) !important;
     }
 
     /* Instagram 가변 높이 */
