@@ -435,7 +435,18 @@ img[src*='/emoticons/']:not([width]) {
     display: block !important;
     width: 100% !important;
     max-width: 100% !important;
-    min-height: var(--twitter-embed-height, 500px);
+    /*
+     * ⛔ min-height 에도 !important 가 필요하다 (bug#13049 재발).
+     *
+     * height 에만 !important 를 걸었더니, 트위터가 알려준 실제 높이(예: 697px)가
+     * height 로는 들어가는데 min-height 는 다른 규칙(컴포넌트 스코프 스타일 등)에
+     * 밀려 500px 로 남았다. 그 결과 computed height 가 500px 로 clamp 되어
+     * iframe 안에 스크롤바가 생기고 트윗이 잘렸다.
+     *
+     * 2026-07-21 #1822 로 「실제 높이 반영」을 넣었는데도 증상이 남은 이유가 이것이다.
+     * 회원에게 완료 안내까지 나갔으나 실제로는 안 고쳐져 있었다.
+     */
+    min-height: var(--twitter-embed-height, 500px) !important;
     height: var(--twitter-embed-height, auto) !important;
 }
 
