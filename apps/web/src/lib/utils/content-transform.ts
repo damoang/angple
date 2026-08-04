@@ -42,7 +42,42 @@ const ALLOWED_EXTENSIONS = ['.gif', '.png', '.jpg', '.jpeg', '.webp'];
  *    이미 올라간 글의 밈 크기가 한꺼번에 바뀐다(2026-07 자유게시판 기준
  *    이모티콘 사용 글 3,547건 중 크기를 직접 지정한 글은 4건뿐이었다).
  */
-const PACK_DEFAULT_WIDTH: ReadonlyArray<readonly [string, number]> = [['damoang-meme-', 200]];
+/**
+ * 2026-08-04 추가 — 원본이 큰데 50px 로 찍히던 팩들.
+ *
+ * ⛔ **일괄 상향(DEFAULT_WIDTH 50 → 80)은 실측으로 기각했다.** 원본이 작은 팩이 있어
+ *    키우면 확대되어 뭉개진다. 팩별 원본 폭 중앙값(2026-08-04, 운영 파일 실측):
+ *
+ *      팩                개수   원본폭 중앙   판정
+ *      onion             264        50 px    ⛔ 그대로 둔다. 50px 표시가 이미 1:1 이다
+ *      DINKIssTyle-face   12        64 px    ⛔ 여유 없음
+ *      DINKIssTyle-*      33~      128 px    ⛔ 여유 작음
+ *      damoang-emo        90       223 px    → 80
+ *      damoang-sol        10       360 px    → 100
+ *      moon-emo           31       360 px    → 100
+ *      president          15       500 px    → 100
+ *      lee-president       5       560 px    → 100
+ *
+ *    `onion` 은 가장 큰 팩(264개)인데 원본이 50px 다. 80px 로 올리면 1.6배 확대라
+ *    계단이 보인다. 파일을 키울 방법도 없다 — 원본이 그 크기다.
+ *
+ * ⛔ 접두사는 **소문자**여야 한다. defaultWidthFor 가 파일명을 lower 로 바꿔 비교한다.
+ *    대문자로 적으면 규칙이 조용히 죽는다(예: 'DINKIssTyle-' 은 절대 안 걸린다).
+ *
+ * ⛔ 접두사 끝의 하이픈을 빼지 말 것. 'president-' 를 'president' 로 적으면
+ *    같은 값이라 무해하지만, 반대로 'lee-president-' 를 빠뜨리면 그 팩은 50px 로 남는다
+ *    ('president-' 는 'lee-president-001' 을 잡지 못한다 — startsWith 이다).
+ *
+ * ⛔ 기존 글에 소급 적용된다(아래 damoang-meme 항목의 설명과 같은 이유).
+ */
+const PACK_DEFAULT_WIDTH: ReadonlyArray<readonly [string, number]> = [
+    ['damoang-meme-', 200],
+    ['moon-emo-', 100],
+    ['lee-president-', 100],
+    ['president-', 100],
+    ['damoang-sol-', 100],
+    ['damoang-emo-', 80]
+];
 
 /**
  * 파일명이 속한 팩의 기본 표시 폭을 반환. 일치하는 팩이 없으면 DEFAULT_WIDTH.

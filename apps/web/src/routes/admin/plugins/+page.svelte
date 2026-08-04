@@ -110,6 +110,27 @@
                 </div>
             </div>
 
+            <!--
+                반영 시점 안내.
+
+                끄기가 "안 먹는" 것처럼 보이는 일이 반복돼 넣었다(2026-08-04 폭죽 건).
+                서버·DB 는 즉시 바뀐다. 바뀌지 않는 건 **이미 열려 있는 브라우저 탭** 이다 —
+                body-end 슬롯에 상주하는 컴포넌트는 onMount 가 탭당 한 번만 돌아
+                끈 뒤에도 새로고침 전까지 그대로 살아 있다.
+
+                ⛔ "적용까지 시간이 걸립니다" 같은 뭉뚱그린 문구를 쓰지 말 것.
+                   원인이 시간이 아니라 탭이라 그렇게 쓰면 계속 기다리게 된다.
+            -->
+            <div
+                class="mb-6 rounded-lg border border-amber-300/70 bg-amber-50/70 px-4 py-3 text-sm dark:border-amber-800/50 dark:bg-amber-950/25"
+            >
+                <p class="font-medium">플러그인을 켜고 끈 뒤에는 새로고침이 필요합니다.</p>
+                <p class="text-muted-foreground mt-1">
+                    변경은 서버에 즉시 저장되지만, <strong>이미 열려 있는 탭</strong>에는 반영되지
+                    않습니다. 화면에서 확인하실 때는 해당 탭을 새로고침해 주세요.
+                </p>
+            </div>
+
             <!-- 플러그인 목록 -->
             {#if plugins.length === 0 && !pluginStore.isLoading}
                 <Card>
