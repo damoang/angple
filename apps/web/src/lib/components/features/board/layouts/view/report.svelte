@@ -543,8 +543,9 @@
                     <p class="text-secondary-foreground" style="font-size: 0.9em;">
                         {formatDate(post.created_at)}
                         <!-- 수정 배지: 리비전 기반 edit_count/last_edited_at(백엔드 주입). 게시글은
-                             wr_last 미갱신이라 post.updated_at 대신 사용. 5분 grace 유지. -->
-                        {#if post.edit_count && post.edit_count > 0 && post.last_edited_at && formatTimeShort && new Date(post.last_edited_at).getTime() - new Date(post.created_at).getTime() > 5 * 60 * 1000}
+                             wr_last 미갱신이라 post.updated_at 대신 사용.
+                             ⛔ 5분 grace 숨김은 2026-08-05 제거 (basic.svelte 주석 참조). -->
+                        {#if post.edit_count && post.edit_count > 0 && post.last_edited_at && formatTimeShort}
                             <span class="text-muted-foreground/70"
                                 >· 수정 {post.edit_count}회({formatTimeShort(
                                     post.last_edited_at,

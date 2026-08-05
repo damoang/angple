@@ -1,13 +1,5 @@
 <script lang="ts">
     import { Button } from '$lib/components/ui/button/index.js';
-    import {
-        Dialog,
-        DialogContent,
-        DialogDescription,
-        DialogFooter,
-        DialogHeader,
-        DialogTitle
-    } from '$lib/components/ui/dialog/index.js';
     import { RestrictedBadge } from '$lib/components/ui/restricted-badge/index.js';
     import { DisciplinedContent } from '$lib/components/ui/discipline-related/index.js';
     import type { FreeComment, BoardPermissions } from '$lib/api/types.js';
@@ -119,7 +111,14 @@
         // 기대 댓글 수 (SSR 메타의 comments_count). comments 가 아직 비어도 이 값이 0보다 크면
         // "댓글 없음" 대신 "불러오는 중"을 표시 — SPA 네비/하이드레이션 갭의 거짓 empty 방지 (#12663·#12668)
         expectedTotal?: number;
-        // 댓글 수정 정책 (단일 진실 근원: 백엔드 env). 미전달 시 default 사용 (코드 하드코딩 금지 — 부모가 API 메타에서 받아 전달).
+        /**
+         * 댓글 수정 정책 (단일 진실 근원: 백엔드 env). 부모가 API 메타에서 받아 전달한다.
+         *
+         * ⛔ 2026-08-05 현재 이 컴포넌트는 쓰지 않는다. 「대댓글 있으면 cost 차감 후 수정」
+         *    경로가 서버 프록시 403 으로 성사 불가라 안내 dialog 를 제거했기 때문이다.
+         *    prop 은 부모(+page.svelte)·API 메타와의 계약이라 남겨 둔다 — 지우면 정책을
+         *    되살릴 때 백엔드 meta 배선부터 다시 깔아야 한다.
+         */
         editPolicy?: { cost: number; grace_seconds: number };
     }
 
@@ -145,10 +144,7 @@
         permissions,
         requiredReplyLevel = 3,
         expectedTotal = 0,
-        // 댓글 수정 정책 (사용자 확정 2026-05-22):
-        // - 대댓글 없는 댓글: 항상 무료 수정 (grace 무관)
-        // - 대댓글 달린 댓글: cost 포인트 차감 + 수정 이력 카운트 표시
-        // grace_seconds 는 호환을 위해 남겨두지만 신규 정책에서 사용하지 않는다.
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars -- 부모/API 메타와의 계약 유지 (Props 주석 참조)
         editPolicy = { cost: 50000, grace_seconds: 300 }
     }: Props = $props();
 
@@ -198,9 +194,6 @@
     // 수정 상태 관리
     let editingCommentId = $state<string | null>(null);
     let editContent = $state('');
-    // 수정 확인 dialog — 대댓글 있는 댓글 수정 시 차감 안내 (모바일 window.confirm 호환성 #12511)
-    let editConfirmOpen = $state(false);
-    let pendingEditTarget = $state<FreeComment | null>(null);
     let isUpdating = $state(false);
     let LazyCommentEditor = $state<Component | null>(null);
     let isDeleting = $state<string | null>(null);
@@ -512,6 +505,25 @@
         return isCommentAuthor(comment);
     }
 
+    /**
+     * 본문 '수정'이 실제로 가능한가 — 삭제와 별개다.
+     *
+     * ⛔ 대댓글이 달린 댓글의 PUT 은 서버(`routes/api/v1/[...path]/+server.ts`
+     *    `checkCommentHasReplies`)가 **관리자 포함 전원** 403 으로 막는다.
+     *    맥락이 이어진 대화의 앞부분이 나중에 바뀌면 뒷사람 댓글의 뜻이 왜곡되기 때문이다.
+     *
+     * 그동안 화면은 이 사실을 모른 채 수정 버튼을 띄웠고, 눌러서 다 쓴 뒤에야
+     * "댓글 수정에 실패했습니다"가 떴다. 2026-08-05 free/6912560 에서는 회원들이
+     * 서로에게 "포인트가 어마어마해서 그렇다"고 틀린 설명을 하기에 이르렀다.
+     * 누르기 전에 알 수 없는 제약은 제약이 아니라 함정이다 — 버튼 단계에서 막는다.
+     *
+     * ⛔ 삭제(`canEditComment`)는 그대로 둔다. 서버가 막는 것은 PUT 뿐이다.
+     */
+    function canEditCommentBody(comment: FreeComment): boolean {
+        if (!canEditComment(comment)) return false;
+        return !hasReplies(comment);
+    }
+
     // 비밀댓글 열람 권한 확인 (작성자, 게시글 작성자, 관리자)
     function canViewSecretComment(comment: FreeComment): boolean {
         if (!comment.is_secret) return true;
@@ -540,21 +552,19 @@
         return editEditorLoadPromise;
     }
 
-    // 수정 모드 시작 — 신규 정책 (2026-05-22 확정):
-    // - 관리자(mb_level>=10): 항상 무료, confirm 없음.
-    // - 작성자 + 대댓글 없음: 항상 무료, confirm 없음.
-    // - 작성자 + 대댓글 있음: cost 포인트 차감 + 수정 이력 표시 안내 confirm.
+    // 수정 모드 시작.
+    //
+    // 2026-05-22(#1465) 의 「대댓글 있으면 포인트 차감 후 수정」 확인 dialog 는 제거했다.
+    // 그 경로는 서버 프록시가 403 으로 막고 있어 **한 번도 성사될 수 없었고**, 그럼에도
+    // 화면은 "5만 포인트가 차감됩니다"라고 예고했다. 실제로 차감된 건들은 2026-07-20 에
+    // 「댓글 수정 포인트 오과금 환급」으로 756건 되돌려졌다. 불가능한 거래를 예고하는
+    // 안내창은 남겨두면 언젠가 다시 켜진다.
+    //
+    // ⛔ 포인트 차감 경로를 되살리려면 그건 별도 결정이다. 여기서 되살리지 말 것.
     function startEdit(comment: FreeComment): void {
         const target = commentTree.find((c) => c.id === comment.id) ?? comment;
-        const replyExists = !isAdmin() && hasReplies(target);
-
-        if (replyExists && editPolicy.cost > 0) {
-            // 모바일 호환성을 위해 shadcn Dialog 사용 (window.confirm 대체, #12511).
-            pendingEditTarget = target;
-            editConfirmOpen = true;
-            return;
-        }
-
+        // 버튼 단계에서 이미 걸렀지만, 다른 경로로 불릴 때를 대비한 방어선.
+        if (!canEditCommentBody(target)) return;
         enterEdit(target);
     }
 
@@ -563,17 +573,6 @@
         editContent = target.content;
         replyingToCommentId = null;
         ensureEditEditorLoaded();
-    }
-
-    function handleEditConfirm(): void {
-        if (pendingEditTarget) enterEdit(pendingEditTarget);
-        pendingEditTarget = null;
-        editConfirmOpen = false;
-    }
-
-    function handleEditCancel(): void {
-        pendingEditTarget = null;
-        editConfirmOpen = false;
     }
 
     // 수정 취소
@@ -594,7 +593,11 @@
             cancelEdit();
         } catch (err) {
             console.error('Failed to update comment:', err);
-            alert('댓글 수정에 실패했습니다.');
+            // ⛔ 서버가 준 사유를 버리지 말 것. 서버는 "답글이 달린 댓글은 수정할 수
+            //    없습니다" 처럼 정확한 이유를 내려주는데, 예전에는 이 자리에서 통째로
+            //    "실패했습니다"로 덮어써서 회원들이 원인을 서로 잘못 추측했다
+            //    (2026-08-05 free/6912560 — "포인트가 어마어마해서"라는 오해가 퍼짐).
+            alert(err instanceof Error && err.message ? err.message : '댓글 수정에 실패했습니다.');
         } finally {
             isUpdating = false;
         }
@@ -609,7 +612,8 @@
             await onDelete(commentId);
         } catch (err) {
             console.error('Failed to delete comment:', err);
-            alert('댓글 삭제에 실패했습니다.');
+            // 수정과 같은 사유 — 서버가 준 이유를 그대로 보여준다.
+            alert(err instanceof Error && err.message ? err.message : '댓글 삭제에 실패했습니다.');
         } finally {
             isDeleting = null;
         }
@@ -1096,6 +1100,7 @@
         {@const isLocked = isLockedComment(comment)}
         {@const isAuthor = isCommentAuthor(comment)}
         {@const canEdit = !isDeleted && canEditComment(comment)}
+        {@const canEditBody = !isDeleted && canEditCommentBody(comment)}
         {@const isEditing = editingCommentId === String(comment.id)}
         {@const isReplyingTo = replyingToCommentId === String(comment.id)}
         {@const depth = comment.depth ?? 0}
@@ -1452,14 +1457,19 @@
                                         {#if comment.author_ip}
                                             <span>· {comment.author_ip}</span>
                                         {/if}
-                                        {#if comment.edit_count && comment.edit_count > 0 && comment.updated_at && new Date(comment.updated_at).getTime() - new Date(comment.created_at).getTime() > 5 * 60 * 1000}
+                                        <!-- 수정 배지 — 횟수 + 최종 수정 시각.
+                                             ⛔ 예전엔 "작성 후 5분 안의 수정은 숨김" 게이트가 있어
+                                                댓글 수정의 88.2%가 화면에서 사라졌다. 신고 직후
+                                                순화 편집이 정확히 그 구간에 몰려 판정 근거가
+                                                없어졌다. 2026-08-05 게이트 제거. -->
+                                        {#if comment.edit_count && comment.edit_count > 0 && comment.updated_at}
                                             <span
                                                 class="text-muted-foreground/70"
                                                 title={`최종 수정: ${formatDate(comment.updated_at)}`}
                                             >
-                                                · 수정됨{comment.edit_count > 1
-                                                    ? ` (${comment.edit_count}회)`
-                                                    : ''} · {formatDate(comment.updated_at)}
+                                                · 수정 {comment.edit_count}회 · {formatDate(
+                                                    comment.updated_at
+                                                )}
                                             </span>
                                         {/if}
                                     </p>
@@ -1615,18 +1625,22 @@
 
                                             {#if canEdit}
                                                 <!-- 수정/삭제 버튼 (작성자 또는 최고관리자) -->
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onclick={() => startEdit(comment)}
-                                                    class="comment-action-secondary {isFeed
-                                                        ? 'h-6 px-1.5'
-                                                        : commentLayout === 'bordered'
-                                                          ? 'h-6 px-1.5'
-                                                          : 'h-7 px-2'} opacity-50 transition-opacity hover:opacity-90"
-                                                >
-                                                    <Pencil class="h-4 w-4" />
-                                                </Button>
+                                                <!-- 수정은 대댓글이 없을 때만 — 서버가 막는 것을 버튼에서 먼저 알린다 -->
+                                                {#if canEditBody}
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onclick={() => startEdit(comment)}
+                                                        class="comment-action-secondary {isFeed
+                                                            ? 'h-6 px-1.5'
+                                                            : commentLayout === 'bordered'
+                                                              ? 'h-6 px-1.5'
+                                                              : 'h-7 px-2'} opacity-50 transition-opacity hover:opacity-90"
+                                                        title="수정"
+                                                    >
+                                                        <Pencil class="h-4 w-4" />
+                                                    </Button>
+                                                {/if}
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
@@ -1874,13 +1888,14 @@
                                     {#if comment.author_ip}
                                         · {comment.author_ip}
                                     {/if}
-                                    {#if comment.edit_count && comment.edit_count > 0 && comment.updated_at && new Date(comment.updated_at).getTime() - new Date(comment.created_at).getTime() > 5 * 60 * 1000}
+                                    <!-- 수정 배지 (위 목록 레이아웃과 동일 규칙 — 5분 게이트 없음) -->
+                                    {#if comment.edit_count && comment.edit_count > 0 && comment.updated_at}
                                         <span
                                             title={`최종 수정: ${formatDate(comment.updated_at)}`}
                                         >
-                                            · 수정됨{comment.edit_count > 1
-                                                ? ` (${comment.edit_count}회)`
-                                                : ''} · {formatDate(comment.updated_at)}
+                                            · 수정 {comment.edit_count}회 · {formatDate(
+                                                comment.updated_at
+                                            )}
                                         </span>
                                     {/if}
                                 </span>
@@ -2007,14 +2022,18 @@
                             {/if}
 
                             {#if canEdit}
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onclick={() => startEdit(comment)}
-                                    class="h-6 px-1.5"
-                                >
-                                    <Pencil class="h-3.5 w-3.5" />
-                                </Button>
+                                <!-- 수정은 대댓글이 없을 때만 (위 목록 레이아웃과 동일 규칙) -->
+                                {#if canEditBody}
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onclick={() => startEdit(comment)}
+                                        class="h-6 px-1.5"
+                                        title="수정"
+                                    >
+                                        <Pencil class="h-3.5 w-3.5" />
+                                    </Button>
+                                {/if}
                                 <Button
                                     variant="ghost"
                                     size="sm"
@@ -2109,31 +2128,6 @@
         onClose={closeLikersDialog}
     />
 {/if}
-
-<!-- 대댓글 있는 댓글 수정 확인 dialog (모바일 호환성, window.confirm 대체 — #12511) -->
-<Dialog
-    bind:open={editConfirmOpen}
-    onOpenChange={(o) => {
-        if (!o) handleEditCancel();
-    }}
->
-    <DialogContent>
-        <DialogHeader>
-            <DialogTitle>댓글 수정 안내</DialogTitle>
-            <DialogDescription>
-                이 댓글에는 대댓글이 달려 있습니다. 대화 맥락이 바뀔 수 있어 수정 시 <strong
-                    >{editPolicy.cost.toLocaleString('ko-KR')} 포인트</strong
-                >가 차감되며, 수정 시각과 수정 횟수가 모든 사용자에게 표시됩니다.
-            </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-            <Button variant="outline" onclick={handleEditCancel}>취소</Button>
-            <Button variant="destructive" onclick={handleEditConfirm}>
-                {editPolicy.cost.toLocaleString('ko-KR')} P 차감하고 수정
-            </Button>
-        </DialogFooter>
-    </DialogContent>
-</Dialog>
 
 <style>
     /* 댓글 내 iframe/video 폭 제한 (인라인 width/height 속성 오버라이드) */
