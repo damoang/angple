@@ -22,6 +22,7 @@
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import { Button } from '$lib/components/ui/button/index.js';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
+    import WriteEtiquetteSubtitle from '$lib/components/features/board/write-etiquette-subtitle.svelte';
 
     let { data }: { data: PageData } = $props();
 
@@ -250,6 +251,9 @@
                 {error}
             </div>
         {/if}
+
+        <!-- 가입인사 예절 자막 (hello 게시판 1회) — 글을 쓸 수 있는 분에게만 뜬다 -->
+        <WriteEtiquetteSubtitle {boardId} isAuthenticated={authStore.isAuthenticated} />
 
         <h1 class="text-foreground mb-4 text-xl font-bold">{boardTitle} — 새 글 작성</h1>
 
