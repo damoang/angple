@@ -27,6 +27,8 @@
     import Lock from '@lucide/svelte/icons/lock';
     import Search from '@lucide/svelte/icons/search';
     import Megaphone from '@lucide/svelte/icons/megaphone';
+    import ChevronDown from '@lucide/svelte/icons/chevron-down';
+    import ChevronUp from '@lucide/svelte/icons/chevron-up';
     import Pin from '@lucide/svelte/icons/pin';
     import Tag from '@lucide/svelte/icons/tag';
     import X from '@lucide/svelte/icons/x';
@@ -54,6 +56,11 @@
     } from '$lib/utils/board-permissions.js';
     import * as Tooltip from '$lib/components/ui/tooltip/index.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
+    import {
+        isReadNoticeHidden,
+        collapsedNoticeCount as collapsedNoticeCountOf,
+        shouldShowCollapseButton
+    } from '$lib/utils/notice-collapse';
     import { densityStore } from '$lib/stores/density.svelte.js';
     import { readPostStyleStore, type ReadPostStyle } from '$lib/stores/read-post-style.svelte.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
@@ -553,21 +560,53 @@
     });
     // 차단 키워드 적용: 차단된 글은 목록에서 완전 제외 (#11935)
     const filteredPosts = $derived(posts.filter((p) => !uiSettingsStore.isMuted(p.title)));
+    /**
+     * 읽은 공지 접기 (기본 접힘). 펼침 토글로 다시 볼 수 있다.
+     *
+     * 자유게시판처럼 고정 공지가 여러 개인 곳에서, 이미 읽은 공지가 매번 목록
+     * 최상단을 차지해 정작 새 글이 밀린다. 읽은 것은 접어두고 개수만 알린다.
+     *
+     * ⛔ 기존 `hideReadNotices` 설정(읽은 공지 완전 숨김)과 별개다.
+     *    그 설정을 켜 두신 분은 펼쳐도 안 보이는 게 맞다 — 스스로 끄겠다고 하신 것이라
+     *    여기서 되살리면 설정을 무시하는 셈이 된다.
+     */
+    let showReadNotices = $state(false);
+
+    /** 규칙은 $lib/utils/notice-collapse 하나만 안다 — 화면과 테스트가 같은 함수를 쓴다 */
+    const noticeCollapseState = $derived({
+        hideRead: uiSettingsStore.hideReadNotices,
+        collapseRead: uiSettingsStore.collapseReadNotices,
+        expanded: showReadNotices
+    });
+
+    /** 이 공지를 지금 감출 것인가 */
+    function isNoticeCollapsed(n: { id: number }): boolean {
+        if (!readPostsStore.isRead(boardId, n.id)) return false;
+        return isReadNoticeHidden(noticeCollapseState);
+    }
+
     const importantNotices = $derived(
-        notices.filter(
-            (n) =>
-                n.notice_type === 'important' &&
-                !(uiSettingsStore.hideReadNotices && readPostsStore.isRead(boardId, n.id))
-        )
+        notices.filter((n) => n.notice_type === 'important' && !isNoticeCollapsed(n))
     );
     const normalNotices = $derived(
-        notices.filter(
-            (n) =>
-                n.notice_type !== 'important' &&
-                !(uiSettingsStore.hideReadNotices && readPostsStore.isRead(boardId, n.id))
-        )
+        notices.filter((n) => n.notice_type !== 'important' && !isNoticeCollapsed(n))
     );
-    const hasNotices = $derived(importantNotices.length > 0 || normalNotices.length > 0);
+
+    /** 읽은 공지 총 개수 — 펼치기·접기 버튼 노출 판단에 쓴다 */
+    const readNoticeCount = $derived(
+        notices.filter((n) => readPostsStore.isRead(boardId, n.id)).length
+    );
+
+    const collapsedNoticeCount = $derived(
+        collapsedNoticeCountOf(noticeCollapseState, readNoticeCount)
+    );
+    const showCollapseButton = $derived(
+        shouldShowCollapseButton(noticeCollapseState, readNoticeCount)
+    );
+
+    const hasNotices = $derived(
+        importantNotices.length > 0 || normalNotices.length > 0 || collapsedNoticeCount > 0
+    );
     const shuffledPromos = $derived.by(() => {
         const arr = [...promotionPosts];
         for (let i = arr.length - 1; i > 0; i--) {
@@ -943,6 +982,21 @@
                                     checked={uiSettingsStore.titleBold}
                                     onCheckedChange={(v) => (uiSettingsStore.titleBold = v)}
                                     >글 제목 굵게 표시</DropdownMenuCheckboxItem
+                                >
+                                <!--
+                                    읽은 공지 접기 — 목록 위 인라인 토글은 그 페이지에서만
+                                    유효하고 이동하면 초기화된다. 여기 두면 설정으로 남는다.
+
+                                    ⛔ '읽은 공지 숨기기'(설정 → 화면 설정)와 다른 항목이다.
+                                       숨기기 = 아예 안 보임 / 접기 = 개수만 알리고 펼칠 수 있음.
+                                       숨기기를 켠 분에게는 접기가 무의미하므로 비활성화한다.
+                                -->
+                                <DropdownMenuCheckboxItem
+                                    checked={uiSettingsStore.collapseReadNotices}
+                                    disabled={uiSettingsStore.hideReadNotices}
+                                    onCheckedChange={(v) =>
+                                        uiSettingsStore.setCollapseReadNotices(v)}
+                                    >읽은 공지 접기</DropdownMenuCheckboxItem
                                 >
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -1336,6 +1390,31 @@
                 {/if}
                 <!-- 공지사항 (목록 내부) -->
                 {#if hasNotices && !isSearching}
+                    <!--
+                        읽은 공지 펼침 토글.
+                        레이아웃(classic/card/…)과 무관하게 공지 블록 맨 위에 한 번만 그린다.
+                        접힌 게 없으면 collapsedNoticeCount 가 0 이라 나타나지 않는다.
+                    -->
+                    {#if collapsedNoticeCount > 0}
+                        <button
+                            type="button"
+                            onclick={() => (showReadNotices = true)}
+                            class="text-muted-foreground hover:text-foreground hover:bg-accent/50 flex w-full items-center gap-1.5 px-4 py-1.5 text-left text-xs transition-colors"
+                        >
+                            <ChevronDown class="size-3.5 shrink-0" />
+                            <span>읽은 공지 {collapsedNoticeCount}개 펼치기</span>
+                        </button>
+                    {:else if showCollapseButton}
+                        <!-- 펼친 뒤 다시 접을 수단. 없으면 되돌릴 방법이 없다. -->
+                        <button
+                            type="button"
+                            onclick={() => (showReadNotices = false)}
+                            class="text-muted-foreground hover:text-foreground hover:bg-accent/50 flex w-full items-center gap-1.5 px-4 py-1.5 text-left text-xs transition-colors"
+                        >
+                            <ChevronUp class="size-3.5 shrink-0" />
+                            <span>읽은 공지 접기</span>
+                        </button>
+                    {/if}
                     {#if listLayoutId === 'classic'}
                         {#each importantNotices as notice (`${notice.source_board ?? boardId}:${notice.id}`)}
                             <a

@@ -33,6 +33,13 @@ export interface UiSettings {
     contentBlur: boolean;
     hidePostList: boolean;
     hideReadNotices: boolean;
+    /**
+     * 읽은 공지를 접어 두고 개수만 표시한다(펼치기 가능).
+     *
+     * ⛔ `hideReadNotices`(완전 숨김)와 다른 항목이다. 둘 다 켜지면 숨김이 이긴다 —
+     *    안 보이기로 한 것을 접기가 되살리면 설정을 무시하는 셈이 된다.
+     */
+    collapseReadNotices: boolean;
     muteKeywords: string[];
     showNewComments: boolean;
     // 단축키
@@ -78,6 +85,9 @@ const DEFAULTS: UiSettings = {
     contentBlur: true,
     hidePostList: false,
     hideReadNotices: false,
+    // 기본 켜짐 — 고정 공지가 여러 개인 게시판에서 읽은 공지가 목록 최상단을 계속
+    // 차지하는 것이 본래 문제였다. 개수는 알려주고 언제든 펼칠 수 있으므로 정보 손실이 없다.
+    collapseReadNotices: true,
     muteKeywords: [],
     showNewComments: true,
     enableKeyboardShortcuts: true,
@@ -324,6 +334,13 @@ function createUiSettingsStore() {
         },
         setHideReadNotices(v: boolean) {
             settings.hideReadNotices = v;
+            save();
+        },
+        get collapseReadNotices() {
+            return settings.collapseReadNotices;
+        },
+        setCollapseReadNotices(v: boolean) {
+            settings.collapseReadNotices = v;
             save();
         },
         get muteKeywords() {
