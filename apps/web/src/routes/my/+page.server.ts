@@ -51,8 +51,12 @@ async function loadMyPageData(
     tab: string,
     page: number,
     limit: number,
-    headers: Record<string, string>
+    headers: Record<string, string>,
+    /** 내 글·내 댓글 검색어. 빈 문자열이면 검색 없음 (bug/12292) */
+    q: string
 ): Promise<MyPageData> {
+    // 백엔드가 2자 미만을 무시하지만, 굳이 왕복시키지 않는다.
+    const qs = q ? `&q=${encodeURIComponent(q)}` : '';
     const result: MyPageData = {
         expSummary: null,
         posts: null,
@@ -78,7 +82,7 @@ async function loadMyPageData(
         let tabPromise: Promise<void>;
 
         if (tab === 'posts') {
-            tabPromise = fetch(`${BACKEND_URL}/api/v1/my/posts?page=${page}&limit=${limit}`, {
+            tabPromise = fetch(`${BACKEND_URL}/api/v1/my/posts?page=${page}&limit=${limit}${qs}`, {
                 headers,
                 signal: AbortSignal.timeout(BACKEND_TIMEOUT)
             }).then(async (res) => {
@@ -86,10 +90,13 @@ async function loadMyPageData(
                 result.posts = parsePaginated<FreePost>(await safeJson(res), page, limit);
             });
         } else if (tab === 'comments') {
-            tabPromise = fetch(`${BACKEND_URL}/api/v1/my/comments?page=${page}&limit=${limit}`, {
-                headers,
-                signal: AbortSignal.timeout(BACKEND_TIMEOUT)
-            }).then(async (res) => {
+            tabPromise = fetch(
+                `${BACKEND_URL}/api/v1/my/comments?page=${page}&limit=${limit}${qs}`,
+                {
+                    headers,
+                    signal: AbortSignal.timeout(BACKEND_TIMEOUT)
+                }
+            ).then(async (res) => {
                 if (!res.ok) return;
                 result.comments = parsePaginated<MyComment>(await safeJson(res), page, limit);
             });
@@ -131,6 +138,11 @@ export const load: PageServerLoad = async ({ url, locals }) => {
     const tab = url.searchParams.get('tab') || 'posts';
     const page = Number(url.searchParams.get('page')) || 1;
     const limit = 20;
+    // 검색은 글·댓글 탭에서만 의미가 있다. 다른 탭에 q 가 남아 있어도 무시한다.
+    const q =
+        tab === 'posts' || tab === 'comments'
+            ? (url.searchParams.get('q') || '').trim().slice(0, 50)
+            : '';
 
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -141,11 +153,12 @@ export const load: PageServerLoad = async ({ url, locals }) => {
     }
 
     // 스트리밍: tabData를 await 하지 않음 → 스켈레톤 먼저 렌더링
-    const tabDataPromise = loadMyPageData(tab, page, limit, headers);
+    const tabDataPromise = loadMyPageData(tab, page, limit, headers, q);
 
     return {
         tab,
         page,
+        q,
         /** 스트리밍: Promise로 반환 → 클라이언트에서 {#await} 사용 */
         streamed: {
             tabData: tabDataPromise

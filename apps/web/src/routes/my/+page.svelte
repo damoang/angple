@@ -34,14 +34,49 @@
         { id: 'stats', label: '전체분석', icon: BarChart3 }
     ];
 
-    // 탭 변경
+    // 검색 (bug/12292) — 글·댓글 탭에서만
+    const canSearch = $derived(data.tab === 'posts' || data.tab === 'comments');
+    let searchInput = $state(data.q ?? '');
+
+    // ⛔ 평범한 let. $state 로 두고 아래 $effect 에서 읽고 쓰면 자기 재트리거가 난다
+    //    (2026-08-01 auth 429 사고). 여기서는 data.q 만 읽고 searchInput 에 쓴다.
+    let lastAppliedQ = data.q ?? '';
+    $effect(() => {
+        const q = data.q ?? '';
+        if (q !== lastAppliedQ) {
+            lastAppliedQ = q;
+            searchInput = q;
+        }
+    });
+
+    function buildMyUrl(opts: { tab?: string; page?: number; q?: string }): string {
+        const tab = opts.tab ?? data.tab;
+        const q = opts.q ?? data.q ?? '';
+        const params = new URLSearchParams({ tab });
+        // 검색어는 글·댓글 탭에서만 의미가 있다.
+        if (q && (tab === 'posts' || tab === 'comments')) params.set('q', q);
+        if (opts.page && opts.page > 1) params.set('page', String(opts.page));
+        return `/my?${params}`;
+    }
+
+    // 탭 변경 — 검색어는 유지한다. 같은 말을 글에서도 댓글에서도 찾는 게 자연스럽다.
     function changeTab(tabId: string): void {
-        goto(`/my?tab=${tabId}`);
+        goto(buildMyUrl({ tab: tabId }));
     }
 
     // 페이지 변경
     function goToPage(pageNum: number): void {
-        goto(`/my?tab=${data.tab}&page=${pageNum}`);
+        goto(buildMyUrl({ page: pageNum }));
+    }
+
+    // ⛔ 검색 시 page 를 1 로 되돌린다. 안 그러면 3페이지에서 검색해 결과가 0건이 된다.
+    function submitSearch(): void {
+        goto(buildMyUrl({ q: searchInput.trim(), page: 1 }));
+    }
+
+    function clearSearch(): void {
+        searchInput = '';
+        goto(buildMyUrl({ q: '', page: 1 }));
     }
 
     // 날짜 포맷
@@ -213,6 +248,44 @@
         {/each}
     </div>
 
+    <!-- 검색 (글·댓글 탭 전용) — bug/12292 -->
+    {#if canSearch}
+        <form
+            class="mb-4"
+            onsubmit={(e) => {
+                e.preventDefault();
+                submitSearch();
+            }}
+        >
+            <div class="flex gap-2">
+                <input
+                    type="search"
+                    bind:value={searchInput}
+                    placeholder={data.tab === 'posts' ? '내가 쓴 글 검색' : '내가 쓴 댓글 검색'}
+                    aria-label={data.tab === 'posts' ? '내가 쓴 글 검색' : '내가 쓴 댓글 검색'}
+                    class="border-input bg-background focus-visible:ring-ring min-w-0 flex-1 rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2"
+                />
+                <Button type="submit" size="sm" class="shrink-0">찾기</Button>
+                {#if data.q}
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        class="shrink-0"
+                        onclick={clearSearch}>지우기</Button
+                    >
+                {/if}
+            </div>
+            <!-- ⛔ 한계를 숨기지 않는다. content_preview 가 255자라 긴 글의 뒷부분은 찾히지
+                 않는다. 안 적으면 "왜 안 나오지"가 된다. -->
+            <p class="text-muted-foreground mt-1.5 text-xs">
+                {data.tab === 'posts'
+                    ? '제목과 본문 앞부분에서 찾습니다.'
+                    : '댓글 내용과 원글 제목에서 찾습니다.'}
+            </p>
+        </form>
+    {/if}
+
     <!-- 탭 콘텐츠 (스트리밍) -->
     {#await data.streamed?.tabData}
         <!-- 스켈레톤 -->
@@ -271,7 +344,11 @@
                             </ul>
                         {:else}
                             <p class="text-muted-foreground py-8 text-center">
-                                작성한 글이 없습니다.
+                                {#if data.q}
+                                    '{data.q}'에 해당하는 글이 없습니다.
+                                {:else}
+                                    작성한 글이 없습니다.
+                                {/if}
                             </p>
                         {/if}
                     </CardContent>
@@ -353,7 +430,11 @@
                             </ul>
                         {:else}
                             <p class="text-muted-foreground py-8 text-center">
-                                작성한 댓글이 없습니다.
+                                {#if data.q}
+                                    '{data.q}'에 해당하는 댓글이 없습니다.
+                                {:else}
+                                    작성한 댓글이 없습니다.
+                                {/if}
                             </p>
                         {/if}
                     </CardContent>
