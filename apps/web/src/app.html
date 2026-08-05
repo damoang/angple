@@ -10,6 +10,32 @@
           SvelteKit은 history.pushState/replaceState를 호출 시점에 live로 참조하므로(클라이언트
           번들보다 먼저 실행되는) 이 래퍼가 내부 내비게이션에도 적용된다.
         -->
+        <!--
+          bug/13339 (13022·13221 3차 재발): 스와이프 뒤로가기가 bfcache 미스로 전체 로드가
+          되면 문서가 scrollRestoration='auto' 로 시작한다 — SvelteKit 이 "페이지를 떠날 때
+          auto 로 되돌리기" 때문(client.js "Reset scrollRestoration to auto when leaving page",
+          F5 리로드의 네이티브 복원을 살리려는 의도).
+
+          그 결과 하이드레이션 전(아이폰에서 수 초) Safari 가 아직 짧은 문서에 네이티브
+          복원을 시도해 **맨 아래로 clamp** 하고, 이후 우리의 높이 대기 복원과 레이스가 된다.
+          레이스에서 지면 맨 밑에 고착 — "간헐적으로 맨 아래로 떨어진다"의 정체.
+
+          뒤로/앞으로(back_forward) 전체 로드일 때만 문서 최상단에서 manual 을 선점해
+          스크롤을 쓰는 주체를 하나(우리 복원 코드)로 만든다.
+          ⛔ reload 타입에는 걸지 않는다 — F5 네이티브 복원은 SvelteKit 이 의도적으로
+          남긴 동작이다. SvelteKit 은 어차피 초기화 때 manual 로 바꾸므로, 이 선점은
+          그 시점을 앞당길 뿐 최종 상태를 바꾸지 않는다.
+        -->
+        <script>
+            try {
+                var __nav = performance.getEntriesByType('navigation')[0];
+                if (__nav && __nav.type === 'back_forward') {
+                    history.scrollRestoration = 'manual';
+                }
+            } catch (e) {
+                /* 미지원 브라우저는 기존 동작 유지 */
+            }
+        </script>
         <script>
             (function () {
                 if (typeof history === 'undefined') return;
