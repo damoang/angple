@@ -5,6 +5,16 @@ import {
     getNotificationLabel
 } from './notification-type';
 
+/**
+ * 표식의 첫 '글자'(대상: 📄 글 / 💬 댓글).
+ *
+ * ⛔ `str[0]` 을 쓰면 안 된다. 이모지는 서로게이트 쌍이라 인덱싱이 반쪽만 준다.
+ *    하필 📄(U+1F4C4)와 💬(U+1F4AC)는 상위 서로게이트가 둘 다 D83D 로 같아서,
+ *    `[0]` 비교는 **서로 다른 이모지를 같다고 판정**한다(CI 에서 이걸로 한 번 터졌다).
+ *    Array spread 는 코드포인트 단위로 쪼개므로 안전하다.
+ */
+const firstGlyph = (s: string): string => [...s][0] ?? '';
+
 describe('getNotificationEmoji', () => {
     // ⛔ 제보(bug/13242)의 핵심. 이 넷이 서로 달라야 제보가 해결된다.
     it('댓글·답글·글 공감·댓글 공감이 모두 다른 표식을 가진다', () => {
@@ -15,18 +25,20 @@ describe('getNotificationEmoji', () => {
 
     it('첫 글자가 대상(글/댓글)을 가리킨다', () => {
         // 글에 관한 일
-        expect(getNotificationEmoji('comment').startsWith('📄')).toBe(true);
-        expect(getNotificationEmoji('like').startsWith('📄')).toBe(true);
-        expect(getNotificationEmoji('subscribe').startsWith('📄')).toBe(true);
+        expect(firstGlyph(getNotificationEmoji('comment'))).toBe('📄');
+        expect(firstGlyph(getNotificationEmoji('like'))).toBe('📄');
+        expect(firstGlyph(getNotificationEmoji('subscribe'))).toBe('📄');
         // 댓글에 관한 일
-        expect(getNotificationEmoji('reply').startsWith('💬')).toBe(true);
-        expect(getNotificationEmoji('like_comment').startsWith('💬')).toBe(true);
+        expect(firstGlyph(getNotificationEmoji('reply'))).toBe('💬');
+        expect(firstGlyph(getNotificationEmoji('like_comment'))).toBe('💬');
     });
 
     // ⛔ 색이 아니라 모양으로 갈려야 한다 — 흑백 폴백에서도 구분되도록.
     it('글 공감과 댓글 공감은 하트 색이 아니라 앞 글자로 갈린다', () => {
         expect(getNotificationEmoji('like')).not.toBe(getNotificationEmoji('like_comment'));
-        expect(getNotificationEmoji('like')[0]).not.toBe(getNotificationEmoji('like_comment')[0]);
+        expect(firstGlyph(getNotificationEmoji('like'))).not.toBe(
+            firstGlyph(getNotificationEmoji('like_comment'))
+        );
     });
 
     it('구독 새 글과 팔로우 새 글이 구분된다 — 예전엔 둘 다 회색 system 이었다', () => {
