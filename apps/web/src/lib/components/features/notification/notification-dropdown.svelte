@@ -10,14 +10,14 @@
     import { browser } from '$app/environment';
     import { normalizeWebUrl, toRelativeIfSameOrigin } from '$lib/utils/url-normalizer';
     import Bell from '@lucide/svelte/icons/bell';
-    import MessageSquare from '@lucide/svelte/icons/message-square';
-    import Reply from '@lucide/svelte/icons/reply';
-    import AtSign from '@lucide/svelte/icons/at-sign';
-    import Heart from '@lucide/svelte/icons/heart';
-    import Star from '@lucide/svelte/icons/star';
-    import Mail from '@lucide/svelte/icons/mail';
-    import Info from '@lucide/svelte/icons/info';
     import Check from '@lucide/svelte/icons/check';
+    // 알림 종류 표시는 두 화면(드롭다운·알림함)이 같은 모듈을 쓴다 — bug/13242
+    import { getNotificationIcon } from '$lib/utils/notification-icon.js';
+    import {
+        getNotificationColor,
+        getNotificationEmoji,
+        getNotificationLabel
+    } from '$lib/utils/notification-type.js';
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import Settings from '@lucide/svelte/icons/settings';
 
@@ -77,44 +77,6 @@
 
         const normalized = normalizeWebUrl(url, { baseOrigin: window.location.origin });
         return toRelativeIfSameOrigin(normalized, window.location.origin);
-    }
-
-    function getNotificationIcon(type: string) {
-        switch (type) {
-            case 'comment':
-                return MessageSquare;
-            case 'reply':
-                return Reply;
-            case 'mention':
-                return AtSign;
-            case 'like':
-                return Heart;
-            case 'memo':
-                return Mail;
-            case 'levelup':
-                return Star;
-            default:
-                return Info;
-        }
-    }
-
-    function getNotificationColor(type: string): string {
-        switch (type) {
-            case 'comment':
-                return 'text-blue-500';
-            case 'reply':
-                return 'text-green-500';
-            case 'mention':
-                return 'text-purple-500';
-            case 'like':
-                return 'text-red-500';
-            case 'memo':
-                return 'text-orange-500';
-            case 'levelup':
-                return 'text-yellow-500';
-            default:
-                return 'text-muted-foreground';
-        }
     }
 
     function formatTime(dateString: string): string {
@@ -425,8 +387,21 @@
                             <Icon class="h-4 w-4 {getNotificationColor(notification.type)}" />
                         </div>
                         <div class="min-w-0 flex-1">
+                            <!-- ⛔ 종류 표식은 반드시 제목 '앞'에 온다. line-clamp-1 은 뒤에서
+                                 자르므로, 뒤에 두면 닉네임이 길 때 종류가 먼저 사라진다
+                                 (bug/13242 제보 그대로의 증상). -->
                             <p class="text-foreground line-clamp-1 text-[13px] font-medium">
-                                {notification.title}
+                                {#if getNotificationEmoji(notification.type)}
+                                    <span
+                                        class="mr-0.5"
+                                        title={getNotificationLabel(notification.type)}
+                                        aria-hidden="true"
+                                        >{getNotificationEmoji(notification.type)}</span
+                                    >
+                                    <span class="sr-only"
+                                        >{getNotificationLabel(notification.type)}</span
+                                    >
+                                {/if}{notification.title}
                             </p>
                             {#if notification.parent_subject}
                                 <p class="text-muted-foreground mt-0.5 line-clamp-1 text-[11px]">

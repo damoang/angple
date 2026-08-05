@@ -8,14 +8,14 @@
     import type { GroupedNotificationListResponse, GroupedNotification } from '$lib/api/types.js';
     import { onMount } from 'svelte';
     import Bell from '@lucide/svelte/icons/bell';
-    import MessageSquare from '@lucide/svelte/icons/message-square';
-    import Reply from '@lucide/svelte/icons/reply';
-    import AtSign from '@lucide/svelte/icons/at-sign';
-    import Heart from '@lucide/svelte/icons/heart';
-    import Star from '@lucide/svelte/icons/star';
-    import Mail from '@lucide/svelte/icons/mail';
-    import Info from '@lucide/svelte/icons/info';
     import Check from '@lucide/svelte/icons/check';
+    // 알림 종류 표시는 두 화면(드롭다운·알림함)이 같은 모듈을 쓴다 — bug/13242
+    import { getNotificationIcon } from '$lib/utils/notification-icon.js';
+    import {
+        getNotificationColor,
+        getNotificationEmoji,
+        getNotificationLabel
+    } from '$lib/utils/notification-type.js';
     import Trash2 from '@lucide/svelte/icons/trash-2';
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import ArrowLeft from '@lucide/svelte/icons/arrow-left';
@@ -37,46 +37,12 @@
         { key: 'like', label: '공감' },
         { key: 'mention', label: '멘션' },
         { key: 'memo', label: '쪽지' },
-        { key: 'system', label: '시스템' }
+        // ⛔ '시스템' 이 아니라 '새 글' 이다. 이 필터는 ph_from_case IN
+        //    ('write','inquire','answer') 인데 실제 내용은 30일 기준 구독·팔로우
+        //    새 글 101만건이고 inquire/answer 는 0건이다(bug/13242).
+        //    백엔드 필터 값(system)은 그대로 두고 이름만 사실에 맞춘다.
+        { key: 'system', label: '새 글' }
     ];
-
-    function getNotificationIcon(type: string) {
-        switch (type) {
-            case 'comment':
-                return MessageSquare;
-            case 'reply':
-                return Reply;
-            case 'mention':
-                return AtSign;
-            case 'like':
-                return Heart;
-            case 'memo':
-                return Mail;
-            case 'levelup':
-                return Star;
-            default:
-                return Info;
-        }
-    }
-
-    function getNotificationColor(type: string): string {
-        switch (type) {
-            case 'comment':
-                return 'text-blue-500';
-            case 'reply':
-                return 'text-green-500';
-            case 'mention':
-                return 'text-purple-500';
-            case 'like':
-                return 'text-red-500';
-            case 'memo':
-                return 'text-orange-500';
-            case 'levelup':
-                return 'text-yellow-500';
-            default:
-                return 'text-muted-foreground';
-        }
-    }
 
     function formatTime(dateString: string): string {
         const date = new Date(dateString);
@@ -332,6 +298,19 @@
                         <!-- 내용 -->
                         <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-1.5">
+                                <!-- ⛔ 종류 표식은 제목 '앞'에. truncate 는 뒤에서 자르므로
+                                     뒤에 두면 닉네임이 길 때 종류가 먼저 사라진다 (bug/13242). -->
+                                {#if getNotificationEmoji(notification.type)}
+                                    <span
+                                        class="shrink-0 text-sm"
+                                        title={getNotificationLabel(notification.type)}
+                                        aria-hidden="true"
+                                        >{getNotificationEmoji(notification.type)}</span
+                                    >
+                                    <span class="sr-only"
+                                        >{getNotificationLabel(notification.type)}</span
+                                    >
+                                {/if}
                                 <span
                                     class="truncate text-sm {notification.has_unread
                                         ? 'text-foreground font-semibold'
