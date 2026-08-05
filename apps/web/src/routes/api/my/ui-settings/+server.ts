@@ -29,6 +29,7 @@ const ALLOWED_KEYS = new Set<string>([
     'contentBlur',
     'hidePostList',
     'hideReadNotices',
+    'collapseReadNotices',
     'muteKeywords',
     'showNewComments',
     'enableKeyboardShortcuts',
