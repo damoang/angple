@@ -323,7 +323,14 @@ html {
     /* 1) 기본 폰트 적용 + 스무딩(맥), 커닝/리거처 통일 */
     html {
         scrollbar-gutter: stable;
-        font-family: var(--font-sans);
+        /* ⛔ --user-font-family 를 반드시 먼저 읽어야 한다.
+           설정 → 화면 설정 → 글자체가 이 변수를 html 인라인 스타일로 심는데
+           (ui-settings.svelte.ts applyCSS), **그 변수를 읽는 규칙이 한 곳도 없어서**
+           글자체를 바꿔도 화면이 그대로였다. 운영 빌드에서 `var(--user-font-family`
+           사용처가 0개였다(qa/82194 회원 제보 — "글자체를 바꿔도 적용이 안되네요").
+           아래 `*, ::before, ::after { font-family: inherit }` 덕분에 이 한 줄이
+           페이지 전체에 퍼진다. 미설정이면 기존대로 --font-sans 로 떨어진다. */
+        font-family: var(--user-font-family, var(--font-sans));
         -webkit-font-smoothing: antialiased;
         /* macOS */
         -moz-osx-font-smoothing: grayscale;
