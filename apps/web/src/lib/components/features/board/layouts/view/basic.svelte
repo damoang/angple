@@ -298,8 +298,11 @@
                             {formatDate(post.created_at)}
                             <!-- 수정 배지: 리비전 기반 edit_count/last_edited_at (백엔드 주입) 사용.
                                  게시글 수정 시 wr_last 미갱신이라 post.updated_at 대신 이 값을 쓴다.
-                                 5분 grace: 작성 직후(<5분) 수정은 숨김(댓글과 일관). -->
-                            {#if post.edit_count && post.edit_count > 0 && post.last_edited_at && formatTimeShort && new Date(post.last_edited_at).getTime() - new Date(post.created_at).getTime() > 5 * 60 * 1000}
+                                 ⛔ 5분 grace 숨김은 2026-08-05 제거했다. 실측상 그 게이트가
+                                    글 수정의 67.3%, 댓글 수정의 88.2%를 화면에서 지웠다.
+                                    특히 신고 직후 5분 안에 문제 표현을 순화하면 기록만 남고
+                                    화면엔 흔적이 없어 판정 근거가 사라졌다. 수정은 수정이다. -->
+                            {#if post.edit_count && post.edit_count > 0 && post.last_edited_at && formatTimeShort}
                                 <span class="text-muted-foreground/70"
                                     >· 수정 {post.edit_count}회({formatTimeShort(
                                         post.last_edited_at,
