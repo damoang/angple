@@ -97,10 +97,25 @@ export async function getPluginById(pluginId: string): Promise<InstalledPlugin |
     };
 }
 
-// --- 2-tier 캐시: 활성 플러그인 (L1 30초, L2 5분) ---
+// --- 2-tier 캐시: 활성 플러그인 (L1 3초, L2 5분) ---
+//
+// ⛔ L1 은 **파드마다 따로** 있고, `TieredCache.delete()` 는 그 요청을 처리한 파드의
+//    L1 과 Redis 만 지운다. 무효화를 파드 간에 전파하는 pub/sub 이 없다.
+//    → 관리자가 플러그인을 끄면 나머지 파드(운영 13개)는 L1 TTL 만큼 옛 값을 계속 쓴다.
+//
+// 30초였을 때 폭죽 플러그인에서 "켜기는 되는데 끄기가 안 된다"는 제보가 나왔다.
+// 무효화 로직은 활성·비활성이 대칭이라 버그가 아니었고, 비대칭은 판정 기준에 있었다 —
+// 켜기는 파드 하나만 갱신돼도 "됐다"로 보이지만, 끄기는 13개가 전부 갱신돼야
+// "꺼졌다"로 보인다. 같은 지연이 정반대로 체감된다.
+//
+// 활성 플러그인 목록은 수십 바이트고 L2(Redis)가 받쳐 주므로 3초로 줄여도
+// DB 부하 증가는 무시할 수준이다. 파드 간 지연 30초 → 3초.
+//
+// ⛔ 근본 해결은 아니다. 무효화 pub/sub 전파(TieredCache 전 소비자가 함께 이득)는
+//    별건으로 남긴다. 열어 둔 탭은 body-end 슬롯 특성상 하드 리로드가 필요한 것도 그대로다.
 const activePluginsTieredCache = new TieredCache<InstalledPlugin[]>(
     'plugins:active',
-    30_000,
+    3_000,
     300,
     10
 );
