@@ -6,6 +6,8 @@
     import ItalicExtension from '@tiptap/extension-italic';
     import Link from '@tiptap/extension-link';
     import { LinkedImage } from './linked-image.js';
+    // 앙티콘 전용 인라인 노드 — 사진 첨부(LinkedImage)와 분리해야 하는 이유는 그 파일 주석 참조
+    import { Emoticon } from './emoticon-node.js';
     import Placeholder from '@tiptap/extension-placeholder';
     import Underline from '@tiptap/extension-underline';
     import TextAlign from '@tiptap/extension-text-align';
@@ -267,7 +269,13 @@
                         class: 'text-primary underline'
                     }
                 }),
+                // ⛔ Emoticon 은 LinkedImage 보다 앞에 둔다. 파스 규칙이 `img[src]` 로
+                //    겹치므로, 확장 우선순위(1100)와 함께 순서로도 의도를 남긴다.
+                Emoticon,
                 LinkedImage.configure({
+                    // ⛔ 이 false 를 뒤집어 앙티콘을 인라인으로 만들지 말 것.
+                    //    이 노드는 사진 첨부에도 쓰여, 인라인이 되면 큰 사진이 문단 안으로
+                    //    끼어들어 본문 레이아웃이 무너진다. 앙티콘은 Emoticon 노드가 담당한다.
                     inline: false,
                     allowBase64: true
                     // #12858: 본문 HTML 에 max-w-full rounded-lg 유틸 클래스를 baked-in 하지 않는다.
@@ -1074,10 +1082,15 @@
         // 팩 이모티콘: {emo:filename}
         const emoMatch = text.match(/^\{emo:([^}]+)\}$/);
         if (emoMatch) {
+            // ⛔ setImage 를 쓰면 블록 이미지로 들어가 한 줄을 통째로 차지한다.
+            //    앙티콘은 글씨처럼 흘러야 하므로 인라인 Emoticon 노드로 넣는다.
             editor
                 .chain()
                 .focus()
-                .setImage({ src: `/emoticons/${emoMatch[1]}`, alt: emoMatch[1] })
+                .insertContent({
+                    type: 'emoticon',
+                    attrs: { src: `/emoticons/${emoMatch[1]}`, alt: emoMatch[1] }
+                })
                 .run();
             showEmoticonPicker = false;
             return;
@@ -2080,6 +2093,16 @@
         max-width: 100%;
         height: auto;
         margin: 0.75rem 0;
+    }
+
+    /* 앙티콘은 사진이 아니라 글자다 — 위 이미지 규칙의 세로 여백을 받으면 안 된다.
+       크기 상한은 전역 `.emoticon-inline:not([width]) { max-height: 2.5em }`(components.css)이
+       담당하므로 여기서 다시 정하지 않는다. ⛔ 여기에 width 를 넣지 말 것 — width 속성이
+       있는 앙티콘의 크기 지정을 죽인다(bug#13145·13159·13165 와 같은 함정). */
+    :global(.tiptap-content .tiptap img.emoticon-inline) {
+        display: inline;
+        margin: 0;
+        vertical-align: middle;
     }
 
     /* 작성자가 '본문 폭 맞춤'을 선택한 이미지만 전폭 (뷰의 .prose img.dm-fit-width 와 일치) */
