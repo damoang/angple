@@ -52,8 +52,22 @@ describe('getNotificationEmoji', () => {
         expect(getNotificationLabel('what_is_this')).toBe('알림');
     });
 
-    it('통합 묶음은 표식을 붙이지 않는다 — 본문에 이미 개수가 있다', () => {
-        expect(getNotificationEmoji('merged')).toBe('');
+    // ⛔ bug/13332 의 재발 방지선.
+    //    묶음 알림에 표식이 없으면 「알림 묶어 보기」(기본 켬) 사용자에게는 사실상 모든
+    //    알림이 같은 회색 느낌표가 된다. 제보자가 "댓글과 답글 구분이 어렵다"고 한 상태다.
+    it('섞인 묶음도 표식을 가지며 대상(글/댓글)이 구분된다', () => {
+        expect(getNotificationEmoji('merged_post')).not.toBe('');
+        expect(getNotificationEmoji('merged_comment')).not.toBe('');
+        expect(getNotificationEmoji('merged_post')).not.toBe(
+            getNotificationEmoji('merged_comment')
+        );
+        expect(firstGlyph(getNotificationEmoji('merged_post'))).toBe('📄');
+        expect(firstGlyph(getNotificationEmoji('merged_comment'))).toBe('💬');
+    });
+
+    // be 배포가 web 보다 늦어도 화면이 회색으로 죽지 않아야 한다.
+    it('옛 merged 값도 표식을 가진다', () => {
+        expect(getNotificationEmoji('merged')).not.toBe('');
     });
 });
 

@@ -40,6 +40,9 @@ export type NotificationType =
     | 'follow'
     | 'digest'
     | 'levelup'
+    // 여러 종류가 한 줄로 묶인 알림. 대상(글/댓글)만 구분해 준다 — bug/13332
+    | 'merged_post'
+    | 'merged_comment'
     | 'merged'
     | 'system';
 
@@ -63,9 +66,19 @@ const META: Record<NotificationType, NotificationTypeMeta> = {
     follow: { emoji: '👤✍️', color: 'text-teal-600', label: '팔로우한 분의 새 글' },
     digest: { emoji: '📰', color: 'text-amber-600', label: '새 글 요약' },
     levelup: { emoji: '⭐', color: 'text-yellow-500', label: '레벨업' },
-    // 통합 묶음(merge=target)은 한 줄에 「댓글 2 · 좋아요 3」처럼 개수를 직접 쓴다.
-    // 종류가 이미 본문에 있으므로 표식을 겹쳐 붙이지 않는다.
-    merged: { emoji: '', color: 'text-muted-foreground', label: '알림' },
+    // 여러 종류가 섞인 묶음 — bug/13332
+    //
+    // ⛔ 처음엔 "개수가 제목에 있으니 표식은 필요 없다"고 판단해 회색으로 뒀는데, 그게 바로
+    //    제보의 원인이었다. 「알림 묶어 보기」가 기본 켬이라 사실상 모든 알림이 같은 회색
+    //    느낌표가 됐고, 제보자는 "댓글과 답글 구분이 어려워서 번거롭다"고 적었다.
+    //    개수는 제목에 있어도, 목록을 훑을 때 눈이 먼저 닿는 건 왼쪽 아이콘이다.
+    //
+    //    한 종류뿐인 묶음은 백엔드가 정확한 종류로 내려주므로 여기 오지 않는다.
+    //    여기는 진짜로 섞인 경우다 — 대상(글/댓글)만이라도 알려준다.
+    merged_post: { emoji: '📄🔔', color: 'text-indigo-500', label: '내 글에 여러 반응' },
+    merged_comment: { emoji: '💬🔔', color: 'text-violet-500', label: '내 댓글에 여러 반응' },
+    // 옛 백엔드가 내려보내던 값 — be 배포 전에도 화면이 깨지지 않도록 남긴다.
+    merged: { emoji: '🔔', color: 'text-muted-foreground', label: '여러 반응' },
     system: { emoji: '', color: 'text-muted-foreground', label: '알림' }
 };
 

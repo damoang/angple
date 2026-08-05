@@ -12,6 +12,7 @@ import AtSign from '@lucide/svelte/icons/at-sign';
 import FileText from '@lucide/svelte/icons/file-text';
 import Heart from '@lucide/svelte/icons/heart';
 import Info from '@lucide/svelte/icons/info';
+import Layers from '@lucide/svelte/icons/layers';
 import Mail from '@lucide/svelte/icons/mail';
 import MessageSquare from '@lucide/svelte/icons/message-square';
 import Newspaper from '@lucide/svelte/icons/newspaper';
@@ -40,6 +41,12 @@ export function getNotificationIcon(type: string) {
             return Newspaper;
         case 'levelup':
             return Star;
+        // 여러 종류가 섞인 묶음 — 겹친 모양으로 "여러 개"를 나타낸다 (bug/13332).
+        // ⛔ Bell 은 알림 종 버튼이 이미 쓰고 있어 헷갈린다.
+        case 'merged_post':
+        case 'merged_comment':
+        case 'merged':
+            return Layers;
         default:
             return Info;
     }
