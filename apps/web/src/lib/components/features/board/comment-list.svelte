@@ -2144,6 +2144,9 @@
         aspect-ratio: 16 / 9;
         width: 100% !important;
         height: auto !important;
+        /* bug/13091: PC 에서 댓글 안 영상이 본문만큼 커져 댓글 흐름을 끊었다.
+           모바일은 화면 폭이 곧 상한이라 그대로 두고, 넓은 화면에서만 제한한다. */
+        max-width: 480px;
     }
 
     /* 댓글 내 임베드 컨테이너 스타일 */
