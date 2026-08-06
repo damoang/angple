@@ -644,9 +644,16 @@ export const load: PageServerLoad = async ({
                 const ordered = refetchIds
                     .map((id) => rowMap.get(id))
                     .filter(Boolean) as RowDataPacket[];
+                // 총건수는 Sphinx 값(삭제글 포함)인데 위에서 삭제글을 걸러냈다.
+                // 그대로 두면 삭제가 많은 작성자를 검색할 때 뒤쪽이 빈 페이지가 된다
+                // (bug/13341 제보자는 삭제율 83%). 이번 페이지에서 걸러진 만큼을 빼
+                // 총계를 보정한다 — 정확한 전수 카운트는 Sphinx 재질의가 필요해
+                // 과하고, 최소한 "있다고 한 만큼 안 나오는" 어긋남은 줄어든다.
+                const filteredOut = refetchIds.length - ordered.length;
+                const adjustedTotal = Math.max(0, sphinxResult.total - filteredOut);
                 return {
                     data: ordered,
-                    meta: { page, limit, total: sphinxResult.total }
+                    meta: { page, limit, total: adjustedTotal }
                 };
             } catch (err) {
                 // Sphinx/DB 실패 시 Go 백엔드 LIKE 검색으로 fallback
