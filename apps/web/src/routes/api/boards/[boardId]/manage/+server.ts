@@ -11,9 +11,11 @@ import type { RequestHandler } from './$types';
 import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
 import { getBoardOwnerContext, setBoardIntro } from '$lib/server/board-owner';
+import { sanitizeIntroHtml } from '$lib/server/sanitize';
 
 /** 소개글 상한 — 무제한이면 저장소·화면 모두 감당이 안 된다. */
-const INTRO_MAX = 2000;
+// HTML 커스텀 영역(구글 캘린더 iframe + 이미지)을 고려한 상한 — 2,000자로는 부족했다.
+const INTRO_MAX = 10000;
 /** 카테고리 개수·길이 상한 (그누보드 bo_category_list 는 '|' 구분) */
 const CATEGORY_MAX_COUNT = 20;
 const CATEGORY_NAME_MAX = 20;
@@ -43,7 +45,8 @@ export const PATCH: RequestHandler = async ({ params, request, cookies, getClien
                 { status: 400 }
             );
         }
-        await setBoardIntro(boardId, intro);
+        // 저장 시 서버 정제(1차 방어) — 렌더 직전에도 다시 정제한다(2차, [boardId] load).
+        await setBoardIntro(boardId, sanitizeIntroHtml(intro));
         changed.push('intro');
     }
 

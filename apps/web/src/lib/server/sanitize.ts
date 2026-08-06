@@ -173,6 +173,81 @@ export function sanitizePostContentStrict(html: string): string {
     return sanitized;
 }
 
+/** 소모임 소개(상단 커스텀 영역) 전용 iframe 화이트리스트 — 구글 캘린더만. */
+const INTRO_IFRAME_REGEX = /^https:\/\/calendar\.google\.com\//;
+
+/**
+ * 소모임 소개글(게시판 상단 커스텀 영역) HTML 정제
+ *
+ * 당주가 작성한 HTML 이 모든 방문자에게 렌더되므로 게시글 본문보다 좁게 연다:
+ * 기본 서식 + 이미지(https만) + iframe(구글 캘린더만). script·style·이벤트 핸들러
+ * 불가. iframe 은 sanitizePostContentStrict 와 같은 반복 제거로 중첩 우회를 막는다.
+ * CSP frame-src 가 2차 방어선이다 (hooks.server.ts).
+ */
+export function sanitizeIntroHtml(html: string): string {
+    let sanitized = DOMPurify.sanitize(html, {
+        ALLOWED_TAGS: [
+            'p',
+            'br',
+            'strong',
+            'b',
+            'em',
+            'i',
+            'u',
+            's',
+            'del',
+            'ul',
+            'ol',
+            'li',
+            'blockquote',
+            'code',
+            'hr',
+            'h3',
+            'h4',
+            'a',
+            'img',
+            'iframe',
+            'div',
+            'span',
+            'table',
+            'thead',
+            'tbody',
+            'tr',
+            'th',
+            'td'
+        ],
+        ALLOWED_ATTR: [
+            'href',
+            'src',
+            'alt',
+            'title',
+            'target',
+            'rel',
+            'width',
+            'height',
+            'loading',
+            'frameborder',
+            'scrolling'
+        ],
+        ALLOW_DATA_ATTR: false,
+        ALLOWED_URI_REGEXP: /^https:/i
+    });
+
+    // iframe src 화이트리스트 — 허용 외 도메인은 반복 제거 (중첩 우회 방지)
+    let prev;
+    do {
+        prev = sanitized;
+        sanitized = sanitized.replace(
+            /<iframe\s[^>]*src="([^"]*)"[^>]*>[\s\S]*?<\/iframe>/gi,
+            (match, src: string) => (INTRO_IFRAME_REGEX.test(src) ? match : '')
+        );
+        // src 없는 iframe 도 제거
+        sanitized = sanitized.replace(/<iframe(?![^>]*\ssrc=")[^>]*>[\s\S]*?<\/iframe>/gi, '');
+    } while (sanitized !== prev);
+
+    return sanitized;
+}
+
 /**
  * 댓글 텍스트 정제 (더 제한적)
  * 허용: 기본 서식만 (이미지, iframe 불가)

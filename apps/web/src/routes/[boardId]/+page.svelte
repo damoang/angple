@@ -1058,6 +1058,21 @@
                 </div>
             {/if}
 
+            <!-- 소모임 상단 커스텀 영역 — 당주가 돌보기에서 작성. 서버에서 이중 정제된 HTML 만 온다. -->
+            {#if data.boardIntroHtml}
+                <details class="bg-muted/30 mb-3 rounded-lg border" open>
+                    <summary
+                        class="text-muted-foreground cursor-pointer select-none px-3 py-2 text-sm font-medium"
+                    >
+                        소모임 소개
+                    </summary>
+                    <div class="board-intro max-w-none px-3 pb-3 text-sm">
+                        <!-- eslint-disable-next-line svelte/no-at-html-tags -- 서버 정제(sanitizeIntroHtml) 완료 -->
+                        {@html data.boardIntroHtml}
+                    </div>
+                </details>
+            {/if}
+
             <!-- 최상단 자체 배너 (자체 배너 없으면 안 보임) -->
             {#if widgetLayoutStore.hasEnabledAds}
                 <div class="mb-3">
