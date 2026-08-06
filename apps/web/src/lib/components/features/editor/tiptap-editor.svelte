@@ -2056,9 +2056,17 @@
         margin-bottom: 0.5rem;
     }
 
-    /* 문단 스타일 */
+    /* 문단 스타일
+     *
+     * ⛔ 게시 후 렌더(markdown.svelte 의 .prose p)와 **같은 값**이어야 한다.
+     *    예전엔 여기에 margin-top 도 line-height 도 없어서, 작성 화면은
+     *    ~36px 로 보이다가 게시하면 40.8px 로 벌어졌다. 제보 문구가
+     *    "엔터치면 띄엄띄엄 **올라갑니다**" 였던 이유다(qa/82197).
+     *    한쪽만 바꾸면 괴리가 다시 생기므로 두 파일을 함께 고칠 것. */
     :global(.tiptap-content .tiptap p) {
-        margin-bottom: 0.75rem;
+        margin-top: 0.35rem;
+        line-height: 1.8;
+        margin-bottom: 0.35rem;
     }
 
     /* 목록 스타일 */
