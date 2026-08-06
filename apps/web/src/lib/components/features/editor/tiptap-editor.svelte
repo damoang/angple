@@ -35,9 +35,15 @@
         DialogTitle,
         DialogFooter
     } from '$lib/components/ui/dialog/index.js';
-    import { marked } from 'marked';
+    import { Marked } from 'marked';
     import TurndownService from 'turndown';
     import { isImageFile } from '$lib/utils/image-convert.js';
+
+    // ⛔ 전역 `marked` 싱글턴을 쓰지 않는다. breaks:true 를 켜는 곳이
+    //    markdown.svelte 의 모듈 최상위라서, 글 상세를 한 번도 안 거치고
+    //    글쓰기로 바로 들어오면(북마크·새로고침·공유시트) breaks 가 false 로 남아
+    //    마크다운 모드에서 줄바꿈이 통째로 뭉쳤다. 로컬 인스턴스로 고정한다.
+    const marked = new Marked({ gfm: true, breaks: true });
 
     const lowlight = createLowlight(common);
     const turndown = new TurndownService({
@@ -46,6 +52,7 @@
     });
 
     // 아이콘
+    import CornerDownLeft from '@lucide/svelte/icons/corner-down-left';
     import Bold from '@lucide/svelte/icons/bold';
     import Italic from '@lucide/svelte/icons/italic';
     import UnderlineIcon from '@lucide/svelte/icons/underline';
@@ -772,6 +779,12 @@
     }
 
     // 툴바 버튼 클릭 핸들러
+    // 줄바꿈(<br>) 삽입 — 모바일에는 Shift+Enter 가 없어 이 버튼이 유일한 경로다.
+    // 엔터는 새 문단(<p>)이라 본문 간격이 넓어지는데(qa/82197), 붙여 쓰고 싶을 때 쓴다.
+    function insertLineBreak(): void {
+        editor?.chain().focus().setHardBreak().run();
+    }
+
     function toggleBold(): void {
         editor?.chain().focus().toggleBold().run();
     }
@@ -1301,6 +1314,23 @@
                 <Redo class="h-4 w-4" />
             </Button>
         </div>
+
+        <div class="bg-border mx-1 h-6 w-px" role="separator"></div>
+
+        <!-- 줄바꿈 — 모바일에는 Shift+Enter 가 없다(qa/82197). 툴바 앞쪽에 둬야
+             가로 스크롤에서 화면 밖으로 밀리지 않는다. -->
+        <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onclick={insertLineBreak}
+            {disabled}
+            class="h-8 w-8 p-0"
+            title="줄바꿈 (문단을 나누지 않고 다음 줄로)"
+            aria-label="줄바꿈 삽입"
+        >
+            <CornerDownLeft class="h-4 w-4" />
+        </Button>
 
         <div class="bg-border mx-1 h-6 w-px" role="separator"></div>
 
