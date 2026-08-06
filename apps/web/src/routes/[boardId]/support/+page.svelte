@@ -347,19 +347,28 @@
 
     <Card.Root>
         <Card.Header>
-            <Card.Title class="text-base">소모임 소개</Card.Title>
-            <Card.Description>어떤 소모임인지 알려주세요. 최대 2,000자입니다.</Card.Description>
+            <Card.Title class="text-base">소모임 소개 (상단 꾸미기)</Card.Title>
+            <Card.Description>
+                게시판 상단(배너 아래)에 모든 방문자에게 보입니다. 최대 10,000자. HTML로 꾸밀 수
+                있습니다 — 이미지, 표, 그리고 구글 캘린더 퍼가기(iframe)를 지원합니다. 그 외의
+                스크립트·외부 임베드는 저장 시 자동으로 제거됩니다.
+            </Card.Description>
         </Card.Header>
         <Card.Content class="space-y-2">
-            <Textarea rows={5} bind:value={intro} placeholder="소모임 소개를 적어주세요." />
+            <Textarea
+                rows={8}
+                bind:value={intro}
+                placeholder={'소모임 소개를 적어주세요. 예)\n<p>매주 수요일 정기 모임!</p>\n<iframe src="https://calendar.google.com/calendar/embed?src=..." width="100%" height="400"></iframe>'}
+            />
             <div class="flex items-center gap-2">
                 <Button
                     disabled={saving || !introDirty}
-                    onclick={() => save({ intro }, '소개글을 저장했습니다.')}
+                    onclick={() =>
+                        save({ intro }, '소개글을 저장했습니다. 게시판 상단에서 확인해 보세요.')}
                 >
                     저장
                 </Button>
-                <span class="text-muted-foreground text-xs">{intro.length} / 2000</span>
+                <span class="text-muted-foreground text-xs">{intro.length} / 10000</span>
             </div>
         </Card.Content>
     </Card.Root>

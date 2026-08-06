@@ -25,7 +25,8 @@ import { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import { applyFilter } from '$lib/hooks/registry.js';
 import { buildHookContext } from '$lib/hooks/context.js';
-import { getBoardOwnerContext } from '$lib/server/board-owner';
+import { getBoardOwnerContext, getBoardIntro } from '$lib/server/board-owner';
+import { sanitizeIntroHtml } from '$lib/server/sanitize';
 
 // --- 인메모리 캐시: 비로그인 게시글 목록 (15초 TTL) ---
 interface PostsCacheData {
@@ -876,8 +877,21 @@ export const load: PageServerLoad = async ({
         locals.user?.id ? { mb_id: locals.user.id, mb_level: locals.user.level ?? 0 } : null
     ).catch(() => null));
 
+    // 소모임 상단 커스텀 영역 — 당주가 돌보기(/support)에서 작성한 소개(HTML).
+    // 소모임(gr_id='group')에만 있고, 저장 시 정제했더라도 렌더 직전 다시 정제한다
+    // (DB 직접 수정·정책 변경 이전 데이터 방어 — 2차 방어선).
+    let boardIntroHtml = '';
+    if (board?.group_id === 'group') {
+        try {
+            boardIntroHtml = sanitizeIntroHtml(await getBoardIntro(boardId));
+        } catch {
+            boardIntroHtml = '';
+        }
+    }
+
     return {
         boardId,
+        boardIntroHtml,
         board: toListBoardPayload(board),
         searchParams: isSearching ? { field: searchField!, query: searchQuery! } : null,
         activeTag: tag,
