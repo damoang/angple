@@ -48,7 +48,7 @@ interface DisciplineLogRow extends RowDataPacket {
 }
 
 import { parseDisciplineLogContent, type DisciplineEntry } from './_parse-discipline';
-import { calculateDeletePostCount } from './_recompute-counts';
+import { calculateMemberCounts } from './_recompute-counts';
 import { calculateLevelInfo as calcLevelInfo } from '$lib/utils/level-thresholds';
 
 interface CountRow extends RowDataPacket {
@@ -171,20 +171,31 @@ export const GET: RequestHandler = async ({ params, locals }) => {
             // 테이블 없으면 기본값 사용
         }
 
-        // delete_post_count 실시간 보강 (#12113)
-        // g5_member_board_status.delete_post_count 는 갱신 cron 부재로 stale.
-        // bo_use_search 보드들에 대해 UNION ALL COUNT 로 실시간 합산.
+        // 글·댓글 통계 실시간 재계산 (#12113 → bug/13341)
+        //
+        // ⛔ 총계와 삭제 수를 **같은 쿼리**에서 함께 센다. 예전에는 총계만 stale 값
+        //    (g5_member_board_status)을 쓰고 삭제 수만 실시간이라, 화면의 "생존 =
+        //    총계 - 삭제" 가 서로 다른 시점·모집단의 뺄셈이 되어 실제와 크게 어긋났다
+        //    (실측: 표시 생존 58 vs 실제 2). 댓글은 재계산조차 없어 전부 stale 이었다.
         try {
-            // pool.query 와 시그니처 호환: <T>(sql, params) => [rows, fields]
-            const realDeleteCount = await calculateDeletePostCount(
+            const counts = await calculateMemberCounts(
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (sql: string, params?: unknown[]) => pool.query(sql, params) as any,
                 memberId
             );
-            stats = { ...stats, delete_post_count: realDeleteCount };
+            if (counts) {
+                stats = {
+                    ...stats,
+                    total_post_count: counts.totalPosts,
+                    delete_post_count: counts.deletedPosts,
+                    total_comment_count: counts.totalComments,
+                    delete_comment_count: counts.deletedComments
+                };
+            }
+            // counts === null 이면 재계산 실패 — stale 값을 그대로 두되 뺄셈이
+            // 어긋나 있을 수 있음을 감안한다(표시 자체는 기존과 동일).
         } catch (err) {
-            // 실시간 합산 실패 시 기존 stale 값 유지 (안전장치)
-            console.error('[Member Profile API] delete_post_count recompute failed:', err);
+            console.error('[Member Profile API] member counts recompute failed:', err);
         }
 
         // 이용제한 내역 (옵션 A: g5_write_disciplinelog 단일 출처)
