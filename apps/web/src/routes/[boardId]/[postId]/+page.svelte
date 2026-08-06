@@ -2810,6 +2810,7 @@
     class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 transition-opacity duration-200 md:hidden {typingInInput
         ? 'pointer-events-none opacity-0'
         : 'opacity-100'}"
+>
     <a
         href="/{boardId}"
         class="bg-muted text-muted-foreground flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-transform active:scale-95"
