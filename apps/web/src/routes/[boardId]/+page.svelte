@@ -1052,8 +1052,8 @@
                  보인다는 것 자체가 권한이 있다는 뜻이다. 링크가 없으면 URL 을 직접 쳐야 했다. -->
             {#if data.canManageBoard}
                 <div class="mb-3 text-right">
-                    <a href="/{boardId}/manage" class="text-primary text-sm underline">
-                        소모임 관리
+                    <a href="/{boardId}/support" class="text-primary text-sm underline">
+                        소모임 돌보기
                     </a>
                 </div>
             {/if}
