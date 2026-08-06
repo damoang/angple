@@ -413,7 +413,8 @@
             title = draft.title;
             // bug/12981: 스트립 이전에 저장된 기존 draft 의 죽은 blob: 도 복원 시 걷어낸다
             content = stripBlobMedia(draft.content);
-            category = draft.category;
+            // bug/12827: 이 게시판에 없는 카테고리(게시판 카테고리 개편·타 게시판 draft)는 버린다
+            category = draft.category && categories.includes(draft.category) ? draft.category : '';
             isSecret = draft.isSecret;
             tags = draft.tags || [];
             link1 = draft.link1 || '';
@@ -683,7 +684,10 @@
     }): void {
         title = draft.title;
         content = draft.content;
-        category = draft.category;
+        // bug/12827: DraftList 는 모든 게시판의 임시저장을 보여주므로, 다른 게시판
+        // draft 를 불러오면 그 게시판의 카테고리가 딸려 온다(자유게시판 글에
+        // 「여행·답사」가 박힌 사고). 현재 게시판에 있는 카테고리만 받는다.
+        category = draft.category && categories.includes(draft.category) ? draft.category : '';
         isSecret = draft.isSecret;
         tags = draft.tags || [];
         link1 = draft.link1 || '';
