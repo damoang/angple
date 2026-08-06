@@ -93,25 +93,36 @@ function fireAndForgetPostLikeSideEffects(options: {
                     return;
                 }
 
-                await pool.query(
-                    `DELETE FROM g5_na_noti WHERE bo_table = ? AND wr_id = ? AND rel_mb_id = ? AND ph_from_case = 'good'`,
-                    [options.boardId, options.postId, options.actorMbId]
-                );
-                await pool.query(
-                    `INSERT INTO g5_na_noti (ph_to_case, ph_from_case, bo_table, wr_id, mb_id, rel_mb_id, rel_mb_nick, rel_msg, rel_url, ph_readed, ph_datetime, parent_subject, wr_parent)
-                     VALUES ('good', 'good', ?, ?, ?, ?, ?, ?, ?, 'N', CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+09:00'), ?, ?)`,
-                    [
-                        options.boardId,
-                        options.postId,
-                        options.authorMbId,
-                        options.actorMbId,
-                        options.actorNick,
-                        `${options.actorNick}님이 회원님의 글을 추천했습니다.`,
-                        `/${options.boardId}/${options.postId}`,
-                        options.postSubject,
-                        options.postId
-                    ]
-                );
+                // DELETE→INSERT 는 한 트랜잭션으로 — 동시 요청이 갈라지면 중복 알림 2건이 남는다
+                const conn = await pool.getConnection();
+                try {
+                    await conn.beginTransaction();
+                    await conn.query(
+                        `DELETE FROM g5_na_noti WHERE bo_table = ? AND wr_id = ? AND rel_mb_id = ? AND ph_from_case = 'good'`,
+                        [options.boardId, options.postId, options.actorMbId]
+                    );
+                    await conn.query(
+                        `INSERT INTO g5_na_noti (ph_to_case, ph_from_case, bo_table, wr_id, mb_id, rel_mb_id, rel_mb_nick, rel_msg, rel_url, ph_readed, ph_datetime, parent_subject, wr_parent)
+                         VALUES ('good', 'good', ?, ?, ?, ?, ?, ?, ?, 'N', CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+09:00'), ?, ?)`,
+                        [
+                            options.boardId,
+                            options.postId,
+                            options.authorMbId,
+                            options.actorMbId,
+                            options.actorNick,
+                            `${options.actorNick}님이 회원님의 글을 추천했습니다.`,
+                            `/${options.boardId}/${options.postId}`,
+                            options.postSubject,
+                            options.postId
+                        ]
+                    );
+                    await conn.commit();
+                } catch (e) {
+                    await conn.rollback();
+                    throw e;
+                } finally {
+                    conn.release();
+                }
             })().catch(() => undefined)
         );
     }

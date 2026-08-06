@@ -35,12 +35,7 @@
     import UserPlus from '@lucide/svelte/icons/user-plus';
     import { browser } from '$app/environment';
     import { onMount } from 'svelte';
-    import {
-        isNotiMergeEnabled,
-        setNotiMergeEnabled,
-        isNotiAutoReadEnabled,
-        setNotiAutoReadEnabled
-    } from '$lib/utils/noti-merge-pref.js';
+    import { isNotiMergeEnabled, setNotiMergeEnabled } from '$lib/utils/noti-merge-pref.js';
     import { page } from '$app/stores';
     import {
         uiSettingsStore,
@@ -311,7 +306,6 @@
         like_threshold: 1
     });
     let notiMerge = $state(true);
-    let notiAutoRead = $state(true);
     let notiLoading = $state(false);
     let notiSaving = $state(false);
     let notiSaveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -350,7 +344,6 @@
 
     onMount(() => {
         notiMerge = isNotiMergeEnabled();
-        notiAutoRead = isNotiAutoReadEnabled();
         hydrated = true;
         loadSubscriptions();
         loadFollowing();
@@ -1193,25 +1186,9 @@
                         />
                     </div>
                     <Separator />
-                    <!-- 자동 읽음 — #12991(열면 배지 해소)과 bug/13206(자동으로 읽히는 게 불편)이
-                         반대 요구라 설정으로 가른다. 기본 켬으로 기존 동작 보존. -->
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <Label>열람 시 자동 읽음 처리</Label>
-                            <p class="text-muted-foreground text-xs">
-                                알림 종을 열면 읽지 않은 알림이 모두 읽음으로 처리됩니다. 끄면 개별
-                                알림을 클릭하거나 「모두 읽기」를 눌러야 읽음이 됩니다 (이 기기에만
-                                적용)
-                            </p>
-                        </div>
-                        <Switch
-                            checked={notiAutoRead}
-                            onCheckedChange={(v) => {
-                                notiAutoRead = v;
-                                setNotiAutoReadEnabled(v);
-                            }}
-                        />
-                    </div>
+                    <!-- 「열람 시 자동 읽음 처리」 설정은 제거됨 — seen/read 분리(bug/13367)로
+                         종을 열면 뱃지만 사라지고 읽음은 클릭한 알림만 처리되므로,
+                         #12991(숫자 해소)과 13206(자동 읽힘 불편)이 설정 없이 동시에 만족된다. -->
                     <Separator />
                     {#if notiLoading}
                         <p class="text-muted-foreground text-xs">로딩 중...</p>

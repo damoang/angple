@@ -7,6 +7,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
+import { getAuthUser } from '$lib/server/auth';
 
 interface NotifyRequest {
     mentions: string[]; // 닉네임 배열
@@ -30,9 +31,44 @@ function stripHtmlTags(str: string): string {
     return result;
 }
 
-export const POST: RequestHandler = async ({ request }) => {
+// 회원당 멘션 알림 호출 레이트리밋 — 파드 인메모리(분당 5회면 정상 사용은 충분).
+// ⛔ 파드별 독립이라 완벽하지 않지만, 무인증이던 시절의 무한 주입을 막는 1차 방어선.
+const MENTION_RATE_WINDOW_MS = 60_000;
+const MENTION_RATE_MAX = 5;
+const mentionCallLog = new Map<string, number[]>();
+
+function mentionRateLimited(mbID: string): boolean {
+    const now = Date.now();
+    const calls = (mentionCallLog.get(mbID) ?? []).filter((t) => now - t < MENTION_RATE_WINDOW_MS);
+    if (calls.length >= MENTION_RATE_MAX) {
+        mentionCallLog.set(mbID, calls);
+        return true;
+    }
+    calls.push(now);
+    mentionCallLog.set(mbID, calls);
+    if (mentionCallLog.size > 10_000) mentionCallLog.clear(); // 무한 성장 방지
+    return false;
+}
+
+export const POST: RequestHandler = async ({ request, cookies }) => {
+    // ⛔ 인증 필수 + 발신자는 세션에서 — 본문의 senderId/senderNick 을 믿으면
+    //    임의 회원 사칭으로 알림을 주입할 수 있다 (알림 딥다이브에서 발견된 구멍).
+    const user = await getAuthUser(cookies);
+    if (!user) {
+        return json({ error: '로그인이 필요합니다.' }, { status: 401 });
+    }
+    const senderId = user.mb_id;
+    const senderNick = user.mb_nick || user.mb_name || user.mb_id;
+
+    if (mentionRateLimited(senderId)) {
+        return json(
+            { error: '요청이 너무 잦습니다. 잠시 후 다시 시도해 주세요.' },
+            { status: 429 }
+        );
+    }
+
     const body: NotifyRequest = await request.json();
-    const { mentions, boardId, postId, commentId, content, senderNick, senderId, postTitle } = body;
+    const { mentions, boardId, postId, commentId, content, postTitle } = body;
 
     if (!mentions || mentions.length === 0) {
         return json({ sent: 0 });
@@ -40,10 +76,6 @@ export const POST: RequestHandler = async ({ request }) => {
 
     if (!boardId || !postId) {
         return json({ error: 'boardId, postId 필수' }, { status: 400 });
-    }
-
-    if (!senderId) {
-        return json({ error: 'senderId 필수' }, { status: 400 });
     }
 
     // 닉네임 유효성 검사

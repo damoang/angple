@@ -2010,6 +2010,16 @@ class ApiClient {
     }
 
     /**
+     * 알림함 열람 기록 (seen) — 뱃지만 소거되고 항목별 읽음 상태는 그대로다.
+     * (seen/read 분리 — bug/13367·13332·13206·12991)
+     */
+    async markNotificationsSeen(): Promise<void> {
+        await this.request<void>('/notifications/seen', {
+            method: 'POST'
+        });
+    }
+
+    /**
      * 알림 삭제
      */
     async deleteNotification(notificationId: number): Promise<void> {
