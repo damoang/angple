@@ -494,6 +494,34 @@ if (typeof window !== 'undefined') {
         return null;
     }
 
+    // 하이드레이션 경고에는 Error 객체가 없다. Svelte 가 문자열만 넘기기 때문에
+    // 종전에는 stack 이 전부 '(no stack)' 이었고(실측: 3일 435,378건 중 93%),
+    // 그래서 "어느 컴포넌트에서 갈리는가"를 데이터로 좁힐 수 없었다.
+    // 호출 시점에 Error 를 만들어 호출 스택을 대신 뜬다.
+    //
+    // ⛔ 수집기는 스키마에 없는 필드를 버린다(js_errors 컬럼 고정). 그래서 진단에
+    //    필요한 부가 정보는 새 필드가 아니라 stack 머리에 실어 보낸다.
+    //    at=페이지 시작 후 경과(ms) — 하이드레이션과 인라인 스크립트(테마 적용·
+    //    Clarity·다크모드 폴백)의 경합 가설을 이 값 분포로 직접 검증한다.
+    //
+    // Error 생성은 공짜가 아니고, 이 코드가 도는 시점이 하필 하이드레이션 중이다.
+    // guardedSend 의 스로틀(같은 메시지 5건)에 걸려 버려질 몫까지 만들지 않도록
+    // 합성 횟수를 페이지 로드당 따로 묶는다. 컴포넌트 특정에는 몇 건이면 족하다.
+    let synthesizedStacks = 0;
+    const MAX_SYNTHESIZED_STACKS = 8;
+
+    function buildStack(err: Error | undefined): string {
+        const head = `at=${Math.round(performance.now())}ms`;
+        if (err?.stack) return `${head}\n${err.stack.slice(0, 1500)}`;
+        if (synthesizedStacks >= MAX_SYNTHESIZED_STACKS) return `${head}\n(no stack)`;
+        synthesizedStacks++;
+        // 상위 프레임 몇 개면 컴포넌트 특정에 충분하다. 전량을 담으면 저장만 늘고
+        // 아래쪽은 전부 Svelte 내부라 판별에 기여하지 않는다.
+        const synthetic = new Error('hydration-capture').stack ?? '';
+        const frames = synthetic.split('\n').slice(1, 13).join('\n');
+        return `${head}\n(synthesized)\n${frames}`.slice(0, 1500);
+    }
+
     function captureFromConsole(args: unknown[], channel: 'error' | 'warn') {
         const first = String(args[0] ?? '');
         const hit = classifyConsoleMessage(first);
@@ -510,7 +538,7 @@ if (typeof window !== 'undefined') {
             reason: hit.reason,
             channel,
             message: `${first} ${detail}`.trim().slice(0, 400),
-            stack: err?.stack?.slice(0, 1500) || '(no stack)',
+            stack: buildStack(err),
             url: window.location.href,
             userAgent: navigator.userAgent
         });
