@@ -491,6 +491,12 @@ if (typeof window !== 'undefined') {
         if (first.startsWith('[upload-fail]')) {
             return { type: 'upload_fail', reason: 'upload_fail' };
         }
+        // 댓글 백필 최종 실패 — 3회 재시도가 모두 실패하고 목록이 빈 상태.
+        // ⛔ 여기 등록하지 않으면 console 에만 남고 수집되지 않는다. 이 분류기를
+        //    거치지 않는 메시지는 전송 자체가 안 된다.
+        if (first.startsWith('[comments] backfill-failed')) {
+            return { type: 'comments_backfill_failed', reason: 'backfill_failed' };
+        }
         return null;
     }
 
