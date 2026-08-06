@@ -7,13 +7,25 @@
  * 클릭(SPA 네비게이션)에도 그대로 반영된다.
  */
 import type { PageServerLoad } from './$types';
+import { redirect } from '@sveltejs/kit';
 import { backendFetch } from '$lib/server/backend-fetch.js';
 import { safeJson } from '$lib/api/safe-json.js';
 import type { DisciplineLogDetail, DisciplineLogListItem } from '$lib/api/discipline-log.js';
 
-const SSR_HEADERS = { Accept: 'application/json', 'User-Agent': 'Angple-Web-SSR/1.0' };
+export const load: PageServerLoad = async ({ params, url, locals }) => {
+    // bug/13348: 이용제한 기록은 회원 전용 — 게스트(검색엔진·봇 포함)에게 노출하지 않는다
+    if (!locals.user) {
+        redirect(302, `/login?redirect=${encodeURIComponent(url.pathname)}`);
+    }
 
-export const load: PageServerLoad = async ({ params }) => {
+    const SSR_HEADERS: Record<string, string> = {
+        Accept: 'application/json',
+        'User-Agent': 'Angple-Web-SSR/1.0'
+    };
+    if (locals.accessToken) {
+        SSR_HEADERS['Authorization'] = `Bearer ${locals.accessToken}`;
+    }
+
     const id = Number(params.id);
     if (!Number.isFinite(id) || id <= 0) {
         return {

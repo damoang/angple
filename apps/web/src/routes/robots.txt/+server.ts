@@ -33,6 +33,11 @@ Disallow: /member/
 Disallow: /messages/
 Disallow: /my/
 
+# 회원 전용 운영 게시판 — 소명·신고누적·이용제한 기록 (bug/13348)
+Disallow: /claim
+Disallow: /truthroom
+Disallow: /disciplinelog
+
 # 외부 링크 추적
 Disallow: /go/
 Disallow: /link/
