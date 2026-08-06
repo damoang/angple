@@ -662,6 +662,20 @@
     // 신고 다이얼로그 상태
     let showReportDialog = $state(false);
 
+    // bug/13354: 모바일에서 댓글을 다 쓰고 「작성」을 누르려는 순간, 바로 옆에 떠 있는
+    // 글쓰기 FAB 를 오터치하는 제보. 입력 중에는 FAB 를 숨긴다(Material Design 의
+    // "FAB 이 콘텐츠를 가리면 hide" 규칙). 댓글창만이 아니라 모든 입력을 대상으로
+    // 하는 이유: 오터치 조건은 "입력 마무리 탭"이지 댓글 여부가 아니다.
+    let typingInInput = $state(false);
+    function onGlobalFocusIn(e: FocusEvent): void {
+        const t = e.target as HTMLElement | null;
+        typingInInput =
+            !!t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT' || t.isContentEditable);
+    }
+    function onGlobalFocusOut(): void {
+        typingInInput = false;
+    }
+
     // 리액션 일괄 조회 (게시글 + 모든 댓글)
     let postReactions = $state<ReactionItem[] | undefined>(undefined);
     let reactionsMap = $state<Record<string, ReactionItem[]> | undefined>(undefined);
@@ -2789,8 +2803,13 @@
     onClose={() => (showReportDialog = false)}
 />
 
-<!-- 모바일 FAB 그룹 (목록 + 글쓰기) -->
-<div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 md:hidden">
+<svelte:window onfocusin={onGlobalFocusIn} onfocusout={onGlobalFocusOut} />
+
+<!-- 모바일 FAB 그룹 (목록 + 글쓰기) — 입력 중에는 숨김 (bug/13354 오터치 방지) -->
+<div
+    class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 transition-opacity duration-200 md:hidden {typingInInput
+        ? 'pointer-events-none opacity-0'
+        : 'opacity-100'}"
     <a
         href="/{boardId}"
         class="bg-muted text-muted-foreground flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-transform active:scale-95"
