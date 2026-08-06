@@ -56,6 +56,7 @@
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
     import Info from '@lucide/svelte/icons/info';
+    import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import type { ViewLayoutProps } from '../types.js';
     import ReportCharts from './report-charts.svelte';
 
@@ -568,13 +569,17 @@
             >
                 <span>조회 {post.views.toLocaleString()}</span>
                 <span>공감 {likeCount.toLocaleString()}</span>
+                <!-- bug/13376 — basic.svelte 와 같은 이유로 같은 모양을 쓴다. -->
                 <button
                     type="button"
-                    class="hover:text-foreground transition-colors"
+                    class="border-border hover:bg-muted hover:text-foreground -my-0.5 inline-flex cursor-pointer items-center gap-0.5 rounded-full border px-2 py-0.5 transition-colors"
+                    aria-label="댓글 {post.comments_count}개로 이동"
                     onclick={() =>
                         document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' })}
-                    >댓글 {post.comments_count.toLocaleString()}</button
                 >
+                    댓글 {post.comments_count.toLocaleString()}
+                    <ChevronDown class="h-3 w-3" aria-hidden="true" />
+                </button>
             </div>
         </div>
     </CardHeader>

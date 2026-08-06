@@ -42,6 +42,7 @@
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
     import Info from '@lucide/svelte/icons/info';
+    import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import Pin from '@lucide/svelte/icons/pin';
     import ShareButton from '$lib/components/post/share-button.svelte';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
@@ -329,13 +330,19 @@
             >
                 <span>조회 {post.views.toLocaleString()}</span>
                 <span>공감 {likeCount.toLocaleString()}</span>
+                <!-- bug/13376: 옆의 조회·공감과 똑같이 생겨서 누를 수 있는 줄 몰랐다는
+                     제보. hover 만으로는 터치 기기에서 아무 단서가 되지 못한다.
+                     테두리와 아래 화살표로 "눌러서 아래로 간다"를 정지 상태에서 보인다. -->
                 <button
                     type="button"
-                    class="hover:text-foreground transition-colors"
+                    class="border-border hover:bg-muted hover:text-foreground -my-0.5 inline-flex cursor-pointer items-center gap-0.5 rounded-full border px-2 py-0.5 transition-colors"
+                    aria-label="댓글 {post.comments_count}개로 이동"
                     onclick={() =>
                         document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' })}
-                    >댓글 {post.comments_count.toLocaleString()}</button
                 >
+                    댓글 {post.comments_count.toLocaleString()}
+                    <ChevronDown class="h-3 w-3" aria-hidden="true" />
+                </button>
             </div>
         </div>
 
