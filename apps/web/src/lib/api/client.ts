@@ -95,6 +95,22 @@ const NOTIFICATION_READ_CONFIG: Partial<RetryConfig> = {
 // 클라이언트에서 직접 사용할 일이 줄어듦 (exchangeToken 등 레거시 호환용으로 유지)
 
 /**
+ * 업로드 중 발생한 예외를 사람이 읽을 수 있는 문구로 바꾼다.
+ *
+ * AbortError 의 기본 문구는 "signal is aborted without reason" 이라 그대로
+ * 보여주면 아무것도 알려주지 못한다. 이 문구는 실패 알림에 그대로 실린다.
+ */
+function toUploadError(err: unknown, file: File): Error {
+    if (err instanceof Error && err.name === 'AbortError') {
+        const mb = (file.size / (1024 * 1024)).toFixed(1);
+        return new Error(
+            `업로드가 시간 안에 끝나지 않았습니다 (${mb}MB). 연결 상태를 확인해 주세요.`
+        );
+    }
+    return err instanceof Error ? err : new Error('업로드 실패');
+}
+
+/**
  * API 클라이언트
  *
  * 🔒 보안 기능:
@@ -1687,6 +1703,21 @@ class ApiClient {
     }
 
     /**
+     * 업로드 타임아웃 — 파일 크기에 비례시킨다.
+     *
+     * bug/13371: 종전에는 이미지에 30초 고정이었다. 모바일 회선에서 9~10MB 사진은
+     * 30초 안에 못 올려 AbortError 로 끊기고, 재시도 2회도 같은 이유로 끊긴 뒤
+     * 에디터가 본문에서 그 이미지를 조용히 지웠다("사진이 사라진다" 제보의 실체).
+     * 실효 100KB/s 를 바닥으로 잡아 여유를 준다 — 느린 회선을 기다려 주되,
+     * 진짜 끊긴 연결에 무한정 매달리지는 않도록 상한을 둔다.
+     */
+    private uploadTimeoutMs(file: File): number {
+        const base = file.type.startsWith('video/') ? 120_000 : 30_000;
+        const perSize = Math.ceil(file.size / (100 * 1024)) * 1000;
+        return Math.min(Math.max(base, perSize), 300_000);
+    }
+
+    /**
      * 파일 업로드 (SvelteKit /api/media/images → S3, IAM Role 인증)
      * 🔒 인증 필요
      */
@@ -1717,9 +1748,8 @@ class ApiClient {
 
         // bug/12981: 자매 uploadImage(아래)와 동일한 타임아웃+재시도 — 모바일 회선에서
         // POST 가 stall 하면 무기한 hang 해 에디터 blob 이 잔존하던 비대칭 해소.
-        // 동영상은 파일이 커서 30초로는 정상 업로드도 끊길 수 있어 여유를 둔다.
         const MAX_RETRIES = 2;
-        const UPLOAD_TIMEOUT_MS = file.type.startsWith('video/') ? 120_000 : 30_000;
+        const UPLOAD_TIMEOUT_MS = this.uploadTimeoutMs(file);
         let lastError: Error | null = null;
         let response: Response | null = null;
 
@@ -1738,7 +1768,7 @@ class ApiClient {
                 clearTimeout(timeoutId);
                 break;
             } catch (err) {
-                lastError = err instanceof Error ? err : new Error('업로드 실패');
+                lastError = toUploadError(err, file);
                 if (attempt < MAX_RETRIES) {
                     await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
                     continue;
@@ -1820,7 +1850,7 @@ class ApiClient {
         }
 
         const MAX_RETRIES = 2;
-        const UPLOAD_TIMEOUT_MS = 30_000;
+        const UPLOAD_TIMEOUT_MS = this.uploadTimeoutMs(file);
         let lastError: Error | null = null;
         let response: Response | null = null;
 
@@ -1839,7 +1869,7 @@ class ApiClient {
                 clearTimeout(timeoutId);
                 break;
             } catch (err) {
-                lastError = err instanceof Error ? err : new Error('업로드 실패');
+                lastError = toUploadError(err, file);
                 if (attempt < MAX_RETRIES) {
                     await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
                     continue;
@@ -1855,7 +1885,9 @@ class ApiClient {
             const errorBody = await response.text().catch(() => '');
             let errorMessage = '이미지 업로드에 실패했습니다.';
             if (response.status === 413) {
-                errorMessage = '파일 크기가 너무 큽니다. (최대 10MB)';
+                // 실제 한도는 서버(/api/media/images)가 형식별로 판정한다.
+                // 여기서 숫자를 적으면 서버 값과 어긋나 잘못 안내하게 된다.
+                errorMessage = '파일 크기가 너무 큽니다.';
             } else {
                 try {
                     const parsed = JSON.parse(errorBody);
