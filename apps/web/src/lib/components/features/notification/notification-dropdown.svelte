@@ -6,7 +6,7 @@
     import type { GroupedNotification } from '$lib/api/types.js';
     import { onMount, tick } from 'svelte';
     import { goto } from '$app/navigation';
-    import { isNotiMergeEnabled, isNotiAutoReadEnabled } from '$lib/utils/noti-merge-pref.js';
+    import { isNotiMergeEnabled } from '$lib/utils/noti-merge-pref.js';
     import { browser } from '$app/environment';
     import { normalizeWebUrl, toRelativeIfSameOrigin } from '$lib/utils/url-normalizer';
     import Bell from '@lucide/svelte/icons/bell';
@@ -240,17 +240,16 @@
         }
     }
 
-    // #12991: 종을 열어 목록을 봤으면 확인한 것으로 본다 — 배지를 서버까지 읽음
-    // 처리해 해소한다("모두 읽음"을 따로 누르지 않아도 숫자가 다시 뜨지 않는다).
-    // ⛔ 이번에 연 목록의 '새 알림' 강조(has_unread)는 지우지 않는다 — 무엇이 새로
-    //    왔는지는 보여야 한다. handleMarkAllAsRead(버튼)와 다른 점이 그것뿐이다.
-    // ⛔ 이번 로드가 성공했을 때만 처리한다 — 보지도 못한 알림을 읽음으로 만들면 안 된다.
-    //    (loadError 플래그로 게이트하면 안 된다: 이전 목록이 남은 채 실패한 경우
-    //     false 로 남아, 새로 온 알림을 렌더 없이 읽음 처리하게 된다)
+    // #12991 → seen/read 분리(bug/13367·13332·13206 체인의 종결):
+    // 종을 열면 "봤다(seen)"만 서버에 기록해 뱃지를 지운다 — 12991 의 원요구.
+    // 항목별 읽음(굵은 표시)은 각 알림을 클릭할 때만 지워진다. 예전처럼 read-all 을
+    // 쏘면 열기만 해도 8만 건이 비가역으로 읽음 처리되는 문제(13367)가 있었다.
+    // 자동읽음 설정 게이트는 제거 — seen 은 파괴적이지 않아 옵션일 이유가 없다.
+    // ⛔ 이번 로드가 성공했을 때만 처리한다 — 보지도 못한 알림의 뱃지를 지우면 안 된다.
     async function markSeenOnOpen(): Promise<void> {
         if (unreadCount <= 0) return;
         try {
-            await apiClient.markAllNotificationsAsRead();
+            await apiClient.markNotificationsSeen();
             unreadCount = 0;
             writeUnreadCache(0);
         } catch (err) {
@@ -261,8 +260,7 @@
     // 열림·재시도 공용: 로드가 성공한 경우에만 배지를 해소한다.
     async function loadAndMarkSeen(): Promise<void> {
         const ok = await loadNotifications();
-        // 자동 읽음을 끈 회원은 열어도 읽음 처리하지 않는다(bug/13206).
-        if (ok && isNotiAutoReadEnabled()) await markSeenOnOpen();
+        if (ok) await markSeenOnOpen();
     }
 
     function handleOpenChange(open: boolean): void {
@@ -272,17 +270,23 @@
     }
 
     onMount(() => {
-        // 페이지 로드 시 자동 prime (hover 없이도 알림 수 표시)
-        // auth 초기화(layout onMount)가 완료된 후 호출해야 하므로 200ms 대기
-        if (!unreadPrimed && document.visibilityState === 'visible') {
-            setTimeout(() => primeUnreadCount(), 200);
-        }
-
         let interval: ReturnType<typeof setInterval> | null = null;
 
         function startPolling() {
             if (interval || !unreadPrimed) return;
             interval = setInterval(loadUnreadCount, 180_000);
+        }
+
+        // 페이지 로드 시 자동 prime (hover 없이도 알림 수 표시)
+        // auth 초기화(layout onMount)가 완료된 후 호출해야 하므로 200ms 대기.
+        // ⛔ prime 직후 여기서 폴링을 시작해야 한다 — 아래의 동기 startPolling() 게이트는
+        //    이 시점(unreadPrimed=false)에 항상 헛발이라, 탭을 계속 보고 있는 사용자는
+        //    폴링이 영영 시작되지 않았다(12954→13033→13089 "숫자가 안 바뀜" 체인의 원인).
+        if (!unreadPrimed && document.visibilityState === 'visible') {
+            setTimeout(() => {
+                primeUnreadCount();
+                startPolling();
+            }, 200);
         }
 
         function stopPolling() {

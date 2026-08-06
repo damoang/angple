@@ -181,13 +181,19 @@
                 notification.target_key
             );
             if (notificationData) {
-                notificationData.items = notificationData.items.filter(
-                    (n) =>
-                        !(
-                            n.bo_table === notification.bo_table &&
-                            n.wr_id === notification.wr_id &&
-                            n.from_case === notification.from_case
-                        )
+                // merge 모드에선 서버가 target_key 로 지우므로 로컬 필터도 같은 키를 쓴다 —
+                // from_case 는 전부 'merged' 라 그 기준으로 거르면 오제거/미제거가 난다.
+                notificationData.items = notificationData.items.filter((n) =>
+                    notification.target_key
+                        ? !(
+                              n.bo_table === notification.bo_table &&
+                              n.target_key === notification.target_key
+                          )
+                        : !(
+                              n.bo_table === notification.bo_table &&
+                              n.wr_id === notification.wr_id &&
+                              n.from_case === notification.from_case
+                          )
                 );
                 notificationData.total--;
             }
@@ -199,6 +205,8 @@
 
     onMount(() => {
         loadNotifications();
+        // 알림함 페이지 진입도 '봤다(seen)' — 뱃지만 소거, 항목 읽음은 클릭 시 (bug/13367)
+        apiClient.markNotificationsSeen().catch(() => undefined);
     });
 
     $effect(() => {
