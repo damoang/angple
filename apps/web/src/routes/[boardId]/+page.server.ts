@@ -255,7 +255,12 @@ export const load: PageServerLoad = async ({
             postsData: {
                 posts: [],
                 notices: [],
-                pagination: { page, limit, total: 0, totalPages: 0 },
+                pagination: {
+                    page,
+                    limit,
+                    total: 0,
+                    totalPages: 0
+                } as PostsCacheData['pagination'],
                 error: '로그인 후 검색할 수 있습니다.'
             },
             promotionData: [],
