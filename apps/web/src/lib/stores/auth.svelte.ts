@@ -93,6 +93,37 @@ function initFromSSR(
 }
 
 /**
+ * 클라이언트에 액세스 토큰을 확보한다. 이미 있으면 그대로 돌려준다.
+ *
+ * ⚠️ 로그인 상태인데 토큰이 비어 있는 정상 경로가 존재한다.
+ * `SSR_STRIP_USER=true` 면 레이아웃 SSR 이 user·accessToken 을 모두 떼어내고,
+ * `PUBLIC_USER_BASIC_CLIENT_READ=true` 면 클라이언트가 user_basic 쿠키로
+ * **로그인 상태만** 복원한 뒤 `/api/auth/me` 를 건너뛴다(성능 목적).
+ * 쿠키에는 토큰이 없으므로 결과적으로 토큰만 빈 상태가 된다.
+ *
+ * 평소에는 문제가 되지 않는다 — 화면이 쓰는 API 는 전부 SvelteKit 라우트를
+ * 거쳐 httpOnly 세션 쿠키로 인증되기 때문이다. 그러나 브라우저 WebSocket 은
+ * 헤더를 붙일 수 없어 토큰을 쿼리로 넘겨야 한다. 그런 기능만 이 함수로
+ * 필요한 순간에 토큰을 받아 온다(레이아웃의 fast-path 는 건드리지 않는다).
+ */
+async function ensureAccessToken(): Promise<string | null> {
+    const existing = apiClient.getAccessToken?.() ?? null;
+    if (existing) return existing;
+    try {
+        const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
+        if (!res.ok) return null;
+        const me = await res.json();
+        if (me?.accessToken) {
+            apiClient.setAccessToken(me.accessToken);
+            return me.accessToken;
+        }
+    } catch {
+        // 네트워크 실패 — 호출부가 사용자에게 알린다
+    }
+    return null;
+}
+
+/**
  * 인증 상태 초기화
  * 앱 시작 시 호출 — 세션 기반: SSR이 인증 권위, 클라이언트 추가 인증 없음
  */
@@ -170,6 +201,7 @@ export function getError() {
 export const authActions = {
     initAuth,
     initFromSSR,
+    ensureAccessToken,
     fetchCurrentUser,
     resetAuth,
     redirectToLogin,

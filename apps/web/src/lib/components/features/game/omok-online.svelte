@@ -8,7 +8,7 @@
      * ⛔ 참가비 1,000P 가 걸리므로 큐 진입 전에 반드시 동의를 받는다.
      *    포인트가 조용히 빠져나가는 화면은 만들지 않는다.
      */
-    import { authStore } from '$lib/stores/auth.svelte.js';
+    import { authStore, authActions } from '$lib/stores/auth.svelte.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Badge } from '$lib/components/ui/badge/index.js';
     import * as Card from '$lib/components/ui/card/index.js';
@@ -45,8 +45,7 @@
         return Array.from({ length: SIZE }, () => Array(SIZE).fill(0));
     }
 
-    function wsUrl(): string {
-        const token = authStore.accessToken ?? '';
+    function wsUrl(token: string): string {
         const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
         // 브라우저 WebSocket 은 헤더를 못 붙여서 토큰을 쿼리로 전달한다(서버가 둘 다 받는다).
         return `${proto}//${location.host}/omok-ws/?token=${encodeURIComponent(token)}`;
@@ -75,24 +74,29 @@
             message = '참가비 안내를 확인하신 뒤 아래 체크박스를 눌러 주세요.';
             return;
         }
-        connect(mode);
+        void connect(mode);
     }
 
-    function connect(mode: 'random' | 'rating') {
+    async function connect(mode: 'random' | 'rating') {
         if (!authStore.isAuthenticated) {
             message = '로그인 후 이용할 수 있습니다.';
             return;
         }
-        if (!authStore.accessToken) {
-            // 토큰이 아직 클라이언트에 없으면 연결해도 401 로 끊긴다.
-            // 원인을 화면에 밝혀 "눌러도 아무 일이 없다" 를 없앤다.
-            message = '로그인 정보를 불러오는 중입니다. 잠시 후 다시 눌러 주세요.';
-            return;
-        }
         phase = 'connecting';
         message = '';
+
+        // 로그인 상태라도 클라이언트에 토큰이 없는 정상 경로가 있다(운영 기본값인
+        // SSR_STRIP_USER + user_basic 쿠키 fast-path). WebSocket 은 헤더를 못 붙여
+        // 토큰을 쿼리로 넘겨야 하므로, 여기서 필요한 순간에 받아 온다.
+        const token = await authActions.ensureAccessToken();
+        if (!token) {
+            message = '로그인 정보를 확인하지 못했습니다. 새로고침한 뒤 다시 시도해 주세요.';
+            phase = 'idle';
+            return;
+        }
+
         try {
-            socket = new WebSocket(wsUrl());
+            socket = new WebSocket(wsUrl(token));
         } catch {
             message = '대전 서버 주소에 연결할 수 없습니다.';
             phase = 'idle';
