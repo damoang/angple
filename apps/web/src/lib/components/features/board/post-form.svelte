@@ -280,6 +280,29 @@
     }
 
     // 에디터 미디어 업로드 핸들러 (이미지 + 동영상, 드래그앤드롭 / 붙여넣기 / 다이얼로그)
+    // bug/13371: 업로드가 실패하면 에디터가 본문에서 그 이미지를 지운다.
+    // 종전에는 그 사실을 콘솔에만 남겨, 작성자는 사진이 소리 없이 사라진 것으로만
+    // 겪었다(여섯 장을 잃고 나서야 알아챈 제보가 있었다). 이제는 무엇이 왜 빠졌는지
+    // 반드시 알린다. 여러 장을 한꺼번에 올리다 실패하면 알림창이 그 수만큼 뜨므로
+    // 잠깐 모아 한 번만 띄운다.
+    let uploadFailures: string[] = [];
+    let uploadFailureTimer: ReturnType<typeof setTimeout> | null = null;
+
+    function notifyUploadFailure(fileName: string, err: unknown): void {
+        const reason = err instanceof Error ? err.message : '알 수 없는 오류';
+        uploadFailures.push(`· ${fileName} — ${reason}`);
+        if (uploadFailureTimer) clearTimeout(uploadFailureTimer);
+        uploadFailureTimer = setTimeout(() => {
+            const list = uploadFailures.join('\n');
+            uploadFailures = [];
+            uploadFailureTimer = null;
+            alert(
+                `아래 파일을 올리지 못해 본문에서 빠졌습니다.\n\n${list}\n\n` +
+                    '다시 넣어 주세요. 사진이 크면 시간이 오래 걸릴 수 있습니다.'
+            );
+        }, 800);
+    }
+
     async function handleEditorImageUpload(
         file: File
     ): Promise<{ url: string; originUrl?: string } | null> {
@@ -293,6 +316,7 @@
             return { url: result.url, originUrl: result.origin_url };
         } catch (err) {
             console.error('[upload-fail] media-upload:', err);
+            notifyUploadFailure(file.name, err);
             return null;
         }
     }
@@ -311,6 +335,7 @@
             return { url: result.url, posterUrl: result.thumbnail_url };
         } catch (err) {
             console.error('[upload-fail] video-upload:', err);
+            notifyUploadFailure(file.name, err);
             return null;
         }
     }
