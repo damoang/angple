@@ -392,9 +392,20 @@
         margin-bottom: 0.5rem;
     }
 
+    /* 문단 여백 (qa/82197 — "엔터치면 너무 띄엄띄엄")
+     *
+     * 실측: 최근 글 3,208건 중 91.8% 가 **한 줄마다 한 문단**이다
+     * (Shift+Enter 로 <br> 을 쓰는 글은 7.9%). 즉 회원 대다수는 엔터를
+     * "줄바꿈"으로 쓰는데, 문단마다 0.75rem 을 물리면 사실상 모든 줄에
+     * 12px 이 더 붙는다 — 16px 기준 줄 간격이 40.8px 로 벌어졌다.
+     * 0.35rem 으로 낮추면 34.4px(-16%). 진짜 문단 구분은 빈 줄
+     * (아래 p:empty 1.8em)이 계속 담당하므로 문단감은 유지된다.
+     *
+     * ⛔ line-height 1.8 은 이번에 건드리지 않는다. 두 축을 한꺼번에
+     *    바꾸면 반응이 나빴을 때 원인을 가릴 수 없다. */
     .prose :global(p) {
-        margin-top: 0.75rem;
-        margin-bottom: 0.75rem;
+        margin-top: 0.35rem;
+        margin-bottom: 0.35rem;
         font-size: inherit;
         line-height: 1.8;
     }
