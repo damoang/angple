@@ -68,21 +68,51 @@
         }, 1000);
     }
 
+    // ⛔ 동의 전에는 버튼을 비활성으로 두지 않는다 — 눌러도 아무 일이 없으면
+    //    이용자는 "기능이 고장났다" 로 받아들인다. 누르면 이유를 말해준다.
+    function tryConnect(mode: 'random' | 'rating') {
+        if (!agreed) {
+            message = '참가비 안내를 확인하신 뒤 아래 체크박스를 눌러 주세요.';
+            return;
+        }
+        connect(mode);
+    }
+
     function connect(mode: 'random' | 'rating') {
         if (!authStore.isAuthenticated) {
             message = '로그인 후 이용할 수 있습니다.';
             return;
         }
+        if (!authStore.accessToken) {
+            // 토큰이 아직 클라이언트에 없으면 연결해도 401 로 끊긴다.
+            // 원인을 화면에 밝혀 "눌러도 아무 일이 없다" 를 없앤다.
+            message = '로그인 정보를 불러오는 중입니다. 잠시 후 다시 눌러 주세요.';
+            return;
+        }
         phase = 'connecting';
         message = '';
-        socket = new WebSocket(wsUrl());
+        try {
+            socket = new WebSocket(wsUrl());
+        } catch {
+            message = '대전 서버 주소에 연결할 수 없습니다.';
+            phase = 'idle';
+            return;
+        }
 
         socket.onopen = () => send('join_matching_queue', { mode });
         socket.onerror = () => {
             message = '대전 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.';
             phase = 'idle';
         };
-        socket.onclose = () => {
+        socket.onclose = (ev) => {
+            // 정상 종료가 아니면 이유를 남긴다 — 조용히 idle 로 돌아가면
+            // 이용자는 "버튼이 안 먹는다" 로만 느낀다.
+            if (phase === 'connecting' && !message) {
+                message =
+                    ev.code === 1006
+                        ? '대전 서버와 연결이 끊겼습니다. 로그인 상태를 확인한 뒤 다시 시도해 주세요.'
+                        : `연결이 종료되었습니다. (코드 ${ev.code})`;
+            }
             if (phase !== 'over') phase = 'idle';
         };
         socket.onmessage = (ev) => {
@@ -236,8 +266,8 @@
                     위 내용을 확인했습니다.
                 </label>
                 <div class="flex flex-wrap gap-2">
-                    <Button disabled={!agreed} onclick={() => connect('random')}>바로 대전</Button>
-                    <Button variant="outline" disabled={!agreed} onclick={() => connect('rating')}>
+                    <Button onclick={() => tryConnect('random')}>바로 대전</Button>
+                    <Button variant="outline" onclick={() => tryConnect('rating')}>
                         비슷한 실력끼리
                     </Button>
                 </div>
