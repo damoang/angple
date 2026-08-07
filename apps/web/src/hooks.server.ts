@@ -1,6 +1,11 @@
 // OpenTelemetry 초기화 (최상단 — 다른 import 전에 로드)
 import '$lib/server/telemetry.js';
-import { trackInflightStart, trackInflightEnd } from '$lib/server/telemetry.js';
+import {
+    trackInflightStart,
+    trackInflightEnd,
+    currentRenderInflight,
+    trackShed
+} from '$lib/server/telemetry.js';
 
 import { redirect, type Handle, type HandleServerError } from '@sveltejs/kit';
 import { dev } from '$app/environment';
@@ -762,15 +767,55 @@ const DEV_ONLY_PATHS = ['/api-test', '/api-docs', '/api-doc', '/install'];
 const GLOBAL_API_RATE = { maxRequests: 600, windowMs: 60_000 }; // 분당 600회 (페이지당 ~10 API 호출)
 const WRITE_API_RATE = { maxRequests: 60, windowMs: 60_000 }; // 쓰기 분당 60회
 
-// in-flight 게이지 래퍼 (8/7 heap OOM 후속, 관측만 — 동작 불변).
+// in-flight 게이지 + 셰딩 게이트 (8/7 heap OOM 재발 방지 2단계).
 // 본 핸들러는 return 지점이 많아 내부에 심지 않고 밖에서 감싼다: finally 가
 // 모든 경로(에러 포함)에서 감소를 보장해야 게이지가 새지 않는다.
+//
+// 셰딩 원칙 (설계 근거는 project_2026_08_07_web_heap_oom):
+//  - **전면 페이지 렌더(Accept: text/html)만** 자른다. __data.json(SPA 내비)은
+//    클라이언트의 503 처리를 카나리로 확인하기 전까지 게이트 밖 — 게이지에는 계속 잡힌다.
+//  - k8s 프로브는 tcpSocket 이라 애초에 여기 못 온다. readiness 와 절대 연동하지
+//    않는다 — 셰딩 중인 파드를 LB 가 빼면 남은 파드로 몰려 재시도 증폭을 재현한다.
+//  - 임계 근거: 평시 renderPeak 실측 1~2 (8/7, 전 파드). 기본 40 = 평시의 20배
+//    여유라 오발동이 사실상 불가능하고, 8/7 처럼 수백으로 쌓이는 죽음의 나선은
+//    힙이 부풀기 한참 전에 끊는다. 러시 하루치 데이터 후 재조정.
+//  - 발동은 heap_metrics 의 shed 카운터 + 5초 스로틀 로그로 반드시 드러낸다.
+const SSR_MAX_INFLIGHT = Number(process.env.SSR_MAX_INFLIGHT ?? '40');
+let lastShedLogAt = 0;
+
+const SHED_BODY = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>잠시만요</title></head>
+<body style="font-family:sans-serif;text-align:center;padding-top:20vh">
+<h1>접속이 많아 잠시 붐빕니다</h1><p>1~2초 뒤 새로고침하면 바로 열립니다.</p>
+<script>setTimeout(function(){location.reload()},1500)</script></body></html>`;
+
 export const handle: Handle = async (input) => {
     const accept = input.event.request.headers.get('accept') ?? '';
-    const isRender =
-        input.event.url.pathname.endsWith('/__data.json') || accept.includes('text/html');
+    const isPage = accept.includes('text/html');
+    const isRender = isPage || input.event.url.pathname.endsWith('/__data.json');
     trackInflightStart(isRender);
     try {
+        if (isPage && SSR_MAX_INFLIGHT > 0 && currentRenderInflight() > SSR_MAX_INFLIGHT) {
+            trackShed();
+            const now = Date.now();
+            if (now - lastShedLogAt > 5_000) {
+                lastShedLogAt = now;
+                // eslint-disable-next-line no-console
+                console.log(
+                    `[shed] render=${currentRenderInflight()} limit=${SSR_MAX_INFLIGHT} path=${input.event.url.pathname}`
+                );
+            }
+            return new Response(SHED_BODY, {
+                status: 503,
+                headers: {
+                    'Content-Type': 'text/html; charset=utf-8',
+                    'Retry-After': '1',
+                    // CDN·브라우저 어느 쪽도 이 응답을 캐시하면 안 된다 —
+                    // 셰딩이 풀린 뒤에도 503 이 보이는 사고가 된다.
+                    'Cache-Control': 'no-store',
+                    'X-Damoang-Shed': '1'
+                }
+            });
+        }
         return await handleInner(input);
     } finally {
         trackInflightEnd(isRender);
