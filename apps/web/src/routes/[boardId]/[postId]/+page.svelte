@@ -1498,6 +1498,8 @@
     // 재시도가 없어 "불러오는 중"에 고착되는 사례(#12668: 간헐 발생, 새로고침하면 보임)가 있어
     // 짧은 백오프로 몇 번 재시도한다. 실제 0개이거나 채워지면 종료.
     let backfillInProgress = false;
+    // 마지막 재시도의 실패 사유. 최종 실패로 확정될 때 한 번만 보고한다.
+    let lastBackfillError: unknown = null;
     async function backfillWithRetry(cancel?: AbortSignal): Promise<void> {
         if (backfillInProgress) return;
         backfillInProgress = true;
@@ -1508,8 +1510,12 @@
                 if (cancel?.aborted) return;
                 try {
                     await refetchComments(cancel);
-                } catch {
-                    // 전송 실패 — 재시도
+                } catch (err) {
+                    // 전송 실패 — 재시도. 여기서는 보고하지 않는다.
+                    // 재시도가 3회라 중간 실패까지 보고하면 사건 1건이 로그 3건으로
+                    // 부풀어, 실제 피해 규모를 3배로 오독하게 된다(2026-08-07 실측:
+                    // TimeoutError 12,497건 / 2,067명이 실은 1인당 1~2건의 사건이었다).
+                    lastBackfillError = err;
                 }
                 if (comments.length > 0 || commentsTotal === 0) return;
                 await new Promise((resolve) => setTimeout(resolve, 800 * (attempt + 1)));
@@ -1517,6 +1523,16 @@
             if (cancel?.aborted) return;
             // 3회 모두 실패 + 여전히 빈 목록 → 에러/복구 UI 노출(무한 "불러오는 중" 고착 방지).
             if (comments.length === 0 && commentsTotal > 0) {
+                // ⭐ 여기가 유일한 실제 피해 지점이다 — 3회 모두 실패했고 댓글이 비었다.
+                // 종전에는 이 상태가 로그에 전혀 남지 않아, 복구 UI 를 실제로 본 사람이
+                // 몇 명인지 알 수 없었다(중간 재시도의 TimeoutError 만 잔뜩 쌓였다).
+                const reason =
+                    lastBackfillError instanceof Error
+                        ? `${lastBackfillError.name}: ${lastBackfillError.message}`
+                        : String(lastBackfillError ?? 'unknown');
+                console.error(
+                    `[comments] backfill-failed: ${data.post?.id} 댓글 ${commentsTotal}개인데 0개 — ${reason}`
+                );
                 commentsError = true;
             }
         } finally {
