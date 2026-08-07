@@ -28,6 +28,7 @@
     import { onMount, tick } from 'svelte';
     import { highlightAllCodeBlocks } from '$lib/utils/code-highlight';
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
+    import { enhanceWikiangLinks } from '$lib/utils/wikiang-link.js';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import { SvelteMap, SvelteSet } from 'svelte/reactivity';
     import type { Component } from 'svelte';
@@ -952,6 +953,14 @@
         if (commentListEl) {
             return attachLightbox(commentListEl);
         }
+    });
+
+    // 위키앙 배지 — 댓글 렌더 갱신마다 스캔 (data-wikiang 마킹이 중복 방지)
+    $effect(() => {
+        void processedComments.size;
+        const el = commentListEl;
+        if (!el) return;
+        tick().then(() => enhanceWikiangLinks(el));
     });
 
     // 인라인 스포일러 클릭 공개 — 위임 리스너 1개(1회 설치형, 반응형 읽기 없음)
@@ -2423,6 +2432,22 @@
         border-radius: 0.375rem;
         margin: 0.5rem 0;
         display: block;
+    }
+
+    /* 위키앙 배지 — 본문과 동일 칩 (댓글 자체 렌더라 별도) */
+    :global(.comment-body a.wikiang-link) {
+        font-size: 0.78em;
+        margin-left: 0.3rem;
+        padding: 0.05rem 0.4rem;
+        border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+        border-radius: 999px;
+        text-decoration: none;
+        white-space: nowrap;
+        opacity: 0.85;
+    }
+    :global(.comment-body a.wikiang-link--new) {
+        border-style: dashed;
+        opacity: 0.65;
     }
 
     /* 인라인 스포일러(8/7) — 본문 markdown.svelte 와 동일 규칙. 댓글은 자체 렌더라 별도. */
