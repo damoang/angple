@@ -25,6 +25,7 @@
         lat: number;
         lng: number;
         provider: string;
+        region: string | null;
     }
 
     const STORAGE_KEY = 'angmap_pinmap_expanded';
@@ -41,9 +42,31 @@
     let failed = $state(false);
     let pins = $state<AngmapPin[] | null>(null);
     let mapContainer = $state<HTMLDivElement | null>(null);
+    let selectedRegion = $state<string | null>(null);
 
     let map: LeafletMap | null = null;
     let leafletPromise: Promise<typeof import('leaflet')> | null = null;
+    let leafletMod: typeof import('leaflet') | null = null;
+    let pinLayer: import('leaflet').LayerGroup | null = null;
+
+    /** 지역 필터 칩 — 핀 수 내림차순, 상위 14개만 (긴 꼬리는 '전체'로 충분) */
+    const MAX_REGION_CHIPS = 14;
+    const regions = $derived.by(() => {
+        if (!pins) return [] as Array<{ name: string; count: number }>;
+        const counts = new Map<string, number>();
+        for (const p of pins) {
+            if (p.region) counts.set(p.region, (counts.get(p.region) ?? 0) + 1);
+        }
+        return [...counts.entries()]
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, MAX_REGION_CHIPS);
+    });
+
+    function visiblePins(): AngmapPin[] {
+        if (!pins) return [];
+        return selectedRegion ? pins.filter((p) => p.region === selectedRegion) : pins;
+    }
 
     function loadLeaflet(): Promise<typeof import('leaflet')> {
         if (!leafletPromise) {
@@ -119,12 +142,103 @@
             .replace(/'/g, '&#39;');
     }
 
+    /** 이 줌부터는 클러스터를 풀고 개별 핀을 그린다 */
+    const CLUSTER_OFF_ZOOM = 12;
+    /** 클러스터 그리드 셀 한 변(px) — 화면 픽셀 기준이라 줌마다 실거리로 재계산된다 */
+    const CLUSTER_CELL_PX = 72;
+
+    function addSinglePin(
+        L: typeof import('leaflet'),
+        layer: import('leaflet').LayerGroup,
+        pin: AngmapPin
+    ): void {
+        const label = escapeHtml(pin.name || pin.title);
+        const title = escapeHtml(pin.title);
+        L.circleMarker([pin.lat, pin.lng], {
+            radius: 7,
+            weight: 2,
+            color: '#be123c',
+            fillColor: '#f43f5e',
+            fillOpacity: 0.75
+        })
+            .bindPopup(
+                `<a href="/angmap/${pin.id}" style="font-weight:600">${label}</a>` +
+                    (pin.name && pin.name !== pin.title
+                        ? `<br><span style="font-size:12px;color:#666">${title}</span>`
+                        : '')
+            )
+            .addTo(layer);
+    }
+
+    /**
+     * 그리드 클러스터링 — 외부 플러그인 없이(leaflet.markercluster 의존 회피)
+     * 현재 줌의 화면 픽셀 그리드로 묶는다. 도심 줌아웃에서 1.5k 핀이
+     * 단색 원으로 뭉개지던 문제(M-1b)의 해법. 셀에 1개면 그냥 개별 핀.
+     */
+    function renderPins(): void {
+        if (!map || !leafletMod) return;
+        const L = leafletMod;
+        pinLayer?.remove();
+        pinLayer = L.layerGroup();
+        const data = visiblePins();
+        const zoom = map.getZoom();
+
+        if (zoom >= CLUSTER_OFF_ZOOM) {
+            for (const pin of data) addSinglePin(L, pinLayer, pin);
+        } else {
+            const cells = new Map<string, AngmapPin[]>();
+            for (const pin of data) {
+                const pt = map.project([pin.lat, pin.lng], zoom);
+                const key = `${Math.floor(pt.x / CLUSTER_CELL_PX)}:${Math.floor(pt.y / CLUSTER_CELL_PX)}`;
+                const list = cells.get(key) ?? [];
+                list.push(pin);
+                cells.set(key, list);
+            }
+            for (const group of cells.values()) {
+                if (group.length === 1) {
+                    addSinglePin(L, pinLayer, group[0]);
+                    continue;
+                }
+                const cLat = group.reduce((s, p) => s + p.lat, 0) / group.length;
+                const cLng = group.reduce((s, p) => s + p.lng, 0) / group.length;
+                const size = group.length >= 100 ? 40 : group.length >= 30 ? 34 : 28;
+                const icon = L.divIcon({
+                    className: '',
+                    iconSize: [size, size],
+                    html:
+                        `<div style="width:${size}px;height:${size}px;border-radius:9999px;` +
+                        `background:#f43f5e;border:2px solid #be123c;color:#fff;` +
+                        `display:flex;align-items:center;justify-content:center;` +
+                        `font-weight:700;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.3)">` +
+                        `${group.length}</div>`
+                });
+                L.marker([cLat, cLng], { icon })
+                    .on('click', () => {
+                        map?.setView([cLat, cLng], Math.min(zoom + 2, CLUSTER_OFF_ZOOM));
+                    })
+                    .addTo(pinLayer);
+            }
+        }
+        pinLayer.addTo(map);
+    }
+
+    function selectRegion(name: string | null): void {
+        selectedRegion = name;
+        if (!map || !leafletMod) return;
+        renderPins();
+        const data = visiblePins();
+        if (data.length > 0) {
+            map.fitBounds(initialBounds(leafletMod, data).pad(0.15), { maxZoom: 15 });
+        }
+    }
+
     function initMap(leaflet: typeof import('leaflet'), pinData: AngmapPin[]): void {
         if (map || !mapContainer) return;
         const L = leaflet;
+        leafletMod = leaflet;
         const tile = ANGMAP_TILE_PROVIDERS[ANGMAP_TILE_PROVIDER];
 
-        // preferCanvas: 1.5k+ circleMarker 를 캔버스로 렌더 (DOM 마커 회피)
+        // preferCanvas: 개별 핀 circleMarker 를 캔버스로 렌더 (DOM 마커 회피)
         map = L.map(mapContainer, { preferCanvas: true, scrollWheelZoom: false });
         L.tileLayer(tile.urlTemplate, {
             attribution: tile.attribution,
@@ -136,26 +250,9 @@
             return;
         }
 
-        for (const pin of pinData) {
-            const label = escapeHtml(pin.name || pin.title);
-            const title = escapeHtml(pin.title);
-            L.circleMarker([pin.lat, pin.lng], {
-                radius: 7,
-                weight: 2,
-                color: '#be123c',
-                fillColor: '#f43f5e',
-                fillOpacity: 0.75
-            })
-                .bindPopup(
-                    `<a href="/angmap/${pin.id}" style="font-weight:600">${label}</a>` +
-                        (pin.name && pin.name !== pin.title
-                            ? `<br><span style="font-size:12px;color:#666">${title}</span>`
-                            : '')
-                )
-                .addTo(map);
-        }
-
+        map.on('zoomend', renderPins);
         map.fitBounds(initialBounds(L, pinData).pad(0.15), { maxZoom: 15 });
+        renderPins();
     }
 
     async function expand(): Promise<void> {
@@ -182,6 +279,7 @@
         persist('0');
         map?.remove();
         map = null;
+        pinLayer = null;
     }
 
     function toggle(): void {
@@ -266,6 +364,34 @@
                     </button>
                 </div>
             {:else}
+                {#if regions.length > 1}
+                    <!-- 지역 필터 칩 (ca_name) — 선택 시 해당 지역만 그리고 뷰를 맞춘다 -->
+                    <div class="mb-2 flex flex-wrap gap-1.5">
+                        <button
+                            type="button"
+                            onclick={() => selectRegion(null)}
+                            class="rounded-full border px-2.5 py-1 text-xs transition-colors {selectedRegion ===
+                            null
+                                ? 'bg-primary text-primary-foreground border-primary font-semibold'
+                                : 'text-muted-foreground hover:bg-muted'}"
+                        >
+                            전체
+                        </button>
+                        {#each regions as r (r.name)}
+                            <button
+                                type="button"
+                                onclick={() => selectRegion(r.name)}
+                                class="rounded-full border px-2.5 py-1 text-xs transition-colors {selectedRegion ===
+                                r.name
+                                    ? 'bg-primary text-primary-foreground border-primary font-semibold'
+                                    : 'text-muted-foreground hover:bg-muted'}"
+                            >
+                                {r.name}
+                                <span class="opacity-60">{r.count}</span>
+                            </button>
+                        {/each}
+                    </div>
+                {/if}
                 <!-- z-0 스택 컨텍스트: Leaflet 내부 z-index(~700)가 사이트 헤더/드롭다운을 덮지 않게 -->
                 <div class="relative z-0">
                     <div
