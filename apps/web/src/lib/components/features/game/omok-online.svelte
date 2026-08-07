@@ -13,6 +13,8 @@
     import { Badge } from '$lib/components/ui/badge/index.js';
     import * as Card from '$lib/components/ui/card/index.js';
     import { onDestroy } from 'svelte';
+    // ② 대기 중 연습판 — props 없는 독립 컴포넌트라 그대로 끼운다
+    import OmokGame from './omok-game.svelte';
 
     const SIZE = 15;
     const CELL = 32;
@@ -44,6 +46,33 @@
         rating: number;
     }> | null>(null);
     let showRanking = $state(false);
+    // ③ 초대 대국 — 내가 만든 코드(링크 복사용) / URL 로 받은 코드(입장용)
+    let inviteFromUrl = $state<string | null>(null);
+    let inviteCopied = $state(false);
+    // ② 대기 중 AI 연습판 토글
+    let practiceWhileWaiting = $state(false);
+
+    function makeInviteCode(): string {
+        // 영숫자 10자 — 서버가 형식(4~32자 영숫자)만 검증한다
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        const buf = new Uint8Array(10);
+        crypto.getRandomValues(buf);
+        return Array.from(buf, (b) => chars[b % chars.length]).join('');
+    }
+
+    async function createInviteAndWait() {
+        const code = makeInviteCode();
+        const url = `${location.origin}/games/omok?invite=${code}`;
+        try {
+            await navigator.clipboard.writeText(url);
+            inviteCopied = true;
+            setTimeout(() => (inviteCopied = false), 4000);
+        } catch {
+            // 클립보드 실패(권한 등) — 링크를 메시지로 보여준다
+            message = `링크 복사에 실패했습니다. 직접 전달해 주세요: ${url}`;
+        }
+        void connect('favorite', code);
+    }
 
     async function fetchLobby() {
         try {
@@ -71,6 +100,9 @@
     $effect(() => {
         fetchLobby();
         const t = setInterval(fetchLobby, 10_000);
+        // ③ 초대 링크로 들어온 경우 — 클라이언트 전용이라 location 을 바로 읽는다
+        const code = new URLSearchParams(location.search).get('invite');
+        if (code && /^[a-zA-Z0-9]{4,32}$/.test(code)) inviteFromUrl = code;
         return () => clearInterval(t);
     });
 
@@ -112,6 +144,7 @@
     // ⛔ 동의 전에는 버튼을 비활성으로 두지 않는다 — 눌러도 아무 일이 없으면
     //    이용자는 "기능이 고장났다" 로 받아들인다. 누르면 이유를 말해준다.
     function tryConnect(mode: 'random' | 'rating') {
+        // 유료 모드 전용 게이트 — 초대 대국(무료)은 createInviteAndWait/joinInvite 로 간다
         if (!agreed) {
             message = '참가비 안내를 확인하신 뒤 아래 체크박스를 눌러 주세요.';
             return;
@@ -119,7 +152,10 @@
         void connect(mode);
     }
 
-    async function connect(mode: 'random' | 'rating') {
+    let pendingInvite: string | null = null;
+
+    async function connect(mode: 'random' | 'rating' | 'favorite', invite?: string) {
+        pendingInvite = invite ?? null;
         if (!authStore.isAuthenticated) {
             message = '로그인 후 이용할 수 있습니다.';
             return;
@@ -145,7 +181,8 @@
             return;
         }
 
-        socket.onopen = () => send('join_matching_queue', { mode });
+        socket.onopen = () =>
+            send('join_matching_queue', pendingInvite ? { mode, invite: pendingInvite } : { mode });
         socket.onerror = () => {
             message = '대전 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.';
             phase = 'idle';
@@ -301,6 +338,22 @@
         {/if}
 
         {#if phase === 'idle'}
+            {#if inviteFromUrl}
+                <!-- ③ 초대 링크로 진입 — 무료 대국이라 참가비 동의 없이 바로 입장한다.
+                     이탈=패배 규칙만 알린다. -->
+                <div
+                    class="space-y-2 rounded-lg border-2 border-emerald-500/50 bg-emerald-500/5 p-4"
+                >
+                    <p class="text-sm font-medium">💌 초대받은 대국이 있습니다 (참가비 없음)</p>
+                    <p class="text-muted-foreground text-xs">
+                        초대한 앙님이 기다리고 있어야 시작됩니다. 대국 중 자리를 비우거나 창을
+                        닫으면 패배로 처리됩니다.
+                    </p>
+                    <Button size="sm" onclick={() => connect('favorite', inviteFromUrl!)}>
+                        초대 대국 입장
+                    </Button>
+                </div>
+            {/if}
             <div class="space-y-3 rounded-lg border p-4">
                 {#if lobbyWaiting !== null && lobbyWaiting > 0}
                     <p class="text-sm font-medium text-emerald-600 dark:text-emerald-400">
@@ -327,6 +380,22 @@
                     <Button variant="outline" onclick={() => tryConnect('rating')}>
                         비슷한 실력끼리
                     </Button>
+                </div>
+                <div class="border-t pt-3">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <Button variant="secondary" size="sm" onclick={createInviteAndWait}>
+                            👥 친구와 두기 (무료)
+                        </Button>
+                        {#if inviteCopied}
+                            <span class="text-xs text-emerald-600 dark:text-emerald-400">
+                                초대 링크를 복사했습니다 — 친구에게 보내 주세요!
+                            </span>
+                        {:else}
+                            <span class="text-muted-foreground text-xs">
+                                초대 링크가 복사되고, 친구가 열 때까지 기다립니다.
+                            </span>
+                        {/if}
+                    </div>
                 </div>
             </div>
 
@@ -392,8 +461,27 @@
                 <p class="text-muted-foreground text-xs">
                     매칭이 되는 순간 참가비가 차감됩니다. 아직 차감되지 않았습니다.
                 </p>
-                <Button variant="ghost" size="sm" onclick={cancelQueue}>취소</Button>
+                <div class="flex flex-wrap items-center gap-2">
+                    <Button variant="ghost" size="sm" onclick={cancelQueue}>취소</Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onclick={() => (practiceWhileWaiting = !practiceWhileWaiting)}
+                    >
+                        {practiceWhileWaiting ? '연습판 접기' : '🎯 기다리는 동안 AI와 연습'}
+                    </Button>
+                </div>
             </div>
+            {#if practiceWhileWaiting}
+                <!-- ② 대기 중 연습판 — 매칭되면 phase 가 playing 으로 바뀌며 자동으로 사라진다.
+                     연습 국면은 저장하지 않는다(연습일 뿐, 이월 기대를 만들지 않는다). -->
+                <div class="rounded-lg border p-2">
+                    <p class="text-muted-foreground mb-2 px-2 text-xs">
+                        연습 대국입니다 — 상대가 매칭되면 이 판은 사라지고 실전이 시작됩니다.
+                    </p>
+                    <OmokGame />
+                </div>
+            {/if}
         {/if}
 
         {#if phase === 'playing' || phase === 'over'}
