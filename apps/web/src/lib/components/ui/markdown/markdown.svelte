@@ -293,6 +293,18 @@
     });
 
     // 클라이언트에서 플러그인 필터 적용
+    // 인라인 스포일러 클릭 공개 — 위임 리스너 하나. 반응형 값을 읽지 않는 1회 설치형.
+    $effect(() => {
+        const el = proseEl;
+        if (!el) return;
+        const onClick = (ev: MouseEvent) => {
+            const sp = (ev.target as HTMLElement | null)?.closest?.('span.dm-spoiler');
+            if (sp && el.contains(sp)) sp.classList.toggle('dm-spoiler-open');
+        };
+        el.addEventListener('click', onClick);
+        return () => el.removeEventListener('click', onClick);
+    });
+
     $effect(() => {
         // hookVersion을 읽어서 hook 등록 시 $effect 재실행
         const _hv = getHookVersion();
@@ -368,6 +380,25 @@
     .prose :global(img.dm-fit-width) {
         width: 100%;
         height: auto;
+    }
+
+    /* 인라인 스포일러(8/7) — 기본은 가림. PC 드래그(::selection) 또는 클릭으로 공개.
+       ⚠️ 댓글은 이 컴포넌트를 안 쓴다 — comment-list.svelte 에 같은 규칙 별도. */
+    .prose :global(span.dm-spoiler) {
+        background: #5a5a61;
+        color: transparent;
+        border-radius: 3px;
+        cursor: pointer;
+        text-shadow: none;
+    }
+    .prose :global(span.dm-spoiler::selection),
+    .prose :global(span.dm-spoiler *::selection) {
+        color: #fff;
+        background: #3a3a40;
+    }
+    .prose :global(span.dm-spoiler.dm-spoiler-open) {
+        color: inherit;
+        background: color-mix(in srgb, currentColor 10%, transparent);
     }
 
     /* 작성자가 고른 표시 폭 프리셋 (bug/13379). height:auto 가 있어야 재작성 단계에서

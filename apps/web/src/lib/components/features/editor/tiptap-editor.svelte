@@ -6,6 +6,7 @@
     import ItalicExtension from '@tiptap/extension-italic';
     import Link from '@tiptap/extension-link';
     import { LinkedImage } from './linked-image.js';
+    import { SpoilerInline } from './spoiler-mark.js';
     // 앙티콘 전용 인라인 노드 — 사진 첨부(LinkedImage)와 분리해야 하는 이유는 그 파일 주석 참조
     import { Emoticon } from './emoticon-node.js';
     import Placeholder from '@tiptap/extension-placeholder';
@@ -50,6 +51,11 @@
         headingStyle: 'atx',
         codeBlockStyle: 'fenced'
     });
+    // ⛔ 인라인 스포일러 보존 — Turndown 은 기본으로 span 을 벗긴다. 이 규칙이 없으면
+    //    저장(HTML→md) 순간 모자이크가 사라지고 내용이 평문으로 노출된다.
+    turndown.keep(
+        (node) => node.nodeName === 'SPAN' && (node as HTMLElement).classList.contains('dm-spoiler')
+    );
 
     // 아이콘
     import CornerDownLeft from '@lucide/svelte/icons/corner-down-left';
@@ -70,6 +76,7 @@
     import Heading3 from '@lucide/svelte/icons/heading-3';
     import LinkIcon from '@lucide/svelte/icons/link';
     import ImageIcon from '@lucide/svelte/icons/image';
+    import EyeOff from '@lucide/svelte/icons/eye-off';
     import Undo from '@lucide/svelte/icons/undo';
     import Redo from '@lucide/svelte/icons/redo';
     import Minus from '@lucide/svelte/icons/minus';
@@ -164,6 +171,7 @@
     // 툴바 상태 (reactive하게 추적)
     let isActive = $state({
         bold: false,
+        spoiler: false,
         italic: false,
         underline: false,
         strike: false,
@@ -224,6 +232,7 @@
         // microtask 로 반응 컨텍스트 밖에서 할당한다(툴바 표시는 사실상 즉시).
         const next = {
             bold: e.isActive('bold'),
+            spoiler: e.isActive('spoilerInline'),
             italic: e.isActive('italic'),
             underline: e.isActive('underline'),
             strike: e.isActive('strike'),
@@ -281,6 +290,7 @@
                 // ⛔ Emoticon 은 LinkedImage 보다 앞에 둔다. 파스 규칙이 `img[src]` 로
                 //    겹치므로, 확장 우선순위(1100)와 함께 순서로도 의도를 남긴다.
                 Emoticon,
+                SpoilerInline,
                 LinkedImage.configure({
                     // ⛔ 이 false 를 뒤집어 앙티콘을 인라인으로 만들지 말 것.
                     //    이 노드는 사진 첨부에도 쓰여, 인라인이 되면 큰 사진이 문단 안으로
@@ -785,6 +795,10 @@
     // 엔터는 새 문단(<p>)이라 본문 간격이 넓어지는데(qa/82197), 붙여 쓰고 싶을 때 쓴다.
     function insertLineBreak(): void {
         editor?.chain().focus().setHardBreak().run();
+    }
+
+    function toggleSpoiler(): void {
+        editor?.chain().focus().toggleSpoilerInline().run();
     }
 
     function toggleBold(): void {
@@ -1418,6 +1432,17 @@
                 title="굵게 (Ctrl+B)"
             >
                 <Bold class="h-4 w-4" />
+            </Button>
+            <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onclick={toggleSpoiler}
+                {disabled}
+                class="h-8 w-8 p-0 {getButtonClass(isActive.spoiler)}"
+                title="모자이크 — 선택한 부분을 가립니다 (읽는 쪽에서 클릭·드래그로 공개)"
+            >
+                <EyeOff class="h-4 w-4" />
             </Button>
             <Button
                 type="button"
@@ -2195,6 +2220,15 @@
     /* 작성자가 '본문 폭 맞춤'을 선택한 이미지만 전폭 (뷰의 .prose img.dm-fit-width 와 일치) */
     :global(.tiptap-content .tiptap img.dm-fit-width) {
         width: 100%;
+    }
+
+    /* 인라인 스포일러 — 에디터에선 가리지 않는다(작성 중 읽어야 하므로 표시만).
+       뷰의 가림 규칙은 markdown.svelte(.prose)·comment-list(.comment-body)에 별도. */
+    :global(.tiptap-content .tiptap span.dm-spoiler) {
+        background: color-mix(in srgb, currentColor 12%, transparent);
+        outline: 1px dashed color-mix(in srgb, currentColor 45%, transparent);
+        outline-offset: 1px;
+        border-radius: 3px;
     }
 
     /* 표시 폭 프리셋 (뷰의 .prose img.dm-w-* 와 일치 — bug/13379) */
