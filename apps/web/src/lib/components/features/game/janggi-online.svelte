@@ -370,8 +370,20 @@
 
     // 전통 장기판의 귀점(포·졸 자리 교차 표시)
     const POINT_MARKS: Array<[number, number]> = [
-        [1, 2], [7, 2], [0, 3], [2, 3], [4, 3], [6, 3], [8, 3],
-        [1, 7], [7, 7], [0, 6], [2, 6], [4, 6], [6, 6], [8, 6]
+        [1, 2],
+        [7, 2],
+        [0, 3],
+        [2, 3],
+        [4, 3],
+        [6, 3],
+        [8, 3],
+        [1, 7],
+        [7, 7],
+        [0, 6],
+        [2, 6],
+        [4, 6],
+        [6, 6],
+        [8, 6]
     ];
 
     const px = (x: number) => PAD + x * CELL;
@@ -611,10 +623,38 @@
                         />
                     {/each}
                     <!-- 궁성 대각선 -->
-                    <line x1={px(3)} y1={py(0)} x2={px(5)} y2={py(2)} stroke="#6b4a24" stroke-width="1.1" />
-                    <line x1={px(5)} y1={py(0)} x2={px(3)} y2={py(2)} stroke="#6b4a24" stroke-width="1.1" />
-                    <line x1={px(3)} y1={py(7)} x2={px(5)} y2={py(9)} stroke="#6b4a24" stroke-width="1.1" />
-                    <line x1={px(5)} y1={py(7)} x2={px(3)} y2={py(9)} stroke="#6b4a24" stroke-width="1.1" />
+                    <line
+                        x1={px(3)}
+                        y1={py(0)}
+                        x2={px(5)}
+                        y2={py(2)}
+                        stroke="#6b4a24"
+                        stroke-width="1.1"
+                    />
+                    <line
+                        x1={px(5)}
+                        y1={py(0)}
+                        x2={px(3)}
+                        y2={py(2)}
+                        stroke="#6b4a24"
+                        stroke-width="1.1"
+                    />
+                    <line
+                        x1={px(3)}
+                        y1={py(7)}
+                        x2={px(5)}
+                        y2={py(9)}
+                        stroke="#6b4a24"
+                        stroke-width="1.1"
+                    />
+                    <line
+                        x1={px(5)}
+                        y1={py(7)}
+                        x2={px(3)}
+                        y2={py(9)}
+                        stroke="#6b4a24"
+                        stroke-width="1.1"
+                    />
                     <!-- 귀점 -->
                     {#each POINT_MARKS as [mx, my] (mx + '-' + my)}
                         <circle cx={px(mx)} cy={py(my)} r="2.6" fill="#6b4a24" opacity="0.55" />
