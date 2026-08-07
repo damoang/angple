@@ -53,10 +53,13 @@ async function loadMyPageData(
     limit: number,
     headers: Record<string, string>,
     /** 내 글·내 댓글 검색어. 빈 문자열이면 검색 없음 (bug/12292) */
-    q: string
+    q: string,
+    /** 'deleted' = 본인 삭제분만 (bug/13341 후속 — 작성자는 자기 삭제글 목록을 볼 수 있어야 한다) */
+    filter: string
 ): Promise<MyPageData> {
     // 백엔드가 2자 미만을 무시하지만, 굳이 왕복시키지 않는다.
-    const qs = q ? `&q=${encodeURIComponent(q)}` : '';
+    const qs =
+        (q ? `&q=${encodeURIComponent(q)}` : '') + (filter === 'deleted' ? '&filter=deleted' : '');
     const result: MyPageData = {
         expSummary: null,
         posts: null,
@@ -136,6 +139,11 @@ async function loadMyPageData(
 
 export const load: PageServerLoad = async ({ url, locals }) => {
     const tab = url.searchParams.get('tab') || 'posts';
+    // 유효값은 'deleted' 하나 — 그 외는 조용히 기본 목록으로 (URL 조작 무해화)
+    const filter =
+        (tab === 'posts' || tab === 'comments') && url.searchParams.get('filter') === 'deleted'
+            ? 'deleted'
+            : '';
     const page = Number(url.searchParams.get('page')) || 1;
     const limit = 20;
     // 검색은 글·댓글 탭에서만 의미가 있다. 다른 탭에 q 가 남아 있어도 무시한다.
@@ -153,10 +161,11 @@ export const load: PageServerLoad = async ({ url, locals }) => {
     }
 
     // 스트리밍: tabData를 await 하지 않음 → 스켈레톤 먼저 렌더링
-    const tabDataPromise = loadMyPageData(tab, page, limit, headers, q);
+    const tabDataPromise = loadMyPageData(tab, page, limit, headers, q, filter);
 
     return {
         tab,
+        filter,
         page,
         q,
         /** 스트리밍: Promise로 반환 → 클라이언트에서 {#await} 사용 */
