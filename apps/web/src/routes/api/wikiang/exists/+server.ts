@@ -50,7 +50,18 @@ export const GET: RequestHandler = async ({ url, setHeaders }) => {
         try {
             const [rows] = await readPool.query<RowDataPacket[]>(
                 // ⛔ DB 명시(wka_wiki.) 필수 — 이 라우트는 damoang 풀에서 돈다.
-                `SELECT title FROM wka_wiki.wikiang_pages WHERE title IN (${need.map(() => '?').join(',')})`,
+                // 존재 판정은 실문서로 한정한다(8/7 실측): 필터가 없으면 토론 사본·
+                // 삭제 대기열·이미지 첨부 행만 있어도 「문서 보기」 배지가 켜진다
+                // (예: title 'damoang' 은 /토론/damoang 한 건뿐, '이재명 정부' 는
+                //  /위키앙_관리/삭제_예정/ 행으로도 존재). LIKE 의 _ 는 이스케이프.
+                `SELECT title FROM wka_wiki.wikiang_pages
+                 WHERE title IN (${need.map(() => '?').join(',')})
+                   AND is_published = 1 AND is_private = 0
+                   AND path NOT LIKE '/토론/%'
+                   AND path NOT LIKE '/위키앙\\_관리/%'
+                   AND path NOT LIKE '/파일/%'
+                   AND path NOT LIKE '/틀/%'
+                   AND title NOT REGEXP '\\\\.(jpe?g|png|gif|svg|webp|css|js)$'`,
                 need
             );
             const hit = new Set(rows.map((r) => String(r.title)));
