@@ -29,6 +29,7 @@
     import { highlightAllCodeBlocks } from '$lib/utils/code-highlight';
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
     import { enhanceWikiangLinks } from '$lib/utils/wikiang-link.js';
+    import { fixMentionLinks } from '$lib/utils/mention-link-fix.js';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import { SvelteMap, SvelteSet } from 'svelte/reactivity';
     import type { Component } from 'svelte';
@@ -960,7 +961,10 @@
         void processedComments.size;
         const el = commentListEl;
         if (!el) return;
-        tick().then(() => enhanceWikiangLinks(el));
+        tick().then(() => {
+            enhanceWikiangLinks(el);
+            fixMentionLinks(el);
+        });
     });
 
     // 인라인 스포일러 클릭 공개 — 위임 리스너 1개(1회 설치형, 반응형 읽기 없음)
