@@ -155,7 +155,9 @@
     .embed-container[data-platform='instagram-reel'] :global(iframe) {
         position: relative;
         display: block;
-        min-height: 400px;
-        height: auto !important;
+        /* instagram-resize.ts 가 MEASURE postMessage 로 받은 실제 높이를
+           --instagram-embed-height 에 넣는다 — 없으면 종전 400px 폴백 */
+        min-height: var(--instagram-embed-height, 400px);
+        height: var(--instagram-embed-height, auto) !important;
     }
 </style>

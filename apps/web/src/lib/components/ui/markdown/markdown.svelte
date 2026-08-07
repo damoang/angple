@@ -747,8 +747,10 @@
     .prose :global(.embed-container[data-platform='instagram-reel'] iframe) {
         position: relative;
         display: block;
-        min-height: 600px;
-        height: auto !important;
+        /* instagram-resize.ts 가 실제 높이를 --instagram-embed-height 로 준다 —
+           없으면 종전 600px 폴백. X(#13049)와 같은 방식이다. */
+        min-height: var(--instagram-embed-height, 600px);
+        height: var(--instagram-embed-height, auto) !important;
     }
 
     /* Bluesky 가변 높이 */
