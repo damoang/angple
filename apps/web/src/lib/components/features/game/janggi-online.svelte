@@ -252,11 +252,15 @@
                 currentTeam = msg.gameState?.currentTeam ?? TEAM_CHO;
                 inCheck = false;
                 selected = null;
+                lastMove = null;
                 result = null;
                 phase = 'playing';
                 startTurnCountdown(msg.turnSeconds ?? 90);
                 break;
             case 'move':
+                if (msg.from && msg.to) {
+                    lastMove = { fx: msg.from.x, fy: msg.from.y, tx: msg.to.x, ty: msg.to.y };
+                }
                 pieces = msg.pieces ?? pieces;
                 currentTeam = msg.currentTeam ?? currentTeam;
                 inCheck = msg.check === true;
@@ -351,6 +355,36 @@
         if (turnTimer) clearInterval(turnTimer);
         socket?.close();
     });
+
+    let lastMove = $state<{ fx: number; fy: number; tx: number; ty: number } | null>(null);
+
+    // 실물 장기알은 팔각형이다 — 반지름 r 팔각 꼭짓점(22.5° 오프셋, 평평한 변이 위로)
+    function oct(cx: number, cy: number, r: number): string {
+        const pts: string[] = [];
+        for (let i = 0; i < 8; i++) {
+            const a = (Math.PI / 4) * i + Math.PI / 8;
+            pts.push(`${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`);
+        }
+        return pts.join(' ');
+    }
+
+    // 전통 장기판의 귀점(포·졸 자리 교차 표시)
+    const POINT_MARKS: Array<[number, number]> = [
+        [1, 2],
+        [7, 2],
+        [0, 3],
+        [2, 3],
+        [4, 3],
+        [6, 3],
+        [8, 3],
+        [1, 7],
+        [7, 7],
+        [0, 6],
+        [2, 6],
+        [4, 6],
+        [6, 6],
+        [8, 6]
+    ];
 
     const px = (x: number) => PAD + x * CELL;
     const py = (y: number) => PAD + y * CELL;
@@ -536,11 +570,37 @@
             <div class="overflow-x-auto">
                 <svg
                     viewBox="0 0 {W} {H}"
-                    class="mx-auto block max-w-full rounded-lg"
-                    style="background:#e9c88f; max-width:{W}px"
+                    class="mx-auto block max-w-full rounded-xl shadow-md"
+                    style="max-width:{W}px"
                     role="img"
                     aria-label="장기판"
                 >
+                    <defs>
+                        <linearGradient id="wood" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0" stop-color="#e8c48c" />
+                            <stop offset="0.5" stop-color="#dcb478" />
+                            <stop offset="1" stop-color="#d0a465" />
+                        </linearGradient>
+                        <radialGradient id="pcho" cx="0.35" cy="0.3" r="1">
+                            <stop offset="0" stop-color="#fdf6e3" />
+                            <stop offset="1" stop-color="#e8d9b5" />
+                        </radialGradient>
+                        <radialGradient id="phan" cx="0.35" cy="0.3" r="1">
+                            <stop offset="0" stop-color="#fdf2ec" />
+                            <stop offset="1" stop-color="#ecd6c6" />
+                        </radialGradient>
+                    </defs>
+                    <rect width={W} height={H} rx="12" fill="url(#wood)" />
+                    <rect
+                        x={PAD - 14}
+                        y={PAD - 14}
+                        width={W - (PAD - 14) * 2}
+                        height={H - (PAD - 14) * 2}
+                        fill="none"
+                        stroke="#5c3d1e"
+                        stroke-width="2.5"
+                        rx="3"
+                    />
                     <!-- 판 선 -->
                     {#each Array(ROWS) as _, r (r)}
                         <line
@@ -548,8 +608,8 @@
                             y1={py(r)}
                             x2={px(COLS - 1)}
                             y2={py(r)}
-                            stroke="#7a5a2f"
-                            stroke-width="1"
+                            stroke="#6b4a24"
+                            stroke-width="1.1"
                         />
                     {/each}
                     {#each Array(COLS) as _, c (c)}
@@ -558,17 +618,69 @@
                             y1={py(0)}
                             x2={px(c)}
                             y2={py(ROWS - 1)}
-                            stroke="#7a5a2f"
-                            stroke-width="1"
+                            stroke="#6b4a24"
+                            stroke-width="1.1"
                         />
                     {/each}
-                    <!-- 궁성 대각선 (상·하) -->
-                    <line x1={px(3)} y1={py(0)} x2={px(5)} y2={py(2)} stroke="#7a5a2f" />
-                    <line x1={px(5)} y1={py(0)} x2={px(3)} y2={py(2)} stroke="#7a5a2f" />
-                    <line x1={px(3)} y1={py(7)} x2={px(5)} y2={py(9)} stroke="#7a5a2f" />
-                    <line x1={px(5)} y1={py(7)} x2={px(3)} y2={py(9)} stroke="#7a5a2f" />
+                    <!-- 궁성 대각선 -->
+                    <line
+                        x1={px(3)}
+                        y1={py(0)}
+                        x2={px(5)}
+                        y2={py(2)}
+                        stroke="#6b4a24"
+                        stroke-width="1.1"
+                    />
+                    <line
+                        x1={px(5)}
+                        y1={py(0)}
+                        x2={px(3)}
+                        y2={py(2)}
+                        stroke="#6b4a24"
+                        stroke-width="1.1"
+                    />
+                    <line
+                        x1={px(3)}
+                        y1={py(7)}
+                        x2={px(5)}
+                        y2={py(9)}
+                        stroke="#6b4a24"
+                        stroke-width="1.1"
+                    />
+                    <line
+                        x1={px(5)}
+                        y1={py(7)}
+                        x2={px(3)}
+                        y2={py(9)}
+                        stroke="#6b4a24"
+                        stroke-width="1.1"
+                    />
+                    <!-- 귀점 -->
+                    {#each POINT_MARKS as [mx, my] (mx + '-' + my)}
+                        <circle cx={px(mx)} cy={py(my)} r="2.6" fill="#6b4a24" opacity="0.55" />
+                    {/each}
 
-                    <!-- 클릭 판 (교차점마다 투명 원) -->
+                    <!-- 마지막 수 표시 -->
+                    {#if lastMove}
+                        <circle
+                            cx={px(lastMove.fx)}
+                            cy={py(lastMove.fy)}
+                            r="5"
+                            fill="#2563eb"
+                            opacity="0.35"
+                        />
+                        <circle
+                            cx={px(lastMove.tx)}
+                            cy={py(lastMove.ty)}
+                            r={CELL / 2 - 5}
+                            fill="none"
+                            stroke="#2563eb"
+                            stroke-width="2.5"
+                            opacity="0.55"
+                        />
+                    {/if}
+
+                    <!-- 클릭 판 -->
                     {#each Array(ROWS) as _, r (r)}
                         {#each Array(COLS) as _, c (c)}
                             <circle
@@ -589,22 +701,24 @@
                         <circle
                             cx={px(selected.x)}
                             cy={py(selected.y)}
-                            r={CELL / 2 - 4}
+                            r={CELL / 2 - 3}
                             fill="none"
                             stroke="#16a34a"
                             stroke-width="3"
                         />
                     {/if}
 
-                    <!-- 말 -->
+                    <!-- 기물 (팔각) -->
                     {#each pieces.filter((p) => p.alive) as p (p.team + '-' + p.kind + '-' + p.x + '-' + p.y)}
                         <g style="pointer-events:none">
-                            <circle
-                                cx={px(p.x)}
-                                cy={py(p.y)}
-                                r={pieceRadius(p.kind)}
-                                fill="#f7ead2"
-                                stroke={p.team === TEAM_CHO ? '#166534' : '#b91c1c'}
+                            <polygon
+                                points={oct(px(p.x), py(p.y) + 1.5, pieceRadius(p.kind))}
+                                fill="#00000022"
+                            />
+                            <polygon
+                                points={oct(px(p.x), py(p.y), pieceRadius(p.kind))}
+                                fill={p.team === TEAM_CHO ? 'url(#pcho)' : 'url(#phan)'}
+                                stroke={p.team === TEAM_CHO ? '#14532d' : '#991b1b'}
                                 stroke-width="2"
                             />
                             <text
@@ -613,8 +727,9 @@
                                 text-anchor="middle"
                                 dominant-baseline="central"
                                 font-size={fontSize(p.kind)}
-                                font-weight="700"
-                                fill={p.team === TEAM_CHO ? '#166534' : '#b91c1c'}
+                                font-weight="800"
+                                fill={p.team === TEAM_CHO ? '#14532d' : '#991b1b'}
+                                style="text-shadow:0 1px 0 #ffffff88"
                             >
                                 {KIND_TEXT[p.kind]?.[p.team === TEAM_CHO ? 0 : 1] ?? '?'}
                             </text>
