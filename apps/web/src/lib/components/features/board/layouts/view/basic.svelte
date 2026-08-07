@@ -201,17 +201,22 @@
                 {#if post.is_secret}
                     <Lock class="text-muted-foreground h-6 w-6 shrink-0" />
                 {/if}
-                {#if post.is_discipline_related}
-                    <DisciplinedContent
-                        inline
-                        isLoggedIn={authStore.isAuthenticated}
-                        bind:revealed={discReveal}
-                    >
+                <!-- bug/13388: 맨몸 텍스트는 익명 flex item 이 되어 min-width/줄바꿈을
+                     제어할 수 없고, iOS WebKit 에서 줄바꿈 폭 오계산 → 1행 넘침이
+                     조상 overflow-x:hidden 에 잘려 글자가 소실된다. 실요소로 감싼다. -->
+                <span class="min-w-0 [overflow-wrap:anywhere]">
+                    {#if post.is_discipline_related}
+                        <DisciplinedContent
+                            inline
+                            isLoggedIn={authStore.isAuthenticated}
+                            bind:revealed={discReveal}
+                        >
+                            {post.title}
+                        </DisciplinedContent>
+                    {:else}
                         {post.title}
-                    </DisciplinedContent>
-                {:else}
-                    {post.title}
-                {/if}
+                    {/if}
+                </span>
                 {#if isLockedPost}
                     <span
                         class="bg-destructive/10 text-destructive inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium"

@@ -473,17 +473,20 @@
             <CardTitle
                 class="text-foreground flex items-center gap-2 text-xl font-bold sm:text-2xl"
             >
-                {#if post.is_discipline_related}
-                    <DisciplinedContent
-                        inline
-                        isLoggedIn={authStore.isAuthenticated}
-                        bind:revealed={discReveal}
-                    >
+                <!-- bug/13388: basic.svelte 와 동일 — 익명 flex 텍스트를 실요소로 감싼다 -->
+                <span class="min-w-0 [overflow-wrap:anywhere]">
+                    {#if post.is_discipline_related}
+                        <DisciplinedContent
+                            inline
+                            isLoggedIn={authStore.isAuthenticated}
+                            bind:revealed={discReveal}
+                        >
+                            {post.title}
+                        </DisciplinedContent>
+                    {:else}
                         {post.title}
-                    </DisciplinedContent>
-                {:else}
-                    {post.title}
-                {/if}
+                    {/if}
+                </span>
             </CardTitle>
 
             <!-- 리포트 기간 배지 -->
