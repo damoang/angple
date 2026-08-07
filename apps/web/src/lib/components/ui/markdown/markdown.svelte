@@ -370,6 +370,22 @@
         height: auto;
     }
 
+    /* 작성자가 고른 표시 폭 프리셋 (bug/13379). height:auto 가 있어야 재작성 단계에서
+       주입되는 aspect-ratio 4/3 자리표시가 로드 후 실제 비율로 풀린다.
+       ⚠️ 댓글은 이 컴포넌트를 안 쓴다 — comment-list.svelte 에 같은 규칙이 따로 있다. */
+    .prose :global(img.dm-w-25) {
+        width: 25%;
+        height: auto;
+    }
+    .prose :global(img.dm-w-50) {
+        width: 50%;
+        height: auto;
+    }
+    .prose :global(img.dm-w-75) {
+        width: 75%;
+        height: auto;
+    }
+
     /* Tailwind Typography 플러그인이 없을 경우를 위한 기본 스타일 */
     .prose :global(h1) {
         font-size: 1.75em;
