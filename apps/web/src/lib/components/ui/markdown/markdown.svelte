@@ -11,6 +11,7 @@
     import { processContent as processEmbeds } from '$lib/plugins/auto-embed/embedder.js';
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
     import { enhanceWikiangLinks } from '$lib/utils/wikiang-link.js';
+    import { fixMentionLinks } from '$lib/utils/mention-link-fix.js';
     import {
         buildThumbnailSrcSet,
         isTransformableMediaImage,
@@ -300,7 +301,10 @@
         void renderedHtml;
         const el = proseEl;
         if (!el || !browser) return;
-        tick().then(() => enhanceWikiangLinks(el));
+        tick().then(() => {
+            enhanceWikiangLinks(el);
+            fixMentionLinks(el);
+        });
     });
 
     // 인라인 스포일러 클릭 공개 — 위임 리스너 하나. 반응형 값을 읽지 않는 1회 설치형.
