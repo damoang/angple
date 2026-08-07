@@ -49,12 +49,21 @@
         }
     });
 
-    function buildMyUrl(opts: { tab?: string; page?: number; q?: string }): string {
+    function buildMyUrl(opts: {
+        tab?: string;
+        page?: number;
+        q?: string;
+        filter?: string;
+    }): string {
         const tab = opts.tab ?? data.tab;
         const q = opts.q ?? data.q ?? '';
+        // 삭제 필터(bug/13341 후속): 페이지 이동에선 유지, 탭 전환에선 해제.
+        // 명시적 선택을 넘어 따라다니면 "글이 다 사라졌다" 오인을 만든다.
+        const filter = opts.filter ?? (opts.tab === undefined ? (data.filter ?? '') : '');
         const params = new URLSearchParams({ tab });
         // 검색어는 글·댓글 탭에서만 의미가 있다.
         if (q && (tab === 'posts' || tab === 'comments')) params.set('q', q);
+        if (filter === 'deleted') params.set('filter', 'deleted');
         if (opts.page && opts.page > 1) params.set('page', String(opts.page));
         return `/my?${params}`;
     }
@@ -311,6 +320,26 @@
                                     ({result.posts.total}개)
                                 </span>
                             {/if}
+                            <!-- bug/13341 후속: 삭제한 글도 본인은 볼 수 있어야 한다 -->
+                            <span class="ml-auto flex gap-1 text-sm font-normal">
+                                <Button
+                                    variant={data.filter === 'deleted' ? 'ghost' : 'secondary'}
+                                    size="sm"
+                                    class="h-7 px-2 text-xs"
+                                    onclick={() => goto(buildMyUrl({ tab: data.tab, filter: '' }))}
+                                >
+                                    남은 글
+                                </Button>
+                                <Button
+                                    variant={data.filter === 'deleted' ? 'secondary' : 'ghost'}
+                                    size="sm"
+                                    class="h-7 px-2 text-xs"
+                                    onclick={() =>
+                                        goto(buildMyUrl({ tab: data.tab, filter: 'deleted' }))}
+                                >
+                                    삭제한 글
+                                </Button>
+                            </span>
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -318,9 +347,15 @@
                             <ul class="divide-border divide-y">
                                 {#each result.posts.items as post (post.id)}
                                     <li class="py-3 first:pt-0 last:pb-0">
-                                        <a
-                                            href="/{post.board_id || 'free'}/{post.id}"
-                                            class="hover:bg-accent -m-2 block w-full rounded-md p-2 no-underline transition-colors"
+                                        <!-- 삭제한 글은 본문이 없어 열리지 않는다 — 링크 대신 기록만 -->
+                                        <svelte:element
+                                            this={post.deleted_at ? 'div' : 'a'}
+                                            href={post.deleted_at
+                                                ? undefined
+                                                : `/${post.board_id || 'free'}/${post.id}`}
+                                            class="{post.deleted_at
+                                                ? 'opacity-70'
+                                                : 'hover:bg-accent'} -m-2 block w-full rounded-md p-2 no-underline transition-colors"
                                         >
                                             <h3
                                                 class="text-foreground mb-1 line-clamp-1 font-medium"
@@ -337,8 +372,14 @@
                                                 <span>공감 {post.likes}</span>
                                                 <span>·</span>
                                                 <span>댓글 {post.comments_count}</span>
+                                                {#if post.deleted_at}
+                                                    <span>·</span>
+                                                    <span class="text-destructive/70"
+                                                        >삭제 {formatDate(post.deleted_at)}</span
+                                                    >
+                                                {/if}
                                             </div>
-                                        </a>
+                                        </svelte:element>
                                     </li>
                                 {/each}
                             </ul>
@@ -346,6 +387,8 @@
                             <p class="text-muted-foreground py-8 text-center">
                                 {#if data.q}
                                     '{data.q}'에 해당하는 글이 없습니다.
+                                {:else if data.filter === 'deleted'}
+                                    삭제한 글이 없습니다.
                                 {:else}
                                     작성한 글이 없습니다.
                                 {/if}
@@ -393,6 +436,25 @@
                                     ({result.comments.total}개)
                                 </span>
                             {/if}
+                            <span class="ml-auto flex gap-1 text-sm font-normal">
+                                <Button
+                                    variant={data.filter === 'deleted' ? 'ghost' : 'secondary'}
+                                    size="sm"
+                                    class="h-7 px-2 text-xs"
+                                    onclick={() => goto(buildMyUrl({ tab: data.tab, filter: '' }))}
+                                >
+                                    남은 댓글
+                                </Button>
+                                <Button
+                                    variant={data.filter === 'deleted' ? 'secondary' : 'ghost'}
+                                    size="sm"
+                                    class="h-7 px-2 text-xs"
+                                    onclick={() =>
+                                        goto(buildMyUrl({ tab: data.tab, filter: 'deleted' }))}
+                                >
+                                    삭제한 댓글
+                                </Button>
+                            </span>
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
