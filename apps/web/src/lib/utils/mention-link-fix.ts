@@ -10,9 +10,7 @@
  * 위키앙 배지와 같은 렌더 후 보정 패턴 · 두 표면(본문/댓글) 각각에서 호출된다.
  */
 export function fixMentionLinks(container: HTMLElement): void {
-    const spans = container.querySelectorAll<HTMLElement>(
-        'span.mention[data-id]:not([data-mfix])'
-    );
+    const spans = container.querySelectorAll<HTMLElement>('span.mention[data-id]:not([data-mfix])');
     spans.forEach((sp) => {
         sp.dataset.mfix = '1';
         const id = sp.dataset.id;
