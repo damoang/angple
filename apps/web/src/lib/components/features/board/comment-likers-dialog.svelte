@@ -97,7 +97,7 @@
                                 {#if likerIcon}
                                     <img
                                         src={likerIcon}
-                                        alt={liker.mb_nick || liker.mb_name}
+                                        alt={liker.mb_nick || liker.mb_id}
                                         class="size-8 rounded-full object-cover"
                                         onerror={(e) => {
                                             const img = e.currentTarget as HTMLImageElement;
@@ -109,13 +109,13 @@
                                     <div
                                         class="bg-primary text-primary-foreground hidden size-8 items-center justify-center rounded-full text-sm"
                                     >
-                                        {(liker.mb_nick || liker.mb_name).charAt(0).toUpperCase()}
+                                        {(liker.mb_nick || liker.mb_id).charAt(0).toUpperCase()}
                                     </div>
                                 {:else}
                                     <div
                                         class="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-full text-sm"
                                     >
-                                        {(liker.mb_nick || liker.mb_name).charAt(0).toUpperCase()}
+                                        {(liker.mb_nick || liker.mb_id).charAt(0).toUpperCase()}
                                     </div>
                                 {/if}
 
@@ -125,7 +125,7 @@
                                             href="/member/{liker.mb_id}"
                                             class="text-foreground hover:text-primary truncate text-sm font-medium"
                                         >
-                                            {liker.mb_nick || liker.mb_name}
+                                            {liker.mb_nick || liker.mb_id}
                                         </a>
                                         {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
                                             <MemoBadge
