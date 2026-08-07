@@ -10,6 +10,7 @@
     import { normalizeHtmlMediaUrls } from '$lib/utils/media-url';
     import { processContent as processEmbeds } from '$lib/plugins/auto-embed/embedder.js';
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
+    import { enhanceWikiangLinks } from '$lib/utils/wikiang-link.js';
     import {
         buildThumbnailSrcSet,
         isTransformableMediaImage,
@@ -293,6 +294,15 @@
     });
 
     // 클라이언트에서 플러그인 필터 적용
+    // 위키앙 배지 — 렌더 결과가 바뀔 때마다 나무위키 링크를 스캔한다.
+    // renderedHtml 만 읽고 상태를 쓰지 않는다(재트리거 금지). 중복은 data-wikiang 마킹이 막는다.
+    $effect(() => {
+        void renderedHtml;
+        const el = proseEl;
+        if (!el || !browser) return;
+        tick().then(() => enhanceWikiangLinks(el));
+    });
+
     // 인라인 스포일러 클릭 공개 — 위임 리스너 하나. 반응형 값을 읽지 않는 1회 설치형.
     $effect(() => {
         const el = proseEl;
@@ -380,6 +390,22 @@
     .prose :global(img.dm-fit-width) {
         width: 100%;
         height: auto;
+    }
+
+    /* 위키앙 배지 (8/7 하이브리드) — 나무위키 링크 옆 작은 칩 */
+    .prose :global(a.wikiang-link) {
+        font-size: 0.78em;
+        margin-left: 0.3rem;
+        padding: 0.05rem 0.4rem;
+        border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+        border-radius: 999px;
+        text-decoration: none;
+        white-space: nowrap;
+        opacity: 0.85;
+    }
+    .prose :global(a.wikiang-link--new) {
+        border-style: dashed;
+        opacity: 0.65;
     }
 
     /* 인라인 스포일러(8/7) — 기본은 가림. PC 드래그(::selection) 또는 클릭으로 공개.
