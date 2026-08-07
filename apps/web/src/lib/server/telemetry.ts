@@ -120,6 +120,17 @@ export function trackInflightEnd(isRender: boolean): void {
     if (isRender) inflightRender = Math.max(0, inflightRender - 1);
 }
 
+/** 셰딩 게이트용 현재 렌더 in-flight (자기 자신 포함 — 게이트는 > 비교를 쓴다). */
+export function currentRenderInflight(): number {
+    return inflightRender;
+}
+
+// 셰딩 발동 수 — heap_metrics 발신 창 단위(발신 후 리셋). 조용한 차단 금지 원칙.
+let shedCount = 0;
+export function trackShed(): void {
+    shedCount++;
+}
+
 if (HEAP_WATCH_DIR && HEAP_WATCH_ENABLED) {
     const heapWatchTimer = setInterval(() => {
         const m = process.memoryUsage();
@@ -239,11 +250,13 @@ if (OTEL_ENABLED) {
                 inflight: inflightAll,
                 inflightPeak: inflightPeakAll,
                 render: inflightRender,
-                renderPeak: inflightPeakRender
+                renderPeak: inflightPeakRender,
+                shed: shedCount
             })
         );
         inflightPeakAll = inflightAll;
         inflightPeakRender = inflightRender;
+        shedCount = 0;
         // Alert: external > heap*0.5 + heap > 200MB → Buffer/gzip/SDK 외부 메모리 의심
         if (externalRatio > 0.5 && m.heapUsed > 200_000_000) {
             // eslint-disable-next-line no-console
