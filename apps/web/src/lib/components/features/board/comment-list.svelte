@@ -2418,6 +2418,21 @@
         display: none;
     }
 
+    /* 표시 폭 프리셋 (bug/13379) — 본문(markdown.svelte .prose img.dm-w-*)과 동일 규칙.
+       댓글은 자체 렌더(@html)라 여기 별도로 둔다. 유튜브 480px 이 별도였던 것과 같은 이유. */
+    :global(.comment-body img.dm-w-25) {
+        width: 25%;
+        height: auto;
+    }
+    :global(.comment-body img.dm-w-50) {
+        width: 50%;
+        height: auto;
+    }
+    :global(.comment-body img.dm-w-75) {
+        width: 75%;
+        height: auto;
+    }
+
     /* 댓글 스포일러 블록 */
     :global(.comment-body .spoiler-block) {
         border: 1px solid var(--border);

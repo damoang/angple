@@ -23,6 +23,22 @@ export const LinkedImage = Image.extend({
                 parseHTML: (el: HTMLElement) => el.classList?.contains('dm-fit-width') ?? false,
                 renderHTML: (attrs: { fitWidth?: boolean }) =>
                     attrs.fitWidth ? { class: 'dm-fit-width' } : {}
+            },
+            // 작성자가 고른 표시 폭 프리셋(%). class="dm-w-25|50|75" 로 저장·복원 (bug/13379).
+            // px(width attr)가 아니라 % 인 이유: 큰 사진은 px 절반도 모바일에서
+            // max-width:100% 상한에 걸려 차이가 안 보인다. fitWidth 와 같은 원칙 —
+            // 렌더 시점 추측 없이 저장된 의도만 존중. UI 가 fitWidth 와 상호 배타를 보장한다.
+            sizePercent: {
+                default: null,
+                parseHTML: (el: HTMLElement) => {
+                    for (const c of el.classList ?? []) {
+                        const m = /^dm-w-(25|50|75)$/.exec(c);
+                        if (m) return parseInt(m[1], 10);
+                    }
+                    return null;
+                },
+                renderHTML: (attrs: { sizePercent?: number | null }) =>
+                    attrs.sizePercent ? { class: `dm-w-${attrs.sizePercent}` } : {}
             }
         };
     },

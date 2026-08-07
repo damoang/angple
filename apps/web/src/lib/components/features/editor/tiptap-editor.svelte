@@ -176,7 +176,8 @@
         codeBlock: false,
         link: false,
         image: false,
-        imageFitWidth: false
+        imageFitWidth: false,
+        imageSizePercent: null as number | null
     });
 
     let canUndo = $state(false);
@@ -235,7 +236,8 @@
             codeBlock: e.isActive('codeBlock'),
             link: e.isActive('link'),
             image: e.isActive('image'),
-            imageFitWidth: e.getAttributes('image').fitWidth === true
+            imageFitWidth: e.getAttributes('image').fitWidth === true,
+            imageSizePercent: (e.getAttributes('image').sizePercent ?? null) as number | null
         };
         const undo = e.can().undo();
         const redo = e.can().redo();
@@ -921,14 +923,45 @@
     function toggleImageFitWidth(): void {
         if (!editor) return;
         const current = editor.getAttributes('image').fitWidth === true;
-        editor.chain().focus().updateAttributes('image', { fitWidth: !current }).run();
+        editor
+            .chain()
+            .focus()
+            .updateAttributes('image', { fitWidth: !current, sizePercent: null })
+            .run();
+    }
+
+    // 표시 폭 프리셋(25/50/75%, bug/13379). 같은 값 재클릭 = 해제(원본 크기).
+    // fitWidth·픽셀 width 와 상호 배타 — 크기 지정 수단이 겹치면 어느 것이 이겼는지
+    // 작성자가 알 수 없게 되므로, 프리셋을 고르는 순간 나머지를 지운다.
+    function setImageSizePercent(pct: number): void {
+        if (!editor) return;
+        const current = (editor.getAttributes('image').sizePercent ?? null) as number | null;
+        if (current === pct) {
+            editor.chain().focus().updateAttributes('image', { sizePercent: null }).run();
+            return;
+        }
+        editor
+            .chain()
+            .focus()
+            .updateAttributes('image', {
+                sizePercent: pct,
+                fitWidth: false,
+                width: null,
+                height: null
+            })
+            .run();
     }
 
     function resetImageSize(): void {
         editor
             ?.chain()
             .focus()
-            .updateAttributes('image', { fitWidth: false, width: null, height: null })
+            .updateAttributes('image', {
+                fitWidth: false,
+                sizePercent: null,
+                width: null,
+                height: null
+            })
             .run();
     }
 
@@ -1428,7 +1461,23 @@
                 <ImageIcon class="h-4 w-4" />
             </Button>
             {#if isActive.image}
-                <!-- 이미지 선택 시에만: 크기 컨트롤 (저장된 의도만 존중, 렌더 추측 없음) -->
+                <!-- 이미지 선택 시에만: 크기 컨트롤 (저장된 의도만 존중, 렌더 추측 없음)
+                     프리셋(%)은 bug/13379 — "이모티콘 크기 조정처럼" 중간 크기를 달라는 요청 -->
+                {#each [25, 50, 75] as pct (pct)}
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onclick={() => setImageSizePercent(pct)}
+                        {disabled}
+                        class="h-8 whitespace-nowrap px-2 text-xs {getButtonClass(
+                            isActive.imageSizePercent === pct
+                        )}"
+                        title="이미지를 본문 폭의 {pct}% 크기로 표시합니다 (다시 누르면 원본)"
+                    >
+                        {pct}%
+                    </Button>
+                {/each}
                 <Button
                     type="button"
                     variant="ghost"
@@ -2146,6 +2195,17 @@
     /* 작성자가 '본문 폭 맞춤'을 선택한 이미지만 전폭 (뷰의 .prose img.dm-fit-width 와 일치) */
     :global(.tiptap-content .tiptap img.dm-fit-width) {
         width: 100%;
+    }
+
+    /* 표시 폭 프리셋 (뷰의 .prose img.dm-w-* 와 일치 — bug/13379) */
+    :global(.tiptap-content .tiptap img.dm-w-25) {
+        width: 25%;
+    }
+    :global(.tiptap-content .tiptap img.dm-w-50) {
+        width: 50%;
+    }
+    :global(.tiptap-content .tiptap img.dm-w-75) {
+        width: 75%;
     }
 
     /* 이미지 링크 표시 (에디터 내 링크 있는 이미지) */
