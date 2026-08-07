@@ -32,6 +32,48 @@
     let queuePosition = $state(0);
     let turnLeft = $state(0);
     let result = $state<{ youWon: boolean; reason: string } | null>(null);
+    // ── 대기 현황·랭킹 (be#629 공개 API — 인증 불요) ──────────────────────
+    // 유동성 핵심: "지금 누가 기다리고 있다"를 접속 전에 보여줘야 두 번째 사람이
+    // 버튼을 누른다. 8/7 첫 대국 전까지 전원이 각자 혼자 대기하다 이탈했다.
+    let lobbyWaiting = $state<number | null>(null);
+    let ranking = $state<Array<{
+        nickname: string;
+        wins: number;
+        losses: number;
+        draws: number;
+        rating: number;
+    }> | null>(null);
+    let showRanking = $state(false);
+
+    async function fetchLobby() {
+        try {
+            const r = await fetch('/omok-ws/lobby');
+            if (r.ok) lobbyWaiting = (await r.json()).waiting ?? null;
+        } catch {
+            // 표시용 정보 — 실패는 조용히 (다음 폴링에서 회복)
+        }
+    }
+
+    async function toggleRanking() {
+        showRanking = !showRanking;
+        if (showRanking && ranking === null) {
+            try {
+                const r = await fetch('/omok-ws/ranking');
+                ranking = r.ok ? ((await r.json()).ranking ?? []) : [];
+            } catch {
+                ranking = [];
+            }
+        }
+    }
+
+    // 폴링 10초 — 서버 쪽 5초 캐시가 있어 부담 없다.
+    // ⛔ 이 effect 는 반응형 값을 읽지 않는다(1회 설치) — 읽고+쓰기 재트리거 금지 원칙.
+    $effect(() => {
+        fetchLobby();
+        const t = setInterval(fetchLobby, 10_000);
+        return () => clearInterval(t);
+    });
+
     let myStats = $state<{ wins: number; losses: number; draws: number; rating: number } | null>(
         null
     );
@@ -260,6 +302,17 @@
 
         {#if phase === 'idle'}
             <div class="space-y-3 rounded-lg border p-4">
+                {#if lobbyWaiting !== null && lobbyWaiting > 0}
+                    <p class="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                        🟢 지금 {lobbyWaiting}명이 상대를 기다리고 있습니다 — 입장하시면 바로
+                        매칭됩니다.
+                    </p>
+                {:else if lobbyWaiting === 0}
+                    <p class="text-muted-foreground text-xs">
+                        지금 대기 중인 앙님은 없습니다. 먼저 기다리시면 다음 접속자와 바로
+                        매칭됩니다.
+                    </p>
+                {/if}
                 <p class="text-sm">
                     대국이 시작되면 <b>{entryFee.toLocaleString()}P가 차감</b>됩니다. 참가비는
                     돌려받지 못하며 승패는 전적과 점수에만 반영됩니다. 자리를 비우거나 창을 닫으면
@@ -275,6 +328,61 @@
                         비슷한 실력끼리
                     </Button>
                 </div>
+            </div>
+
+            <!-- 랭킹 (be#629 — 닉네임·전적·점수만, mb_id 비노출) -->
+            <div class="space-y-2">
+                <Button variant="ghost" size="sm" onclick={toggleRanking}>
+                    🏆 {showRanking ? '랭킹 접기' : '랭킹 보기'}
+                </Button>
+                {#if showRanking}
+                    {#if ranking === null}
+                        <p class="text-muted-foreground text-xs">불러오는 중…</p>
+                    {:else if ranking.length === 0}
+                        <p class="text-muted-foreground text-xs">
+                            아직 전적이 있는 앙님이 없습니다. 첫 주인공이 되어 보세요!
+                        </p>
+                    {:else}
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="text-muted-foreground border-b text-left text-xs">
+                                        <th class="py-1.5 pr-2">순위</th>
+                                        <th class="py-1.5 pr-2">앙님</th>
+                                        <th class="py-1.5 pr-2 text-right">전적</th>
+                                        <th class="py-1.5 text-right">점수</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {#each ranking as row, i (row.nickname + i)}
+                                        <tr class="border-b border-dashed last:border-0">
+                                            <td class="py-1.5 pr-2">
+                                                {i === 0
+                                                    ? '🥇'
+                                                    : i === 1
+                                                      ? '🥈'
+                                                      : i === 2
+                                                        ? '🥉'
+                                                        : i + 1}
+                                            </td>
+                                            <td class="max-w-[10rem] truncate py-1.5 pr-2">
+                                                {row.nickname}
+                                            </td>
+                                            <td class="whitespace-nowrap py-1.5 pr-2 text-right">
+                                                {row.wins}승 {row.losses}패{row.draws
+                                                    ? ` ${row.draws}무`
+                                                    : ''}
+                                            </td>
+                                            <td class="py-1.5 text-right font-medium"
+                                                >{row.rating}</td
+                                            >
+                                        </tr>
+                                    {/each}
+                                </tbody>
+                            </table>
+                        </div>
+                    {/if}
+                {/if}
             </div>
         {:else if phase === 'connecting'}
             <p class="text-muted-foreground text-sm">대전 서버에 연결 중…</p>
