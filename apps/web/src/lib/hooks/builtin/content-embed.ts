@@ -5,6 +5,7 @@
 import { registerHook } from '../registry';
 import { processContent } from '$lib/plugins/auto-embed';
 import { initTwitterEmbedResize } from '$lib/plugins/auto-embed/twitter-resize';
+import { initInstagramEmbedResize } from '$lib/plugins/auto-embed/instagram-resize';
 
 /**
  * 콘텐츠 임베딩 필터 초기화
@@ -20,4 +21,6 @@ export function initContentEmbed(): void {
     );
     // X(트위터) iframe 실제 높이 반영 리스너 (브라우저에서만 동작, #13049)
     initTwitterEmbedResize();
+    // Instagram 도 같은 방식 — MEASURE postMessage 수신 (8/7)
+    initInstagramEmbedResize();
 }
