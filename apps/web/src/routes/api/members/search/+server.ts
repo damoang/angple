@@ -41,8 +41,10 @@ export const GET: RequestHandler = async ({ url }) => {
         }
 
         const searchPattern = `%${query}%`;
+        // ⛔ 2026-08-08 개인정보 전수점검: mb_name(실명)은 무인증 검색 응답에
+        //    싣지 않는다. 멘션 자동완성 등 소비처는 mb_nick/mb_id 만 쓴다(실측).
         const [rows] = await pool.query<RowDataPacket[]>(
-            `SELECT mb_id, mb_nick, mb_name, IFNULL(as_level, 1) as as_level
+            `SELECT mb_id, mb_nick, IFNULL(as_level, 1) as as_level
 			 FROM g5_member
 			 WHERE (mb_nick LIKE ? OR mb_id LIKE ?)
 			   AND mb_leave_date = ''
@@ -58,7 +60,6 @@ export const GET: RequestHandler = async ({ url }) => {
         const members = rows.map((row) => ({
             mb_id: row.mb_id,
             mb_nick: row.mb_nick,
-            mb_name: row.mb_name,
             as_level: row.as_level
         }));
 

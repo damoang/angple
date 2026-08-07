@@ -40,7 +40,6 @@ function maskIp(ip: string | null | undefined): string {
 interface LikerRow extends RowDataPacket {
     mb_id: string;
     mb_nick: string;
-    mb_name: string;
     mb_image_url: string;
     mb_image_updated_at: string | null;
     bg_ip: string;
@@ -116,8 +115,10 @@ export const GET: RequestHandler = async ({ params, url, cookies, request }) => 
         const total = countRows[0]?.total ?? 0;
 
         // 추천자 목록 (최신순)
+        // ⛔ 2026-08-08 개인정보 전수점검: mb_name(실명)은 응답에 싣지 않는다.
+        //    표시는 닉네임이고, 닉네임이 비면 mb_id 로 폴백한다(실명 대신).
         const [likerRows] = await pool.query<LikerRow[]>(
-            `SELECT g.mb_id, m.mb_nick, m.mb_name, COALESCE(m.mb_image_url, '') as mb_image_url, m.mb_image_updated_at, g.bg_ip, g.bg_datetime
+            `SELECT g.mb_id, m.mb_nick, COALESCE(m.mb_image_url, '') as mb_image_url, m.mb_image_updated_at, g.bg_ip, g.bg_datetime
 			 FROM g5_board_good g
 			 JOIN g5_member m ON g.mb_id = m.mb_id
 			 WHERE g.bo_table = ? AND g.wr_id = ? AND g.bg_flag = 'good'
@@ -128,7 +129,6 @@ export const GET: RequestHandler = async ({ params, url, cookies, request }) => 
 
         const likers = likerRows.map((row) => ({
             mb_id: row.mb_id,
-            mb_name: row.mb_name,
             mb_nick: row.mb_nick,
             mb_image: row.mb_image_url || '',
             mb_image_updated_at: row.mb_image_updated_at || undefined,

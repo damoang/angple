@@ -703,7 +703,7 @@ export interface LikeResponse {
 // 추천자 목록 응답
 export interface LikerInfo {
     mb_id: string;
-    mb_name: string;
+    // mb_name(실명) 제거 — 2026-08-08 개인정보 전수점검. 표시는 nick, 폴백은 id.
     mb_nick: string; // 닉네임
     mb_image?: string; // 프로필 이미지 URL
     mb_image_updated_at?: string; // 이미지 변경 시각 (캐시 버스팅용)
