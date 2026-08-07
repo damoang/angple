@@ -93,6 +93,33 @@ const HEAP_WATCH_ENABLED =
     process.env.HEAP_WATCH_ENABLED === 'true' && (!IS_PRODUCTION || HEAP_SNAPSHOT_ALLOW_PROD);
 let lastHeapDumpAt = 0;
 
+// ── SSR in-flight 게이지 (2026-08-07 heap OOM 후속 — 셰딩 1단계, 관측만) ──
+// 60초 샘플만으로는 러시가 안 보인다: 8/7 사고에서 마지막 정상 샘플과 사망
+// 사이가 70초였다. current 와 함께 "직전 발신 이후 최고치(peak)"를 남겨
+// 스파이크를 놓치지 않는다. 하루치가 쌓이면 이 분포로 SSR_MAX_INFLIGHT
+// 임계를 정한다(2단계). 스트리밍 응답은 Response 반환 시점에 감소한다 —
+// 렌더 비용 관점에선 그걸로 충분하다.
+let inflightAll = 0;
+let inflightRender = 0;
+let inflightPeakAll = 0;
+let inflightPeakRender = 0;
+
+/** 요청 시작 — hooks.server handle 래퍼가 부른다. isRender = 문서/__data.json */
+export function trackInflightStart(isRender: boolean): void {
+    inflightAll++;
+    if (inflightAll > inflightPeakAll) inflightPeakAll = inflightAll;
+    if (isRender) {
+        inflightRender++;
+        if (inflightRender > inflightPeakRender) inflightPeakRender = inflightRender;
+    }
+}
+
+/** 요청 종료(finally 보장) — 시작과 짝이 맞아야 게이지가 안 샌다. */
+export function trackInflightEnd(isRender: boolean): void {
+    inflightAll = Math.max(0, inflightAll - 1);
+    if (isRender) inflightRender = Math.max(0, inflightRender - 1);
+}
+
 if (HEAP_WATCH_DIR && HEAP_WATCH_ENABLED) {
     const heapWatchTimer = setInterval(() => {
         const m = process.memoryUsage();
@@ -207,9 +234,16 @@ if (OTEL_ENABLED) {
                 uptime_s: Math.round(process.uptime()),
                 // Tier 4 audit (2026-04-28): cache size + external ratio diagnostic
                 ssrCacheSize: ssrCache.size,
-                externalRatio: Number(externalRatio.toFixed(3))
+                externalRatio: Number(externalRatio.toFixed(3)),
+                // 셰딩 1단계 게이지 — peak 는 발신 직후 current 로 리셋된다
+                inflight: inflightAll,
+                inflightPeak: inflightPeakAll,
+                render: inflightRender,
+                renderPeak: inflightPeakRender
             })
         );
+        inflightPeakAll = inflightAll;
+        inflightPeakRender = inflightRender;
         // Alert: external > heap*0.5 + heap > 200MB → Buffer/gzip/SDK 외부 메모리 의심
         if (externalRatio > 0.5 && m.heapUsed > 200_000_000) {
             // eslint-disable-next-line no-console

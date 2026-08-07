@@ -1,5 +1,6 @@
 // OpenTelemetry 초기화 (최상단 — 다른 import 전에 로드)
 import '$lib/server/telemetry.js';
+import { trackInflightStart, trackInflightEnd } from '$lib/server/telemetry.js';
 
 import { redirect, type Handle, type HandleServerError } from '@sveltejs/kit';
 import { dev } from '$app/environment';
@@ -761,7 +762,22 @@ const DEV_ONLY_PATHS = ['/api-test', '/api-docs', '/api-doc', '/install'];
 const GLOBAL_API_RATE = { maxRequests: 600, windowMs: 60_000 }; // 분당 600회 (페이지당 ~10 API 호출)
 const WRITE_API_RATE = { maxRequests: 60, windowMs: 60_000 }; // 쓰기 분당 60회
 
-export const handle: Handle = async ({ event, resolve }) => {
+// in-flight 게이지 래퍼 (8/7 heap OOM 후속, 관측만 — 동작 불변).
+// 본 핸들러는 return 지점이 많아 내부에 심지 않고 밖에서 감싼다: finally 가
+// 모든 경로(에러 포함)에서 감소를 보장해야 게이지가 새지 않는다.
+export const handle: Handle = async (input) => {
+    const accept = input.event.request.headers.get('accept') ?? '';
+    const isRender =
+        input.event.url.pathname.endsWith('/__data.json') || accept.includes('text/html');
+    trackInflightStart(isRender);
+    try {
+        return await handleInner(input);
+    } finally {
+        trackInflightEnd(isRender);
+    }
+};
+
+const handleInner: Handle = async ({ event, resolve }) => {
     const { pathname } = event.url;
     const isDataRequest = isSvelteKitDataRequest(event);
 
