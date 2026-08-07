@@ -954,6 +954,18 @@
         }
     });
 
+    // 인라인 스포일러 클릭 공개 — 위임 리스너 1개(1회 설치형, 반응형 읽기 없음)
+    $effect(() => {
+        const el = commentListEl;
+        if (!el) return;
+        const onClick = (ev: MouseEvent) => {
+            const sp = (ev.target as HTMLElement | null)?.closest?.('span.dm-spoiler');
+            if (sp && el.contains(sp)) sp.classList.toggle('dm-spoiler-open');
+        };
+        el.addEventListener('click', onClick);
+        return () => el.removeEventListener('click', onClick);
+    });
+
     // 댓글 본문 이미지 data-original 폴백 (최적화된 이미지 로드 실패 시 원본으로 대체)
     $effect(() => {
         void processedComments.size;
@@ -2411,6 +2423,24 @@
         border-radius: 0.375rem;
         margin: 0.5rem 0;
         display: block;
+    }
+
+    /* 인라인 스포일러(8/7) — 본문 markdown.svelte 와 동일 규칙. 댓글은 자체 렌더라 별도. */
+    :global(.comment-body span.dm-spoiler) {
+        background: #5a5a61;
+        color: transparent;
+        border-radius: 3px;
+        cursor: pointer;
+        text-shadow: none;
+    }
+    :global(.comment-body span.dm-spoiler::selection),
+    :global(.comment-body span.dm-spoiler *::selection) {
+        color: #fff;
+        background: #3a3a40;
+    }
+    :global(.comment-body span.dm-spoiler.dm-spoiler-open) {
+        color: inherit;
+        background: color-mix(in srgb, currentColor 10%, transparent);
     }
 
     /* 이미지 로딩 실패 시 숨김 처리 */
