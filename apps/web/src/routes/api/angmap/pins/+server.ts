@@ -20,6 +20,8 @@ interface AngmapPin {
     lat: number;
     lng: number;
     provider: string;
+    /** 글 카테고리(ca_name) = 지역명(경기·서울…). 지도 필터 칩용 (M-1b) */
+    region: string | null;
 }
 
 interface PinRow extends RowDataPacket {
@@ -29,6 +31,7 @@ interface PinRow extends RowDataPacket {
     lat: string | number;
     lng: string | number;
     provider: string;
+    ca_name: string | null;
 }
 
 const pinsCache = createCache<AngmapPin[]>({ ttl: 60_000, maxSize: 4 });
@@ -60,7 +63,7 @@ function isPlottable(p: AngmapPin): boolean {
 
 async function loadPins(): Promise<AngmapPin[]> {
     const [rows] = await readPool.query<PinRow[]>(
-        `SELECT p.wr_id, p.name, p.lat, p.lng, p.provider, w.wr_subject
+        `SELECT p.wr_id, p.name, p.lat, p.lng, p.provider, w.wr_subject, w.ca_name
          FROM angmap_places p
          INNER JOIN g5_write_angmap w
              ON w.wr_id = p.wr_id AND w.wr_is_comment = 0
@@ -74,7 +77,8 @@ async function loadPins(): Promise<AngmapPin[]> {
             name: r.name,
             lat: Number(r.lat),
             lng: Number(r.lng),
-            provider: r.provider
+            provider: r.provider,
+            region: r.ca_name || null
         }))
         .filter(isPlottable);
 }

@@ -12,7 +12,7 @@
 <script lang="ts">
     import { browser } from '$app/environment';
     import { env as publicEnv } from '$env/dynamic/public';
-    import { afterNavigate, goto } from '$app/navigation';
+    import { afterNavigate, goto, invalidateAll } from '$app/navigation';
     import { sanitizeFromBoard } from '$lib/utils/notice-link';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
@@ -648,6 +648,32 @@
 
     // 게시글 삭제 상태
     let isDeleting = $state(false);
+
+    // 앙지도 핀 등록 재시도 (M-1b) — 작성 직후 등록이 fire-and-forget 이라
+    // 실패하면 핀이 영구 소실되던 구멍의 수동 복구. 서버가 작성자·링크 재검증.
+    let angmapRetrying = $state(false);
+    async function retryAngmapPin(): Promise<void> {
+        if (angmapRetrying) return;
+        angmapRetrying = true;
+        try {
+            const res = await fetch('/api/angmap/place', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ boardId: 'angmap', wrId: data.post.id })
+            });
+            const body = await res.json().catch(() => ({}));
+            if (res.ok && body?.saved) {
+                // 서버 주입 데이터(angmapPlace)를 다시 받아 미니맵을 띄운다
+                await invalidateAll();
+            } else {
+                alert('장소 좌표를 가져오지 못했습니다. 지도 링크를 확인해 주세요.');
+            }
+        } catch {
+            alert('핀 등록에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+        } finally {
+            angmapRetrying = false;
+        }
+    }
 
     // 삭제 예약 상태
     let scheduledDelete = $state<{
@@ -2367,6 +2393,23 @@
                 name={data.angmapPlace.name}
                 mapUrl={data.post.link1 || data.post.link2 || null}
             />
+        {:else if boardType === 'angmap' && isAuthor && (data.post.link1 || data.post.link2)}
+            <!-- 핀 미등록 + 작성자 + 지도 링크 존재 → 재시도 경로 (M-1b).
+                 등록이 작성 직후 fire-and-forget 이라 탭을 바로 닫으면 핀이 영구 소실되던
+                 구멍의 복구 수단. 서버가 작성자·링크를 재검증하므로 버튼은 단순 트리거다. -->
+            <div
+                class="border-border text-muted-foreground mb-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed px-4 py-3 text-sm"
+            >
+                <span>이 글의 장소가 아직 지도에 핀으로 등록되지 않았습니다.</span>
+                <button
+                    type="button"
+                    disabled={angmapRetrying}
+                    onclick={retryAngmapPin}
+                    class="text-primary font-medium hover:underline disabled:opacity-50"
+                >
+                    {angmapRetrying ? '등록 중...' : '핀 등록 재시도'}
+                </button>
+            </div>
         {/if}
 
         <!-- 앙티티 커넥트 카드 (Phase 1): 태그 「앙티티」+작품명 규약 — 서버 매칭, SSR 렌더 -->
