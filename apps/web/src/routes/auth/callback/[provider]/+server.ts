@@ -101,12 +101,12 @@ async function generateInviteTempNickname(provider: string): Promise<string> {
 }
 
 /**
- * 에러 리다이렉트. 네이티브 앱 모드(appMode)면 앱 스킴(damoang://oauth-callback?error=)으로 복귀시켜
- * 인앱 브라우저가 웹 /login 에 갇히는 것을 방지한다. 아니면 기존대로 웹 로그인으로.
+ * 에러 리다이렉트. 네이티브 앱 모드(appMode)면 /auth/app-return 인터스티셜을 거쳐 앱 스킴으로
+ * 복귀시킨다(Android 는 서버 302→커스텀 스킴이 차단되므로 직행 금지, #app-login-404).
  */
 function redirectError(errorCode: string, appMode: boolean): never {
     if (appMode) {
-        redirect(302, `damoang://oauth-callback?error=${encodeURIComponent(errorCode)}`);
+        redirect(302, `/auth/app-return?error=${encodeURIComponent(errorCode)}`);
     }
     redirect(302, `/login?error=${encodeURIComponent(errorCode)}`);
 }
@@ -239,7 +239,7 @@ async function handleCallback(
                 const existingByEmail = await findMemberByEmail(profile.email);
                 if (existingByEmail) {
                     if (stateData.appMode) {
-                        redirect(302, 'damoang://oauth-callback?error=email_exists');
+                        redirect(302, '/auth/app-return?error=email_exists');
                     }
                     redirect(302, '/login?error=email_exists');
                 }
@@ -257,7 +257,7 @@ async function handleCallback(
             ) {
                 redirect(
                     302,
-                    `damoang://oauth-callback?error=no_account&provider=${encodeURIComponent(providerName)}`
+                    `/auth/app-return?error=no_account&provider=${encodeURIComponent(providerName)}`
                 );
             }
 
@@ -370,7 +370,7 @@ async function handleCallback(
                 }
                 if (stateData.appMode) {
                     // 앱 모드: 비활성/이용제한 계정은 앱으로 에러 복귀 (임시계정 우회 생성 금지)
-                    redirect(302, 'damoang://oauth-callback?error=account_inactive');
+                    redirect(302, '/auth/app-return?error=account_inactive');
                 }
                 redirect(302, '/login?error=account_inactive');
             }
@@ -477,7 +477,7 @@ async function handleCallback(
                 mb_level: Number(member.mb_level ?? 1),
                 mb_email: member.mb_email || ''
             });
-            redirect(302, `damoang://oauth-callback?code=${encodeURIComponent(appLoginCode)}`);
+            redirect(302, `/auth/app-return?code=${encodeURIComponent(appLoginCode)}`);
         }
 
         // 원래 페이지로 리다이렉트
