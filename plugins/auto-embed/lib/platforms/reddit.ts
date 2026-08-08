@@ -1,25 +1,49 @@
 import type { EmbedInfo, EmbedPlatform } from '../types';
 
 /**
- * Reddit 임베딩 플랫폼
+ * Reddit 임베딩 플랫폼 (iframe 방식)
+ *
+ * bug/13417: 이 댓글 사본이 legacy blockquote 위젯을 출력했는데, 변환 스크립트가
+ * 로드되지 않아 500px 짜리 빈 박스만 남아 공백이 됐다. 본문 사본(#12044 iframe 방식)과
+ * 동기화한다.
  */
 export const reddit: EmbedPlatform = {
     name: 'reddit',
-    patterns: [/(?:www\.)?reddit\.com\/(r|user)\/[\w:.]{2,21}\/comments\/\w{5,9}/],
+    patterns: [
+        /(?:www\.)?reddit\.com\/(r|user)\/[\w:.]{2,21}\/comments\/\w{5,9}/,
+        /(?:www\.)?reddit\.com\/(r|user)\/[\w:.]{2,21}\/s\/[\w-]+/
+    ],
 
     extract(url: string): EmbedInfo | null {
-        const match = url.match(
-            /(?:www\.)?reddit\.com\/(r|user)\/([\w:.]{2,21})\/comments\/(\w{5,9})(?:\/([\w%\\-]+))?/
+        const commentsMatch = url.match(
+            /(?:www\.)?reddit\.com\/(r|user)\/([\w:.]{2,21})\/comments\/(\w{5,9})(?:\/([\w%\-]+))?/
         );
-        if (match) {
+        if (commentsMatch) {
             return {
                 platform: 'reddit',
-                id: match[3],
+                id: commentsMatch[3],
                 url,
                 params: {
-                    type: match[1],
-                    subreddit: match[2],
-                    slug: match[4] || ''
+                    type: commentsMatch[1],
+                    subreddit: commentsMatch[2],
+                    slug: commentsMatch[4] || ''
+                }
+            };
+        }
+        // 앱 단축 링크 (/r/.../s/...) — redirect URL이라 임베드 불가, 링크로만 표시
+        const shortMatch = url.match(
+            /(?:www\.)?reddit\.com\/(r|user)\/([\w:.]{2,21})\/s\/([\w-]+)/
+        );
+        if (shortMatch) {
+            return {
+                platform: 'reddit',
+                id: shortMatch[3],
+                url,
+                params: {
+                    type: shortMatch[1],
+                    subreddit: shortMatch[2],
+                    slug: '',
+                    isShortLink: 'true'
                 }
             };
         }
@@ -27,8 +51,24 @@ export const reddit: EmbedPlatform = {
     },
 
     render(info: EmbedInfo): string {
-        const postUrl = `https://www.reddit.com/${info.params?.type}/${info.params?.subreddit}/comments/${info.id}${info.params?.slug ? '/' + info.params.slug : ''}`;
+        // 앱 단축링크는 redirect URL이라 iframe 임베드 불가 → 링크 카드로 표시
+        if (info.params?.isShortLink) {
+            return `<a href="${info.url}" target="_blank" rel="noopener noreferrer" class="text-primary underline">${info.url}</a>`;
+        }
 
-        return `<blockquote class="reddit-embed-bq" style="height:500px" data-embed-height="740"><a href="${postUrl}">Reddit 게시글</a></blockquote>`;
+        const slug = info.params?.slug ? `/${info.params.slug}` : '';
+        // #12044: redditmedia.com 은 embed.reddit.com 으로 301 redirect 되며, 이 redirect 가
+        // sandbox/CSP 환경에서 정상 처리되지 않아 임베드가 비어있는 채로 남는다.
+        // 처음부터 최종 도메인(embed.reddit.com)을 사용한다.
+        const embedUrl = `https://embed.reddit.com/${info.params?.type}/${info.params?.subreddit}/comments/${info.id}${slug}/?ref_source=embed&embed=true&theme=dark`;
+
+        return `<iframe
+			src="${embedUrl}"
+			title="Reddit post"
+			frameborder="0"
+			scrolling="yes"
+			sandbox="allow-scripts allow-same-origin allow-popups"
+			style="width: 100%; min-height: 400px; max-height: 600px; border-radius: 8px;"
+		></iframe>`;
     }
 };
