@@ -246,8 +246,12 @@
     // 쏘면 열기만 해도 8만 건이 비가역으로 읽음 처리되는 문제(13367)가 있었다.
     // 자동읽음 설정 게이트는 제거 — seen 은 파괴적이지 않아 옵션일 이유가 없다.
     // ⛔ 이번 로드가 성공했을 때만 처리한다 — 보지도 못한 알림의 뱃지를 지우면 안 된다.
+    //    (그 게이트는 호출부 loadAndMarkSeen 의 ok 검사가 담당한다.)
+    // ⛔ bug/13419: 여기서 read 기준 unreadCount(안읽음 수)로 게이트하면 안 된다. 벨 배지는
+    //    seen 기준(ph_id > lastSeen)이라, 회원이 알림함을 안 열고 스레드에서 직접 읽으면
+    //    안읽음은 0인데 seen 포인터는 안 올라가 벨이 영구히 켜진다("다 확인했는데 종이 울림").
+    //    로드가 성공(=실제로 알림함을 봄)했으면 무조건 seen 을 갱신한다. seen 은 비파괴적이다.
     async function markSeenOnOpen(): Promise<void> {
-        if (unreadCount <= 0) return;
         try {
             await apiClient.markNotificationsSeen();
             unreadCount = 0;

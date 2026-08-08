@@ -36,8 +36,12 @@ export const youtube: EmbedPlatform = {
                     platform: isShorts ? 'youtube-shorts' : 'youtube',
                     id: videoId,
                     url,
-                    aspectRatio: isShorts ? 177.78 : 56.25,
-                    maxWidth: isShorts ? 400 : undefined,
+                    // youtube /embed/ 는 shorts 도 16:9 player 로 렌더하므로 항상 16:9.
+                    // 9:16(177.78%) 컨테이너로 두면 위아래 거대한 빈 공간이 생긴다(bug/13417,
+                    // 본문 사본은 #1496 에서 이미 고쳐졌는데 이 댓글 사본만 stale 이었다).
+                    // 폭은 maxWidth(CSS) 로 제한한다 — 본문 사본과 동일.
+                    aspectRatio: 56.25,
+                    maxWidth: isShorts ? 400 : 560,
                     params: Object.keys(params).length > 0 ? params : undefined
                 };
             }
