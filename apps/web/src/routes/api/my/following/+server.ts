@@ -11,7 +11,6 @@ import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/int
 
 interface FollowMemberRow extends RowDataPacket {
     mb_id: string;
-    mb_name: string;
     mb_nick: string;
 }
 
@@ -27,7 +26,7 @@ export const GET: RequestHandler = async ({ cookies, request }) => {
 
     try {
         const [rows] = await readPool.query<FollowMemberRow[]>(
-            `SELECT f.target_id AS mb_id, m.mb_name, m.mb_nick
+            `SELECT f.target_id AS mb_id, m.mb_nick
 			 FROM g5_member_follow f
 			 JOIN g5_member m
 			   ON f.target_id COLLATE utf8mb4_unicode_ci = m.mb_id COLLATE utf8mb4_unicode_ci
@@ -40,7 +39,6 @@ export const GET: RequestHandler = async ({ cookies, request }) => {
             success: true,
             data: rows.map((r) => ({
                 mb_id: r.mb_id,
-                mb_name: r.mb_name,
                 mb_nick: r.mb_nick
             }))
         });
