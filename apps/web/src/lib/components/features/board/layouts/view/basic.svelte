@@ -21,7 +21,6 @@
     import ExternalLink from '@lucide/svelte/icons/external-link';
     import Download from '@lucide/svelte/icons/download';
     import Paperclip from '@lucide/svelte/icons/paperclip';
-    import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import Video from '@lucide/svelte/icons/video';
     import { deriveVideoPoster } from '$lib/utils/video-poster.js';
     import Heart from '@lucide/svelte/icons/heart';
