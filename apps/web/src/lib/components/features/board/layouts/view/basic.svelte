@@ -21,6 +21,7 @@
     import ExternalLink from '@lucide/svelte/icons/external-link';
     import Download from '@lucide/svelte/icons/download';
     import Paperclip from '@lucide/svelte/icons/paperclip';
+    import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import Video from '@lucide/svelte/icons/video';
     import { deriveVideoPoster } from '$lib/utils/video-poster.js';
     import Heart from '@lucide/svelte/icons/heart';
@@ -119,6 +120,16 @@
     let discReveal = $state(false);
 
     const isLockedPost = $derived(postReportCount === 'lock' || post.extra_7 === 'lock');
+
+    // 첨부파일 목록 접기(#13423): 6개 이상이면 앞 5개만 보이고 나머지는 펼침.
+    // 파일명 식별이 중요한 목록이라 축약 대신 접기를 쓴다.
+    const DOWNLOADS_COLLAPSE_LIMIT = 5;
+    let downloadsExpanded = $state(false);
+    const visibleDownloads = $derived(
+        !post.downloads || downloadsExpanded || post.downloads.length <= DOWNLOADS_COLLAPSE_LIMIT
+            ? (post.downloads ?? [])
+            : post.downloads.slice(0, DOWNLOADS_COLLAPSE_LIMIT)
+    );
 
     // 첨부 이미지 라이트박스
     let attachedImagesEl: HTMLDivElement;
@@ -539,9 +550,9 @@
                                 class="text-muted-foreground flex items-center gap-1.5 text-sm font-medium"
                             >
                                 <Paperclip class="h-4 w-4" />
-                                첨부파일
+                                첨부파일 {post.downloads.length}개
                             </p>
-                            {#each post.downloads as file, i (i)}
+                            {#each visibleDownloads as file, i (i)}
                                 <a
                                     href={file.url}
                                     download={file.filename}
@@ -561,6 +572,17 @@
                                     {/if}
                                 </a>
                             {/each}
+                            {#if !downloadsExpanded && post.downloads.length > DOWNLOADS_COLLAPSE_LIMIT}
+                                <button
+                                    type="button"
+                                    onclick={() => (downloadsExpanded = true)}
+                                    class="bg-muted/50 hover:bg-muted text-muted-foreground flex w-full items-center justify-center gap-1.5 rounded-lg border px-4 py-2.5 text-sm transition-colors"
+                                >
+                                    <ChevronDown class="h-4 w-4" />
+                                    외 {post.downloads.length - DOWNLOADS_COLLAPSE_LIMIT}개 첨부파일
+                                    보기
+                                </button>
+                            {/if}
                         </div>
                     {/if}
                 </ContentBlur>
