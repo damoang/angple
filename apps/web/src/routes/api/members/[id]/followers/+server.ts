@@ -25,7 +25,12 @@ interface CountRow extends RowDataPacket {
     count: number;
 }
 
-export const GET: RequestHandler = async ({ params }) => {
+export const GET: RequestHandler = async ({ params, locals }) => {
+    // ⛔ 2026-08-08 개인정보 전수점검: 무인증 팔로우그래프 열람 차단(profile 게이트와 동일, #12501).
+    if (!locals.user) {
+        return json({ success: false, error: '로그인이 필요합니다.' }, { status: 401 });
+    }
+
     const targetId = params.id;
 
     if (!targetId || !/^[a-zA-Z0-9_-]+$/.test(targetId)) {
