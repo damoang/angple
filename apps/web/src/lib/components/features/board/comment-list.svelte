@@ -2455,13 +2455,49 @@
         opacity: 0.65;
     }
 
-    /* 인라인 스포일러(8/7) — 본문 markdown.svelte 와 동일 규칙. 댓글은 자체 렌더라 별도. */
+    /* 인라인 스포일러(8/7→8/8 쓰레드식 입자) — 본문 markdown.svelte 와 동일 규칙.
+       댓글은 자체 렌더라 별도. 키프레임(dm-sp-drift/twinkle)은 components.css 전역. */
     :global(.comment-body span.dm-spoiler) {
-        background: #5a5a61;
         color: transparent;
-        border-radius: 3px;
+        border-radius: 4px;
         cursor: pointer;
         text-shadow: none;
+        box-decoration-break: clone;
+        -webkit-box-decoration-break: clone;
+        background-color: color-mix(in srgb, var(--foreground) 8%, transparent);
+        background-image: radial-gradient(
+                circle at 25% 35%,
+                color-mix(in srgb, var(--foreground) 90%, transparent) 1px,
+                transparent 1.6px
+            ),
+            radial-gradient(
+                circle at 70% 60%,
+                color-mix(in srgb, var(--foreground) 70%, transparent) 1px,
+                transparent 1.6px
+            ),
+            radial-gradient(
+                circle at 45% 80%,
+                color-mix(in srgb, var(--foreground) 55%, transparent) 0.8px,
+                transparent 1.4px
+            ),
+            radial-gradient(
+                circle at 85% 25%,
+                color-mix(in srgb, var(--foreground) 40%, transparent) 0.8px,
+                transparent 1.4px
+            );
+        background-size:
+            11px 11px,
+            15px 15px,
+            19px 19px,
+            23px 23px;
+        animation:
+            dm-sp-drift 2.6s linear infinite,
+            dm-sp-twinkle 1.4s ease-in-out infinite alternate;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        :global(.comment-body span.dm-spoiler) {
+            animation: none;
+        }
     }
     :global(.comment-body span.dm-spoiler::selection),
     :global(.comment-body span.dm-spoiler *::selection) {
@@ -2470,7 +2506,9 @@
     }
     :global(.comment-body span.dm-spoiler.dm-spoiler-open) {
         color: inherit;
-        background: color-mix(in srgb, currentColor 10%, transparent);
+        background-image: none;
+        animation: none;
+        background-color: color-mix(in srgb, currentColor 10%, transparent);
     }
 
     /* 이미지 로딩 실패 시 숨김 처리 */

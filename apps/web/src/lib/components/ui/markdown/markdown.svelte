@@ -413,13 +413,52 @@
     }
 
     /* 인라인 스포일러(8/7) — 기본은 가림. PC 드래그(::selection) 또는 클릭으로 공개.
+       쓰레드(Threads)식 반짝이 입자(8/8): 민무늬 회색은 하이라이트로 오인돼 눈에 안 띈다는
+       피드백. 오버레이(::after)가 아니라 span 배경에 직접 거는 이유 — 여러 줄에 걸친
+       스포일러는 배경만이 줄 조각(fragment) 단위로 칠해져 이웃 글자를 덮지 않는다.
        ⚠️ 댓글은 이 컴포넌트를 안 쓴다 — comment-list.svelte 에 같은 규칙 별도. */
     .prose :global(span.dm-spoiler) {
-        background: #5a5a61;
         color: transparent;
-        border-radius: 3px;
+        border-radius: 4px;
         cursor: pointer;
         text-shadow: none;
+        box-decoration-break: clone;
+        -webkit-box-decoration-break: clone;
+        background-color: color-mix(in srgb, var(--foreground) 8%, transparent);
+        background-image: radial-gradient(
+                circle at 25% 35%,
+                color-mix(in srgb, var(--foreground) 90%, transparent) 1px,
+                transparent 1.6px
+            ),
+            radial-gradient(
+                circle at 70% 60%,
+                color-mix(in srgb, var(--foreground) 70%, transparent) 1px,
+                transparent 1.6px
+            ),
+            radial-gradient(
+                circle at 45% 80%,
+                color-mix(in srgb, var(--foreground) 55%, transparent) 0.8px,
+                transparent 1.4px
+            ),
+            radial-gradient(
+                circle at 85% 25%,
+                color-mix(in srgb, var(--foreground) 40%, transparent) 0.8px,
+                transparent 1.4px
+            );
+        background-size:
+            11px 11px,
+            15px 15px,
+            19px 19px,
+            23px 23px;
+        animation:
+            dm-sp-drift 2.6s linear infinite,
+            dm-sp-twinkle 1.4s ease-in-out infinite alternate;
+    }
+    /* dm-sp-drift/twinkle 키프레임은 components.css(전역) — 댓글 표면과 공유. */
+    @media (prefers-reduced-motion: reduce) {
+        .prose :global(span.dm-spoiler) {
+            animation: none;
+        }
     }
     .prose :global(span.dm-spoiler::selection),
     .prose :global(span.dm-spoiler *::selection) {
@@ -428,7 +467,9 @@
     }
     .prose :global(span.dm-spoiler.dm-spoiler-open) {
         color: inherit;
-        background: color-mix(in srgb, currentColor 10%, transparent);
+        background-image: none;
+        animation: none;
+        background-color: color-mix(in srgb, currentColor 10%, transparent);
     }
 
     /* 작성자가 고른 표시 폭 프리셋 (bug/13379). height:auto 가 있어야 재작성 단계에서

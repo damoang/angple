@@ -487,3 +487,23 @@ img[src*='/emoticons/']:not([width]) {
 .spoiler-content {
     padding: 0.5rem 0.75rem;
 }
+
+/* 인라인 스포일러(dm-spoiler) 쓰레드식 입자 애니메이션 — 본문(markdown.svelte)과
+   댓글(comment-list.svelte) 두 표면이 공유하는 전역 키프레임. */
+@keyframes dm-sp-drift {
+    to {
+        background-position:
+            11px 0,
+            -15px 8px,
+            10px -19px,
+            -23px -6px;
+    }
+}
+@keyframes dm-sp-twinkle {
+    from {
+        filter: brightness(0.85);
+    }
+    to {
+        filter: brightness(1.25);
+    }
+}
