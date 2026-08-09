@@ -79,6 +79,9 @@ def main():
     d = args.dir
     gifs = sorted(f for f in os.listdir(d) if f.lower().endswith(".gif"))
     adopted, skipped_small, rejected, failed = [], 0, 0, 0
+    # C안(CLS): 채택 이모티콘의 세로/가로 비(round 3). 파서가 표시폭 × 비 = height 로
+    # 자리를 미리 잡아 로드 중 레이아웃 흔들림을 없앤다.
+    aspects = {}
     before_total = after_total = 0
 
     for f in gifs:
@@ -104,6 +107,12 @@ def main():
                 rejected += 1
                 continue
             adopted.append(base)
+            try:
+                gw, gh = gif_dimensions(gif_path)
+                if gw > 0:
+                    aspects[base] = round(gh / gw, 3)
+            except Exception:
+                pass
             before_total += gsize
             after_total += wsize
             print(f"  {f}: {gsize//1024}KB → {wsize//1024}KB ({ratio*100:.0f}%)")
@@ -120,9 +129,9 @@ def main():
     print(f"채택분 절감: {before_total//1048576}MB → {after_total//1048576}MB ({saved_mb:.1f}MB)")
     if args.apply:
         with open(names_path, "w") as fp:
-            json.dump({"names": adopted}, fp, ensure_ascii=False, indent=2)
-        print(f"\n채택 이름 목록 → {names_path}")
-        print("⛔ 이 목록을 premium plugins/emoticon/lib/webp-manifest.json 의 names 에 반영하세요.")
+            json.dump({"names": adopted, "aspects": aspects}, fp, ensure_ascii=False, indent=2)
+        print(f"\n채택 이름·비 목록 → {names_path}")
+        print("⛔ 이 내용을 premium plugins/emoticon/lib/webp-manifest.json (names, aspects) 에 반영하세요.")
     else:
         print("\n(dry-run — 파일 미기록. 실제 반영은 --apply)")
 
