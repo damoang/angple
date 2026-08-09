@@ -29,7 +29,12 @@ async function proxyRequest(
 ): Promise<Response> {
     const path = params.path || '';
     const url = new URL(request.url);
-    const targetUrl = `${BACKEND_URL}/api/plugins/poll/${path}${url.search}`;
+    // ⛔ path 가 빈 경우(투표 생성 POST /api/plugins/poll)에 슬래시를 붙이면
+    //    백엔드 라우트(POST "/api/plugins/poll")와 어긋나 Gin 이 307 리다이렉트를 내고,
+    //    리다이렉트를 타며 인증 헤더가 유실돼 생성이 실패한다(실사용자 오류로 확인, 2026-08-09).
+    const targetUrl = path
+        ? `${BACKEND_URL}/api/plugins/poll/${path}${url.search}`
+        : `${BACKEND_URL}/api/plugins/poll${url.search}`;
 
     try {
         const headers = new Headers();
