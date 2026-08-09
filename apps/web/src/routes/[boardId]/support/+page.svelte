@@ -136,6 +136,35 @@
         newCategory = '';
     }
 
+    // ── 공지 고정 (URL 붙여넣기) ──
+    // 압정 버튼은 사이트 관리자에게만 보여, 당주는 콘솔에서 URL 로 고정하도록 한다
+    // (#13437 후속·당주 요청: 어느 화면에서든 같은 방식으로). preview 로 글번호·검증을
+    // 재사용하고, notice API 가 당주 권한을 서버에서 다시 확인한다.
+    let pinUrl = $state('');
+
+    async function pinNotice() {
+        if (saving || !pinUrl.trim()) return;
+        saving = true;
+        message = '';
+        try {
+            const p = await callSupportAction('preview', pinUrl);
+            if (p.is_comment) {
+                throw new Error('댓글은 고정할 수 없습니다. 게시글 주소를 넣어주세요.');
+            }
+            const res = await fetch(`/api/boards/${data.boardId}/posts/${p.post_id}/notice`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notice_type: 'normal' })
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok || !body.success) throw new Error(body.error || '고정하지 못했습니다.');
+            location.reload();
+        } catch (e) {
+            notify(e instanceof Error ? e.message : '고정하지 못했습니다.', true);
+            saving = false;
+        }
+    }
+
     async function unpinNotice(id: number) {
         if (!confirm(`${id}번 글의 공지 고정을 해제할까요?`)) return;
         saving = true;
@@ -305,10 +334,21 @@
         <Card.Header>
             <Card.Title class="text-base">고정된 공지</Card.Title>
             <Card.Description>
-                고정은 글 제목 옆의 압정을 누르면 됩니다. 여기서는 해제만 합니다.
+                공지로 고정할 글의 주소를 붙여넣고 고정하세요. 아래 목록에서 해제할 수 있습니다.
             </Card.Description>
         </Card.Header>
         <Card.Content>
+            <div class="mb-3 flex items-center gap-2">
+                <Input
+                    bind:value={pinUrl}
+                    placeholder="고정할 게시글 주소 (예: https://damoang.net/{data.boardId}/12345)"
+                    disabled={saving}
+                    onkeydown={(e) => e.key === 'Enter' && pinNotice()}
+                />
+                <Button size="sm" disabled={saving || !pinUrl.trim()} onclick={pinNotice}>
+                    <Pin class="mr-1 h-4 w-4" />고정
+                </Button>
+            </div>
             {#if data.notices.length === 0}
                 <p class="text-muted-foreground text-sm">고정된 공지가 없습니다.</p>
             {:else}
