@@ -8,6 +8,7 @@
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
     import { formatDateTime } from '$lib/utils/format-date.js';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
+    import { blockedUsersStore } from '$lib/stores/blocked-users.svelte.js';
 
     // 동적 플러그인 임포트: member-memo
     let MemoBadge = $state<Component | null>(null);
@@ -55,8 +56,14 @@
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const json = await res.json();
             const data = json.data;
-            likers = data.likers ?? [];
-            total = data.total ?? 0;
+            // #13428: 내가 차단한 회원은 추천자 목록에서 가린다(뷰어별 필터, 공유 캐시라 서버 불가).
+            const raw: LikerInfo[] = data.likers ?? [];
+            const filtered =
+                blockedUsersStore.ids.size === 0
+                    ? raw
+                    : raw.filter((l) => !blockedUsersStore.isBlocked(l.mb_id));
+            likers = filtered;
+            total = Math.max(filtered.length, (data.total ?? 0) - (raw.length - filtered.length));
         } catch (err) {
             console.error('Failed to load comment likers:', err);
         } finally {

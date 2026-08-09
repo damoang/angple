@@ -147,6 +147,7 @@
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import { commentTracker } from '$lib/stores/comment-tracker.svelte.js';
     import { disciplineRevealStore } from '$lib/stores/discipline-reveal.svelte.js';
+    import { blockedUsersStore } from '$lib/stores/blocked-users.svelte.js';
     import { onDestroy } from 'svelte';
     import { TouchGestureService } from '$lib/services/touch-gestures.svelte.js';
 
@@ -642,6 +643,14 @@
     let likersPage = $state(1);
     let isLoadingMoreLikers = $state(false);
     const LIKERS_PER_PAGE = 20;
+
+    // #13428: 내가 차단한 회원은 추천자 목록에서 가린다. 목록 캐시(Redis)는 뷰어별이 아니라
+    // 공유라 서버에서 못 거른다 — 뷰어의 차단 목록(blockedUsersStore)으로 클라에서 필터한다.
+    // total 은 가려진 수만큼 줄여 "N명 공감"이 보이는 목록과 어긋나지 않게 한다.
+    function excludeBlockedLikers(list: LikerInfo[]): LikerInfo[] {
+        if (blockedUsersStore.ids.size === 0) return list;
+        return list.filter((l) => !blockedUsersStore.isBlocked(l.mb_id));
+    }
 
     // 인라인 메모 편집 대상 (추천인 목록 내)
     let editingMemoFor = $state<string | null>(null);
@@ -1385,8 +1394,15 @@
                 1,
                 LIKERS_PER_PAGE
             );
-            likers = response.likers ?? [];
-            likersTotal = response.total ?? 0;
+            {
+                const raw = response.likers ?? [];
+                const filtered = excludeBlockedLikers(raw);
+                likers = filtered;
+                likersTotal = Math.max(
+                    filtered.length,
+                    (response.total ?? 0) - (raw.length - filtered.length)
+                );
+            }
         } catch (err) {
             console.error('Failed to load likers:', err);
         } finally {
@@ -1407,8 +1423,15 @@
                 nextPage,
                 LIKERS_PER_PAGE
             );
-            likers = [...likers, ...(response.likers ?? [])];
-            likersTotal = response.total ?? 0;
+            {
+                const raw = response.likers ?? [];
+                const filtered = excludeBlockedLikers(raw);
+                likers = [...likers, ...filtered];
+                likersTotal = Math.max(
+                    likers.length,
+                    (response.total ?? 0) - (raw.length - filtered.length)
+                );
+            }
             likersPage = nextPage;
         } catch (err) {
             console.error('Failed to load more likers:', err);
@@ -1426,8 +1449,15 @@
         }
         try {
             const response = await apiClient.getPostLikers(boardId, String(data.post.id), 1, 5);
-            likers = response.likers ?? [];
-            likersTotal = response.total ?? 0;
+            {
+                const raw = response.likers ?? [];
+                const filtered = excludeBlockedLikers(raw);
+                likers = filtered;
+                likersTotal = Math.max(
+                    filtered.length,
+                    (response.total ?? 0) - (raw.length - filtered.length)
+                );
+            }
         } catch (err) {
             console.error('Failed to load liker avatars:', err);
         }
