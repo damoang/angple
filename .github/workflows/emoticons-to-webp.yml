@@ -1,0 +1,128 @@
+name: Emoticons to Animated WebP
+
+# ⛔ 운영 서버가 아니라 GitHub 러너에서만 돈다(재인코딩=무거운 CPU).
+# 결과는 PR 로 받아 사람이 눈으로 확인 후 머지한다. 이미지가 깨져도 빌드는 통과하므로
+# verify 단계에서 전 파일을 다시 열어 손상 여부를 본다.
+on:
+  workflow_dispatch:
+    inputs:
+      max_width:
+        description: '목표 최대 폭(px). 본문 표시 200px × 레티나 2배 = 400 기본'
+        required: false
+        default: '400'
+      quality:
+        description: 'gif2webp 품질(0~100). 낮을수록 작고 화질 손실'
+        required: false
+        default: '70'
+      min_bytes:
+        description: '이 크기(byte) 미만 GIF 는 변환 안 함(작은 건 이득 적음)'
+        required: false
+        default: '102400'
+      apply:
+        description: '실제 반영 여부. false 면 dry-run(절감 예상만)'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  convert:
+    name: Convert GIF emoticons to animated WebP
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install libwebp + ImageMagick + Pillow
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y webp imagemagick
+          pip install --quiet Pillow
+
+      - name: Size before
+        id: before
+        run: |
+          SIZE=$(du -sb apps/web/static/emoticons | cut -f1)
+          echo "size=$SIZE" >> $GITHUB_OUTPUT
+          echo "적용 전: $((SIZE/1048576))MB"
+
+      - name: Convert
+        id: run
+        run: |
+          set -o pipefail
+          ARGS="apps/web/static/emoticons --max-width ${{ inputs.max_width }} --quality ${{ inputs.quality }} --min-bytes ${{ inputs.min_bytes }}"
+          if [ "${{ inputs.apply }}" = "true" ]; then ARGS="$ARGS --apply"; fi
+          python3 scripts/emoticons-to-webp.py $ARGS 2>&1 | tee convert.log
+          {
+            echo '## 이모티콘 WebP 변환 결과'
+            echo
+            echo '```'
+            tail -80 convert.log
+            echo '```'
+            if [ -f apps/web/static/webp-manifest.names.json ]; then
+              echo
+              echo '### premium webp-manifest.json 의 names 에 반영할 목록'
+              echo '```json'
+              cat apps/web/static/webp-manifest.names.json
+              echo '```'
+            fi
+          } >> $GITHUB_STEP_SUMMARY
+
+      # ⛔ 변환이 조용히 깨뜨렸는지 반드시 확인한다. 라이선스 txt 등 비이미지 확장자는 제외.
+      - name: Verify all generated webp open
+        if: inputs.apply
+        run: |
+          python3 - <<'PY'
+          import os, sys
+          from PIL import Image
+          d = 'apps/web/static/emoticons'
+          bad, checked = [], 0
+          for f in sorted(os.listdir(d)):
+              if not f.lower().endswith('.webp'):
+                  continue
+              p = os.path.join(d, f)
+              try:
+                  with Image.open(p) as im:
+                      im.verify()
+                  checked += 1
+              except Exception as e:
+                  bad.append((f, str(e)))
+          print(f'검사 {checked}개, 손상 {len(bad)}개')
+          for f, e in bad:
+              print(f'  손상: {f} — {e}')
+          sys.exit(1 if bad else 0)
+          PY
+
+      - name: Open PR
+        if: inputs.apply
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git diff --quiet; then
+            echo "변경 없음 — PR 생략"; exit 0
+          fi
+          AFTER=$(du -sb apps/web/static/emoticons | cut -f1)
+          BEFORE=${{ steps.before.outputs.size }}
+          ADDED=$(( (AFTER - BEFORE) / 1048576 ))
+          BRANCH="chore/emoticons-webp-${{ github.run_id }}"
+          git config user.name  'angple'
+          git config user.email 'sdk@sdk.xyz'
+          git checkout -b "$BRANCH"
+          # WebP 파일만 커밋한다. names 목록(레포 루트 webp-manifest.names.json)은 배포에
+          # 섞지 않고 아티팩트/step summary 로만 전달 — premium 매니페스트 반영용 참고.
+          git add apps/web/static/emoticons
+          git commit -m "chore: 이모티콘 애니 WebP 생성 (static +${ADDED}MB webp, GIF 유지)"
+          git push -u origin "$BRANCH"
+          {
+            echo "emoticons-to-webp 워크플로 산출. GIF 원본은 유지, 애니 WebP 를 추가."
+            echo ""
+            echo "⛔ 머지 전 눈으로 확인. 머지 후 premium webp-manifest.json 의 names 에"
+            echo "위 목록(step summary / webp-manifest.names.json)을 반영해야 렌더가 WebP 로"
+            echo "전환됩니다(파일 먼저, 파서 나중)."
+          } > pr-body.md
+          gh pr create --base main --head "$BRANCH" \
+            --title "chore: 이모티콘 애니 WebP 생성 (A안 PR-B)" \
+            --body-file pr-body.md
