@@ -1,0 +1,21 @@
+name: Emoticon Size Guard
+
+# PR 에서 추가·변경된 이모티콘이 상한을 넘으면 실패(B안). 렌더 느림의 근본 원인인
+# 대형 애니 GIF 재유입을 막는다. 기존 파일은 검사하지 않는다(변경분만).
+on:
+  pull_request:
+    paths:
+      - 'apps/web/static/emoticons/**'
+
+jobs:
+  guard:
+    name: Check emoticon size
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check changed emoticons
+        run: python3 scripts/check-emoticon-size.py "origin/${{ github.base_ref }}"
