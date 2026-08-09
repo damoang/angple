@@ -101,7 +101,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if git diff --quiet && [ ! -f apps/web/static/webp-manifest.names.json ]; then
+          if git diff --quiet; then
             echo "변경 없음 — PR 생략"; exit 0
           fi
           AFTER=$(du -sb apps/web/static/emoticons | cut -f1)
@@ -111,9 +111,9 @@ jobs:
           git config user.name  'angple'
           git config user.email 'sdk@sdk.xyz'
           git checkout -b "$BRANCH"
-          # names 목록은 산출물(참고용) — 정적 디렉터리 밖에 두어 배포에 섞이지 않게 한다.
+          # WebP 파일만 커밋한다. names 목록(레포 루트 webp-manifest.names.json)은 배포에
+          # 섞지 않고 아티팩트/step summary 로만 전달 — premium 매니페스트 반영용 참고.
           git add apps/web/static/emoticons
-          git add -f apps/web/static/webp-manifest.names.json 2>/dev/null || true
           git commit -m "chore: 이모티콘 애니 WebP 생성 (static +${ADDED}MB webp, GIF 유지)"
           git push -u origin "$BRANCH"
           {

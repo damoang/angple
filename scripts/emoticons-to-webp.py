@@ -89,6 +89,10 @@ def main():
             continue
         base = f[: -len(".gif")]
         out = os.path.join(d, base + ".webp")
+        # 이미 WebP(webp-native 이모티콘 등)가 있으면 덮지 않는다 — 무음 클로버 방지.
+        if os.path.exists(out):
+            rejected += 1
+            continue
         with tempfile.TemporaryDirectory() as td:
             tmp_out = os.path.join(td, base + ".webp")
             if not convert_one(gif_path, tmp_out, args.max_width, args.quality):
@@ -106,7 +110,9 @@ def main():
             if args.apply:
                 shutil.copy2(tmp_out, out)
 
-    names_path = os.path.join(d, "..", "webp-manifest.names.json")
+    # ⛔ static 디렉터리 밖(레포 루트)에 둔다 — static 안이면 /webp-manifest.names.json 로
+    #    공개 서빙된다. 이건 premium 매니페스트 반영용 참고 산출물일 뿐이다.
+    names_path = "webp-manifest.names.json"
     saved_mb = (before_total - after_total) / 1048576
     print("\n=== 요약 ===")
     print(f"GIF {len(gifs)}개 · 채택 {len(adopted)} · 반려(이득없음) {rejected} · "
