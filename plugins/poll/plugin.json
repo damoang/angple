@@ -6,7 +6,7 @@
         "name": "Damoang Team",
         "url": "https://damoang.net"
     },
-    "category": "content",
+    "category": "plugin",
     "description": "글에 붙이는 간이 투표 — 작성자가 선택지를 만들고 회원이 한 표씩",
     "components": [
         {
