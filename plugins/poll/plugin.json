@@ -1,0 +1,20 @@
+{
+    "id": "poll",
+    "name": "투표",
+    "version": "1.0.0",
+    "author": {
+        "name": "Damoang Team",
+        "url": "https://damoang.net"
+    },
+    "category": "content",
+    "description": "글에 붙이는 간이 투표 — 작성자가 선택지를 만들고 회원이 한 표씩",
+    "components": [
+        {
+            "id": "poll-widget",
+            "name": "투표 위젯",
+            "slot": "post-detail-comments-before",
+            "path": "components/poll-widget.svelte",
+            "priority": 5
+        }
+    ]
+}
