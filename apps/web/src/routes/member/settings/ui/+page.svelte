@@ -1046,7 +1046,9 @@
                         <SmartphoneIcon class="h-5 w-5" />
                         단축 버튼
                     </CardTitle>
-                    <CardDescription>화면 하단에 플로팅 바로가기 버튼을 표시합니다.</CardDescription
+                    <CardDescription
+                        >화면 하단에 플로팅 바로가기 버튼을 표시합니다. 스크롤 없이 댓글로 바로
+                        이동할 수 있습니다.</CardDescription
                     >
                 </CardHeader>
                 <CardContent class="space-y-4">
@@ -1054,7 +1056,7 @@
                         <div>
                             <Label>단축 버튼 사용</Label>
                             <p class="text-muted-foreground text-xs">
-                                홈, 새로고침, 위로/아래로 + 즐겨찾기 바로가기
+                                홈, 새로고침, 위로/아래로, 댓글로 이동 + 즐겨찾기 바로가기
                             </p>
                         </div>
                         <Switch
