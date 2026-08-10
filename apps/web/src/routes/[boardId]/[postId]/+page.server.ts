@@ -229,6 +229,9 @@ export const load: PageServerLoad = async ({
             if (filesData.downloads?.length) {
                 post.downloads = filesData.downloads;
             }
+            if (filesData.links?.length) {
+                post.linkHits = filesData.links;
+            }
         }
 
         // Bluesky handle → DID prefetch (#12050).

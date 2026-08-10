@@ -27,6 +27,7 @@ interface FileRow extends RowDataPacket {
     bf_width: number;
     bf_height: number;
     bf_filesize: number;
+    bf_download: number; // 다운로드 횟수 (Gnuboard g5_board_file.bf_download)
 }
 
 const IMAGE_EXTENSIONS = /\.(jpg|jpeg|png|gif|webp|bmp|svg|avif)$/i;
@@ -51,20 +52,41 @@ export const GET: RequestHandler = async ({ params }) => {
     try {
         // #12446: 삭제된 게시글의 첨부파일이 노출되는 보안 이슈 차단.
         // 글이 soft-delete 된 경우 첨부 목록을 빈 배열로 반환한다.
+        // 링크(wr_link1/2)와 클릭수(wr_link1_hit/2_hit)도 이 조회에서 함께 가져온다
+        // — 백엔드 PostResponse 가 hit 을 노출하지 않으므로 여기서 직접 읽는다.
         const [postRows] = await pool.query<RowDataPacket[]>(
-            `SELECT wr_id, wr_deleted_at FROM \`g5_write_${safeBoardId}\` WHERE wr_id = ? LIMIT 1`,
+            `SELECT wr_id, wr_deleted_at, wr_link1, wr_link2, wr_link1_hit, wr_link2_hit
+			   FROM \`g5_write_${safeBoardId}\` WHERE wr_id = ? LIMIT 1`,
             [safePostId]
         );
-        const post = postRows[0] as { wr_id: number; wr_deleted_at: string | null } | undefined;
+        const post = postRows[0] as
+            | {
+                  wr_id: number;
+                  wr_deleted_at: string | null;
+                  wr_link1: string | null;
+                  wr_link2: string | null;
+                  wr_link1_hit: number | null;
+                  wr_link2_hit: number | null;
+              }
+            | undefined;
         if (!post) {
-            return json({ images: [], videos: [], files: [], downloads: [] });
+            return json({ images: [], videos: [], files: [], downloads: [], links: [] });
         }
         if (post.wr_deleted_at && post.wr_deleted_at !== '0000-00-00 00:00:00') {
-            return json({ images: [], videos: [], files: [], downloads: [] });
+            return json({ images: [], videos: [], files: [], downloads: [], links: [] });
+        }
+
+        // 게시글 링크 목록 (빈 URL 제외). 클릭수는 얼어붙은 과거값 + 앞으로 라이브 증가.
+        const links: { n: number; url: string; hit: number }[] = [];
+        if (post.wr_link1 && post.wr_link1.trim()) {
+            links.push({ n: 1, url: post.wr_link1.trim(), hit: post.wr_link1_hit || 0 });
+        }
+        if (post.wr_link2 && post.wr_link2.trim()) {
+            links.push({ n: 2, url: post.wr_link2.trim(), hit: post.wr_link2_hit || 0 });
         }
 
         const [rows] = await pool.query<FileRow[]>(
-            `SELECT bf_no, bf_file, bf_fileurl, bf_source, bf_type, bf_width, bf_height, bf_filesize
+            `SELECT bf_no, bf_file, bf_fileurl, bf_source, bf_type, bf_width, bf_height, bf_filesize, bf_download
 			 FROM g5_board_file
 			 WHERE bo_table = ? AND wr_id = ?
 			 ORDER BY bf_no`,
@@ -95,21 +117,25 @@ export const GET: RequestHandler = async ({ params }) => {
                 (row) => !IMAGE_EXTENSIONS.test(row.bf_file) && !VIDEO_EXTENSIONS.test(row.bf_file)
             )
             .map((row) => ({
+                no: row.bf_no,
                 url: getFileUrl(row),
                 filename: row.bf_source || row.bf_file,
-                size: row.bf_filesize || 0
+                size: row.bf_filesize || 0,
+                download_count: row.bf_download || 0
             }));
 
         // 전체 다운로드 목록 (이미지/영상 포함, 원본 파일명)
         const downloads = rows.map((row) => ({
+            no: row.bf_no,
             url: getFileUrl(row),
             filename: row.bf_source || row.bf_file,
-            size: row.bf_filesize || 0
+            size: row.bf_filesize || 0,
+            download_count: row.bf_download || 0
         }));
 
-        return json({ images, videos, files, downloads });
+        return json({ images, videos, files, downloads, links });
     } catch (error) {
         console.error('Board files GET error:', error);
-        return json({ images: [], videos: [], files: [], downloads: [] });
+        return json({ images: [], videos: [], files: [], downloads: [], links: [] });
     }
 };
