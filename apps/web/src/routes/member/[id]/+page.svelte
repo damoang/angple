@@ -156,6 +156,8 @@
         post_deleted_at?: string | null;
         /** 백엔드가 내려주는 콘텐츠 종류 — 미배포 시 undefined 라 유틸이 폴백한다 */
         content_kind?: ContentKind | null;
+        /** 이 댓글에 달린 답글(대댓글) 수 — 백엔드 미배포 시 undefined (makeang/88) */
+        reply_count?: number;
     }
     interface LikedPost {
         bo_table: string;
@@ -964,9 +966,21 @@
                                             {text}
                                         </span>
                                     {/if}
-                                    <div class="text-muted-foreground mt-0.5 flex gap-2 text-xs">
+                                    <div
+                                        class="text-muted-foreground mt-0.5 flex items-center gap-2 text-xs"
+                                    >
                                         <span class="text-primary/70">{comment.bo_subject}</span>
                                         <span>{formatDate(comment.wr_datetime)}</span>
+                                        <!-- makeang/88: 내 댓글에 달린 답글 수. 알림과 별개로 목록에서 바로 보이게 -->
+                                        {#if (comment.reply_count ?? 0) > 0}
+                                            <span
+                                                class="text-primary/80 inline-flex items-center gap-0.5"
+                                                title="이 댓글에 달린 답글"
+                                            >
+                                                <MessageSquare class="h-3 w-3" />
+                                                답글 {comment.reply_count}
+                                            </span>
+                                        {/if}
                                     </div>
                                 </li>
                             {/each}
