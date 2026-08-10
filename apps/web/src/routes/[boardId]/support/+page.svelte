@@ -191,7 +191,9 @@
     <div class="flex flex-wrap items-center gap-2">
         <h1 class="text-xl font-semibold">{data.subject} 돌보기</h1>
         {#if data.isOwner}
-            <Badge variant="secondary">당주</Badge>
+            <!-- 당주=자발적 봉사자. '운영진'으로 자기 오해하지 않도록 이 화면에선 '서포터즈'로 표기.
+                 (실제 관리자를 뜻하는 아래 isSiteAdmin '운영진'과 안내 문구는 그대로 둔다) -->
+            <Badge variant="secondary">서포터즈</Badge>
         {:else if data.isSiteAdmin}
             <Badge variant="outline">운영진</Badge>
         {/if}
