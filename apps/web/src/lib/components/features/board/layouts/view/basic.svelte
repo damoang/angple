@@ -120,15 +120,41 @@
 
     const isLockedPost = $derived(postReportCount === 'lock' || post.extra_7 === 'lock');
 
-    // 첨부파일 목록 접기(#13423): 6개 이상이면 앞 5개만 보이고 나머지는 펼침.
-    // 파일명 식별이 중요한 목록이라 축약 대신 접기를 쓴다.
-    const DOWNLOADS_COLLAPSE_LIMIT = 5;
-    let downloadsExpanded = $state(false);
-    const visibleDownloads = $derived(
-        !post.downloads || downloadsExpanded || post.downloads.length <= DOWNLOADS_COLLAPSE_LIMIT
-            ? (post.downloads ?? [])
-            : post.downloads.slice(0, DOWNLOADS_COLLAPSE_LIMIT)
-    );
+    // 첨부파일 목록: 박스 없는 텍스트 목록 + 기본 접힘(제목 'N개'만). 클릭 시 펼침.
+    // 공간 절약이 목적이라 목록 전체를 접는다(구 #13423 앞5개 노출 방식 대체).
+    let downloadsOpen = $state(false);
+
+    // 다운로드/링크 클릭 낙관적 증가분(비콘 성공과 무관하게 화면 즉시 반영). key=bf_no / link n.
+    let downloadDelta = $state<Record<number, number>>({});
+    let linkDelta = $state<Record<number, number>>({});
+
+    function fireBeacon(url: string) {
+        try {
+            if (navigator.sendBeacon?.(url)) return;
+        } catch {
+            /* sendBeacon 미지원/실패 → fetch 폴백 */
+        }
+        fetch(url, { method: 'POST', keepalive: true }).catch(() => {});
+    }
+
+    // 다운로드 카운트 비콘: 파일 클릭 시 bf_download += 1 (라이브 집계). GA4 이벤트와 별개.
+    function beaconDownload(fileNo: number | undefined | null) {
+        if (fileNo == null) return;
+        downloadDelta = { ...downloadDelta, [fileNo]: (downloadDelta[fileNo] ?? 0) + 1 };
+        fireBeacon(`/api/boards/${boardId}/posts/${post.id}/files/${fileNo}/hit`);
+    }
+
+    // 링크 클릭 비콘: wr_link{n}_hit += 1.
+    function beaconLink(n: number) {
+        linkDelta = { ...linkDelta, [n]: (linkDelta[n] ?? 0) + 1 };
+        fireBeacon(`/api/boards/${boardId}/posts/${post.id}/link-hit?n=${n}`);
+    }
+
+    // 링크 클릭수 = 과거값(linkHits, g5_write_{board}에서 직접 읽음) + 낙관적 증가분.
+    function linkHitFor(n: number): number {
+        const base = post.linkHits?.find((l) => l.n === n)?.hit ?? 0;
+        return base + (linkDelta[n] ?? 0);
+    }
 
     // 첨부 이미지 라이트박스
     let attachedImagesEl: HTMLDivElement;
@@ -544,43 +570,56 @@
                     {/if}
 
                     {#if post.downloads && post.downloads.length > 0}
-                        <div class="mt-6 space-y-2">
-                            <p
-                                class="text-muted-foreground flex items-center gap-1.5 text-sm font-medium"
+                        <div class="mt-6">
+                            <!-- 박스 없는 텍스트 목록 + 기본 접힘: 헤더 클릭 시 펼침 -->
+                            <button
+                                type="button"
+                                onclick={() => (downloadsOpen = !downloadsOpen)}
+                                aria-expanded={downloadsOpen}
+                                class="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-sm font-medium transition-colors"
                             >
                                 <Paperclip class="h-4 w-4" />
                                 첨부파일 {post.downloads.length}개
-                            </p>
-                            {#each visibleDownloads as file, i (i)}
-                                <a
-                                    href={file.url}
-                                    download={file.filename}
-                                    onclick={() => trackFileDownload(boardId, file.filename)}
-                                    class="bg-muted/50 hover:bg-muted flex items-center gap-3 rounded-lg border px-4 py-2.5 transition-colors"
-                                >
-                                    <Download class="text-muted-foreground h-4 w-4 shrink-0" />
-                                    <span class="text-foreground min-w-0 truncate text-sm">
-                                        {file.filename}
-                                    </span>
-                                    {#if file.size}
-                                        <span
-                                            class="text-muted-foreground ml-auto shrink-0 text-xs"
-                                        >
-                                            {formatFileSize(file.size)}
-                                        </span>
-                                    {/if}
-                                </a>
-                            {/each}
-                            {#if !downloadsExpanded && post.downloads.length > DOWNLOADS_COLLAPSE_LIMIT}
-                                <button
-                                    type="button"
-                                    onclick={() => (downloadsExpanded = true)}
-                                    class="bg-muted/50 hover:bg-muted text-muted-foreground flex w-full items-center justify-center gap-1.5 rounded-lg border px-4 py-2.5 text-sm transition-colors"
-                                >
-                                    <ChevronDown class="h-4 w-4" />
-                                    외 {post.downloads.length - DOWNLOADS_COLLAPSE_LIMIT}개 첨부파일
-                                    보기
-                                </button>
+                                <ChevronDown
+                                    class="h-4 w-4 transition-transform {downloadsOpen
+                                        ? 'rotate-180'
+                                        : ''}"
+                                />
+                            </button>
+                            {#if downloadsOpen}
+                                <ul class="mt-2 space-y-1.5">
+                                    {#each post.downloads as file, i (file.no ?? i)}
+                                        <li class="flex items-center gap-2 text-sm">
+                                            <a
+                                                href={file.url}
+                                                download={file.filename}
+                                                onclick={() => {
+                                                    trackFileDownload(boardId, file.filename);
+                                                    beaconDownload(file.no);
+                                                }}
+                                                class="text-foreground hover:text-primary flex min-w-0 flex-1 items-center gap-1.5 hover:underline"
+                                            >
+                                                <Download
+                                                    class="text-muted-foreground h-3.5 w-3.5 shrink-0"
+                                                />
+                                                <span class="truncate">{file.filename}</span>
+                                            </a>
+                                            {#if file.size}
+                                                <span
+                                                    class="text-muted-foreground shrink-0 text-xs"
+                                                >
+                                                    {formatFileSize(file.size)}
+                                                </span>
+                                            {/if}
+                                            <span
+                                                class="text-muted-foreground shrink-0 whitespace-nowrap text-xs"
+                                            >
+                                                다운 {(file.download_count ?? 0) +
+                                                    (downloadDelta[file.no ?? -1] ?? 0)}
+                                            </span>
+                                        </li>
+                                    {/each}
+                                </ul>
                             {/if}
                         </div>
                     {/if}
@@ -598,9 +637,13 @@
                                 rel={post.link1_affiliate
                                     ? 'nofollow noopener sponsored'
                                     : 'noopener noreferrer'}
-                                class="text-primary truncate hover:underline"
+                                onclick={() => beaconLink(1)}
+                                class="text-primary min-w-0 flex-1 truncate hover:underline"
                                 >{post.link1_display || post.link1}</a
                             >
+                            <span class="text-muted-foreground shrink-0 whitespace-nowrap text-xs">
+                                클릭 {linkHitFor(1)}
+                            </span>
                         </div>
                     {/if}
                     {#if post.link2}
@@ -612,9 +655,13 @@
                                 rel={post.link2_affiliate
                                     ? 'nofollow noopener sponsored'
                                     : 'noopener noreferrer'}
-                                class="text-primary truncate hover:underline"
+                                onclick={() => beaconLink(2)}
+                                class="text-primary min-w-0 flex-1 truncate hover:underline"
                                 >{post.link2_display || post.link2}</a
                             >
+                            <span class="text-muted-foreground shrink-0 whitespace-nowrap text-xs">
+                                클릭 {linkHitFor(2)}
+                            </span>
                         </div>
                     {/if}
                 </div>

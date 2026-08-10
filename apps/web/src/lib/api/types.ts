@@ -54,8 +54,16 @@ export interface FreePost {
     tags?: string[];
     images?: string[];
     videos?: { url: string; filename: string; size: number }[];
-    files?: { url: string; filename: string; size: number }[]; // 일반 첨부파일 (PDF, ZIP 등)
-    downloads?: { url: string; filename: string; size: number }[]; // 전체 다운로드 목록 (이미지/영상 포함)
+    files?: { no?: number; url: string; filename: string; size: number; download_count?: number }[]; // 일반 첨부파일 (PDF, ZIP 등)
+    downloads?: {
+        no?: number;
+        url: string;
+        filename: string;
+        size: number;
+        download_count?: number;
+    }[]; // 전체 다운로드 목록 (이미지/영상 포함)
+    /** 게시글 링크(wr_link1/2)와 클릭수. /files 라우트가 g5_write_{board} 에서 직접 읽어 채운다. */
+    linkHits?: { n: number; url: string; hit: number }[];
     is_secret?: boolean; // 비밀글 여부
     is_comments_disabled?: boolean; // 댓글 비활성화 (읽기 전용 공지)
     is_notice?: boolean; // 공지사항 여부
