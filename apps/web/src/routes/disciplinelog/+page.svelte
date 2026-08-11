@@ -187,11 +187,11 @@
                                     <li>
                                         <a
                                             href="/disciplinelog/{log.id}"
-                                            class="hover:bg-muted/60 focus-visible:ring-ring flex items-start gap-3 rounded-md px-2 py-1.5 leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2"
+                                            class="hover:bg-muted/60 focus-visible:ring-ring flex items-center gap-3 rounded-md px-2 py-1.5 leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2"
                                         >
                                             <!-- 강도 점: 영구=빨강 / 기간제=주황 / 주의·해제=회색 -->
                                             <span
-                                                class="mt-1 h-2 w-2 shrink-0 rounded-full {dotClass(
+                                                class="h-2 w-2 shrink-0 rounded-full {dotClass(
                                                     log.penalty_period,
                                                     penalty.released
                                                 )}"
@@ -202,6 +202,10 @@
                                                 <span class="flex flex-wrap items-center gap-1.5">
                                                     <span class="truncate font-medium"
                                                         >{log.member_nickname}</span
+                                                    >
+                                                    <span
+                                                        class="text-muted-foreground/70 shrink-0 text-xs"
+                                                        >{log.member_id}</span
                                                     >
                                                     <span
                                                         class="text-xs font-medium {penalty.released
@@ -227,10 +231,6 @@
                                                         >
                                                     {/if}
                                                 </span>
-                                                <span
-                                                    class="text-muted-foreground/70 block truncate text-xs leading-tight"
-                                                    >{log.member_id}</span
-                                                >
                                             </span>
 
                                             <span
