@@ -213,7 +213,10 @@
                     </span>
                 </div>
             {/if}
+            <!-- 글 제목이 이 페이지의 주제목이다. 종전엔 CardTitle 이 div 라
+                 상세 페이지에 h1 이 하나도 없었다(SEO·스크린리더 내비게이션 저해). -->
             <CardTitle
+                tag="h1"
                 class="text-foreground flex flex-wrap items-center gap-2 break-words text-xl font-bold sm:text-2xl"
             >
                 {#if isAdmin}

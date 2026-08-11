@@ -2510,9 +2510,9 @@
             <Card id="comments" class="bg-background rounded-xl px-3 md:px-3">
                 <CardHeader class="flex flex-row items-center justify-between">
                     <div class="flex items-center gap-2">
-                        <h3 class="text-foreground text-lg font-semibold">
+                        <h2 class="text-foreground text-lg font-semibold">
                             댓글 <span class="text-muted-foreground">({commentsTotal})</span>
-                        </h3>
+                        </h2>
                         <button
                             type="button"
                             onclick={refreshComments}
