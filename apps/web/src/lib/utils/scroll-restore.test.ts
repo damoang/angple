@@ -134,4 +134,39 @@ describe('createScrollSnapshot', () => {
         resizeCallbacks.forEach((cb) => cb());
         expect(scrollTo.mock.calls.length).toBe(callsAfterRestore);
     });
+
+    it('⛔ capture 는 진행 중인 복원 루프를 취소한다 (라우트 넘어 누수 방지 · #13239)', () => {
+        const snap = createScrollSnapshot();
+        scrollHeight = 900; // 아직 문서가 짧아 복원 대기 중
+        snap.restore({ scrollY: 5000 });
+        drainFrames(3);
+        expect(scrollTo).not.toHaveBeenCalled();
+
+        // 이 페이지를 떠난다 → 복원 루프가 종료돼야 한다
+        snap.capture();
+
+        // 다음 라우트에서 문서가 길어지고 리사이즈가 나도 옛 target 으로 스크롤하면 안 된다
+        scrollHeight = 6000;
+        drainFrames(70);
+        resizeCallbacks.forEach((cb) => cb());
+
+        expect(scrollTo).not.toHaveBeenCalled();
+    });
+
+    it('새 restore 는 이전 루프를 취소하고 새 target 으로만 복원한다', () => {
+        const snap = createScrollSnapshot();
+        scrollHeight = 900;
+        snap.restore({ scrollY: 5000 }); // 루프 A (대기)
+        drainFrames(3);
+
+        snap.restore({ scrollY: 1000 }); // 루프 B — A 를 취소
+
+        scrollHeight = 6000; // 두 target 모두 도달 가능한 높이
+        drainFrames(3);
+        resizeCallbacks.forEach((cb) => cb());
+
+        expect(scrollTo).toHaveBeenCalledWith(0, 1000);
+        expect(scrollTo).not.toHaveBeenCalledWith(0, 5000);
+        expect(scrollY).toBe(1000);
+    });
 });
