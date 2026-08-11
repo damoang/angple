@@ -9,10 +9,12 @@
     import Placeholder from '@tiptap/extension-placeholder';
     import Mention from '@tiptap/extension-mention';
     import { mentionSuggestion } from '$lib/components/features/editor/mention-suggestion';
+    import { SpoilerInline } from '$lib/components/features/editor/spoiler-mark';
     import { watchCommentInput, stopWatch } from '$lib/services/comment-input-telemetry';
     import MannerTip from '$lib/components/features/editor/manner-tip.svelte';
     import Bold from '@lucide/svelte/icons/bold';
     import Italic from '@lucide/svelte/icons/italic';
+    import EyeOff from '@lucide/svelte/icons/eye-off';
 
     interface Props {
         content?: string;
@@ -40,6 +42,7 @@
     let editor: Editor | null = null;
     let isBold = $state(false);
     let isItalic = $state(false);
+    let isSpoiler = $state(false);
 
     onMount(() => {
         if (!editorElement) return;
@@ -85,7 +88,10 @@
                 Mention.configure({
                     HTMLAttributes: { class: 'mention' },
                     suggestion: mentionSuggestion
-                })
+                }),
+                // 부분(인라인) 스포일러 — 본문 에디터와 동일. 댓글 렌더는 이미 dm-spoiler
+                // 클릭 공개를 지원한다(comment-list.svelte).
+                SpoilerInline
             ],
             content: content || '',
             editable: !disabled,
@@ -136,9 +142,11 @@
                 // 반응 컨텍스트 밖에서 갱신한다(툴바 표시는 사실상 즉시).
                 const b = e.isActive('bold');
                 const i = e.isActive('italic');
+                const s = e.isActive('spoilerInline');
                 queueMicrotask(() => {
                     isBold = b;
                     isItalic = i;
+                    isSpoiler = s;
                 });
             }
         });
@@ -159,6 +167,10 @@
 
     function toggleItalic(): void {
         editor?.chain().focus().toggleItalic().run();
+    }
+
+    function toggleSpoiler(): void {
+        editor?.chain().focus().toggleSpoilerInline().run();
     }
 
     export function insertContent(text: string): void {
@@ -223,6 +235,17 @@
             {disabled}
         >
             <Italic class="size-3.5" />
+        </button>
+        <button
+            type="button"
+            class="hover:bg-accent rounded p-1 transition-colors {isSpoiler
+                ? 'bg-accent text-accent-foreground'
+                : 'text-muted-foreground'}"
+            onclick={toggleSpoiler}
+            title="모자이크 — 선택한 부분을 가립니다 (읽는 쪽에서 클릭으로 공개)"
+            {disabled}
+        >
+            <EyeOff class="size-3.5" />
         </button>
     </div>
     <!--
