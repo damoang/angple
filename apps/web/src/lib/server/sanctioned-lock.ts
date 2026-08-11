@@ -55,3 +55,36 @@ export async function isSanctionedTarget(
     if (commentId && (await isSanctionedPost(boardId, commentId))) return true;
     return false;
 }
+
+/** 소명글 잠금 사유. */
+export const CLAIM_ANSWERED_LOCK_MESSAGE =
+    '운영자 답변이 등록된 소명글은 수정할 수 없습니다. 추가로 하실 말씀은 댓글로 남겨 주세요.';
+
+/**
+ * 운영자 답변이 달린 소명글인지.
+ *
+ * 답변이 나간 뒤 원문이 바뀌면 대화 기록이 어긋난다 — 운영 답변이 존재하지 않는 주장에
+ * 답하는 모양이 되고, 답변 근거로 인용한 문장이 사라질 수도 있다(2026-08-11 claim/1733:
+ * 접수 후 5회 수정, 3,611 → 5,034자).
+ *
+ * ⛔ **접수 자동 답변(mb_id='cs')은 답변으로 치지 않는다.** 그건 글을 올리면 곧바로 달리므로,
+ *    그걸 기준으로 잠그면 소명을 보충할 기회 자체가 사라진다. 보충은 소명권의 일부다.
+ * ⛔ **삭제는 막지 않는다**(DELETE 는 이 가드를 타지 않는다). 제재는 잊힐 권리가 있다.
+ * ⛔ **댓글도 막지 않는다.** 회원이 답변에 반응할 수 있어야 한다 — 막히는 것은 원문 수정뿐.
+ */
+export async function isClaimAnswered(wrId: number): Promise<boolean> {
+    if (!wrId) return false;
+    try {
+        const [rows] = await pool.query<RowDataPacket[]>(
+            `SELECT 1 AS hit FROM g5_write_claim
+              WHERE wr_parent = ? AND wr_is_comment = 1
+                AND mb_id IN ('ai', 'admin', 'police', 'appeal')
+              LIMIT 1`,
+            [wrId]
+        );
+        return rows.length > 0;
+    } catch {
+        // 판정 불가를 이유로 정상 수정을 막지 않는다
+        return false;
+    }
+}

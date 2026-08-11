@@ -1,5 +1,10 @@
 import type { RequestHandler } from './$types';
-import { isSanctionedPost, SANCTIONED_LOCK_MESSAGE } from '$lib/server/sanctioned-lock';
+import {
+    isSanctionedPost,
+    isClaimAnswered,
+    SANCTIONED_LOCK_MESSAGE,
+    CLAIM_ANSWERED_LOCK_MESSAGE
+} from '$lib/server/sanctioned-lock';
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 import pool from '$lib/server/db';
@@ -417,6 +422,18 @@ async function proxyRequest(
     //    추천은 web 이 직접 처리하므로 like/+server.ts 에서 따로 막는다.
     //    실측(2026-08-11): 확정 이후 댓글 288건(78글) · 본문 수정 23건(19글)이 붙었다.
     //    ⛔ DELETE 는 막지 않는다 — 운영자 삭제와 작성자 자진 삭제는 계속 가능해야 한다.
+    // ⛔ 운영자 답변이 달린 소명글은 원문 수정을 막는다(댓글·삭제는 허용).
+    //    답변 후 원문이 바뀌면 대화 기록이 어긋나고, 답변이 인용한 문장이 사라질 수 있다.
+    if (method === 'PUT' || method === 'PATCH') {
+        const claimMatch = path.match(/^boards\/claim\/posts\/(\d+)\/?$/);
+        if (claimMatch && (await isClaimAnswered(Number(claimMatch[1])))) {
+            return new Response(
+                JSON.stringify({ success: false, message: CLAIM_ANSWERED_LOCK_MESSAGE }),
+                { status: 403, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
+    }
+
     if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
         const locked = await sanctionedLockTarget(path);
         if (locked) {
