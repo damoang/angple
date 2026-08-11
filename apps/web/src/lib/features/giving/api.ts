@@ -18,6 +18,10 @@ export interface GivingDrawResult {
     seed_hash: string | null;
     drawn_by: string | null;
     drawn_at: string | null;
+    /** N-3: 당첨 수령 확인(자동방식·정원1명). 미도래 나눔·구 응답엔 없음. */
+    claim_due?: string | null;
+    claimed_at?: string | null;
+    redraw_count?: number;
     result: {
         method: string;
         participants?: string[];
@@ -126,6 +130,11 @@ export const givingApi = {
             method: 'POST',
             body: JSON.stringify(payload ?? {})
         });
+    },
+
+    /** N-3: 당첨자 수령 확인. 24h 내 미확인 시 재추첨된다. */
+    claim(id: number | string): Promise<{ claimed: boolean }> {
+        return call(`/claim/${id}`, { method: 'POST', body: '{}' });
     },
 
     admin(
