@@ -156,42 +156,40 @@
                 <span class="text-muted-foreground/70 text-xs">{log.member_id}</span>
             </div>
             <div class="mt-2">
-                    <div class="flex flex-wrap items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
+                    <Badge variant={getPenaltyBadgeVariant(log.penalty_period, penalty.released)}>
+                        {penalty.text}
+                    </Badge>
+                    {#if log.revoked_at}
                         <Badge
-                            variant={getPenaltyBadgeVariant(log.penalty_period, penalty.released)}
+                            variant="secondary"
+                            class="border-emerald-300 bg-emerald-100 text-xs text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
                         >
-                            {penalty.text}
+                            소명 해제
                         </Badge>
+                    {:else if penalty.released}
+                        <Badge variant="secondary" class="text-xs">해제</Badge>
+                    {/if}
+                    <span class="text-muted-foreground text-sm">
                         {#if log.revoked_at}
-                            <Badge
-                                variant="secondary"
-                                class="border-emerald-300 bg-emerald-100 text-xs text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                            >
-                                소명 해제
-                            </Badge>
-                        {:else if penalty.released}
-                            <Badge variant="secondary" class="text-xs">해제</Badge>
-                        {/if}
-                        <span class="text-muted-foreground text-sm">
-                            {#if log.revoked_at}
-                                <!-- 회수된 제재: 원래 종료일에 취소선 + 조기 해제 표기.
-                                     (기간이 만료된 게 아니라 소명 인용으로 중간에 풀렸음을 명확히) -->
-                                ({log.penalty_date_from} 시작 ·
-                                {#if log.penalty_period !== 0}
-                                    <s class="opacity-60"
-                                        >{log.penalty_period === -1
-                                            ? '영구'
-                                            : log.penalty_date_to || ''}</s
-                                    > ·
-                                {/if}
-                                <span class="text-emerald-700 dark:text-emerald-400"
-                                    >{log.revoked_at} 소명 인용으로 해제</span
-                                >)
-                            {:else}
-                                ({formatPeriodRange(log)})
+                            <!-- 회수된 제재: 원래 종료일에 취소선 + 조기 해제 표기.
+                                 (기간이 만료된 게 아니라 소명 인용으로 중간에 풀렸음을 명확히) -->
+                            ({log.penalty_date_from} 시작 ·
+                            {#if log.penalty_period !== 0}
+                                <s class="opacity-60"
+                                    >{log.penalty_period === -1
+                                        ? '영구'
+                                        : log.penalty_date_to || ''}</s
+                                > ·
                             {/if}
-                        </span>
-                    </div>
+                            <span class="text-emerald-700 dark:text-emerald-400"
+                                >{log.revoked_at} 소명 인용으로 해제</span
+                            >)
+                        {:else}
+                            ({formatPeriodRange(log)})
+                        {/if}
+                    </span>
+                </div>
             </div>
 
             <!-- 사유는 요약 헤더 안에 함께 둔다 — 제재의 "무엇 때문에"가 기간과 떨어지면 안 읽힌다 -->
