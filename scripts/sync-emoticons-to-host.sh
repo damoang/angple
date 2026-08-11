@@ -31,9 +31,16 @@ for a in "$@"; do
     esac
 done
 
-ROOT=$(git rev-parse --show-toplevel 2>/dev/null || true)
+# 저장소 루트는 **스크립트 자신의 위치**에서 찾는다 — 현재 디렉토리 기준으로 찾으면
+# 다른 경로에서 sudo 로 부를 때 실패한다(sudo 는 cwd 를 바꾸지 않지만, 사용자가
+# 저장소 밖에서 절대경로로 호출하는 게 정상적인 사용 방식이다).
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# root 로 실행하면 다른 소유자의 저장소를 git 이 거부한다(dubious ownership).
+git config --global --add safe.directory "$(dirname "$SCRIPT_DIR")" 2>/dev/null || true
+ROOT=$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null || true)
 if [ -z "$ROOT" ]; then
-    echo "⛔ git 저장소 안에서 실행해야 한다(소스가 저장소의 static 이므로)." >&2
+    echo "⛔ 이 스크립트는 web 저장소 안에 있어야 한다 (현재: $SCRIPT_DIR)." >&2
+    echo "   최신 클론에서 실행할 것. stale 트리로 서빙본을 덮으면 사고다." >&2
     exit 1
 fi
 SRC="$ROOT/apps/web/static/emoticons"
