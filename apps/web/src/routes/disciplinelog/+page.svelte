@@ -13,6 +13,11 @@
     import Search from '@lucide/svelte/icons/search';
     import X from '@lucide/svelte/icons/x';
     import { getPenaltyDisplay, type DisciplineLogListItem } from '$lib/api/discipline-log.js';
+    import {
+        penaltySeverity,
+        SEVERITY_DOT,
+        SEVERITY_TEXT
+    } from '$lib/utils/penalty-severity.js';
     import BoardFavoriteButton from '$lib/components/features/board/board-favorite-button.svelte';
     import BoardSubscribeButton from '$lib/components/features/board/board-subscribe-button.svelte';
     import type { PageData } from './$types.js';
@@ -87,13 +92,6 @@
     });
 
     /** 제재 강도를 점 하나로. 영구=빨강, 기간제=주황, 주의=회색, 해제=흐리게 */
-    function dotClass(period: number, released: boolean): string {
-        if (released) return 'bg-muted-foreground/40';
-        if (period === -1) return 'bg-red-500';
-        if (period === 0) return 'bg-muted-foreground/60';
-        return 'bg-amber-500';
-    }
-
     function formatGroupDate(dateStr: string): string {
         if (isToday(dateStr)) return `${dateStr} · 오늘`;
         return dateStr;
@@ -184,17 +182,21 @@
                                         log.penalty_period,
                                         log.penalty_date_to
                                     )}
+                                    {@const severity = penaltySeverity(
+                                        log.penalty_period,
+                                        penalty.released,
+                                        log.revoked
+                                    )}
                                     <li>
                                         <a
                                             href="/disciplinelog/{log.id}"
-                                            class="hover:bg-muted/60 focus-visible:ring-ring flex items-center gap-3 rounded-md px-2 py-1.5 leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2"
+                                            class="hover:bg-muted/60 focus-visible:ring-ring flex items-center gap-3 rounded-md px-2 py-1.5 leading-tight transition-all duration-200 ease-out focus-visible:outline-none focus-visible:ring-2"
                                         >
                                             <!-- 강도 점: 영구=빨강 / 기간제=주황 / 주의·해제=회색 -->
                                             <span
-                                                class="h-2 w-2 shrink-0 rounded-full {dotClass(
-                                                    log.penalty_period,
-                                                    penalty.released
-                                                )}"
+                                                class="h-2 w-2 shrink-0 rounded-full {SEVERITY_DOT[
+                                                    severity
+                                                ]}"
                                                 aria-hidden="true"
                                             ></span>
 
@@ -208,13 +210,9 @@
                                                         >{log.member_id}</span
                                                     >
                                                     <span
-                                                        class="text-xs font-medium {penalty.released
-                                                            ? 'text-muted-foreground'
-                                                            : log.penalty_period === -1
-                                                              ? 'text-red-600 dark:text-red-400'
-                                                              : log.penalty_period === 0
-                                                                ? 'text-muted-foreground'
-                                                                : 'text-amber-700 dark:text-amber-500'}"
+                                                        class="text-xs font-medium {SEVERITY_TEXT[
+                                                            severity
+                                                        ]}"
                                                     >
                                                         {penalty.text}
                                                     </span>

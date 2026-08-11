@@ -21,6 +21,7 @@
     } from '$lib/api/discipline-log.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { getReportReasonLabel } from '$lib/utils/report-reasons.js';
+    import { penaltySeverity, SEVERITY_BADGE } from '$lib/utils/penalty-severity.js';
     import type { PageData } from './$types';
 
     let { data }: { data: PageData } = $props();
@@ -30,15 +31,6 @@
     const log = $derived<DisciplineLogDetail | null>(data.log);
     const memberHistory = $derived<DisciplineLogListItem[]>(data.memberHistory ?? []);
     const error = $derived(data.loadError ? '이용제한 기록을 불러오는데 실패했습니다.' : null);
-
-    function getPenaltyBadgeVariant(
-        period: number,
-        released: boolean = false
-    ): 'default' | 'secondary' | 'destructive' | 'outline' {
-        if (released) return 'secondary';
-        if (period === 0) return 'outline';
-        return 'default';
-    }
 
     function formatPeriodRange(log: DisciplineLogDetail): string {
         const penalty = getPenaltyDisplay(log.penalty_period);
@@ -123,11 +115,12 @@
         </Card.Root>
     {:else}
         {@const penalty = getPenaltyDisplay(log.penalty_period, log.penalty_date_to)}
+        {@const severity = penaltySeverity(log.penalty_period, penalty.released, !!log.revoked_at)}
 
         <!-- 소명 인용 해제 배너: revoked_at 있을 때만. 회수 사실만 공개(회수자·사유 비공개). -->
         {#if log.revoked_at}
             <Card.Root
-                class="mb-4 border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40"
+                class="mb-3 border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40"
             >
                 <Card.Content class="flex items-start gap-3 py-4">
                     <ShieldCheck
@@ -150,14 +143,14 @@
           기존에는 "기본 정보"와 "제재 기간"이 카드 안에서 라벨·값 쌍으로 흩어져
           정작 중요한 정보를 찾는 데 시선이 여러 번 움직였다.
         -->
-        <div class="mb-4 rounded-lg border p-4">
-            <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <span class="text-lg font-bold">{log.member_nickname}</span>
-                <span class="text-muted-foreground/70 text-xs">{log.member_id}</span>
-            </div>
-            <div class="mt-2">
-                <div class="flex flex-wrap items-center gap-2">
-                    <Badge variant={getPenaltyBadgeVariant(log.penalty_period, penalty.released)}>
+        <Card.Root class="mb-3">
+            <Card.Content>
+                <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span class="text-lg font-bold">{log.member_nickname}</span>
+                    <span class="text-muted-foreground/70 text-xs">{log.member_id}</span>
+                </div>
+                <div class="mt-2 flex flex-wrap items-center gap-2">
+                    <Badge variant="outline" class={SEVERITY_BADGE[severity]}>
                         {penalty.text}
                     </Badge>
                     {#if log.revoked_at}
@@ -190,38 +183,66 @@
                         {/if}
                     </span>
                 </div>
-            </div>
 
-            <!-- 사유는 요약 헤더 안에 함께 둔다 — 제재의 "무엇 때문에"가 기간과 떨어지면 안 읽힌다 -->
-            {#if log.violation_types.length > 0}
-                <div class="mt-3 space-y-2 border-t pt-3">
-                    {#each log.violation_types as vt}
-                        <div>
-                            <div class="flex items-baseline gap-2">
-                                <AlertTriangle
-                                    class="text-muted-foreground mt-0.5 h-3.5 w-3.5 shrink-0"
-                                />
-                                <span class="text-sm font-medium">{vt.title}</span>
+                <!-- 사유는 요약 헤더 안에 둔다 — 제재의 "무엇 때문에"가 기간과 떨어지면 안 읽힌다 -->
+                {#if log.violation_types.length > 0}
+                    <div class="mt-3 space-y-2 border-t pt-3">
+                        {#each log.violation_types as vt}
+                            <div>
+                                <div class="flex items-baseline gap-2">
+                                    <AlertTriangle
+                                        class="text-muted-foreground mt-0.5 h-3.5 w-3.5 shrink-0"
+                                    />
+                                    <span class="text-sm font-medium">{vt.title}</span>
+                                </div>
+                                <div class="text-muted-foreground mt-0.5 pl-[1.375rem] text-sm">
+                                    {vt.description}
+                                </div>
                             </div>
-                            <div class="text-muted-foreground mt-0.5 pl-[1.375rem] text-sm">
-                                {vt.description}
+                        {/each}
+                    </div>
+                {/if}
+            </Card.Content>
+        </Card.Root>
+
+        <!--
+          소명 액션 — 본인 기록일 때만 요약 바로 아래에 둔다.
+          회원이 이 페이지에 오는 이유의 절반이 "어떻게 푸나"인데, 카드 여러 장 아래에
+          묻혀 있으면 스크롤하지 않은 사람은 소명 경로를 못 본다.
+        -->
+        {#if isAppealablePenalty(log) && isOwnPenalty(log) && !log.claim_post_id}
+            <Card.Root class="border-primary/50 bg-primary/5 mb-3">
+                <Card.Content class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-start gap-2">
+                        <Calendar class="text-primary mt-0.5 h-4 w-4 shrink-0" />
+                        <div class="text-sm">
+                            <div class="font-medium">이 이용제한에 소명할 수 있습니다</div>
+                            <div class="text-muted-foreground text-xs">
+                                제재일부터 15일 이내에 소명 게시판에서 접수합니다.
                             </div>
                         </div>
-                    {/each}
-                </div>
-            {/if}
-        </div>
+                    </div>
+                    {#if isWithinAppealPeriod(log)}
+                        <Button href="/claim/write?disciplinelog_id={log.id}">소명하기</Button>
+                    {:else}
+                        <span class="text-muted-foreground text-xs"
+                            >소명 가능 기간이 지났습니다</span
+                        >
+                    {/if}
+                </Card.Content>
+            </Card.Root>
+        {/if}
 
         <!-- 기타 사유: 회원 공개용 (운영자가 입력한 경우에만 표시) -->
         {#if log.member_reason && log.member_reason.trim()}
             <Card.Root class="mb-3">
-                <Card.Header>
-                    <Card.Title class="flex items-center gap-2">
-                        <Info class="text-muted-foreground h-5 w-5" />
-                        기타 사유
-                    </Card.Title>
-                </Card.Header>
                 <Card.Content>
+                    <div
+                        class="text-muted-foreground mb-1.5 flex items-center gap-1.5 text-xs font-medium"
+                    >
+                        <Info class="h-3.5 w-3.5" />
+                        기타 사유
+                    </div>
                     <p class="whitespace-pre-line text-sm">{log.member_reason}</p>
                 </Card.Content>
             </Card.Root>
@@ -230,13 +251,13 @@
         <!-- 안내: 회원 공개용 외부 안내문 (운영자가 입력한 경우에만 표시) -->
         {#if log.public_description && log.public_description.trim()}
             <Card.Root class="mb-3">
-                <Card.Header>
-                    <Card.Title class="flex items-center gap-2">
-                        <Megaphone class="text-muted-foreground h-5 w-5" />
-                        안내
-                    </Card.Title>
-                </Card.Header>
                 <Card.Content>
+                    <div
+                        class="text-muted-foreground mb-1.5 flex items-center gap-1.5 text-xs font-medium"
+                    >
+                        <Megaphone class="h-3.5 w-3.5" />
+                        안내
+                    </div>
                     <p class="whitespace-pre-line text-sm">{log.public_description}</p>
                 </Card.Content>
             </Card.Root>
@@ -249,7 +270,7 @@
             <Card.Root class="mb-3">
                 <Card.Header>
                     <Card.Title class="flex items-center gap-2">
-                        <FileText class="h-5 w-5" />
+                        <FileText class="text-muted-foreground h-5 w-5" />
                         신고 접수된 글
                     </Card.Title>
                 </Card.Header>
@@ -300,34 +321,25 @@
             </Card.Root>
         {/if}
 
-        <!-- Appeal Info: 주의(0) 제외, 영구(-1) 및 정지(>=1) 모두 표시 -->
-        {#if isAppealablePenalty(log)}
-            <Card.Root class="border-primary/50 bg-primary/5">
-                <Card.Header>
-                    <Card.Title class="text-primary flex items-center gap-2">
-                        <Calendar class="h-5 w-5" />
-                        소명 안내
-                    </Card.Title>
-                </Card.Header>
+        <!--
+          소명 안내(참고용) — 본인 미소명 건은 위 CTA 가 맡으므로 여기서는 제외한다.
+          남는 경우는 ① 이미 소명글이 있는 건 ② 남의 기록(공개 게시판이라 이쪽이 다수).
+        -->
+        {#if isAppealablePenalty(log) && (log.claim_post_id || !isOwnPenalty(log))}
+            <Card.Root class="border-primary/50 bg-primary/5 mb-3">
                 <Card.Content>
-                    <p class="text-muted-foreground mb-4 text-sm">
+                    <div class="text-primary mb-1.5 flex items-center gap-1.5 text-xs font-medium">
+                        <Calendar class="h-3.5 w-3.5" />
+                        소명 안내
+                    </div>
+                    <p class="text-muted-foreground text-sm">
                         이용제한에 대해 이의가 있으시면 소명 게시판에서 소명하실 수 있습니다. 소명은
-                        제재 시작 후 1일이 지난 시점부터 15일 이내에만 가능합니다.
+                        제재일부터 15일 이내에 가능합니다.
                     </p>
                     {#if log.claim_post_id}
-                        <Button variant="outline" href="/claim/{log.claim_post_id}">
+                        <Button variant="outline" class="mt-3" href="/claim/{log.claim_post_id}">
                             소명글 보기
                         </Button>
-                    {:else if isOwnPenalty(log)}
-                        {#if isWithinAppealPeriod(log)}
-                            <Button variant="outline" href="/claim/write?disciplinelog_id={log.id}">
-                                소명하기
-                            </Button>
-                        {:else}
-                            <p class="text-muted-foreground text-sm">
-                                소명 가능 기간이 아니거나 15일이 지났습니다.
-                            </p>
-                        {/if}
                     {/if}
                 </Card.Content>
             </Card.Root>
@@ -335,10 +347,10 @@
 
         <!-- Member History -->
         {#if memberHistory.length > 0}
-            <Card.Root class="mt-4">
+            <Card.Root class="mb-3">
                 <Card.Header>
                     <Card.Title class="flex items-center gap-2">
-                        <History class="h-5 w-5" />
+                        <History class="text-muted-foreground h-5 w-5" />
                         이 회원의 전체 이용제한 내역
                     </Card.Title>
                 </Card.Header>
@@ -349,26 +361,28 @@
                                 item.penalty_period,
                                 item.penalty_date_to
                             )}
+                            {@const itemSeverity = penaltySeverity(
+                                item.penalty_period,
+                                itemPenalty.released,
+                                item.revoked
+                            )}
                             <a
                                 href="/disciplinelog/{item.id}"
-                                class="hover:bg-muted/50 flex items-center justify-between rounded px-2 py-1.5 text-sm leading-tight transition-colors {item.id ===
+                                class="hover:bg-muted/50 flex items-center justify-between rounded px-2 py-1.5 text-sm leading-tight transition-all duration-200 ease-out {item.id ===
                                 log.id
-                                    ? 'bg-primary/10 border-primary/30 border font-semibold'
+                                    ? 'bg-primary/10 ring-primary/30 font-semibold ring-1'
                                     : ''}"
                             >
                                 <div class="flex items-center gap-3">
                                     <span class="text-muted-foreground"
                                         >{item.penalty_date_from}</span
                                     >
-                                    <Badge
-                                        variant={getPenaltyBadgeVariant(
-                                            item.penalty_period,
-                                            itemPenalty.released
-                                        )}
-                                    >
+                                    <Badge variant="outline" class={SEVERITY_BADGE[itemSeverity]}>
                                         {itemPenalty.text}
                                     </Badge>
-                                    {#if itemPenalty.released}
+                                    {#if item.revoked}
+                                        <Badge variant="secondary" class="text-xs">소명 해제</Badge>
+                                    {:else if itemPenalty.released}
                                         <Badge variant="secondary" class="text-xs">해제</Badge>
                                     {/if}
                                 </div>
@@ -384,7 +398,7 @@
 
         <!-- Meta Info -->
         <div class="text-muted-foreground mt-4 text-center text-xs">
-            작성일: {log.created_at}
+            기록 등록 {log.created_at}
         </div>
     {/if}
 </div>
