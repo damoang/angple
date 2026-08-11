@@ -2155,9 +2155,11 @@
         <TagNav />
     </div>
 
-    <!-- 상단 네비게이션 — 모바일 터치 타겟 44px(#12016) -->
+    <!-- 상단 네비게이션 — 모바일 터치 타겟 36px.
+         원래 44px(#12016)였으나 이 네비에만 걸린 값이라 같은 화면의 다른 버튼(32px)과 어긋나
+         유독 커 보였다. 36px = Button 기본 높이(h-9)와 같고 WCAG 2.2 AA 최소(24px)를 상회한다. -->
     <div
-        class="-mx-2 mb-2 flex flex-wrap items-center gap-2 px-2 py-2 md:mx-0 md:flex-nowrap md:gap-2 md:px-0 [&_a]:min-h-11 md:[&_a]:min-h-0 [&_button]:min-h-11 md:[&_button]:min-h-0"
+        class="-mx-2 mb-2 flex flex-wrap items-center gap-2 px-2 py-2 md:mx-0 md:flex-nowrap md:gap-2 md:px-0 [&_a]:min-h-9 md:[&_a]:min-h-0 [&_button]:min-h-9 md:[&_button]:min-h-0"
     >
         <Button variant="ghost" size="sm" onclick={() => history.back()} class="shrink-0">←</Button>
         <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">목록으로</Button>
@@ -2680,9 +2682,9 @@
             </div>
         {/if}
 
-        <!-- 댓글 아래 네비게이션 — 모바일 터치 타겟 44px(#12016) -->
+        <!-- 댓글 아래 네비게이션 — 모바일 터치 타겟 36px (상단 네비와 동일, 사유는 그쪽 주석) -->
         <div
-            class="-mx-2 mt-4 flex flex-wrap items-center gap-2 px-2 py-2 md:mx-0 md:flex-nowrap md:gap-2 md:px-0 [&_a]:min-h-11 md:[&_a]:min-h-0 [&_button]:min-h-11 md:[&_button]:min-h-0"
+            class="-mx-2 mt-4 flex flex-wrap items-center gap-2 px-2 py-2 md:mx-0 md:flex-nowrap md:gap-2 md:px-0 [&_a]:min-h-9 md:[&_a]:min-h-0 [&_button]:min-h-9 md:[&_button]:min-h-0"
         >
             <Button variant="ghost" size="sm" onclick={() => history.back()} class="shrink-0"
                 >←</Button
