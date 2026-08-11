@@ -63,7 +63,7 @@
     }
 </script>
 
-<div class="adsense-multiplex {className}">
+<div class="adsense-multiplex {className}" class:is-reserved={!suppressAds}>
     {#if ready && !suppressAds}
         <ins
             bind:this={insEl}
@@ -79,5 +79,25 @@
 <style>
     .adsense-multiplex {
         overflow: hidden;
+    }
+
+    /*
+     * 높이 예약 — CLS 방지.
+     *
+     * 종전엔 스크립트 로드(`ready`) 전까지 래퍼 높이가 0 이었다가 autorelaxed
+     * 크리에이티브가 들어오면서 수백 px 로 뛰어, 이 아래의 "최근 글" 목록 전체를
+     * 밀어냈다(2026-08-11 감사: 글 상세 CLS 0.111 의 주요 기여분).
+     *
+     * 미충전 시 빈 공백이 남지 않도록 AdSense 가 부여하는
+     * `data-ad-status="unfilled"` 를 만나면 예약을 해제한다.
+     * 광고가 숨겨지는 글(성인/차단 작가)에는 애초에 예약하지 않는다.
+     */
+    .adsense-multiplex.is-reserved {
+        min-height: 300px;
+        contain: layout;
+    }
+
+    .adsense-multiplex.is-reserved:has(ins[data-ad-status='unfilled']) {
+        min-height: 0;
     }
 </style>

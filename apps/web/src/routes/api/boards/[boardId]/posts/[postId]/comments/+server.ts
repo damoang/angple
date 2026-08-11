@@ -108,6 +108,10 @@ const MAX_EXTERNAL_COMMENT_PAGE = 1;
 export const GET: RequestHandler = async ({ params, url, locals, request }) => {
     const { boardId, postId } = params;
     const isAdmin = (locals.user?.level ?? 0) >= 10;
+    // 비로그인에게는 마스킹된 IP 조차 내리지 않는다 — `120.♡.35.175` 는 4옥텟 중
+    // 3개가 그대로라 /24 대역이 식별된다. 좋아요 목록 API(likers)가 이미 쓰는
+    // 정책(비로그인=빈 값)과 통일한다. 키는 유지하고 값만 비운다(#604).
+    const isMember = Boolean(locals.user);
     const isInternalRequest = isInternalAppRequest(request);
 
     // `!boardId` 만으로는 부족하다 — 클라이언트가 URL 을 템플릿 리터럴로 만들면 값이 없을 때
@@ -385,7 +389,9 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
                         : ''
                     : isAdmin
                       ? row.wr_ip
-                      : maskIp(row.wr_ip),
+                      : isMember
+                        ? maskIp(row.wr_ip)
+                        : '',
                 likes: row.wr_good,
                 dislikes: row.wr_nogood,
                 depth: row.wr_comment_reply.length,
