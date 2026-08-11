@@ -248,4 +248,15 @@
         font-size: var(--editor-font-size, 1rem);
         line-height: 1.6;
     }
+
+    /* 인라인 스포일러 — 에디터에선 가리지 않고 "표시만"(작성 중 읽어야 하므로).
+       본문 에디터(tiptap-editor.svelte)와 동일한 점선 테두리+옅은 배경으로,
+       모바일에서도 적용 여부가 한눈에 보이게 한다. 뷰의 실제 가림은
+       comment-list(.comment-body)·markdown(.prose)에 별도. */
+    .comment-editor :global(.tiptap span.dm-spoiler) {
+        background: color-mix(in srgb, currentColor 12%, transparent);
+        outline: 1px dashed color-mix(in srgb, currentColor 45%, transparent);
+        outline-offset: 1px;
+        border-radius: 3px;
+    }
 </style>
