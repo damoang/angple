@@ -13,6 +13,7 @@ import { buildGradeDeniedMessage } from '$lib/utils/board-permissions';
 import { canRestrictedUserReactToBoard, getAuthUser, isRestrictedUser } from '$lib/server/auth';
 import { checkCertification } from '$lib/server/certification';
 import { protectClientIp } from '$lib/server/ip-protection';
+import { isSanctionedPost, SANCTIONED_LOCK_MESSAGE } from '$lib/server/sanctioned-lock';
 import { getRedis } from '$lib/server/redis';
 import {
     getPostReactionVersion,
@@ -237,6 +238,12 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
             { success: false, message: '이용제한 중에는 추천/비추천을 할 수 없습니다.' },
             { status: 403 }
         );
+    }
+
+    // ⛔ 제재 근거로 확정된 글에는 추천이 더 붙지 않게 한다.
+    //    실측(2026-08-11) 확정 이후에 붙은 추천이 517건(95글)이었다 — 처분 취지가 무너진다.
+    if (await isSanctionedPost(boardId, Number(postId))) {
+        return json({ success: false, message: SANCTIONED_LOCK_MESSAGE }, { status: 403 });
     }
 
     // 레벨 체크 (레벨 3 미만은 추천/비추천 불가)

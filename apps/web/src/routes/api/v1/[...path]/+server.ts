@@ -1,4 +1,5 @@
 import type { RequestHandler } from './$types';
+import { isSanctionedPost, SANCTIONED_LOCK_MESSAGE } from '$lib/server/sanctioned-lock';
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
 import pool from '$lib/server/db';
@@ -377,6 +378,18 @@ async function linkAngttOnEdit(path: string): Promise<void> {
 }
 
 // 공통 프록시 로직
+/**
+ * 프록시 경로가 "확정 처분된 글에 손대는" 요청인지 판정한다.
+ *   댓글 달기  boards/{board}/posts/{id}/comments
+ *   본문 수정  boards/{board}/posts/{id}
+ * 둘 다 대상 글 번호가 경로에 있으므로 그 글의 처분 여부만 보면 된다.
+ */
+async function sanctionedLockTarget(path: string): Promise<boolean> {
+    const m = path.match(/^boards\/([a-zA-Z0-9_-]+)\/posts\/(\d+)(?:\/comments)?\/?$/);
+    if (!m) return false;
+    return isSanctionedPost(m[1], Number(m[2]));
+}
+
 async function proxyRequest(
     method: string,
     params: { path: string },
@@ -397,6 +410,20 @@ async function proxyRequest(
     ) {
         if (!isInternalRequest) {
             return internalOnlyErrorResponse();
+        }
+    }
+
+    // ⛔ 이용제한 처분이 확정된 글은 더 손대지 못하게 한다 — 댓글 달기·본문 수정.
+    //    추천은 web 이 직접 처리하므로 like/+server.ts 에서 따로 막는다.
+    //    실측(2026-08-11): 확정 이후 댓글 288건(78글) · 본문 수정 23건(19글)이 붙었다.
+    //    ⛔ DELETE 는 막지 않는다 — 운영자 삭제와 작성자 자진 삭제는 계속 가능해야 한다.
+    if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+        const locked = await sanctionedLockTarget(path);
+        if (locked) {
+            return new Response(
+                JSON.stringify({ success: false, message: SANCTIONED_LOCK_MESSAGE }),
+                { status: 403, headers: { 'Content-Type': 'application/json' } }
+            );
         }
     }
 
