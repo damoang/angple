@@ -22,6 +22,10 @@ interface AngmapPin {
     provider: string;
     /** 글 카테고리(ca_name) = 지역명(경기·서울…). 지도 필터 칩용 (M-1b) */
     region: string | null;
+    /** 앙님 별점 평균(평가 없으면 null). angple_post_ratings(bo_table=angmap) 집계 (Phase 2) */
+    ratingAvg: number | null;
+    /** 별점 참여 인원(n). 표시 규약은 rating-display 유틸이 판단 */
+    ratingCount: number;
 }
 
 interface PinRow extends RowDataPacket {
@@ -32,6 +36,8 @@ interface PinRow extends RowDataPacket {
     lng: string | number;
     provider: string;
     ca_name: string | null;
+    avg_rating: string | number | null;
+    rating_count: string | number | null;
 }
 
 const pinsCache = createCache<AngmapPin[]>({ ttl: 60_000, maxSize: 4 });
@@ -63,10 +69,19 @@ function isPlottable(p: AngmapPin): boolean {
 
 async function loadPins(): Promise<AngmapPin[]> {
     const [rows] = await readPool.query<PinRow[]>(
-        `SELECT p.wr_id, p.name, p.lat, p.lng, p.provider, w.wr_subject, w.ca_name
+        // 별점 집계는 angmap 한정 GROUP BY 서브쿼리 1회(현재 수십 행 규모) + 60초 캐시.
+        // makeang/84 서버부담 최소 원칙 — pins 응답에 얹어 추가 왕복 0.
+        `SELECT p.wr_id, p.name, p.lat, p.lng, p.provider, w.wr_subject, w.ca_name,
+                r.avg_rating, r.rating_count
          FROM angmap_places p
          INNER JOIN g5_write_angmap w
              ON w.wr_id = p.wr_id AND w.wr_is_comment = 0
+         LEFT JOIN (
+             SELECT wr_id, AVG(rating) AS avg_rating, COUNT(*) AS rating_count
+             FROM angple_post_ratings
+             WHERE bo_table = 'angmap'
+             GROUP BY wr_id
+         ) r ON r.wr_id = p.wr_id
          WHERE p.resolve_status = 'ok'
            AND w.wr_option NOT LIKE '%secret%'`
     );
@@ -78,7 +93,9 @@ async function loadPins(): Promise<AngmapPin[]> {
             lat: Number(r.lat),
             lng: Number(r.lng),
             provider: r.provider,
-            region: r.ca_name || null
+            region: r.ca_name || null,
+            ratingAvg: r.avg_rating != null ? Number(r.avg_rating) : null,
+            ratingCount: Number(r.rating_count) || 0
         }))
         .filter(isPlottable);
 }

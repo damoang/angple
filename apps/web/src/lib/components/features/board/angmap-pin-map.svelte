@@ -10,6 +10,7 @@
     import MapPin from '@lucide/svelte/icons/map-pin';
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import ExternalLink from '@lucide/svelte/icons/external-link';
+    import LocateFixed from '@lucide/svelte/icons/locate-fixed';
     import type { Map as LeafletMap } from 'leaflet';
     import {
         ANGMAP_TILE_PROVIDER,
@@ -17,6 +18,8 @@
         ANGMAP_DEFAULT_CENTER,
         ANGMAP_DEFAULT_ZOOM
     } from './angmap-map-provider.js';
+    // 별점 표시 규약 공유 유틸(n<3='앙님 N명 평가', n>=3='★avg · N명') — Phase 1과 동일 소스
+    import { formatRatingSummary } from './rating-display.js';
 
     interface AngmapPin {
         id: number;
@@ -26,6 +29,8 @@
         lng: number;
         provider: string;
         region: string | null;
+        ratingAvg: number | null;
+        ratingCount: number;
     }
 
     const STORAGE_KEY = 'angmap_pinmap_expanded';
@@ -154,18 +159,23 @@
     ): void {
         const label = escapeHtml(pin.name || pin.title);
         const title = escapeHtml(pin.title);
-        L.circleMarker([pin.lat, pin.lng], {
-            radius: 7,
-            weight: 2,
-            color: '#be123c',
-            fillColor: '#f43f5e',
-            fillOpacity: 0.75
-        })
+        const rated = pin.ratingCount > 0;
+        // makeang/84: 앙님 별점이 있는 장소는 지도에서 바로 눈에 띄게(금색). 없으면 기존 로즈색.
+        const style = rated
+            ? { radius: 8, weight: 2, color: '#b45309', fillColor: '#f59e0b', fillOpacity: 0.9 }
+            : { radius: 7, weight: 2, color: '#be123c', fillColor: '#f43f5e', fillOpacity: 0.75 };
+        const ratingLine = rated
+            ? `<br><span style="font-size:12px;color:#b45309;font-weight:600">${escapeHtml(
+                  formatRatingSummary(pin.ratingAvg ?? 0, pin.ratingCount)
+              )}</span>`
+            : '';
+        L.circleMarker([pin.lat, pin.lng], style)
             .bindPopup(
                 `<a href="/angmap/${pin.id}" style="font-weight:600">${label}</a>` +
                     (pin.name && pin.name !== pin.title
                         ? `<br><span style="font-size:12px;color:#666">${title}</span>`
-                        : '')
+                        : '') +
+                    ratingLine
             )
             .addTo(layer);
     }
@@ -230,6 +240,33 @@
         if (data.length > 0) {
             map.fitBounds(initialBounds(leafletMod, data).pad(0.15), { maxZoom: 15 });
         }
+    }
+
+    let locating = $state(false);
+    /**
+     * 내 주변 — 클라이언트 geolocation 으로 지도만 이동(서버 왕복 0, makeang/84 서버부담 최소).
+     * ⛔ 국가 가정 없음: 좌표 그대로 setView. 권한 거부/미지원이면 조용히 무시.
+     */
+    function locateMe(): void {
+        if (!browser || !map || typeof navigator === 'undefined' || !navigator.geolocation) return;
+        locating = true;
+        // 권한 프롬프트를 무시하면 두 콜백 다 안 와 스피너가 고착될 수 있다(브라우저가
+        // 프롬프트 표시 중엔 timeout 타이머를 멈춘다) → 독립 안전 리셋.
+        const safety = setTimeout(() => {
+            locating = false;
+        }, 12_000);
+        navigator.geolocation.getCurrentPosition(
+            (pos) => {
+                clearTimeout(safety);
+                locating = false;
+                map?.setView([pos.coords.latitude, pos.coords.longitude], 14);
+            },
+            () => {
+                clearTimeout(safety);
+                locating = false;
+            },
+            { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 }
+        );
     }
 
     function initMap(leaflet: typeof import('leaflet'), pinData: AngmapPin[]): void {
@@ -364,6 +401,19 @@
                     </button>
                 </div>
             {:else}
+                <!-- 내 주변 + 별점 범례 (makeang/84: 지도를 맛집 발견 입구로) -->
+                <div class="mb-2 flex items-center gap-2">
+                    <button
+                        type="button"
+                        onclick={locateMe}
+                        disabled={locating}
+                        class="text-muted-foreground hover:bg-muted inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-colors disabled:opacity-50"
+                    >
+                        <LocateFixed class="h-3.5 w-3.5" />
+                        {locating ? '위치 찾는 중…' : '내 주변'}
+                    </button>
+                    <span class="text-muted-foreground text-xs">🟡 앙님 별점 있는 곳</span>
+                </div>
                 {#if regions.length > 1}
                     <!-- 지역 필터 칩 (ca_name) — 선택 시 해당 지역만 그리고 뷰를 맞춘다 -->
                     <div class="mb-2 flex flex-wrap gap-1.5">
