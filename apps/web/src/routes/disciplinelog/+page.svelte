@@ -13,11 +13,7 @@
     import Search from '@lucide/svelte/icons/search';
     import X from '@lucide/svelte/icons/x';
     import { getPenaltyDisplay, type DisciplineLogListItem } from '$lib/api/discipline-log.js';
-    import {
-        penaltySeverity,
-        SEVERITY_DOT,
-        SEVERITY_TEXT
-    } from '$lib/utils/penalty-severity.js';
+    import { penaltySeverity, SEVERITY_DOT, SEVERITY_TEXT } from '$lib/utils/penalty-severity.js';
     import BoardFavoriteButton from '$lib/components/features/board/board-favorite-button.svelte';
     import BoardSubscribeButton from '$lib/components/features/board/board-subscribe-button.svelte';
     import type { PageData } from './$types.js';
