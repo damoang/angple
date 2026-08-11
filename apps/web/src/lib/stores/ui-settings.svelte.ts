@@ -109,11 +109,16 @@ const DEFAULTS: UiSettings = {
     memoColorLabels: {}
 };
 
+// ⛔ normal 은 현재 라이브 하드코딩(markdown .prose p / tiptap p = 1.8)과 **같은 값**이어야 한다.
+//    #13456: 이 설정은 그동안 --content-line-height 를 읽는 CSS 가 0곳이라 죽어 있었다.
+//    이제 markdown/에디터가 var(--content-line-height, 1.8) 로 소비하는데, 만약 기본값을
+//    1.6 으로 두면 설정을 한 번도 안 만진 전 사용자의 본문이 1.8→1.6 으로 좁아지는 대량
+//    회귀가 난다. 그래서 normal=1.8 로 고정하고 나머지만 의미 있게 벌린다.
 const LINE_HEIGHT_VALUES: Record<LineHeight, string> = {
-    compact: '1.4',
-    normal: '1.6',
-    relaxed: '1.8',
-    loose: '2.0'
+    compact: '1.5',
+    normal: '1.8',
+    relaxed: '2.0',
+    loose: '2.3'
 };
 
 const CONTENT_FONT_SIZES: Record<ContentFontSize, string> = {
