@@ -75,14 +75,16 @@ declare global {
 /** 카카오 JS 앱키를 런타임으로 1회 조회(모듈 캐시). 없으면 빈 문자열. */
 async function fetchKakaoKey(): Promise<string> {
     if (cachedKakaoKey !== null) return cachedKakaoKey;
+    let key = '';
     try {
         const res = await fetch('/api/config/kakao-share-key');
         const data = res.ok ? await res.json() : null;
-        cachedKakaoKey = typeof data?.key === 'string' ? data.key : '';
+        key = typeof data?.key === 'string' ? data.key : '';
     } catch {
-        cachedKakaoKey = '';
+        key = '';
     }
-    return cachedKakaoKey;
+    cachedKakaoKey = key;
+    return key;
 }
 
 /** 카카오 SDK 스크립트를 한 번만 로드 */
