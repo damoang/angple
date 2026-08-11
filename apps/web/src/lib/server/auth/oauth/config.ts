@@ -19,6 +19,8 @@ export interface OAuthKeys {
     naver_secret: string;
     kakao_rest_key: string;
     kakao_client_secret: string;
+    /** 카카오 JS SDK 앱키(공개키). 카카오톡 공유(sharer.kakao.com)에 사용. #13454 */
+    kakao_js_key: string;
     google_clientid: string;
     google_secret: string;
     facebook_appid: string;
@@ -45,7 +47,7 @@ export async function getOAuthKeys(): Promise<OAuthKeys> {
     }
 
     const [rows] = await pool.query<RowDataPacket[]>(
-        `SELECT cf_naver_clientid, cf_naver_secret, cf_kakao_rest_key, cf_kakao_client_secret,
+        `SELECT cf_naver_clientid, cf_naver_secret, cf_kakao_rest_key, cf_kakao_client_secret, cf_kakao_js_apikey,
 		        cf_google_clientid, cf_google_secret, cf_facebook_appid, cf_facebook_secret,
 		        cf_twitter_key, cf_twitter_secret, cf_payco_clientid, cf_payco_secret,
 		        cf_apple_bundle_id, cf_apple_team_id, cf_apple_key_id, cf_apple_key_file
@@ -62,6 +64,7 @@ export async function getOAuthKeys(): Promise<OAuthKeys> {
         naver_secret: env.NAVER_CLIENT_SECRET || row.cf_naver_secret || '',
         kakao_rest_key: env.KAKAO_REST_KEY || row.cf_kakao_rest_key || '',
         kakao_client_secret: env.KAKAO_CLIENT_SECRET || row.cf_kakao_client_secret || '',
+        kakao_js_key: env.KAKAO_JS_KEY || row.cf_kakao_js_apikey || '',
         google_clientid: env.GOOGLE_CLIENT_ID || row.cf_google_clientid || '',
         google_secret: env.GOOGLE_CLIENT_SECRET || row.cf_google_secret || '',
         facebook_appid: env.FACEBOOK_APP_ID || row.cf_facebook_appid || '',
