@@ -101,7 +101,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if git diff --quiet; then
+          # ⛔ `git diff --quiet` 는 **추적 중인 파일의 변경만** 본다. 이 워크플로가 만드는
+          # .webp 는 전부 신규(untracked) 라, 변환이 성공해도 항상 "변경 없음" 으로 빠져나가
+          # PR 이 만들어지지 않았다(2026-08-11 실측: 47MB→11MB 변환 성공했는데 PR 0건).
+          # untracked 를 포함해 판정한다.
+          if [ -z "$(git status --porcelain apps/web/static/emoticons)" ]; then
             echo "변경 없음 — PR 생략"; exit 0
           fi
           AFTER=$(du -sb apps/web/static/emoticons | cut -f1)
