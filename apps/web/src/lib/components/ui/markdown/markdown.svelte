@@ -144,6 +144,32 @@
         });
     }
 
+    /**
+     * 본문 이미지에 로딩 힌트를 넣는다.
+     *
+     * 본문은 에디터가 저장한 원본 URL 을 그대로 출력해 왔고 loading/decoding 이
+     * 없었다. 글 하나에 이미지가 여러 장이면 전부 즉시 내려받아 초기 로드를 막는다.
+     *
+     * ⛔ srcset 은 여기서 넣지 않는다. 고정 비율 썸네일(835×626)로 바꾸면 세로로 긴
+     *    이미지가 뭉개져 2026-04-06 에 optimizeMediaHtml 을 끈 전례가 있다.
+     *    비율 유지 썸네일이 준비된 뒤에 별도로 재도입한다.
+     * ⚠️ 첫 이미지는 LCP 후보라 eager 로 남긴다 — lazy 를 걸면 오히려 느려진다.
+     * 작성자가 직접 지정한 loading/decoding 은 존중한다.
+     */
+    function injectImageLoadingHints(html: string): string {
+        if (!html) return html;
+        let seen = 0;
+        return html.replace(/<img\b([^>]*)>/gi, (match, rawAttrs: string) => {
+            const isFirst = seen++ === 0;
+            if (isFirst) return match;
+            const attrs = rawAttrs.replace(/\/\s*$/, '');
+            const loading = /\bloading\s*=/i.test(attrs) ? '' : ' loading="lazy"';
+            const decoding = /\bdecoding\s*=/i.test(attrs) ? '' : ' decoding="async"';
+            if (!loading && !decoding) return match;
+            return `<img${attrs}${loading}${decoding}>`;
+        });
+    }
+
     // DOMPurify 설정
     const PURIFY_CONFIG = {
         ALLOWED_TAGS: [
@@ -277,8 +303,8 @@
         rawHtml = transformEscapedMedia(rawHtml);
         // processEmbeds는 클라이언트 $effect에서만 실행 (SSR 부하 방지)
         // 본문 이미지 src 더블슬래시 collapse + CDN 호스트 정규화 (#12697)
-        return injectYoutubeStart(
-            normalizeHtmlMediaUrls(DOMPurify.sanitize(rawHtml, PURIFY_CONFIG))
+        return injectImageLoadingHints(
+            injectYoutubeStart(normalizeHtmlMediaUrls(DOMPurify.sanitize(rawHtml, PURIFY_CONFIG)))
         );
     }
 
@@ -333,6 +359,7 @@
                 sanitized = normalizeHtmlMediaUrls(sanitized);
                 sanitized = injectYoutubeStart(sanitized);
                 sanitized = addLinkMismatchWarnings(sanitized);
+                sanitized = injectImageLoadingHints(sanitized);
                 renderedHtml = sanitized;
             });
         }
