@@ -123,9 +123,27 @@ jobs:
           {
             echo "emoticons-to-webp 워크플로 산출. GIF 원본은 유지, 애니 WebP 를 추가."
             echo ""
-            echo "⛔ 머지 전 눈으로 확인. 머지 후 premium webp-manifest.json 의 names 에"
-            echo "위 목록(step summary / webp-manifest.names.json)을 반영해야 렌더가 WebP 로"
-            echo "전환됩니다(파일 먼저, 파서 나중)."
+            echo "## ⛔ 머지만으로는 서빙되지 않는다"
+            echo ""
+            echo "이모티콘은 **nginx 가 호스트 파일을 직접 서빙**한다(컨테이너 이미지가 아님)."
+            echo '  `location ^~ /emoticons/` → `alias /home/damoang/legacy-data/emoticons/`'
+            echo '  `location ^~ /api/emoticons/nariya/` → 같은 경로 (리액션 피커)'
+            echo ""
+            echo "2026-08-11 에 이 PR 계열을 머지·승격했는데 운영에서 **전부 404** 였다."
+            echo "파일이 컨테이너에만 들어갔기 때문이다. 머지 후 호스트 동기화가 반드시 필요하다."
+            echo ""
+            echo "### 반영 순서"
+            echo '1. 이 PR 머지 (저장소=SoT 갱신)'
+            echo '2. 운영 호스트에서 동기화:'
+            echo '   ```'
+            echo '   bash scripts/sync-emoticons-to-host.sh              # dry-run'
+            echo '   sudo bash scripts/sync-emoticons-to-host.sh --apply'
+            echo '   ```'
+            echo '3. 검증: `curl -sI https://damoang.net/emoticons/<파일>.webp | head -1` → 200'
+            echo '4. 그 다음에야 premium `webp-manifest.json` 의 names 에 아래 목록 반영'
+            echo '   (**파일 먼저, 파서 나중** — 역순이면 404)'
+            echo ""
+            echo "⛔ 머지 전 눈으로 확인할 것. 변환이 프레임을 떨어뜨렸을 수 있다."
           } > pr-body.md
           gh pr create --base main --head "$BRANCH" \
             --title "chore: 이모티콘 애니 WebP 생성 (A안 PR-B)" \
