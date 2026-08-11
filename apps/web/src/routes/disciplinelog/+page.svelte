@@ -12,7 +12,7 @@
     import Shield from '@lucide/svelte/icons/shield';
     import Search from '@lucide/svelte/icons/search';
     import X from '@lucide/svelte/icons/x';
-    import { getPenaltyDisplay } from '$lib/api/discipline-log.js';
+    import { getPenaltyDisplay, type DisciplineLogListItem } from '$lib/api/discipline-log.js';
     import BoardFavoriteButton from '$lib/components/features/board/board-favorite-button.svelte';
     import BoardSubscribeButton from '$lib/components/features/board/board-subscribe-button.svelte';
     import type { PageData } from './$types.js';
@@ -72,15 +72,19 @@
      * 한 사람이 여러 계정을 쓰면 같은 날 같은 사유가 줄줄이 쌓여(2026-08-11 에 12건)
      * 행이 반복되기만 하고 읽히지 않는다. 날짜를 머리글로 올려 한 덩어리로 보이게 한다.
      * ⛔ $derived 안에서 Map 을 만들지 않는다(svelte/prefer-svelte-reactivity) — 배열로 접는다.
+     * ⛔ logs.reduce<T>(...) 처럼 제네릭 인자도 주면 안 된다. logs 는 $derived 값이라
+     *    svelte-check 가 "Untyped function calls may not accept type arguments" 로 막는다.
+     *    누산기 변수에 타입을 붙여 우회한다.
      */
-    const grouped = $derived(
-        logs.reduce<{ date: string; items: typeof logs }[]>((acc, log) => {
+    const grouped = $derived.by(() => {
+        const acc: { date: string; items: DisciplineLogListItem[] }[] = [];
+        for (const log of logs) {
             const last = acc[acc.length - 1];
             if (last && last.date === log.penalty_date_from) last.items.push(log);
             else acc.push({ date: log.penalty_date_from, items: [log] });
-            return acc;
-        }, [])
-    );
+        }
+        return acc;
+    });
 
     /** 제재 강도를 점 하나로. 영구=빨강, 기간제=주황, 주의=회색, 해제=흐리게 */
     function dotClass(period: number, released: boolean): string {
