@@ -53,6 +53,7 @@
     import { doAction } from '$lib/hooks/registry';
     import { page } from '$app/stores';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
+    import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
     import { isEmbeddable } from '$lib/plugins/auto-embed';
     import { embedAsTiptapYoutube } from '$lib/utils/link1-embed';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
@@ -1861,7 +1862,14 @@
         // 본문에 이미지가 없으면 PUBLIC_OG_FALLBACK_IMAGE (운영에서 사이트 로고 URL 설정) 로
         // 대체. fallback 미설정 시 og:image 가 누락되어 크롤러가 페이지 안의 임의 이미지
         // (작성자 프로필, 댓글자 아바타 등) 를 썸네일로 잡아가는 문제 (#12417) 발생.
-        const rawOgImage = data.post.thumbnail || data.post.images?.[0];
+        // 소셜 카드용으로 더 큰 변형본을 쓴다. 백엔드가 주는 thumbnail 은 목록용
+        // 400×225 라 twitter summary_large_image 권장 크기에 한참 못 미쳤다.
+        // Lambda 가 835×626 을 함께 생성하므로 접미사만 바꾸면 된다(2026-08-11 실측:
+        // 최근 글 5건 전부 200). 변환 대상이 아닌 URL 은 toThumbnailUrl 이 원본을 그대로 돌려준다.
+        const rawOgImage = ((): string | undefined => {
+            const src = data.post.thumbnail || data.post.images?.[0];
+            return src ? toThumbnailUrl(src, '835x626') : undefined;
+        })();
         const fallbackOgImage = publicEnv.PUBLIC_OG_FALLBACK_IMAGE || undefined;
         // GSC "image URL 잘못됨" 방지: 상대경로는 siteUrl 기준 절대화, http(s) 외 스킴은 fallback 으로
         let safeOgImage: string | undefined;
@@ -2008,7 +2016,12 @@
                 description: postDescription,
                 type: 'article',
                 url: postUrl,
-                image: ogImageUrl
+                image: ogImageUrl,
+                // 크롤러가 내려받기 전에 카드 크기를 잡을 수 있게 명시한다.
+                // 우리 변형본을 쓸 때만 — fallback 이미지는 크기를 알 수 없다.
+                ...(safeOgImage?.includes('-835x626.webp')
+                    ? { imageWidth: 835, imageHeight: 626 }
+                    : {})
             },
             twitter: {
                 card: safeOgImage ? 'summary_large_image' : 'summary',
