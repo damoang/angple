@@ -1617,10 +1617,10 @@
                                                     size="sm"
                                                     onclick={() => startReply(comment)}
                                                     class={isFeed
-                                                        ? 'h-6 px-1.5'
+                                                        ? 'h-7 min-w-7 px-1.5'
                                                         : commentLayout === 'bordered'
-                                                          ? 'h-6 px-1.5'
-                                                          : 'h-7 px-2'}
+                                                          ? 'h-7 min-w-7 px-1.5'
+                                                          : 'h-8 min-w-8 px-2'}
                                                     disabled={isReplyingTo}
                                                 >
                                                     <Reply class="h-3.5 w-3.5" />
@@ -1636,10 +1636,10 @@
                                                 size="sm"
                                                 onclick={() => copyCommentLink(comment.id)}
                                                 class="comment-action-secondary {isFeed
-                                                    ? 'h-6 px-1.5'
+                                                    ? 'h-7 min-w-7 px-1.5'
                                                     : commentLayout === 'bordered'
-                                                      ? 'h-6 px-1.5'
-                                                      : 'h-7 px-1.5'} opacity-50 transition-opacity hover:opacity-90"
+                                                      ? 'h-7 min-w-7 px-1.5'
+                                                      : 'h-8 min-w-8 px-1.5'} opacity-50 transition-opacity hover:opacity-90"
                                                 title="이 댓글의 링크를 복사합니다"
                                             >
                                                 <Link2 class="h-3.5 w-3.5" />
@@ -1657,10 +1657,10 @@
                                                         size="sm"
                                                         onclick={() => startEdit(comment)}
                                                         class="comment-action-secondary {isFeed
-                                                            ? 'h-6 px-1.5'
+                                                            ? 'h-7 min-w-7 px-1.5'
                                                             : commentLayout === 'bordered'
-                                                              ? 'h-6 px-1.5'
-                                                              : 'h-7 px-2'} opacity-50 transition-opacity hover:opacity-90"
+                                                              ? 'h-7 min-w-7 px-1.5'
+                                                              : 'h-8 min-w-8 px-2'} opacity-50 transition-opacity hover:opacity-90"
                                                         title="수정"
                                                     >
                                                         <Pencil class="h-4 w-4" />
@@ -1672,10 +1672,10 @@
                                                     onclick={() => handleDelete(String(comment.id))}
                                                     disabled={isDeleting === String(comment.id)}
                                                     class="comment-action-secondary text-destructive hover:text-destructive {isFeed
-                                                        ? 'h-6 px-1.5'
+                                                        ? 'h-7 min-w-7 px-1.5'
                                                         : commentLayout === 'bordered'
-                                                          ? 'h-6 px-1.5'
-                                                          : 'h-7 px-2'} opacity-50 transition-opacity hover:opacity-90"
+                                                          ? 'h-7 min-w-7 px-1.5'
+                                                          : 'h-8 min-w-8 px-2'} opacity-50 transition-opacity hover:opacity-90"
                                                 >
                                                     <Trash2 class="h-4 w-4" />
                                                 </Button>
@@ -1687,10 +1687,10 @@
                                                     size="sm"
                                                     onclick={() => startReport(comment)}
                                                     class="comment-action-secondary text-muted-foreground hover:text-destructive {isFeed
-                                                        ? 'h-6 px-1.5'
+                                                        ? 'h-7 min-w-7 px-1.5'
                                                         : commentLayout === 'bordered'
-                                                          ? 'h-6 px-1.5'
-                                                          : 'h-7 px-2'} opacity-50 transition-opacity hover:opacity-90"
+                                                          ? 'h-7 min-w-7 px-1.5'
+                                                          : 'h-8 min-w-8 px-2'} opacity-50 transition-opacity hover:opacity-90"
                                                     title="신고"
                                                 >
                                                     <Flag class="h-4 w-4" />

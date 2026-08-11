@@ -47,6 +47,21 @@
     let activeCategory = $state('angticon');
     let pickerStyle = $state('');
     let addBtnEl: HTMLButtonElement | undefined = $state();
+    let pickerEl: HTMLDivElement | undefined = $state();
+
+    // Escape 로 피커 닫기.
+    // 종전엔 피커 div 의 onkeydown 만 있었는데, 열 때 focus 를 주지 않아
+    // 키 이벤트가 그 div 에 도달하지 않았다 — 실제로는 닫히지 않았다(2026-08-11 감사).
+    // 포커스 위치와 무관하게 동작하도록 window 에서 듣고, 접근성을 위해 피커에 포커스도 준다.
+    $effect(() => {
+        if (!showPicker) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') showPicker = false;
+        };
+        window.addEventListener('keydown', onKey);
+        pickerEl?.focus({ preventScroll: true });
+        return () => window.removeEventListener('keydown', onKey);
+    });
 
     // target/parent ID 생성 (da_reaction 호환)
     const targetId = $derived(
@@ -322,6 +337,7 @@
 <!-- 이모티콘 피커 (fixed positioning으로 overflow-hidden 부모 탈출) -->
 {#if showPicker}
     <div
+        bind:this={pickerEl}
         class="reaction-picker-fixed bg-popover border-border w-72 overflow-hidden rounded-xl border shadow-xl"
         style={pickerStyle}
         onclick={(e) => e.stopPropagation()}
@@ -366,9 +382,13 @@
                         title={emo.emoji || emo.reaction}
                     >
                         {#if emo.renderType === 'image' && emo.url}
+                            <!-- 첫 오픈 시 탭 전체(앙티콘 44개)가 한꺼번에 내려오던 것을 막는다.
+                                 개별 파일이 최대 679KB 애니 GIF 라 합계 ~2.9MB 였다(2026-08-11 실측). -->
                             <img
                                 src={emo.url}
                                 alt={emo.reaction}
+                                loading="lazy"
+                                decoding="async"
                                 class="h-7 w-7 object-scale-down transition-transform group-hover/emo:z-50 group-hover/emo:scale-[4]"
                             />
                         {:else}
