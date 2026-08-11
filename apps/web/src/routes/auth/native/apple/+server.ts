@@ -23,6 +23,7 @@ import { getMemberById, findMemberByEmail, isMemberActive } from '$lib/server/au
 import {
     generateSocialMbId,
     appendMbIdSuffix,
+    inspectSocialMbIdOccupant,
     isMbIdTaken,
     isNicknameTaken,
     createMember,
@@ -148,6 +149,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
             if (existingTemp) {
                 mbId = existingTemp.mb_id;
             } else {
+                // ⛔ 이용제한 중인 계정이 점유한 mb_id 면 새 계정을 만들지 않는다.
+                //    generateSocialMbId 는 결정적이라 충돌 = 같은 소셜 계정 = 동일인이다.
+                //    접미사를 붙여 우회시키면 영구정지가 앱 경로로 뚫린다(F3 §4-②).
+                const occupant = await inspectSocialMbIdOccupant('apple', identifier);
+                if (occupant.kind === 'blocked') {
+                    return json({ success: false, error: 'account_blocked' }, { status: 403 });
+                }
                 const nickname = await generateUniqueTempNickname();
                 mbId = baseMbId;
                 if (await isMbIdTaken(mbId)) {
