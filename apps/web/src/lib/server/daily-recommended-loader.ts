@@ -8,7 +8,12 @@
 import { readFile } from 'node:fs/promises';
 import { rewriteImageHosts } from '$lib/server/cdn-rewrite';
 import { existsSync } from 'node:fs';
-import type { DailyCalendar, DailyRecommendedData, DailyRecommendedSection } from '$lib/api/types';
+import type {
+    DailyCalendar,
+    DailyRecommendedData,
+    DailyRecommendedSection,
+    DailyCommentSection
+} from '$lib/api/types';
 import { findDisciplinedIds } from '$lib/server/discipline-mask';
 import { env } from '$env/dynamic/private';
 
@@ -88,12 +93,18 @@ async function filterDisciplinedRecommended(
     if (!sections) return data;
 
     const byBoard = new Map<string, Set<number>>();
+    const add = (board: string | undefined, id: number | undefined) => {
+        if (!board || !id) return;
+        let set = byBoard.get(board);
+        if (!set) byBoard.set(board, (set = new Set()));
+        set.add(id);
+    };
     for (const key of ['community', 'group', 'info'] as const) {
-        for (const p of sections[key]?.posts ?? []) {
-            if (!p.board || !p.id) continue;
-            let set = byBoard.get(p.board);
-            if (!set) byBoard.set(p.board, (set = new Set()));
-            set.add(p.id);
+        for (const p of sections[key]?.posts ?? []) add(p.board, p.id);
+        // 댓글 자신(id)과 부모 글(parent_id) 둘 다 판정 대상 — parent_title 노출도 막는다.
+        for (const c of data.comments?.[key]?.comments ?? []) {
+            add(c.board, c.id);
+            add(c.board, c.parent_id);
         }
     }
     if (byBoard.size === 0) return data;
@@ -111,8 +122,17 @@ async function filterDisciplinedRecommended(
         const kept = sec.posts.filter((p) => !isDisc(p.board, p.id));
         return kept.length === sec.posts.length ? sec : { ...sec, posts: kept, count: kept.length };
     };
+    const filterComments = (sec: DailyCommentSection): DailyCommentSection => {
+        if (!sec?.comments) return sec;
+        const kept = sec.comments.filter(
+            (c) => !isDisc(c.board, c.id) && !isDisc(c.board, c.parent_id)
+        );
+        return kept.length === sec.comments.length
+            ? sec
+            : { ...sec, comments: kept, count: kept.length };
+    };
 
-    return {
+    const result: DailyRecommendedData = {
         ...data,
         sections: {
             community: filterSection(sections.community),
@@ -120,6 +140,14 @@ async function filterDisciplinedRecommended(
             info: filterSection(sections.info)
         }
     };
+    if (data.comments) {
+        result.comments = {
+            community: filterComments(data.comments.community),
+            group: filterComments(data.comments.group),
+            info: filterComments(data.comments.info)
+        };
+    }
+    return result;
 }
 
 export async function loadDailyRecommended(date: string): Promise<DailyRecommendedData | null> {
