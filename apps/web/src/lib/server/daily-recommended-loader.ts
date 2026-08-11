@@ -8,7 +8,13 @@
 import { readFile } from 'node:fs/promises';
 import { rewriteImageHosts } from '$lib/server/cdn-rewrite';
 import { existsSync } from 'node:fs';
-import type { DailyCalendar, DailyRecommendedData } from '$lib/api/types';
+import type {
+    DailyCalendar,
+    DailyRecommendedData,
+    DailyRecommendedSection,
+    DailyCommentSection
+} from '$lib/api/types';
+import { findDisciplinedIds } from '$lib/server/discipline-mask';
 import { env } from '$env/dynamic/private';
 
 const DAILY_CACHE_DIR =
@@ -69,9 +75,96 @@ export async function loadDailyCalendar(): Promise<DailyCalendar | null> {
 /**
  * 특정 날짜의 공감글 데이터 로드
  */
+/**
+ * 공감글 목록에서 **이용제한 근거 글**(g5_na_singo.discipline_log_id)을 제거한다.
+ *
+ * cron 이 만든 스냅샷에는 이후 신고→징계된 글이 그대로 남아, scrap/신고목록처럼
+ * 마스킹하지 않으면 공감글에 원제목으로 노출된다(콘텐츠 재노출 사고). 추천 피드이므로
+ * 마스킹(제목 치환)보다 **목록에서 제외**가 맞다. 원본 캐시는 건드리지 않고 사본을 반환한다.
+ *
+ * ⛔ 읽기 시점에 매번 판정한다(스냅샷 생성 후 징계돼도 즉시 반영). 실패 시엔 원본을
+ *    그대로 반환하기보다 로깅만 하고 통과시킨다 — 판정 자체가 드물게 실패해도 공감글이
+ *    통째로 비지 않도록. (근거 글은 이미 신고 처리 대상이라 잔여 노출 위험은 제한적)
+ */
+async function filterDisciplinedRecommended(
+    data: DailyRecommendedData
+): Promise<DailyRecommendedData> {
+    const sections = data.sections;
+    if (!sections) return data;
+
+    const byBoard = new Map<string, Set<number>>();
+    const add = (board: string | undefined, id: number | undefined) => {
+        if (!board || !id) return;
+        let set = byBoard.get(board);
+        if (!set) byBoard.set(board, (set = new Set()));
+        set.add(id);
+    };
+    for (const key of ['community', 'group', 'info'] as const) {
+        for (const p of sections[key]?.posts ?? []) add(p.board, p.id);
+        // 댓글 자신(id)과 부모 글(parent_id) 둘 다 판정 대상 — parent_title 노출도 막는다.
+        for (const c of data.comments?.[key]?.comments ?? []) {
+            add(c.board, c.id);
+            add(c.board, c.parent_id);
+        }
+    }
+    if (byBoard.size === 0) return data;
+
+    const disciplined = new Map<string, Set<number>>();
+    await Promise.all(
+        [...byBoard].map(async ([board, ids]) => {
+            disciplined.set(board, await findDisciplinedIds(board, [...ids]));
+        })
+    );
+
+    const isDisc = (board: string, id: number) => disciplined.get(board)?.has(id) === true;
+    const filterSection = (sec: DailyRecommendedSection): DailyRecommendedSection => {
+        if (!sec?.posts) return sec;
+        const kept = sec.posts.filter((p) => !isDisc(p.board, p.id));
+        return kept.length === sec.posts.length ? sec : { ...sec, posts: kept, count: kept.length };
+    };
+    const filterComments = (sec: DailyCommentSection): DailyCommentSection => {
+        if (!sec?.comments) return sec;
+        const kept = sec.comments.filter(
+            (c) => !isDisc(c.board, c.id) && !isDisc(c.board, c.parent_id)
+        );
+        return kept.length === sec.comments.length
+            ? sec
+            : { ...sec, comments: kept, count: kept.length };
+    };
+
+    const result: DailyRecommendedData = {
+        ...data,
+        sections: {
+            community: filterSection(sections.community),
+            group: filterSection(sections.group),
+            info: filterSection(sections.info)
+        }
+    };
+    if (data.comments) {
+        result.comments = {
+            community: filterComments(data.comments.community),
+            group: filterComments(data.comments.group),
+            info: filterComments(data.comments.info)
+        };
+    }
+    return result;
+}
+
 export async function loadDailyRecommended(date: string): Promise<DailyRecommendedData | null> {
     if (!isValidDate(date)) return null;
 
+    const raw = await loadDailyRecommendedRaw(date);
+    if (!raw) return null;
+
+    try {
+        return await filterDisciplinedRecommended(raw);
+    } catch (err) {
+        console.error(`[daily-recommended-loader] ${date} 징계 필터 실패:`, err);
+        return raw;
+    }
+}
+
+async function loadDailyRecommendedRaw(date: string): Promise<DailyRecommendedData | null> {
     const cached = cache.get(date);
     const isToday = date === getTodayKST();
     const ttl = isToday ? TODAY_TTL_MS : PAST_TTL_MS;
