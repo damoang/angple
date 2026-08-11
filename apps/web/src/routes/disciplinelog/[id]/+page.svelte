@@ -8,7 +8,6 @@
     import ArrowLeft from '@lucide/svelte/icons/arrow-left';
     import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
     import Calendar from '@lucide/svelte/icons/calendar';
-    import User from '@lucide/svelte/icons/user';
     import FileText from '@lucide/svelte/icons/file-text';
     import Info from '@lucide/svelte/icons/info';
     import Megaphone from '@lucide/svelte/icons/megaphone';
@@ -146,90 +145,76 @@
             </Card.Root>
         {/if}
 
-        <!-- Basic Info -->
-        <Card.Root class="mb-4">
-            <Card.Header>
-                <Card.Title class="flex items-center gap-2">
-                    <User class="h-5 w-5" />
-                    기본 정보
-                </Card.Title>
-            </Card.Header>
-            <Card.Content class="space-y-4">
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                        <div class="text-muted-foreground mb-1 text-sm">닉네임</div>
-                        <div class="font-medium">{log.member_nickname}</div>
-                    </div>
-                    <div>
-                        <div class="text-muted-foreground mb-1 text-sm">아이디</div>
-                        <div class="font-medium">{log.member_id}</div>
-                    </div>
-                </div>
-                <div>
-                    <div class="text-muted-foreground mb-1 text-sm">제재 기간</div>
-                    <div class="flex items-center gap-2">
+        <!--
+          요약 헤더 — 누가·얼마나·언제를 한 블록에 모은다.
+          기존에는 "기본 정보"와 "제재 기간"이 카드 안에서 라벨·값 쌍으로 흩어져
+          정작 중요한 정보를 찾는 데 시선이 여러 번 움직였다.
+        -->
+        <div class="mb-4 rounded-lg border p-4">
+            <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span class="text-lg font-bold">{log.member_nickname}</span>
+                <span class="text-muted-foreground/70 text-xs">{log.member_id}</span>
+            </div>
+            <div class="mt-2">
+                <div class="flex flex-wrap items-center gap-2">
+                    <Badge variant={getPenaltyBadgeVariant(log.penalty_period, penalty.released)}>
+                        {penalty.text}
+                    </Badge>
+                    {#if log.revoked_at}
                         <Badge
-                            variant={getPenaltyBadgeVariant(log.penalty_period, penalty.released)}
+                            variant="secondary"
+                            class="border-emerald-300 bg-emerald-100 text-xs text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
                         >
-                            {penalty.text}
+                            소명 해제
                         </Badge>
+                    {:else if penalty.released}
+                        <Badge variant="secondary" class="text-xs">해제</Badge>
+                    {/if}
+                    <span class="text-muted-foreground text-sm">
                         {#if log.revoked_at}
-                            <Badge
-                                variant="secondary"
-                                class="border-emerald-300 bg-emerald-100 text-xs text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                            >
-                                소명 해제
-                            </Badge>
-                        {:else if penalty.released}
-                            <Badge variant="secondary" class="text-xs">해제</Badge>
-                        {/if}
-                        <span class="text-muted-foreground text-sm">
-                            {#if log.revoked_at}
-                                <!-- 회수된 제재: 원래 종료일에 취소선 + 조기 해제 표기.
-                                     (기간이 만료된 게 아니라 소명 인용으로 중간에 풀렸음을 명확히) -->
-                                ({log.penalty_date_from} 시작 ·
-                                {#if log.penalty_period !== 0}
-                                    <s class="opacity-60"
-                                        >{log.penalty_period === -1
-                                            ? '영구'
-                                            : log.penalty_date_to || ''}</s
-                                    > ·
-                                {/if}
-                                <span class="text-emerald-700 dark:text-emerald-400"
-                                    >{log.revoked_at} 소명 인용으로 해제</span
-                                >)
-                            {:else}
-                                ({formatPeriodRange(log)})
+                            <!-- 회수된 제재: 원래 종료일에 취소선 + 조기 해제 표기.
+                                 (기간이 만료된 게 아니라 소명 인용으로 중간에 풀렸음을 명확히) -->
+                            ({log.penalty_date_from} 시작 ·
+                            {#if log.penalty_period !== 0}
+                                <s class="opacity-60"
+                                    >{log.penalty_period === -1
+                                        ? '영구'
+                                        : log.penalty_date_to || ''}</s
+                                > ·
                             {/if}
-                        </span>
-                    </div>
+                            <span class="text-emerald-700 dark:text-emerald-400"
+                                >{log.revoked_at} 소명 인용으로 해제</span
+                            >)
+                        {:else}
+                            ({formatPeriodRange(log)})
+                        {/if}
+                    </span>
                 </div>
-            </Card.Content>
-        </Card.Root>
+            </div>
 
-        <!-- Violation Types -->
-        <Card.Root class="mb-4">
-            <Card.Header>
-                <Card.Title class="flex items-center gap-2">
-                    <AlertTriangle class="text-muted-foreground h-5 w-5" />
-                    제재 사유
-                </Card.Title>
-            </Card.Header>
-            <Card.Content>
-                <div class="space-y-3">
+            <!-- 사유는 요약 헤더 안에 함께 둔다 — 제재의 "무엇 때문에"가 기간과 떨어지면 안 읽힌다 -->
+            {#if log.violation_types.length > 0}
+                <div class="mt-3 space-y-2 border-t pt-3">
                     {#each log.violation_types as vt}
-                        <div class="bg-muted/50 rounded-lg p-3">
-                            <div class="text-sm font-medium">{vt.title}</div>
-                            <div class="text-muted-foreground mt-1 text-sm">{vt.description}</div>
+                        <div>
+                            <div class="flex items-baseline gap-2">
+                                <AlertTriangle
+                                    class="text-muted-foreground mt-0.5 h-3.5 w-3.5 shrink-0"
+                                />
+                                <span class="text-sm font-medium">{vt.title}</span>
+                            </div>
+                            <div class="text-muted-foreground mt-0.5 pl-[1.375rem] text-sm">
+                                {vt.description}
+                            </div>
                         </div>
                     {/each}
                 </div>
-            </Card.Content>
-        </Card.Root>
+            {/if}
+        </div>
 
         <!-- 기타 사유: 회원 공개용 (운영자가 입력한 경우에만 표시) -->
         {#if log.member_reason && log.member_reason.trim()}
-            <Card.Root class="mb-4">
+            <Card.Root class="mb-3">
                 <Card.Header>
                     <Card.Title class="flex items-center gap-2">
                         <Info class="text-muted-foreground h-5 w-5" />
@@ -244,7 +229,7 @@
 
         <!-- 안내: 회원 공개용 외부 안내문 (운영자가 입력한 경우에만 표시) -->
         {#if log.public_description && log.public_description.trim()}
-            <Card.Root class="mb-4">
+            <Card.Root class="mb-3">
                 <Card.Header>
                     <Card.Title class="flex items-center gap-2">
                         <Megaphone class="text-muted-foreground h-5 w-5" />
@@ -261,7 +246,7 @@
 
         <!-- Reported Items -->
         {#if log.reported_items && log.reported_items.length > 0}
-            <Card.Root class="mb-4">
+            <Card.Root class="mb-3">
                 <Card.Header>
                     <Card.Title class="flex items-center gap-2">
                         <FileText class="h-5 w-5" />
@@ -358,7 +343,7 @@
                     </Card.Title>
                 </Card.Header>
                 <Card.Content>
-                    <div class="space-y-2">
+                    <div class="space-y-0.5">
                         {#each memberHistory as item}
                             {@const itemPenalty = getPenaltyDisplay(
                                 item.penalty_period,
@@ -366,7 +351,7 @@
                             )}
                             <a
                                 href="/disciplinelog/{item.id}"
-                                class="hover:bg-muted/50 flex items-center justify-between rounded p-2 text-sm transition-all duration-200 ease-out {item.id ===
+                                class="hover:bg-muted/50 flex items-center justify-between rounded px-2 py-1.5 text-sm leading-tight transition-colors {item.id ===
                                 log.id
                                     ? 'bg-primary/10 border-primary/30 border font-semibold'
                                     : ''}"
