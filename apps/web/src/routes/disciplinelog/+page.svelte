@@ -178,7 +178,7 @@
                                 >
                             </div>
 
-                            <ul class="space-y-0.5">
+                            <ul>
                                 {#each group.items as log (log.id)}
                                     {@const penalty = getPenaltyDisplay(
                                         log.penalty_period,
@@ -187,11 +187,11 @@
                                     <li>
                                         <a
                                             href="/disciplinelog/{log.id}"
-                                            class="hover:bg-muted/60 focus-visible:ring-ring flex items-start gap-3 rounded-md px-2 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2"
+                                            class="hover:bg-muted/60 focus-visible:ring-ring flex items-start gap-3 rounded-md px-2 py-1.5 leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2"
                                         >
                                             <!-- 강도 점: 영구=빨강 / 기간제=주황 / 주의·해제=회색 -->
                                             <span
-                                                class="mt-1.5 h-2 w-2 shrink-0 rounded-full {dotClass(
+                                                class="mt-1 h-2 w-2 shrink-0 rounded-full {dotClass(
                                                     log.penalty_period,
                                                     penalty.released
                                                 )}"
@@ -228,7 +228,7 @@
                                                     {/if}
                                                 </span>
                                                 <span
-                                                    class="text-muted-foreground/70 block truncate text-xs"
+                                                    class="text-muted-foreground/70 block truncate text-xs leading-tight"
                                                     >{log.member_id}</span
                                                 >
                                             </span>
