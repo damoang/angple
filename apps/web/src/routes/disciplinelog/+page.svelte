@@ -12,7 +12,7 @@
     import Shield from '@lucide/svelte/icons/shield';
     import Search from '@lucide/svelte/icons/search';
     import X from '@lucide/svelte/icons/x';
-    import { getPenaltyDisplay } from '$lib/api/discipline-log.js';
+    import { getPenaltyDisplay, type DisciplineLogListItem } from '$lib/api/discipline-log.js';
     import BoardFavoriteButton from '$lib/components/features/board/board-favorite-button.svelte';
     import BoardSubscribeButton from '$lib/components/features/board/board-subscribe-button.svelte';
     import type { PageData } from './$types.js';
@@ -59,22 +59,44 @@
         }
     }
 
-    function getPenaltyBadgeVariant(
-        period: number,
-        released: boolean
-    ): 'default' | 'secondary' | 'destructive' | 'outline' {
-        if (released) return 'secondary';
-        if (period === -1) return 'default';
-        if (period === 0) return 'outline';
-        return 'default';
-    }
-
     function isToday(dateStr: string): boolean {
         const today = new Date();
         const yyyy = today.getFullYear();
         const mm = String(today.getMonth() + 1).padStart(2, '0');
         const dd = String(today.getDate()).padStart(2, '0');
         return dateStr === `${yyyy}-${mm}-${dd}`;
+    }
+
+    /**
+     * 같은 날짜끼리 묶는다.
+     * 한 사람이 여러 계정을 쓰면 같은 날 같은 사유가 줄줄이 쌓여(2026-08-11 에 12건)
+     * 행이 반복되기만 하고 읽히지 않는다. 날짜를 머리글로 올려 한 덩어리로 보이게 한다.
+     * ⛔ $derived 안에서 Map 을 만들지 않는다(svelte/prefer-svelte-reactivity) — 배열로 접는다.
+     * ⛔ logs.reduce<T>(...) 처럼 제네릭 인자도 주면 안 된다. logs 는 $derived 값이라
+     *    svelte-check 가 "Untyped function calls may not accept type arguments" 로 막는다.
+     *    누산기 변수에 타입을 붙여 우회한다.
+     */
+    const grouped = $derived.by(() => {
+        const acc: { date: string; items: DisciplineLogListItem[] }[] = [];
+        for (const log of logs) {
+            const last = acc[acc.length - 1];
+            if (last && last.date === log.penalty_date_from) last.items.push(log);
+            else acc.push({ date: log.penalty_date_from, items: [log] });
+        }
+        return acc;
+    });
+
+    /** 제재 강도를 점 하나로. 영구=빨강, 기간제=주황, 주의=회색, 해제=흐리게 */
+    function dotClass(period: number, released: boolean): string {
+        if (released) return 'bg-muted-foreground/40';
+        if (period === -1) return 'bg-red-500';
+        if (period === 0) return 'bg-muted-foreground/60';
+        return 'bg-amber-500';
+    }
+
+    function formatGroupDate(dateStr: string): string {
+        if (isToday(dateStr)) return `${dateStr} · 오늘`;
+        return dateStr;
     }
 </script>
 
@@ -134,136 +156,102 @@
                     <p>이용제한 기록이 없습니다.</p>
                 </div>
             {:else}
-                <!-- Desktop table -->
-                <div class="hidden overflow-x-auto md:block">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="bg-muted/50 border-b">
-                                <th class="px-4 py-2 text-left font-medium">닉네임</th>
-                                <th class="px-4 py-2 text-left font-medium">아이디</th>
-                                <th class="px-4 py-2 text-left font-medium">시작일</th>
-                                <th class="px-4 py-2 text-center font-medium">기간</th>
-                                <th class="px-4 py-2 text-left font-medium">사유</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {#each logs as log (log.id)}
-                                {@const penalty = getPenaltyDisplay(
-                                    log.penalty_period,
-                                    log.penalty_date_to
-                                )}
-                                <tr
-                                    class="hover:bg-muted/50 cursor-pointer border-b transition-all duration-200 ease-out"
-                                    onclick={() => goto(`/disciplinelog/${log.id}`)}
+                <!--
+                  날짜 그룹 목록 (데스크톱·모바일 공용)
+                  같은 날짜를 머리글로 묶어, 같은 사유가 반복돼도 한 덩어리로 읽히게 한다.
+                -->
+                <div class="divide-y">
+                    {#each grouped as group (group.date)}
+                        <div class="py-1">
+                            <div
+                                class="bg-background/95 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-10 flex items-baseline gap-2 py-2 backdrop-blur"
+                            >
+                                <span
+                                    class="text-sm font-semibold {isToday(group.date)
+                                        ? 'text-primary'
+                                        : 'text-foreground/80'}"
                                 >
-                                    <td class="px-4 py-2">
-                                        <span
-                                            class="{isToday(log.penalty_date_from)
-                                                ? 'text-primary font-semibold'
-                                                : 'text-foreground'} font-medium"
+                                    {formatGroupDate(group.date)}
+                                </span>
+                                <span class="text-muted-foreground text-xs tabular-nums"
+                                    >{group.items.length}건</span
+                                >
+                            </div>
+
+                            <ul class="space-y-0.5">
+                                {#each group.items as log (log.id)}
+                                    {@const penalty = getPenaltyDisplay(
+                                        log.penalty_period,
+                                        log.penalty_date_to
+                                    )}
+                                    <li>
+                                        <a
+                                            href="/disciplinelog/{log.id}"
+                                            class="hover:bg-muted/60 focus-visible:ring-ring flex items-start gap-3 rounded-md px-2 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2"
                                         >
-                                            {log.member_nickname}
-                                        </span>
-                                    </td>
-                                    <td class="text-muted-foreground px-4 py-2">{log.member_id}</td>
-                                    <td class="text-muted-foreground px-4 py-2"
-                                        >{log.penalty_date_from}</td
-                                    >
-                                    <td class="px-4 py-2 text-center">
-                                        <div class="flex items-center justify-center gap-1">
-                                            <Badge
-                                                variant={getPenaltyBadgeVariant(
+                                            <!-- 강도 점: 영구=빨강 / 기간제=주황 / 주의·해제=회색 -->
+                                            <span
+                                                class="mt-1.5 h-2 w-2 shrink-0 rounded-full {dotClass(
                                                     log.penalty_period,
                                                     penalty.released
-                                                )}
-                                            >
-                                                {penalty.text}
-                                            </Badge>
-                                            {#if log.revoked}
-                                                <Badge
-                                                    variant="secondary"
-                                                    class="border-emerald-300 bg-emerald-100 text-xs text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                                                    >소명해제</Badge
-                                                >
-                                            {:else if penalty.released}
-                                                <Badge variant="secondary" class="text-xs"
-                                                    >해제</Badge
-                                                >
-                                            {/if}
-                                        </div>
-                                    </td>
-                                    <td class="px-4 py-2">
-                                        <div class="flex flex-wrap gap-1">
-                                            {#each log.violation_titles.slice(0, 3) as title}
-                                                <Badge variant="outline" class="text-xs"
-                                                    >{title}</Badge
-                                                >
-                                            {/each}
-                                            {#if log.violation_titles.length > 3}
-                                                <Badge variant="outline" class="text-xs"
-                                                    >+{log.violation_titles.length - 3}</Badge
-                                                >
-                                            {/if}
-                                        </div>
-                                    </td>
-                                </tr>
-                            {/each}
-                        </tbody>
-                    </table>
-                </div>
+                                                )}"
+                                                aria-hidden="true"
+                                            ></span>
 
-                <!-- Mobile cards -->
-                <div class="space-y-3 md:hidden">
-                    {#each logs as log (log.id)}
-                        {@const penalty = getPenaltyDisplay(
-                            log.penalty_period,
-                            log.penalty_date_to
-                        )}
-                        <a href="/disciplinelog/{log.id}" class="block">
-                            <div
-                                class="hover:bg-muted/50 rounded-lg border p-3 transition-all duration-200 ease-out"
-                            >
-                                <div class="mb-2 flex items-center justify-between">
-                                    <span
-                                        class="font-medium {isToday(log.penalty_date_from)
-                                            ? 'text-primary font-semibold'
-                                            : ''}">{log.member_nickname}</span
-                                    >
-                                    <div class="flex items-center gap-1">
-                                        <Badge
-                                            variant={getPenaltyBadgeVariant(
-                                                log.penalty_period,
-                                                penalty.released
-                                            )}
-                                        >
-                                            {penalty.text}
-                                        </Badge>
-                                        {#if log.revoked}
-                                            <Badge
-                                                variant="secondary"
-                                                class="border-emerald-300 bg-emerald-100 text-xs text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                                                >소명해제</Badge
+                                            <span class="min-w-0 flex-1">
+                                                <span class="flex flex-wrap items-center gap-1.5">
+                                                    <span class="truncate font-medium"
+                                                        >{log.member_nickname}</span
+                                                    >
+                                                    <span
+                                                        class="text-xs font-medium {penalty.released
+                                                            ? 'text-muted-foreground'
+                                                            : log.penalty_period === -1
+                                                              ? 'text-red-600 dark:text-red-400'
+                                                              : log.penalty_period === 0
+                                                                ? 'text-muted-foreground'
+                                                                : 'text-amber-700 dark:text-amber-500'}"
+                                                    >
+                                                        {penalty.text}
+                                                    </span>
+                                                    {#if log.revoked}
+                                                        <Badge
+                                                            variant="secondary"
+                                                            class="border-emerald-300 bg-emerald-100 text-[10px] text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                                            >소명해제</Badge
+                                                        >
+                                                    {:else if penalty.released}
+                                                        <span
+                                                            class="text-muted-foreground text-[10px]"
+                                                            >해제됨</span
+                                                        >
+                                                    {/if}
+                                                </span>
+                                                <span
+                                                    class="text-muted-foreground/70 block truncate text-xs"
+                                                    >{log.member_id}</span
+                                                >
+                                            </span>
+
+                                            <span
+                                                class="hidden max-w-[45%] flex-wrap justify-end gap-1 sm:flex"
                                             >
-                                        {:else if penalty.released}
-                                            <Badge variant="secondary" class="text-xs">해제</Badge>
-                                        {/if}
-                                    </div>
-                                </div>
-                                <div class="text-muted-foreground mb-2 text-sm">
-                                    {log.member_id} · {log.penalty_date_from}
-                                </div>
-                                <div class="flex flex-wrap gap-1">
-                                    {#each log.violation_titles.slice(0, 2) as title}
-                                        <Badge variant="outline" class="text-xs">{title}</Badge>
-                                    {/each}
-                                    {#if log.violation_titles.length > 2}
-                                        <Badge variant="outline" class="text-xs"
-                                            >+{log.violation_titles.length - 2}</Badge
-                                        >
-                                    {/if}
-                                </div>
-                            </div>
-                        </a>
+                                                {#each log.violation_titles.slice(0, 2) as title}
+                                                    <Badge variant="outline" class="text-[10px]"
+                                                        >{title}</Badge
+                                                    >
+                                                {/each}
+                                                {#if log.violation_titles.length > 2}
+                                                    <Badge variant="outline" class="text-[10px]"
+                                                        >+{log.violation_titles.length - 2}</Badge
+                                                    >
+                                                {/if}
+                                            </span>
+                                        </a>
+                                    </li>
+                                {/each}
+                            </ul>
+                        </div>
                     {/each}
                 </div>
 
