@@ -383,7 +383,7 @@
 <div
     bind:this={proseEl}
     class="prose prose-neutral dark:prose-invert max-w-none {className}"
-    style="font-size: var(--content-font-size, 16px); overflow-wrap: break-word; word-wrap: break-word; overflow-x: hidden; contain: style;"
+    style="font-size: var(--content-font-size, 16px); line-height: var(--content-line-height, 1.8); overflow-wrap: break-word; word-wrap: break-word; overflow-x: hidden; contain: style;"
 >
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
     {@html renderedHtml}
@@ -519,19 +519,21 @@
      * 0.35rem 으로 낮추면 34.4px(-16%). 진짜 문단 구분은 빈 줄
      * (아래 p:empty 1.8em)이 계속 담당하므로 문단감은 유지된다.
      *
-     * ⛔ line-height 1.8 은 이번에 건드리지 않는다. 두 축을 한꺼번에
-     *    바꾸면 반응이 나빴을 때 원인을 가릴 수 없다. */
+     * line-height 는 UI 설정 "본문 줄 높이"(--content-line-height)를 소비한다(#13456).
+     *    이 변수를 읽는 CSS 가 그동안 0곳이라 설정이 죽어 있었다. fallback 1.8 은 현재
+     *    라이브값이자 스토어 normal 값과 같아 설정 미변경 사용자는 그대로다. */
     .prose :global(p) {
         margin-top: 0.35rem;
         margin-bottom: 0.35rem;
         font-size: inherit;
-        line-height: 1.8;
+        line-height: var(--content-line-height, 1.8);
     }
 
-    /* 빈 <p></p> 및 <p><br></p> 태그도 줄바꿈으로 표시 (에디터 엔터키 반영) */
+    /* 빈 <p></p> 및 <p><br></p> 태그도 줄바꿈으로 표시 (에디터 엔터키 반영).
+       빈 줄 높이도 줄 간격 설정을 따라가 문단감이 일관되게 유지된다. */
     .prose :global(p:empty),
     .prose :global(p:has(> br:only-child)) {
-        min-height: 1.8em;
+        min-height: calc(var(--content-line-height, 1.8) * 1em);
     }
 
     .prose :global(ul),

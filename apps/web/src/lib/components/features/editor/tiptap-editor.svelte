@@ -2136,10 +2136,12 @@
      *    예전엔 여기에 margin-top 도 line-height 도 없어서, 작성 화면은
      *    ~36px 로 보이다가 게시하면 40.8px 로 벌어졌다. 제보 문구가
      *    "엔터치면 띄엄띄엄 **올라갑니다**" 였던 이유다(qa/82197).
-     *    한쪽만 바꾸면 괴리가 다시 생기므로 두 파일을 함께 고칠 것. */
+     *    한쪽만 바꾸면 괴리가 다시 생기므로 두 파일을 함께 고칠 것.
+     *    #13456: 게시 후 렌더와 **같은** var(--content-line-height, 1.8) 를 쓴다 —
+     *    UI 설정 "본문 줄 높이"가 작성 화면·게시 화면에 동일하게 적용되도록. */
     :global(.tiptap-content .tiptap p) {
         margin-top: 0.35rem;
-        line-height: 1.8;
+        line-height: var(--content-line-height, 1.8);
         margin-bottom: 0.35rem;
     }
 
