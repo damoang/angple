@@ -52,6 +52,40 @@
     const isActive = $derived(detail?.status === 'active');
     const drawn = $derived(!!detail?.draw);
 
+    // N-3: 당첨 수령 확인 — 당첨자 본인 + 수령창(claim_due) 존재 + 미확인일 때만 노출.
+    const myMbId = $derived(authStore.user?.mb_id ?? null);
+    const isWinner = $derived(drawn && !!myMbId && detail?.draw?.winner_mb_id === myMbId);
+    const claimDue = $derived(detail?.draw?.claim_due ?? null);
+    const claimed = $derived(!!detail?.draw?.claimed_at);
+    const needsClaim = $derived(isWinner && !!claimDue && !claimed);
+
+    function formatClaimDue(iso: string): string {
+        try {
+            return new Date(iso).toLocaleString('ko-KR', {
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch {
+            return iso;
+        }
+    }
+
+    async function claimNow() {
+        if (busy) return;
+        busy = true;
+        try {
+            await givingApi.claim(post.id);
+            flash('수령 확인이 완료되었습니다. 🎉');
+            await load();
+        } catch (e) {
+            flash(e instanceof Error ? e.message : '수령 확인에 실패했습니다.', true);
+        } finally {
+            busy = false;
+        }
+    }
+
     // 참가를 받을 수 없는 두 가지 미완성 상태.
     //   ① configured=false : 설정(방식·인원) 자체가 저장되지 않음 → 백엔드가 참가를 거부
     //   ② no_giving        : 시작·마감 일시가 비어 상태 판정이 안 됨 → 참가 UI가 안 그려짐
@@ -240,6 +274,26 @@
         <!-- 당첨 결과 -->
         {#if drawn && detail.draw}
             <DrawResult draw={detail.draw} />
+            {#if needsClaim}
+                <div class="border-primary/40 bg-primary/5 mt-3 rounded-lg border p-3">
+                    <p class="text-sm font-semibold">🎉 축하합니다! 나눔에 당첨되셨어요.</p>
+                    <p class="text-muted-foreground mt-1 text-xs">
+                        아래 <b>수령 확인</b>을 눌러주세요. 확인하지 않으면 24시간 후 다른 분께
+                        재추첨됩니다.
+                        {#if claimDue}<br />수령 확인 마감: {formatClaimDue(claimDue)}{/if}
+                    </p>
+                    <button
+                        type="button"
+                        onclick={claimNow}
+                        disabled={busy}
+                        class="bg-primary text-primary-foreground mt-2 rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-50"
+                    >
+                        {busy ? '확인 중…' : '당첨 수령 확인'}
+                    </button>
+                </div>
+            {:else if isWinner && claimed}
+                <p class="text-muted-foreground mt-2 text-xs">✅ 수령 확인 완료</p>
+            {/if}
         {/if}
 
         <!-- 참가 UI (비주최자, 진행 중, 미개표) -->
