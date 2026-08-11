@@ -8,7 +8,8 @@
 import { readFile } from 'node:fs/promises';
 import { rewriteImageHosts } from '$lib/server/cdn-rewrite';
 import { existsSync, statSync } from 'node:fs';
-import type { RecommendedDataWithAI, RecommendedPeriod } from '$lib/api/types';
+import type { RecommendedDataWithAI, RecommendedPeriod, RecommendedSection } from '$lib/api/types';
+import { findDisciplinedIds } from '$lib/server/discipline-mask';
 import { env } from '$env/dynamic/private';
 
 const RECOMMENDED_CACHE_DIR =
@@ -46,9 +47,76 @@ export function getDefaultPeriod(): RecommendedPeriod {
 }
 
 /**
- * 추천글 캐시 파일을 읽어 반환
+ * 추천글 목록에서 **이용제한 근거 글**(g5_na_singo.discipline_log_id)을 제거한다.
+ *
+ * 메인 페이지 추천글도 날짜별 공감글과 동일하게 cron 스냅샷을 읽어 서빙하므로,
+ * 스냅샷 생성 후 신고→징계된 글이 원제목으로 그대로 노출된다(콘텐츠 재노출 사고).
+ * 추천 피드이므로 마스킹(제목 치환)보다 **목록에서 제외**가 맞다. 원본 캐시는
+ * 건드리지 않고 사본을 반환한다.
+ *
+ * ⛔ 읽기 시점에 매번 판정한다(스냅샷 생성 후 징계돼도 즉시 반영). 판정 실패 시엔
+ *    로깅만 하고 원본을 통과시킨다 — 판정이 드물게 실패해도 추천글이 통째로 비지
+ *    않도록(fail-open, daily-recommended-loader 와 동일 정책).
+ */
+async function filterDisciplinedRecommended(
+    data: RecommendedDataWithAI
+): Promise<RecommendedDataWithAI> {
+    const sections = data.sections;
+    if (!sections) return data;
+
+    const byBoard = new Map<string, Set<number>>();
+    for (const key of ['community', 'group', 'info'] as const) {
+        for (const p of sections[key]?.posts ?? []) {
+            if (!p.board || !p.id) continue;
+            let set = byBoard.get(p.board);
+            if (!set) byBoard.set(p.board, (set = new Set()));
+            set.add(p.id);
+        }
+    }
+    if (byBoard.size === 0) return data;
+
+    const disciplined = new Map<string, Set<number>>();
+    await Promise.all(
+        [...byBoard].map(async ([board, ids]) => {
+            disciplined.set(board, await findDisciplinedIds(board, [...ids]));
+        })
+    );
+
+    const isDisc = (board: string, id: number) => disciplined.get(board)?.has(id) === true;
+    const filterSection = (sec: RecommendedSection): RecommendedSection => {
+        if (!sec?.posts) return sec;
+        const kept = sec.posts.filter((p) => !isDisc(p.board, p.id));
+        return kept.length === sec.posts.length ? sec : { ...sec, posts: kept, count: kept.length };
+    };
+
+    return {
+        ...data,
+        sections: {
+            community: filterSection(sections.community),
+            group: filterSection(sections.group),
+            info: filterSection(sections.info)
+        }
+    };
+}
+
+/**
+ * 추천글 캐시 파일을 읽어 반환 (이용제한 글 제외)
  */
 export async function loadRecommendedData(
+    period: RecommendedPeriod
+): Promise<RecommendedDataWithAI | null> {
+    const raw = await loadRecommendedDataRaw(period);
+    if (!raw) return null;
+
+    try {
+        return await filterDisciplinedRecommended(raw);
+    } catch (err) {
+        console.error('[recommended-loader] 징계 필터 실패:', err);
+        return raw;
+    }
+}
+
+async function loadRecommendedDataRaw(
     period: RecommendedPeriod
 ): Promise<RecommendedDataWithAI | null> {
     // 인메모리 캐시 확인
