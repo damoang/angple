@@ -71,12 +71,9 @@ jobs:
         env:
           VITE_GAM_NETWORK_CODE: '23338387889'
           VITE_GAM_SITE_NAME: 'damoang'
-          # 카카오톡 공유 JS 앱키. 비면 Kakao.init("")→"인증 실패"(#13454).
-          VITE_KAKAO_JS_KEY: ${{ secrets.VITE_KAKAO_JS_KEY }}
         run: |
           echo "VITE_GAM_NETWORK_CODE=23338387889" > apps/web/.env
           echo "VITE_GAM_SITE_NAME=damoang" >> apps/web/.env
-          echo "VITE_KAKAO_JS_KEY=${VITE_KAKAO_JS_KEY}" >> apps/web/.env
 
           rm -rf apps/web/.svelte-kit apps/web/build apps/web/node_modules/.vite
           pnpm --filter web build
