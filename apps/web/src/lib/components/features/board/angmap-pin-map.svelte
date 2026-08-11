@@ -250,12 +250,19 @@
     function locateMe(): void {
         if (!browser || !map || typeof navigator === 'undefined' || !navigator.geolocation) return;
         locating = true;
+        // 권한 프롬프트를 무시하면 두 콜백 다 안 와 스피너가 고착될 수 있다(브라우저가
+        // 프롬프트 표시 중엔 timeout 타이머를 멈춘다) → 독립 안전 리셋.
+        const safety = setTimeout(() => {
+            locating = false;
+        }, 12_000);
         navigator.geolocation.getCurrentPosition(
             (pos) => {
+                clearTimeout(safety);
                 locating = false;
                 map?.setView([pos.coords.latitude, pos.coords.longitude], 14);
             },
             () => {
+                clearTimeout(safety);
                 locating = false;
             },
             { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 }
