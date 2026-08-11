@@ -1,0 +1,102 @@
+#!/bin/bash
+#
+# 이모티콘을 저장소(SoT) → 운영 서빙 디렉토리로 동기화한다.
+#
+# ⛔ 왜 이 스크립트가 필요한가
+#   이모티콘은 **nginx 가 호스트 파일을 직접 서빙**한다. 컨테이너 이미지에 넣어도 나가지 않는다.
+#     /etc/nginx/conf.d/damoang.net.conf
+#       location ^~ /emoticons/            alias /home/damoang/legacy-data/emoticons/;
+#       location ^~ /api/emoticons/nariya/ alias /home/damoang/legacy-data/emoticons/;  (리액션 피커)
+#   저장소 apps/web/static/emoticons 는 SoT 이자 빌드 사본이고, 서빙본은 위 호스트 경로다.
+#   2026-08-11: emoticons-to-webp 워크플로 산출물 40개를 머지·승격했는데 운영에서 전부 404 였다.
+#   파일이 컨테이너에만 들어갔기 때문이다. 그 간극을 메우는 게 이 스크립트다.
+#
+# 사용:
+#   bash scripts/sync-emoticons-to-host.sh              # dry-run (기본) — 무엇이 바뀔지만 출력
+#   sudo bash scripts/sync-emoticons-to-host.sh --apply # 실제 반영 (서빙 디렉토리가 damoang 소유)
+#
+# 기본은 **추가만** 한다. 기존 파일 내용이 다르면 건드리지 않고 목록만 알린다
+# (덮어쓰기는 --overwrite 를 명시할 때만, 항상 백업 후).
+set -euo pipefail
+
+DEST="${EMOTICON_DEST:-/home/damoang/legacy-data/emoticons}"
+APPLY=0
+OVERWRITE=0
+for a in "$@"; do
+    case "$a" in
+        --apply) APPLY=1 ;;
+        --overwrite) OVERWRITE=1 ;;
+        -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
+        *) echo "알 수 없는 인자: $a" >&2; exit 2 ;;
+    esac
+done
+
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null || true)
+if [ -z "$ROOT" ]; then
+    echo "⛔ git 저장소 안에서 실행해야 한다(소스가 저장소의 static 이므로)." >&2
+    exit 1
+fi
+SRC="$ROOT/apps/web/static/emoticons"
+[ -d "$SRC" ] || { echo "⛔ 소스 없음: $SRC" >&2; exit 1; }
+[ -d "$DEST" ] || { echo "⛔ 서빙 디렉토리 없음: $DEST" >&2; exit 1; }
+
+# ⛔ stale checkout 방지 — 서빙본을 옛 트리로 되돌리는 사고가 제일 무섭다.
+git -C "$ROOT" fetch origin main --quiet 2>/dev/null || true
+LOCAL=$(git -C "$ROOT" rev-parse HEAD)
+REMOTE=$(git -C "$ROOT" rev-parse origin/main 2>/dev/null || echo "")
+if [ -n "$REMOTE" ] && [ "$LOCAL" != "$REMOTE" ]; then
+    if ! git -C "$ROOT" merge-base --is-ancestor "$REMOTE" "$LOCAL" 2>/dev/null; then
+        echo "⛔ 이 체크아웃은 origin/main 보다 뒤처져 있다 (HEAD=${LOCAL:0:7}, origin/main=${REMOTE:0:7})."
+        echo "   옛 파일을 서빙본에 덮어쓸 수 있으니 먼저 최신화할 것."
+        exit 1
+    fi
+fi
+
+added=(); differs=()
+shopt -s nullglob
+for f in "$SRC"/*.{gif,webp,png,jpg,jpeg}; do
+    n=$(basename "$f")
+    if [ ! -e "$DEST/$n" ]; then
+        added+=("$n")
+    elif ! cmp -s "$f" "$DEST/$n"; then
+        differs+=("$n")
+    fi
+done
+shopt -u nullglob
+
+echo "소스 : $SRC (HEAD ${LOCAL:0:7})"
+echo "대상 : $DEST"
+echo "신규 : ${#added[@]}개 / 내용 다름: ${#differs[@]}개"
+[ ${#added[@]} -gt 0 ] && printf '  + %s\n' "${added[@]:0:20}"
+[ ${#added[@]} -gt 20 ] && echo "  ... 외 $(( ${#added[@]} - 20 ))개"
+if [ ${#differs[@]} -gt 0 ]; then
+    echo "  ⚠️ 내용이 다른 파일(기본은 건드리지 않음, --overwrite 필요):"
+    printf '     ~ %s\n' "${differs[@]:0:10}"
+fi
+
+if [ "$APPLY" != "1" ]; then
+    echo ""
+    echo "dry-run — 반영하려면: sudo bash scripts/sync-emoticons-to-host.sh --apply"
+    exit 0
+fi
+
+TS=$(date +%Y%m%d-%H%M%S)
+BACKUP="$DEST/_backup_$TS"
+copied=0
+if [ ${#added[@]} -gt 0 ]; then
+    for n in "${added[@]}"; do
+        cp -p "$SRC/$n" "$DEST/$n"
+        copied=$((copied + 1))
+    done
+fi
+if [ "$OVERWRITE" = "1" ] && [ ${#differs[@]} -gt 0 ]; then
+    mkdir -p "$BACKUP"
+    for n in "${differs[@]}"; do
+        cp -p "$DEST/$n" "$BACKUP/$n"
+        cp -p "$SRC/$n" "$DEST/$n"
+        copied=$((copied + 1))
+    done
+    echo "덮어쓴 파일 백업: $BACKUP"
+fi
+echo "✅ 반영 $copied 개"
+echo "검증: curl -sI https://damoang.net/emoticons/<파일명> | head -1   # 200 이어야 한다"
