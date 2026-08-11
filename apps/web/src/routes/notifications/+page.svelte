@@ -204,11 +204,13 @@
     }
 
     onMount(() => {
-        loadNotifications();
         // 알림함 페이지 진입도 '봤다(seen)' — 뱃지만 소거, 항목 읽음은 클릭 시 (bug/13367)
         apiClient.markNotificationsSeen().catch(() => undefined);
     });
 
+    // 초기 진입·페이지네이션(data.page 변경) 모두 이 $effect 한 곳에서 로드한다.
+    // (기존엔 onMount 도 loadNotifications 를 불러 진입 시 무거운 grouped 쿼리가 2번 나갔다 —
+    //  4초 프록시 타임아웃을 더 자주 넘겨 스피너·유령 뱃지를 악화시켰다. bug/13089)
     $effect(() => {
         if (data.page) {
             loadNotifications();

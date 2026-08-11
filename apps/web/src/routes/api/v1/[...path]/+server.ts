@@ -477,11 +477,18 @@ async function proxyRequest(
             }
         }
 
+        // 알림 그룹 목록(/notifications/grouped, merge=target 포함)은 유저별 최근 3천 행을
+        // 집계하는 무거운 쿼리라 콜드 버퍼풀·경합 시 4초를 넘길 수 있다. 4초에 죽이면
+        // 스피너·간헐 실패(bug/13089)로 끝나고, 로드 실패 시 벨의 MarkSeen 이 안 돌아
+        // 유령 뱃지(bug/13449)까지 이어진다. 클라 타임아웃(10초)보다 위로 둬 느려도 실데이터가
+        // 오게 한다(빈 폴백으로 뱃지를 잘못 지우지 않기 위해 폴백 대신 타임아웃 상향).
+        const timeoutMs = path.startsWith('notifications/grouped') ? 12_000 : PROXY_TIMEOUT_MS;
+
         const response = await fetch(targetUrl, {
             method,
             headers,
             body,
-            signal: AbortSignal.timeout(PROXY_TIMEOUT_MS),
+            signal: AbortSignal.timeout(timeoutMs),
             // @ts-expect-error - Node.js fetch specific option
             duplex: body instanceof ReadableStream ? 'half' : undefined
         });
