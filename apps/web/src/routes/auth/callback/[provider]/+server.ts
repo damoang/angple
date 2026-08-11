@@ -39,6 +39,7 @@ import { runSocialLoginPostProcess } from '$lib/server/auth/social-login-postpro
 import {
     generateSocialMbId,
     appendMbIdSuffix,
+    inspectSocialMbIdOccupant,
     isMbIdTaken,
     isNicknameTaken,
     createMember,
@@ -271,6 +272,14 @@ async function handleCallback(
                     // 이전 초대 시도에서 생성된 임시 계정 재사용 (중복 방지)
                     mbId = existingTemp.mb_id;
                 } else {
+                    // ⛔ 이용제한 중인 계정이 점유한 mb_id 면 새 계정을 만들지 않는다(F3 §4-②).
+                    const occupant = await inspectSocialMbIdOccupant(
+                        providerName,
+                        profile.identifier
+                    );
+                    if (occupant.kind === 'blocked') {
+                        redirect(302, '/login?error=account_blocked');
+                    }
                     const nickname = await generateInviteTempNickname(providerName);
                     mbId = baseMbId;
                     if (await isMbIdTaken(mbId)) {
@@ -334,6 +343,14 @@ async function handleCallback(
                 if (existingTemp) {
                     mbId = existingTemp.mb_id;
                 } else {
+                    // ⛔ 이용제한 중인 계정이 점유한 mb_id 면 새 계정을 만들지 않는다(F3 §4-②).
+                    const occupant = await inspectSocialMbIdOccupant(
+                        providerName,
+                        profile.identifier
+                    );
+                    if (occupant.kind === 'blocked') {
+                        redirect(302, '/login?error=account_blocked');
+                    }
                     const nickname = await generateInviteTempNickname(providerName);
                     mbId = baseMbId;
                     if (await isMbIdTaken(mbId)) {

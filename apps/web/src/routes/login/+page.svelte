@@ -11,6 +11,9 @@
     const oauthErrorMessages: Record<string, string> = {
         no_account: '연결된 계정이 없습니다. 소셜 로그인으로 회원가입을 진행해주세요.',
         account_inactive: '탈퇴했거나 이용이 제한된 계정입니다.',
+        // 이용제한 중인 계정이 점유한 소셜 계정으로 새 계정을 만들려 한 경우.
+        // 제재 사유·기간은 노출하지 않는다(F3 §4-②).
+        account_blocked: '이용이 제한된 계정입니다. 자세한 내용은 고객센터로 문의해주세요.',
         invalid_state: '인증 세션이 만료되었습니다. 다시 시도해주세요.',
         invalid_provider: '지원하지 않는 로그인 방식입니다.',
         provider_mismatch: '인증 정보가 일치하지 않습니다. 다시 시도해주세요.',
