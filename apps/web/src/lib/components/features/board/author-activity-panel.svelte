@@ -356,7 +356,7 @@
             {#if desktopExpanded}
                 <CardContent class="grid grid-cols-2 gap-4 pb-2 pt-0">
                     <div>
-                        <h4 class="text-foreground mb-2 text-sm font-semibold">최근 글</h4>
+                        <h2 class="text-foreground mb-2 text-sm font-semibold">최근 글</h2>
                         {#if loading}
                             <div class="flex justify-center py-4">
                                 <Loader2 class="text-muted-foreground h-4 w-4 animate-spin" />
@@ -374,7 +374,7 @@
                         {/if}
                     </div>
                     <div>
-                        <h4 class="text-foreground mb-2 text-sm font-semibold">최근 댓글</h4>
+                        <h2 class="text-foreground mb-2 text-sm font-semibold">최근 댓글</h2>
                         {#if loading}
                             <div class="flex justify-center py-4">
                                 <Loader2 class="text-muted-foreground h-4 w-4 animate-spin" />
@@ -414,7 +414,7 @@
             <div class="grid grid-cols-2 gap-2" transition:slide={{ duration: 200 }}>
                 <Card class="gap-0">
                     <CardHeader class="pb-0 pt-2">
-                        <h4 class="text-foreground text-xs font-semibold">최근 글</h4>
+                        <h2 class="text-foreground text-xs font-semibold">최근 글</h2>
                     </CardHeader>
                     <CardContent class="pb-2 pt-0">
                         {#if loading}
@@ -436,7 +436,7 @@
                 </Card>
                 <Card class="gap-0">
                     <CardHeader class="pb-0 pt-2">
-                        <h4 class="text-foreground text-xs font-semibold">최근 댓글</h4>
+                        <h2 class="text-foreground text-xs font-semibold">최근 댓글</h2>
                     </CardHeader>
                     <CardContent class="pb-2 pt-0">
                         {#if loading}
