@@ -48,15 +48,22 @@ SRC="$ROOT/apps/web/static/emoticons"
 [ -d "$DEST" ] || { echo "⛔ 서빙 디렉토리 없음: $DEST" >&2; exit 1; }
 
 # ⛔ stale checkout 방지 — 서빙본을 옛 트리로 되돌리는 사고가 제일 무섭다.
+#
+# 단 판정 대상은 **이모티콘 디렉토리뿐**이다. HEAD 가 뒤처졌다는 이유로 막으면
+# 이모티콘과 무관한 커밋 하나에도 실행이 거부돼, 쓸 때마다 최신화를 강요받는다
+# (2026-08-11 실측: 다른 세션 머지가 이어져 연속 3회 거부됨).
+# 정작 위험한 건 "내 트리의 이모티콘이 origin/main 과 다른" 경우뿐이다.
 git -C "$ROOT" fetch origin main --quiet 2>/dev/null || true
-LOCAL=$(git -C "$ROOT" rev-parse HEAD)
-REMOTE=$(git -C "$ROOT" rev-parse origin/main 2>/dev/null || echo "")
-if [ -n "$REMOTE" ] && [ "$LOCAL" != "$REMOTE" ]; then
-    if ! git -C "$ROOT" merge-base --is-ancestor "$REMOTE" "$LOCAL" 2>/dev/null; then
-        echo "⛔ 이 체크아웃은 origin/main 보다 뒤처져 있다 (HEAD=${LOCAL:0:7}, origin/main=${REMOTE:0:7})."
-        echo "   옛 파일을 서빙본에 덮어쓸 수 있으니 먼저 최신화할 것."
-        exit 1
-    fi
+LOCAL=$(git -C "$ROOT" rev-parse --short HEAD)
+REMOTE=$(git -C "$ROOT" rev-parse --short origin/main 2>/dev/null || echo "")
+# `origin/main HEAD` 로 비교하면 커밋끼리만 봐서 **워킹트리 오염**(수동 삭제·수정)을
+# 놓친다. HEAD 를 빼면 origin/main ↔ 워킹트리 비교라 둘 다 잡힌다.
+if [ -n "$REMOTE" ] && ! git -C "$ROOT" diff --quiet origin/main -- "apps/web/static/emoticons" 2>/dev/null; then
+    echo "⛔ 이 트리의 이모티콘이 origin/main 과 다르다 (HEAD=$LOCAL, origin/main=$REMOTE)."
+    echo "   옛 파일로 서빙본을 덮을 수 있다. 먼저 최신화할 것:"
+    echo "     git -C $ROOT fetch origin main && git -C $ROOT checkout -B main origin/main"
+    echo "   차이 확인: git -C $ROOT diff --stat origin/main -- apps/web/static/emoticons"
+    exit 1
 fi
 
 added=(); differs=()
