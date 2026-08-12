@@ -11,6 +11,7 @@
     import { cn } from '$lib/utils';
     import { handleBoardLinkClick } from '$lib/utils/board-nav.js';
     import { menuStore } from '$lib/stores/menu.svelte';
+    import type { MenuItem } from '$lib/api/types';
 
     import ChevronRight from '@lucide/svelte/icons/chevron-right';
     import { getIcon } from '$lib/utils/icon-map';
@@ -33,8 +34,15 @@
 
     let isCollapsed = $state(false);
 
-    // 메뉴 데이터는 SSR에서 초기화된 스토어에서 가져옴
-    const menuData = $derived(menuStore.menus.filter((m) => m.show_in_sidebar !== false));
+    // 메뉴 데이터는 SSR에서 초기화된 스토어에서 가져옴.
+    // ⛔ 단 스토어를 채우는 +layout.svelte 의 initFromServer 는 $effect 안에 있고,
+    //    $effect 는 서버에서 실행되지 않는다 → SSR 렌더 시점의 스토어는 항상 비어 있다.
+    //    그대로 두면 서버 HTML 의 사이드바가 빈 채로 나가고, 하이드레이션 직후 메뉴
+    //    610px 이 한꺼번에 생기며 아래를 전부 밀어낸다(2026-08-12 실측 CLS 0.1045).
+    //    스토어가 비어 있는 동안에는 SSR 로 이미 내려와 있는 page.data.menus 를 직접 읽는다.
+    const ssrMenus = $derived(($page.data?.menus ?? []) as MenuItem[]);
+    const sourceMenus = $derived(menuStore.menus.length > 0 ? menuStore.menus : ssrMenus);
+    const menuData = $derived(sourceMenus.filter((m) => m.show_in_sidebar !== false));
 
     // 빠른 바로가기: DB 메뉴 그룹(센티넬 URL)의 자식을 즐겨찾기 아래 2열 그리드로 렌더한다.
     // 라벨/URL/아이콘은 전부 DB(menus 테이블)에서 오며(하드코딩 없음), 관리자가 그룹의
