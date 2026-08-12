@@ -5,8 +5,12 @@
  * ⚠️ **현재 프로덕션 호출처가 없다.** 실제 탈퇴는
  *    routes/member/leave/+page.server.ts → requestMemberLeave() → 백엔드
  *    POST /api/v1/members/me/leave (applySelfLeave) 로 흐른다.
- *    이 함수는 PHP 호환 경로로 남아 있는 것이며, 되살아날 때를 대비해
- *    아래 파기 호출을 함께 유지한다.
+ *
+ * ⛔ 그럼에도 이 파일은 **백엔드를 거치지 않고 mb_leave_date 를 직접 쓰는
+ *    유일한 경로**다. 탈퇴 파기는 평소 백엔드가 단독으로 맡지만
+ *    (backend/internal/handler/auth_artifacts.go), 이 경로가 되살아나면
+ *    그 파기가 절대 붙지 않는다. 그래서 여기만 web 쪽 파기 호출을 짝지어 둔다.
+ *    ⛔ 이 호출을 지우면 탈퇴 진입점 전수 커버가 깨진다.
  */
 import pool from '$lib/server/db.js';
 import type { ResultSetHeader, RowDataPacket } from 'mysql2';

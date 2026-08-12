@@ -1,6 +1,19 @@
 /**
  * 회원의 인증 산출물(세션·리프레시 토큰) 전량 파기.
  *
+ * ⛔ **실서비스 탈퇴 경로는 이걸 쓰지 않는다.** 파기의 단일 소유자는 백엔드
+ *    purgeAuthArtifacts (backend/internal/handler/auth_artifacts.go) 다.
+ *    실제 탈퇴는 routes/member/leave/+page.server.ts → 백엔드
+ *    POST /api/v1/members/me/leave 로 흐르고, 거기서 DB 파기 + Redis 캐시
+ *    무효화가 전부 끝난다. web 에서 또 부르면 백엔드가 이미 행을 지운 뒤라
+ *    조회가 0행이 되어 **아무것도 못 지운다**(무의미한 중복).
+ *
+ * ⛔ 그런데 왜 남겨두는가 — 유일한 호출처가 member-leave.ts 의
+ *    processMemberLeave() 이기 때문이다. 그 함수는 **백엔드를 거치지 않고
+ *    web DB 에 직접 mb_leave_date 를 쓰는 유일한 경로**다(PHP 호환, 현재 dead).
+ *    되살아나면 백엔드 파기가 절대 붙지 않으므로, 그때를 대비해 짝을 지어 둔다.
+ *    → 지우지 말 것. 지우려면 processMemberLeave() 를 먼저 없애야 한다.
+ *
  * 왜 필요한가 — 분쟁조정위 26R05-00197 로 드러난 문제:
  *   탈퇴 처리가 기존 세션을 무효화하지 않아, **탈퇴 전에 발급된 세션 쿠키로
  *   인증 상태가 유지**됐다. 2026-04-02 신청인 계정에서 포인트·XP·mb_today_login
