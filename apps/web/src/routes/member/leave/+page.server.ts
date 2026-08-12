@@ -15,6 +15,7 @@ import {
     CSRF_COOKIE_NAME
 } from '$lib/server/auth/session-store.js';
 import { hashToken, revokeToken } from '$lib/server/auth/token-store.js';
+import { purgeAuthArtifacts } from '$lib/server/auth/purge-auth-artifacts.js';
 import { clearDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 import { requestMemberLeave } from '$lib/server/auth/withdrawal.js';
 
@@ -90,6 +91,16 @@ export const actions: Actions = {
 
         // 탈퇴 신청 성공 → 로그아웃 처리
         await clearAuthCookies(cookies, locals.sessionId, cookies.get('refresh_token'));
+
+        // 다른 기기에 남은 세션·토큰까지 파기 — 분쟁조정위 26R05-00197 대응.
+        // ⛔ clearAuthCookies 는 **현재 기기만** 정리한다(destroySession/revokeToken 모두 단건).
+        //    그래서 다른 브라우저에 남은 세션이 만료 전까지 살아 있었고, 그 세션으로
+        //    탈퇴 후에도 인증 상태가 유지됐다. 여기서 전량 지운다.
+        // ⛔ revokeToken 은 UPDATE 라 행이 남는다 — 이 테이블들은 IP·UA 를 보유하므로
+        //    purgeAuthArtifacts 의 DELETE 로 덮어 마무리한다(순서상 뒤여야 한다).
+        // 백엔드 applySelfLeave 도 같은 파기를 하지만, 여기서 한 번 더 부르는 이유는
+        // **web 프로세스의 L1 세션 캐시**를 함께 비우기 위해서다(Go 는 접근할 수 없다).
+        await purgeAuthArtifacts(mbId);
 
         const target = deadline
             ? `/member/leave/complete?deadline=${encodeURIComponent(deadline)}`

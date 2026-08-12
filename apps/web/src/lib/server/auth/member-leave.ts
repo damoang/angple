@@ -1,6 +1,12 @@
 /**
  * 회원 탈퇴 처리
  * PHP member_leave.php 호환 — 소프트 삭제 (mb_leave_date 설정)
+ *
+ * ⚠️ **현재 프로덕션 호출처가 없다.** 실제 탈퇴는
+ *    routes/member/leave/+page.server.ts → requestMemberLeave() → 백엔드
+ *    POST /api/v1/members/me/leave (applySelfLeave) 로 흐른다.
+ *    이 함수는 PHP 호환 경로로 남아 있는 것이며, 되살아날 때를 대비해
+ *    아래 파기 호출을 함께 유지한다.
  */
 import pool from '$lib/server/db.js';
 import type { ResultSetHeader, RowDataPacket } from 'mysql2';
