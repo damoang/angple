@@ -18,6 +18,7 @@
 import type { ResultSetHeader } from 'mysql2';
 import pool from '$lib/server/db.js';
 import { destroyAllUserSessions } from '$lib/server/auth/session-store.js';
+import { invalidateMemberCache } from '$lib/server/auth/oauth/member.js';
 
 export interface PurgeResult {
     sessions: number;
@@ -37,11 +38,21 @@ export async function purgeAuthArtifacts(mbId: string): Promise<PurgeResult> {
     if (!mbId) return result;
 
     try {
-        // DELETE + L1 세션 캐시 클리어를 함께 수행한다.
-        // 캐시를 비우지 않으면 지운 세션이 다음 요청에서 캐시로 통과한다.
+        // DELETE + 세션 캐시(L1·L2) 키 삭제를 함께 수행한다.
+        // ⛔ 캐시를 비우지 않으면 지운 세션이 L2(Redis, TTL 300초)에서 되살아나
+        //    그동안 인증이 유지된다 — 이 사안의 재현 경로 그 자체다.
         result.sessions = await destroyAllUserSessions(mbId);
     } catch (e) {
         console.error('[purgeAuthArtifacts] 세션 파기 실패', mbId, e);
+    }
+
+    try {
+        // ⛔ 회원 캐시도 반드시 비운다.
+        //    hooks 의 2차 방어는 getMemberById() 로 mb_leave_date 를 보는데,
+        //    이 값이 캐시(L2 TTL 300초)에서 **탈퇴 전 상태**로 나오면 탈퇴자가 통과한다.
+        await invalidateMemberCache(mbId);
+    } catch (e) {
+        console.error('[purgeAuthArtifacts] 회원 캐시 무효화 실패', mbId, e);
     }
 
     try {
