@@ -69,6 +69,9 @@ export interface ViewLayoutProps {
     canViewSecret: boolean;
     promotionExpired?: boolean;
 
+    /** 스크랩(보존) 여부 — 하단 액션바 스크랩 버튼 초기 표시용(bug/13468). */
+    initialScrapped?: boolean;
+
     // 추천/비추천 상태
     likeCount: number;
     dislikeCount: number;

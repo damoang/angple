@@ -68,6 +68,46 @@ function getExt(filename: string): string {
     return dot >= 0 ? filename.slice(dot).toLowerCase() : '';
 }
 
+/**
+ * MIME 타입 → 표준 확장자.
+ *
+ * 에디터 내에서 이미지를 드래그하면 브라우저가 파일명을 `download`(확장자 없음)로 주는데,
+ * `file.type`(예: image/png)은 유효하다. 확장자 검증만 하면 이런 파일이 거부되므로
+ * (bug/13471), 확장자가 없거나 미허용일 때 MIME 으로 확장자를 복구한다. 지원 MIME 이
+ * 아니면 '' 를 반환해 호출부가 400 을 유지하도록 한다.
+ */
+function mimeToExt(mime: string): string {
+    switch ((mime || '').split(';')[0].trim().toLowerCase()) {
+        case 'image/jpeg':
+        case 'image/jpg':
+            return '.jpg';
+        case 'image/png':
+            return '.png';
+        case 'image/gif':
+            return '.gif';
+        case 'image/webp':
+            return '.webp';
+        case 'image/svg+xml':
+            return '.svg';
+        case 'image/heic':
+            return '.heic';
+        case 'image/heif':
+            return '.heif';
+        case 'video/mp4':
+            return '.mp4';
+        case 'video/webm':
+            return '.webm';
+        case 'video/quicktime':
+            return '.mov';
+        case 'video/x-msvideo':
+            return '.avi';
+        case 'video/x-matroska':
+            return '.mkv';
+        default:
+            return '';
+    }
+}
+
 function sanitize(filename: string): string {
     const ext = getExt(filename);
     const base = filename
@@ -76,11 +116,10 @@ function sanitize(filename: string): string {
     return (base || 'file') + ext;
 }
 
-function generateKey(filename: string): string {
+function generateKey(ext: string): string {
     const now = new Date();
     const yy = String(now.getFullYear()).slice(2);
     const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const ext = getExt(filename);
     // 7자리 해시 (PHP S3Uploader와 동일 방식)
     const hash = crypto
         .createHash('md5')
@@ -153,10 +192,12 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         error(400, '파일이 필요합니다.');
     }
 
-    // 확장자 검증
-    const ext = getExt(file.name);
-    if (!ALLOWED_EXTENSIONS.has(ext)) {
-        error(400, `지원하지 않는 파일 형식입니다: ${ext}`);
+    // 형식 검증: 확장자 우선, 없거나 미허용이면 MIME 으로 복구(bug/13471: 에디터에서
+    // 드래그한 이미지는 파일명이 `download`(확장자 없음)이지만 file.type 은 유효하다).
+    const rawExt = getExt(file.name);
+    const ext = ALLOWED_EXTENSIONS.has(rawExt) ? rawExt : mimeToExt(file.type);
+    if (!ext) {
+        error(400, `지원하지 않는 파일 형식입니다: ${rawExt || file.type || file.name}`);
     }
 
     // 크기 검증
@@ -172,7 +213,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         error(400, `파일 크기가 너무 큽니다 (최대 ${Math.floor(sizeLimit / 1024 / 1024)}MB)`);
     }
 
-    const rawKey = generateKey(file.name);
+    const rawKey = generateKey(ext);
     const finalKey = rawKeyToFinalKey(rawKey);
     const contentType = file.type || 'application/octet-stream';
 

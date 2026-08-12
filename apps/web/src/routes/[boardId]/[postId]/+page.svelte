@@ -2365,6 +2365,7 @@
                 isAdmin={authStore.user?.mb_id === 'admin' || data.canManageBoard === true}
                 {canViewSecret}
                 {promotionExpired}
+                initialScrapped={isScrapped}
                 {likeCount}
                 {dislikeCount}
                 {isLiked}
