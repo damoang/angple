@@ -44,6 +44,7 @@
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import Pin from '@lucide/svelte/icons/pin';
     import ShareButton from '$lib/components/post/share-button.svelte';
+    import ScrapButton from '$lib/components/post/scrap-button.svelte';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import PostRatingWidget from '../../post-rating.svelte';
     import type { ViewLayoutProps } from '../types.js';
@@ -77,6 +78,7 @@
         isAuthor,
         isAdmin,
         canViewSecret,
+        initialScrapped = false,
         likeCount,
         dislikeCount,
         isLiked,
@@ -759,10 +761,15 @@
                     {/if}
                 {/if}
 
-                <!-- 공유 + 신고 (우측 정렬) — 스크랩(보존) 버튼은 상단 툴바에 있어 여기선 제외한다.
-                     (bug/13447: #11666 이 하단에 스크랩을 중복 추가해 두 개로 보였고, 하단본은
-                      initialScrapped 상태도 안 받아 표시가 부정확했다. 상태가 올바른 상단본만 유지) -->
+                <!-- 스크랩 + 공유 + 신고 (우측 정렬).
+                     bug/13447: 예전엔 상단 툴바(#238)와 하단(#11666) 두 곳에 스크랩이 있었고
+                     하단본이 initialScrapped 를 안 받아 표시가 부정확했다. bug/13468: 하단본을
+                     통째로 제거했더니 사용자가 글 읽고 누르던 위치의 스크랩이 사라졌다는 제보.
+                     → 하단본을 initialScrapped 와 함께 복원(정확 표시 + 익숙한 위치 둘 다 충족). -->
                 <div class="ml-auto flex items-center gap-1">
+                    {#if authStore.isAuthenticated}
+                        <ScrapButton {boardId} postId={post.id} {initialScrapped} />
+                    {/if}
                     {#if board?.use_sns}
                         <ShareButton {boardId} postId={post.id} title={post.title || ''} />
                     {/if}
