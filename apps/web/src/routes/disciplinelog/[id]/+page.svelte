@@ -75,12 +75,30 @@
     // 소명 기간 내 여부: 제재 당일(0일)부터 15일 이내.
     // (기존 `>= 1` 은 제재 당일 소명을 막아, 징계 직후 바로 소명하려는 회원이
     //  소명 버튼을 볼 수 없던 문제(#12973)를 바로잡는다. 미래 일자 제재는 음수라 제외.)
+    //
+    // ⛔ `new Date("2026-08-11 23:05:15")` 로 파싱하지 말 것.
+    //    공백으로 구분한 "YYYY-MM-DD HH:MM:SS" 는 **JS 표준 형식이 아니다.**
+    //    Chrome 은 관대하게 받아주지만 **Safari·iOS 는 Invalid Date** 를 낸다.
+    //    그러면 getTime() 이 NaN → `NaN >= 0` 이 false → 어제 받은 처분에도
+    //    "소명 가능 기간이 지났습니다" 가 떠서 **소명 자체가 막힌다**
+    //    (2026-08-12 회원 제보, log 4245 · 제재 다음 날).
+    //    ∴ 문자열을 직접 분해해 **로컬 자정 기준 날짜 차이**로 센다.
+    //    시:분:초는 버린다 — 15일 판정에 시각은 의미가 없고, UTC 파싱으로 하루가
+    //    밀리는 사고([[feedback-db-utc-now-kst-trap]])도 이 방식이면 생기지 않는다.
     function isWithinAppealPeriod(log: DisciplineLogDetail): boolean {
-        const penaltyDate = new Date(log.penalty_date_from);
-        const now = new Date();
-        const diffDays = Math.floor(
-            (now.getTime() - penaltyDate.getTime()) / (1000 * 60 * 60 * 24)
-        );
+        const [y, m, d] = (log.penalty_date_from ?? '')
+            .slice(0, 10)
+            .split('-')
+            .map((v) => parseInt(v, 10));
+        if (!y || !m || !d) return false;
+        const penaltyMidnight = new Date(y, m - 1, d).getTime();
+        const today = new Date();
+        const todayMidnight = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate()
+        ).getTime();
+        const diffDays = Math.round((todayMidnight - penaltyMidnight) / 86400000);
         return diffDays >= 0 && diffDays <= 15;
     }
 
