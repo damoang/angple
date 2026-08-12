@@ -95,10 +95,11 @@ export const actions: Actions = {
         //    purgeAuthArtifacts(internal/handler/auth_artifacts.go)가 **단독으로** 맡는다.
         //    위 requestMemberLeave() 가 그 경로를 이미 태우고 돌아온 뒤다.
         //
-        //    한때 여기서도 한 번 더 불렀지만 **무의미했다** — 백엔드가 먼저 DB 행을
-        //    지우고 오므로 web 의 조회가 0행이 되어 캐시 키를 하나도 못 지웠다.
-        //    게다가 web 과 백엔드의 CACHE_NAMESPACE 가 다를 수 있어(canary),
-        //    파기 주체를 둘로 나누면 어느 쪽이 무엇을 지웠는지 추적이 불가능해진다.
+        //    한때 여기서도 한 번 더 불렀지만 소득이 거의 없었다 — 백엔드가 먼저 DB 행을
+        //    지우고 오므로 web 의 세션 조회가 0행이 되어 sess: 키는 하나도 못 지운다.
+        //    (회원 캐시는 지워지지만 그건 처리한 파드 1대뿐이고, 백엔드가 canary
+        //     네임스페이스까지 포함해 이미 커버한다.)
+        //    파기 주체를 둘로 나누면 어느 쪽이 무엇을 지웠는지 추적만 어려워진다.
         await clearAuthCookies(cookies, locals.sessionId, cookies.get('refresh_token'));
 
         const target = deadline

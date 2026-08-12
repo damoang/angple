@@ -5,8 +5,11 @@
  *    purgeAuthArtifacts (backend/internal/handler/auth_artifacts.go) 다.
  *    실제 탈퇴는 routes/member/leave/+page.server.ts → 백엔드
  *    POST /api/v1/members/me/leave 로 흐르고, 거기서 DB 파기 + Redis 캐시
- *    무효화가 전부 끝난다. web 에서 또 부르면 백엔드가 이미 행을 지운 뒤라
- *    조회가 0행이 되어 **아무것도 못 지운다**(무의미한 중복).
+ *    무효화가 전부 끝난다(canary 네임스페이스 포함).
+ *    web 에서 또 불러도 소득이 거의 없다 — 백엔드가 먼저 행을 지우고 오므로
+ *    세션 조회가 0행이 되어 **sess: 키는 하나도 못 지운다**. 회원 캐시만
+ *    처리한 파드 1대 기준으로 중복 삭제될 뿐이라, 파기 주체를 둘로 나눠
+ *    추적을 어렵게 만들 값어치가 없다.
  *
  * ⛔ 그런데 왜 남겨두는가 — 유일한 호출처가 member-leave.ts 의
  *    processMemberLeave() 이기 때문이다. 그 함수는 **백엔드를 거치지 않고
