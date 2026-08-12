@@ -6,7 +6,8 @@ import {
     applyAffiliateField,
     fetchPostAffiliateLinks,
     findAffiliateFieldRow,
-    renderAffiliateContent
+    renderAffiliateContent,
+    syncPostAffiliateLinks
 } from '$lib/server/affiliate-links.js';
 import { isLinkProcessingPluginEnabled } from '$lib/server/link-processing/runtime.js';
 import { isScraped } from '$lib/server/scrap.js';
@@ -505,6 +506,28 @@ export const load: PageServerLoad = async ({
             const postAffiliateRows = affiliateEnabled
                 ? await fetchPostAffiliateLinks(boardId, Number(postId)).catch(() => [])
                 : [];
+
+            // 제휴 링크 lazy-convert-on-view (배포에 견디는 트리거).
+            // 근본 원인: 지속형 자동 트리거가 배포 시스템 밖(go-service watcher)에 살아
+            // 매 배포마다 죽어, 신규글이 변환되지 않고 매출이 끊겼다(2026-08-08 이후 $0).
+            // 변환된 행이 0개(= 아직 미변환)이고 본문/링크에 외부 링크가 있을 때만
+            // syncPostAffiliateLinks 를 fire-and-forget 로 호출한다. 트리거가 web 이미지
+            // 안에 살아 배포에 견디며, 다음 조회부터 변환 링크가 노출된다.
+            // 값싼 게이트로 링크 없는 글은 걸러 과발화를 막고, 행이 생기면 다시 발화하지 않는다.
+            if (
+                affiliateEnabled &&
+                postAffiliateRows.length === 0 &&
+                (Boolean(post.link1) ||
+                    Boolean(post.link2) ||
+                    (typeof post.content === 'string' && post.content.includes('http')))
+            ) {
+                try {
+                    // await 금지 — SSR 렌더/응답을 절대 블로킹·지연하지 않는다. 에러는 삼킨다.
+                    void syncPostAffiliateLinks(boardId, Number(postId)).catch(() => {});
+                } catch {
+                    // 트리거 실패해도 페이지는 오늘과 동일하게 렌더된다.
+                }
+            }
 
             // link1/link2 제휴 변환 결과 계산 (post 객체는 mutate 하지 않고 별도 payload 로 전달).
             const linkAffiliate: {
