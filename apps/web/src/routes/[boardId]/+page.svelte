@@ -16,6 +16,7 @@
     import { Badge } from '$lib/components/ui/badge/index.js';
     import { getNoticeHref } from '$lib/utils/notice-link';
     import type { PageData } from './$types.js';
+    import type { FreePost } from '$lib/api/types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import {
         canUseCertifiedAction,
@@ -817,6 +818,124 @@
         }
         goto(url.pathname + url.search);
     }
+
+    // ── 차단 키워드 백필 (bug/13473) ──────────────────────────────────────────
+    // 서버는 페이지당 N개를 주는데, 클라이언트가 차단 키워드(muteKeywords)에 걸린 글을
+    // fetch 이후 제거하면(위 filteredPosts) 화면에 보이는 개수가 N보다 줄어 목록이
+    // 휑해 보인다(특히 클래식 목록). 서버(write_repo.go)의 목록 쿼리에 NOT LIKE 를
+    // 넣으면 FORCE INDEX(idx_list_page)가 깨지므로 손대지 않고, 부족분만 다음
+    // 페이지에서 클라이언트가 당겨와 채운다.
+    //
+    // ⛔ 페이지 번호 네비게이션(이전/다음/번호)은 원래 오프셋 그대로 둔다 — 백필은
+    //    보이는 목록만 채우고 URL·페이징은 바꾸지 않는다. 그래서 차단 키워드를 쓰면서
+    //    페이지를 넘기면 백필로 당겨온 글이 다음 페이지에서 다시 보일 수 있는데
+    //    (경미한 페이지 간 중복), 이는 서버 변경 없이 얻는 절충으로 감수한다.
+    // ⛔ 차단 키워드가 없으면 백필은 절대 돌지 않는다(추가 fetch 0) — 기존과 완전히 동일.
+
+    const BACKFILL_MAX_FETCHES = 3; // 무한 루프 방지: 페이지당 최대 3회 추가 요청 후 중단
+    let backfilledPosts = $state<FreePost[]>([]);
+    let backfilling = $state(false);
+    // 취소 토큰은 반응형이면 안 된다 — $state 로 두고 effect 안에서 읽고+쓰면 자기
+    // 재트리거가 폭주한다(feedback_effect_state_rmw_self_retrigger). 평범한 let 으로 둔다.
+    let backfillRunId = 0;
+
+    // 검색·날짜아카이브·특수게시판은 서버 조회 경로가 달라(예: 검색=Sphinx→DB 직조회)
+    // 클라이언트의 /api/v1 직조회와 결과가 어긋날 수 있으므로 백필에서 제외한다.
+    // 일반/카테고리/태그 목록(standard)만 대상.
+    const canBackfill = $derived(
+        !isSearching && !dateMode && !isMessageBoard && boardType === 'standard'
+    );
+
+    // 차단 후에도 남는 백필 글(차단 키워드 변경에 반응) + 원본을 합쳐 최종 표시 목록 구성.
+    // 차단 키워드가 없으면 backfilledPosts 는 항상 [] 이라 displayPosts === filteredPosts.
+    const visibleBackfilled = $derived(
+        backfilledPosts.filter((p) => !uiSettingsStore.isMuted(p.title))
+    );
+    const displayPosts = $derived([...filteredPosts, ...visibleBackfilled]);
+
+    // 다음 페이지 한 장을 현재 목록과 동일한 쿼리(카테고리·태그 포함)로 당겨온다.
+    // SSR(+page.server.ts)이 쓰는 것과 같은 엔드포인트이며, 같은 오리진 fetch 라
+    // Referer/sec-fetch-site 로 내부요청 게이트를 통과한다(외부 직접 호출은 차단됨).
+    async function fetchBackfillPage(
+        pageNum: number
+    ): Promise<{ posts: FreePost[]; hasNext: boolean }> {
+        const params = new URLSearchParams($page.url.searchParams);
+        params.set('page', String(pageNum));
+        // 태그 필터는 서버가 sfl=title_content&stx= 를 함께 붙여 조회한다 — 동일하게 재현.
+        if (activeTag) {
+            params.set('sfl', 'title_content');
+            params.set('stx', '');
+        }
+        try {
+            const res = await fetch(`/api/v1/boards/${boardId}/posts?${params.toString()}`, {
+                credentials: 'include'
+            });
+            if (!res.ok) return { posts: [], hasNext: false };
+            const json = await res.json();
+            return {
+                posts: (json?.data as FreePost[]) ?? [],
+                hasNext: json?.meta?.has_next === true
+            };
+        } catch {
+            return { posts: [], hasNext: false };
+        }
+    }
+
+    $effect(() => {
+        // 원본 페이지가 바뀌면(네비게이션/재조회/키워드 변경) 백필을 초기화한다.
+        // 의존성: posts·pagination·muteKeywords·hydrated·canBackfill.
+        // ⛔ backfilledPosts/backfilling 은 여기서 읽지 않는다(읽고+쓰면 자기 재트리거).
+        //    진행 중 백필의 취소는 비반응형 backfillRunId 로 처리한다.
+        const runId = ++backfillRunId;
+        backfilledPosts = [];
+        backfilling = false;
+        // 언마운트/재실행 시 진행 중 백필을 취소한다(runId 를 밀어 async 가짜 완료 무시).
+        const cancel = () => {
+            backfillRunId++;
+        };
+
+        // 차단 키워드 없음 → 기존과 완전 동일(추가 fetch 0).
+        if (uiSettingsStore.muteKeywords.length === 0) return cancel;
+        if (!hydrated || !canBackfill) return cancel;
+        if (!paginationHasNext) return cancel;
+
+        // 목표 = 원래 페이지가 채우던 행 수(= 페이지 크기). 차단으로 줄어든 만큼만 채운다.
+        const target = posts.length;
+        const startVisible = filteredPosts.length;
+        if (startVisible >= target) return cancel;
+
+        const startPage = pagination.page;
+
+        void (async () => {
+            backfilling = true;
+            const collected: FreePost[] = [];
+            const seen = new Set(posts.map((p) => p.id)); // id 중복 제거(원본 + 누적)
+            let visible = startVisible;
+            let nextPage = startPage + 1;
+            let hasNext = true;
+            let fetches = 0;
+
+            while (visible < target && hasNext && fetches < BACKFILL_MAX_FETCHES) {
+                const result = await fetchBackfillPage(nextPage);
+                if (runId !== backfillRunId) return; // 취소됨(페이지 이동/키워드 변경)
+                fetches++;
+                hasNext = result.hasNext;
+                for (const p of result.posts) {
+                    if (seen.has(p.id)) continue;
+                    seen.add(p.id);
+                    collected.push(p);
+                    if (!uiSettingsStore.isMuted(p.title)) visible++;
+                }
+                nextPage++;
+            }
+
+            if (runId !== backfillRunId) return;
+            backfilledPosts = collected;
+            backfilling = false;
+        })();
+
+        return cancel;
+    });
 </script>
 
 <!-- 특수 게시판: 플러그인 레지스트리 기반 동적 로딩 -->
@@ -1367,7 +1486,7 @@
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                onclick={() => selectAllVisible(filteredPosts)}
+                                onclick={() => selectAllVisible(displayPosts)}
                                 >현재 페이지 전체 선택</Button
                             >
                         </div>
@@ -1556,7 +1675,7 @@
                         {/each}
                     {/if}
                 {/if}
-                {#if !postsResult.error && filteredPosts.length === 0}
+                {#if !postsResult.error && displayPosts.length === 0 && !backfilling}
                     <Card class="bg-background {listLayoutId === 'gallery' ? 'col-span-full' : ''}">
                         <CardContent class="py-12 text-center">
                             {#if isSearching}
@@ -1581,7 +1700,7 @@
                         </CardContent>
                     </Card>
                 {:else if LayoutComponent}
-                    {#each filteredPosts as post, i (post.id)}
+                    {#each displayPosts as post, i (post.id)}
                         {#if bulkSelectMode}
                             <div class="flex items-start gap-2">
                                 <div class="flex shrink-0 items-center pt-3">
