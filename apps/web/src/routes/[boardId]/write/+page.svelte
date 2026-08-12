@@ -27,7 +27,15 @@
     let { data }: { data: PageData } = $props();
 
     // 소명 연동: disciplinelog_id 쿼리파라미터 처리
-    const disciplinelogId = $derived($page.url.searchParams.get('disciplinelog_id') ?? '');
+    //
+    // ⛔ 쿼리파라미터가 없으면(소명게시판에서 직접 글쓰기) 제목이 빈 채로 남아,
+    //    목록에서 어느 처분에 대한 소명인지 보이지 않는다. 실제로 claim/1733 이
+    //    그렇게 작성돼 최근 10건 중 혼자만 제목 형식이 달랐다.
+    //    그래서 서버가 찾아준 **소명 가능한 최근 기록**으로 대신 채운다.
+    const disciplinelogId = $derived(
+        $page.url.searchParams.get('disciplinelog_id') ??
+            (data.appealableDiscipline ? String(data.appealableDiscipline.id) : '')
+    );
     const claimInitialTitle = $derived(
         disciplinelogId ? `이용제한 ${disciplinelogId}번에 대한 소명` : ''
     );

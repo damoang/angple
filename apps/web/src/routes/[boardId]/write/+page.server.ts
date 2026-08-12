@@ -4,6 +4,7 @@ import type { Board } from '$lib/api/types.js';
 import { backendFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 import { checkCertification } from '$lib/server/certification.js';
 import { resolveCanonicalBoardId } from '$lib/server/board-cache.js';
+import { findAppealableDiscipline } from '$lib/server/appealable-discipline';
 
 /**
  * 글쓰기 페이지 서버 로드
@@ -80,6 +81,15 @@ export const load: PageServerLoad = async ({ locals, params }) => {
             throw err;
         }
         // 게시판 정보 조회 실패는 무시 (CSR에서 재확인)
+    }
+
+    // 소명게시판에 **직접** 글쓰기로 들어온 경우 — ?disciplinelog_id= 가 없으면
+    // 본인의 소명 가능한 최근 기록을 찾아 화면이 제목·본문을 채우게 한다.
+    // 그 값이 없으면 제목이 빈 채로 남아 목록에서 어느 처분에 대한 소명인지 안 보인다
+    // (claim/1733 이 그렇게 작성됐다).
+    if (boardId === 'claim' && locals.user?.id) {
+        const recent = await findAppealableDiscipline(locals.user.id);
+        if (recent) return { appealableDiscipline: recent };
     }
 
     return {};
