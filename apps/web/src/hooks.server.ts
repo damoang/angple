@@ -239,8 +239,12 @@ function isExtensionAdminRequest(pathname: string, method: string): boolean {
     }
     // POST /api/plugins = 활성화/비활성화
     if (pathname === '/api/plugins') return !isRead;
-    // DELETE /api/plugins/{id} = 삭제 (같은 깊이의 디스패처보다 이 라우트가 우선한다)
-    if (/^\/api\/plugins\/[^/]+$/.test(pathname)) return !isRead;
+    // DELETE /api/plugins/{id} = 플러그인 삭제. **DELETE 만** 관리자 게이트다.
+    // ⛔ bug/13466: 여기서 !isRead(=쓰기 전부) 로 잡으면 POST /api/plugins/{id} 도 걸린다.
+    //    투표 생성은 POST /api/plugins/poll(=플러그인 디스패처의 회원 기능)인데, 이게
+    //    "poll 플러그인 삭제(관리자)"로 오인돼 비관리자 전원 403 → 투표 생성 불가였다.
+    //    /api/plugins/{id} 깊이의 관리 동작은 삭제(DELETE)뿐이므로 그것만 막는다.
+    if (/^\/api\/plugins\/[^/]+$/.test(pathname)) return method === 'DELETE';
     // PUT /api/plugins/{id}/settings = 설정 변경
     if (/^\/api\/plugins\/[^/]+\/settings$/.test(pathname)) return !isRead;
 
