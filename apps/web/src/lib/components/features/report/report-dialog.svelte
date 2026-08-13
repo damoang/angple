@@ -122,8 +122,9 @@
             }, 2000);
         } catch (err) {
             if (err instanceof ApiRequestError && err.status === 409) {
-                // 이미 제재 처리된 게시물 — 중복 신고 불가. 명확히 안내하고 재시도 차단.
-                error = err.message || '이미 제재 처리된 게시물입니다. 중복 신고할 수 없습니다.';
+                // bug/13487: 신고 누적으로 잠금(대기) 처리된 글 — 중복 신고 불가.
+                // 신고한 적 없는 사용자가 "이미 신고 처리가 완료된 게시물입니다" 빨간 오류를 보고
+                // 당황하던 문제라, 오류(destructive)가 아니라 중립 안내로 표시한다. 재시도는 차단.
                 alreadyHandled = true;
             } else {
                 error = err instanceof Error ? err.message : '신고 접수에 실패했습니다.';
@@ -215,8 +216,14 @@
                     />
                 </div>
 
-                <!-- 에러 메시지 -->
-                {#if error}
+                <!-- 이미 신고 누적으로 잠금(대기) 처리된 글 안내 (bug/13487, 오류 아님) -->
+                {#if alreadyHandled}
+                    <div class="bg-muted text-muted-foreground rounded-md p-3 text-sm">
+                        이미 여러 신고가 접수되어 검토·잠금 처리 중인 게시물입니다. 추가로 신고하지
+                        않으셔도 됩니다.
+                    </div>
+                {:else if error}
+                    <!-- 에러 메시지 -->
                     <div class="bg-destructive/10 text-destructive rounded-md p-3 text-sm">
                         {error}
                     </div>

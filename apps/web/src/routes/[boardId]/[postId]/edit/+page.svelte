@@ -61,7 +61,19 @@
             window.location.href = `/${boardId}/${postId}`;
         } catch (err) {
             console.error('Failed to update post:', err);
-            error = err instanceof Error ? err.message : '게시글 수정에 실패했습니다.';
+            // bug/13489: 저장 실패가 조용히 묻혀 사용자가 "저장됐다"고 오인하던 문제
+            // (성공 시엔 풀 리로드로 이동하지만, 실패 시엔 이 페이지에 남는다).
+            // ① 실패 텔레메트리로 운영이 즉시 인지 ② 문구를 "반영 안 됨"으로 명확히 ③ 에러로 스크롤.
+            const reason = err instanceof Error ? err.message : 'unknown';
+            trackEvent('post_edit_fail', {
+                board_id: boardId,
+                post_id: String(postId),
+                reason
+            });
+            error =
+                '변경 내용이 저장되지 않았습니다. 다시 시도해 주세요.' +
+                (err instanceof Error && err.message ? ` (${err.message})` : '');
+            if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
         } finally {
             isSubmitting = false;
         }
