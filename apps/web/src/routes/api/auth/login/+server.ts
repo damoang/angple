@@ -72,6 +72,27 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
         const result = await backendRes.json();
         const userData = result?.data;
 
+        // ⛔⛔ 이 500 을 "버그"로 보고 혼자 고치지 마세요. 지금 이게 보안 차단재입니다.
+        //
+        //    백엔드 응답의 user 는 V2User(internal/domain/v2/models.go) 이고 거기엔
+        //    `user_id` JSON 필드가 **없습니다**(id / username / nickname …).
+        //    그래서 자격증명이 맞아도 여기서 500 이 나고, 아래 createSession ·
+        //    generateRefreshToken · grantLoginXP 가 **실행되지 않습니다.**
+        //
+        //    ⛔ 이 아래 코드는 백엔드가 내려주는 `data.status` 를 **전혀 읽지 않습니다.**
+        //       백엔드는 탈퇴 숙려중(30일 이내) 계정에게 status:"withdrawal_grace" 와
+        //       함께 access_token 을 내려줍니다(탈퇴 "취소" 호출용으로 설계된 동작).
+        //       따라서 user_id → username 으로 "고치기만" 하면, 그 순간부터
+        //       **탈퇴 신청한 계정이 완전한 로그인 세션 + refresh 토큰 행을 발급받습니다.**
+        //       두 테이블은 IP·User-Agent 를 보유하므로 개인정보 파기 의무와도 정면 충돌하고,
+        //       탈퇴 시점 파기(purgeAuthArtifacts)를 그 자리에서 무력화합니다.
+        //       → 분쟁조정위 26R05-00197 의 원인과 같은 계열입니다.
+        //
+        //    고치려면 **반드시 아래 둘을 함께** 하세요:
+        //      1) `if (result?.data?.status === 'withdrawal_grace')` 분기를 이 검사보다 **먼저**
+        //         두고, 세션을 만들지 말고 탈퇴 취소 화면으로 보낼 것
+        //      2) 백엔드 WithdrawalCheck 미들웨어 배포 이후에 할 것
+        //         (참조: 2026-08-13 WithdrawalCheck 미들웨어 Sprint Contract)
         if (!userData?.user?.user_id) {
             return json(
                 { success: false, message: '사용자 정보를 가져올 수 없습니다.' },
