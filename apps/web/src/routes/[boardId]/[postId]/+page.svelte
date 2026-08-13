@@ -301,6 +301,11 @@
     const fromBoard = $derived(sanitizeFromBoard($page.url.searchParams.get('from')));
     const boardTitle = $derived(data.board?.subject || data.board?.name || boardId);
 
+    // 브레드크럼 표시 여부. 목록 버튼이 "← {게시판명}" 으로 현재 위치를 겸하게 되면서
+    // 담고 있던 정보(홈/게시판/글 제목)가 전부 화면에 중복으로 남아 잠시 꺼둔다.
+    // 되살릴 일이 있을 수 있어 마크업은 남겨두고 이 플래그만 true 로 바꾸면 된다.
+    const SHOW_BREADCRUMB = false;
+
     // #12920: 이용제한 근거 콘텐츠 공개 워터마크용 열람자 정보를 스토어에 동기화.
     // 스토어가 모듈 싱글톤이라 teardown 에서 반드시 정리해 페이지 이탈 후 잔존을 방지.
     $effect(() => {
@@ -2136,21 +2141,28 @@
         </div>
     {/if}
 
-    <!-- 브레드크럼 — 모바일에서는 숨긴다. 마지막 항목이 글 제목이라 바로 아래 h1 과
-         글자 그대로 중복이고, 앞의 "홈 / 게시판"은 아래 목록 버튼(← 게시판명)이
-         대신한다. 줄 하나(24px)를 통째로 아끼면서 잃는 정보가 없다. -->
-    <nav
-        class="text-muted-foreground -mx-2 mb-1 hidden items-center gap-1 px-2 text-sm md:mx-0 md:flex md:px-0"
-        aria-label="breadcrumb"
-    >
-        <a href="/" class="hover:text-foreground transition-colors">홈</a>
-        <span class="text-muted-foreground/50">/</span>
-        <a href="/{data.boardId}" class="hover:text-foreground transition-colors">{boardTitle}</a>
-        <span class="text-muted-foreground/50">/</span>
-        <span class="text-foreground min-w-0 break-words" title={data.post.title}
-            >{data.post.title}</span
+    <!-- 브레드크럼 — 현재 꺼둔 상태(SHOW_BREADCRUMB=false). 담고 있던 정보가 전부
+         화면 어딘가에 이미 있다: "홈 / 게시판"은 아래 목록 버튼(← 게시판명)이,
+         글 제목은 바로 아래 h1 이 글자 그대로 보여준다. 모바일·PC 각각 줄 하나(24px)를
+         통째로 아끼면서 잃는 정보가 없다.
+         되살리려면 SHOW_BREADCRUMB 를 true 로. 그 경우 모바일에서는 계속 숨고
+         md 이상에서만 나온다(hidden md:flex). -->
+    {#if SHOW_BREADCRUMB}
+        <nav
+            class="text-muted-foreground -mx-2 mb-1 hidden items-center gap-1 px-2 text-sm md:mx-0 md:flex md:px-0"
+            aria-label="breadcrumb"
         >
-    </nav>
+            <a href="/" class="hover:text-foreground transition-colors">홈</a>
+            <span class="text-muted-foreground/50">/</span>
+            <a href="/{data.boardId}" class="hover:text-foreground transition-colors"
+                >{boardTitle}</a
+            >
+            <span class="text-muted-foreground/50">/</span>
+            <span class="text-foreground min-w-0 break-words" title={data.post.title}
+                >{data.post.title}</span
+            >
+        </nav>
+    {/if}
 
     <!-- 빠른 이동(tag-nav) — 목록 페이지와 동일. 메뉴는 admin 설정/DEFAULT_MENUS 공유 -->
     <div class="mb-1">
