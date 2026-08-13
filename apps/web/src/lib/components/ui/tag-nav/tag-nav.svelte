@@ -36,7 +36,7 @@
 </script>
 
 {#if visibleMenus.length > 0}
-    <nav class="tag-nav flex gap-1.5 overflow-x-auto {className}" aria-label="빠른 이동">
+    <nav class="tag-nav flex gap-1 overflow-x-auto {className}" aria-label="빠른 이동">
         {#each visibleMenus as menu (menu.key)}
             <a
                 href={menu.url}
