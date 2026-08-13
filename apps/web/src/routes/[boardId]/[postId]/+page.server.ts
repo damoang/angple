@@ -20,6 +20,7 @@ import {
     markViewed
 } from '$lib/server/viewcount.js';
 import { addReadPost } from '$lib/server/read-posts.js';
+import { fetchPostReportCount } from '$lib/server/report-count.js';
 import { fetchReactionsByParentId } from '$lib/server/reactions.js';
 import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
@@ -586,8 +587,15 @@ export const load: PageServerLoad = async ({
                 locals.user?.id
                     ? isScraped(locals.user.id, boardId, postId).catch(() => false)
                     : Promise.resolve(false),
-                // 게시글 신고 횟수 (관리 기능은 /admin에서)
-                Promise.resolve(null),
+                // 게시글 신고 잠금 상태 (bug/13487)
+                // 신고 17명 누적 시 백엔드가 wr_7='lock' 으로 자동 잠그는데, 그 상태가 상세 화면에
+                // 배선돼 있지 않아(기존 하드코딩 null) isLockedPost 가 항상 false → 이미 잠긴 글에도
+                // 신고 버튼이 살아 있어 "이미 신고 처리가 완료된 게시물입니다" 409 가 뜨던 문제.
+                // lock 이면 비관리자에도 'lock' 을 내려 버튼 숨김+신고잠금 배지를 켠다.
+                // 숫자 신고 횟수는 기존대로 노출하지 않는다(관리 기능은 /admin).
+                fetchPostReportCount(boardId, Number(postId))
+                    .then((c) => (c === 'lock' ? 'lock' : null))
+                    .catch(() => null),
                 // 게시글 추천/비추천 상태 (로그인 시만, DB 직접 조회)
                 locals.user?.id
                     ? fetchPostLikeStatus(boardId, Number(postId), locals.user.id).catch(() => ({
