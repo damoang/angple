@@ -39,7 +39,7 @@
 {#if celebrations.length > 0}
     <a
         href={getLink(celebrations[currentIndex])}
-        class="border-border bg-background hover:bg-accent flex h-6 items-center gap-2 overflow-hidden rounded-lg border px-3 transition-colors {className}"
+        class="border-border bg-background hover:bg-accent flex h-7 items-center gap-2 overflow-hidden rounded-lg border px-3 transition-colors {className}"
     >
         {#if showAvatar}
             <div class="relative h-5 w-5 shrink-0 overflow-hidden rounded-full">
@@ -60,7 +60,7 @@
             </div>
         {/if}
 
-        <div class="relative h-5 min-w-0 flex-1 overflow-hidden">
+        <div class="relative h-6 min-w-0 flex-1 overflow-hidden">
             {#each celebrations as banner, i (banner.id)}
                 <span
                     class="absolute inset-0 flex items-center gap-1.5 truncate text-sm transition-all duration-500 ease-in-out
@@ -81,7 +81,7 @@
     </a>
 {:else if ready}
     <div
-        class="border-border bg-background flex h-6 items-center justify-center rounded-lg border px-3 {className}"
+        class="border-border bg-background flex h-7 items-center justify-center rounded-lg border px-3 {className}"
     >
         <a
             href="/message"
@@ -90,5 +90,5 @@
         >
     </div>
 {:else}
-    <div aria-hidden="true" class="pointer-events-none invisible h-6 {className}"></div>
+    <div aria-hidden="true" class="pointer-events-none invisible h-7 {className}"></div>
 {/if}
