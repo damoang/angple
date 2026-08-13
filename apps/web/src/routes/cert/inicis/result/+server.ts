@@ -6,6 +6,7 @@ import type { RequestHandler } from './$types';
 import {
     getSeedIV,
     buildDupinfo,
+    buildDupinfoAlt,
     isValidInicisUrl,
     saveCertResult,
     checkDupinfo,
@@ -107,6 +108,9 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 
     // CI 기반 dupinfo 생성
     const mbDupinfo = buildDupinfo(userCi);
+    // 보조 DI — 2026-07-19 키 전환기(1,292명)와 대조하기 위한 값.
+    // 보조 키 미설정이면 빈 문자열이고, 저장·조회에서 자동 제외된다.
+    const mbDupinfoAlt = buildDupinfoAlt(userCi);
     console.log('[Cert] dupinfo generated:', {
         dupinfoPrefix: mbDupinfo.slice(0, 16),
         hasCi: !!userCi,
@@ -129,7 +133,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
     }
 
     // 중복 인증 체크
-    const existingId = await checkDupinfo(mbId, mbDupinfo);
+    const existingId = await checkDupinfo(mbId, mbDupinfo, mbDupinfoAlt);
     console.log('[Cert] dupinfo check result:', {
         mbId,
         dupinfoPrefix: mbDupinfo.slice(0, 16),
@@ -151,7 +155,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 
     // DB 업데이트
     try {
-        await saveCertResult(mbId, mbDupinfo, userBirthday);
+        await saveCertResult(mbId, mbDupinfo, userBirthday, mbDupinfoAlt);
     } catch (err) {
         console.error('[Cert] DB 저장 실패:', err);
         return certResultPage(false, '인증 정보 저장에 실패했습니다.');
