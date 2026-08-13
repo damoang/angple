@@ -60,6 +60,21 @@
         return Math.round((votes / totalVotes) * 100);
     }
 
+    // 결과 도넛 차트용 세그먼트 (bug/13485: 밋밋한 막대에 색상+도넛 시각화 추가).
+    // 색상 = dataviz 검증 카테고리 6색을 순환(최대 6선택지). 실제 색값은 하단 <style> 의
+    // --poll-c0..5 (라이트/다크 각각 검증본). pathLength=100 정규화라 비율을 그대로 dasharray 에
+    // 쓰고, 기하는 반올림 안 한 raw 비율(누적 start)로 계산해 라운딩 틈을 없앤다.
+    const donutSegments = $derived.by(() => {
+        const opts = poll?.options ?? [];
+        let acc = 0;
+        return opts.map((o, i) => {
+            const raw = totalVotes > 0 ? ((o.votes ?? 0) / totalVotes) * 100 : 0;
+            const seg = { start: acc, len: raw, color: `var(--poll-c${i % 6})` };
+            acc += raw;
+            return seg;
+        });
+    });
+
     function remainText(closesAt: string | undefined): string {
         if (!closesAt) return '';
         const diff = new Date(closesAt).getTime() - Date.now();
@@ -175,7 +190,59 @@
         </CardHeader>
         <CardContent class="space-y-2">
             {#if showBars}
-                {#each poll.options ?? [] as opt (opt.idx)}
+                {#if totalVotes > 0}
+                    <!-- 결과 도넛 차트 (구성비 시각화, bug/13485) -->
+                    <div class="mb-2 flex justify-center">
+                        <svg
+                            viewBox="0 0 120 120"
+                            class="h-24 w-24"
+                            role="img"
+                            aria-label="투표 결과 도넛 차트"
+                        >
+                            <circle
+                                cx="60"
+                                cy="60"
+                                r="47"
+                                fill="none"
+                                class="poll-track"
+                                stroke-width="15"
+                            />
+                            {#each donutSegments as seg}
+                                {#if seg.len > 0}
+                                    <circle
+                                        cx="60"
+                                        cy="60"
+                                        r="47"
+                                        fill="none"
+                                        stroke={seg.color}
+                                        stroke-width="15"
+                                        pathLength="100"
+                                        stroke-dasharray="{seg.len} {100 - seg.len}"
+                                        stroke-dashoffset={-seg.start}
+                                        transform="rotate(-90 60 60)"
+                                    />
+                                {/if}
+                            {/each}
+                            <text
+                                x="60"
+                                y="57"
+                                text-anchor="middle"
+                                class="fill-foreground text-[16px] font-bold"
+                            >
+                                {totalVotes}
+                            </text>
+                            <text
+                                x="60"
+                                y="73"
+                                text-anchor="middle"
+                                class="fill-muted-foreground text-[9px]"
+                            >
+                                표
+                            </text>
+                        </svg>
+                    </div>
+                {/if}
+                {#each poll.options ?? [] as opt, i (opt.idx)}
                     {@const mine = poll.my_choices?.includes(opt.idx)}
                     <button
                         type="button"
@@ -188,11 +255,15 @@
                             poll?.allow_multi ? toggleMultiPick(opt.idx) : voteSingle(opt.idx)}
                     >
                         <span
-                            class="bg-primary/15 absolute inset-y-0 left-0"
-                            style="width: {percent(opt.votes)}%"
+                            class="poll-bar absolute inset-y-0 left-0"
+                            style="width: {percent(opt.votes)}%; --seg: var(--poll-c{i % 6})"
                         ></span>
                         <span class="relative flex items-center justify-between gap-2">
                             <span class="flex min-w-0 items-center gap-1.5">
+                                <span
+                                    class="h-2.5 w-2.5 shrink-0 rounded-full"
+                                    style="background: var(--poll-c{i % 6})"
+                                ></span>
                                 <span class="truncate {mine ? 'font-semibold' : ''}"
                                     >{opt.label}</span
                                 >
@@ -347,3 +418,34 @@
         {/if}
     </div>
 {/if}
+
+<style>
+    /* 투표 결과 도넛/막대 카테고리 팔레트 (bug/13485).
+       dataviz 검증본 6색 — 라이트/다크 각각 대비·CVD(ΔE≥8) 통과. 최대 6선택지.
+       색은 아이덴티티(도넛 세그먼트·색점·막대)에만 쓰고, 숫자·라벨은 토큰 잉크(fill-foreground 등). */
+    :global(:root) {
+        --poll-c0: #2a78d6;
+        --poll-c1: #eb6834;
+        --poll-c2: #1baf7a;
+        --poll-c3: #eda100;
+        --poll-c4: #e87ba4;
+        --poll-c5: #008300;
+    }
+    :global(.dark),
+    :global(.amoled) {
+        --poll-c0: #3987e5;
+        --poll-c1: #d95926;
+        --poll-c2: #199e70;
+        --poll-c3: #c98500;
+        --poll-c4: #d55181;
+        --poll-c5: #008300;
+    }
+    /* 도넛 트랙: 현재 잉크색을 아주 옅게 (라이트/다크 자동) */
+    .poll-track {
+        stroke: color-mix(in srgb, currentColor 12%, transparent);
+    }
+    /* 막대 채움: 선택지 색을 옅게 — 위에 얹힌 라벨 가독성 유지(라이트 대비 relief) */
+    .poll-bar {
+        background: color-mix(in srgb, var(--seg) 24%, transparent);
+    }
+</style>
