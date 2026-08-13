@@ -79,6 +79,18 @@ export interface DisciplineLogListItem {
     revoked?: boolean; // 소명 인용 등으로 회수된 제재 (목록 배지용)
 }
 
+/**
+ * 사유 정정 한 건 (소명 인용 등으로 사유가 빠지거나 더해진 경우).
+ *
+ * ⛔ 운영자 ID·내부 메모는 응답에 없다. 회수(revoked_at)와 같은 기준이다.
+ */
+export interface ReasonCorrection {
+    at: string;
+    removed?: string[];
+    added?: string[];
+    claim_id?: number;
+}
+
 export interface DisciplineLogDetail {
     id: number;
     member_id: string;
@@ -96,6 +108,7 @@ export interface DisciplineLogDetail {
     status: 'pending' | 'approved' | 'rejected';
     claim_post_id?: number;
     revoked_at?: string; // 소명 인용 등으로 회수된 경우 해제일 (revoked_by·admin_memo는 미노출)
+    reason_corrections?: ReasonCorrection[]; // 사유 정정 이력 (없으면 키 자체가 없다)
 }
 
 export interface DisciplineLogListResponse {
