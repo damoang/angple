@@ -58,6 +58,15 @@ export interface GivingDetail {
     seed_hash: string | null;
     config_status: string;
     unit_price: number;
+    /**
+     * N-2 참가 조건. 0 이면 제한 없음. 구 응답에는 없으므로 optional.
+     *
+     * entry_point_cost 는 무료 방식에만 적용된다 — 유료(lowest_unique)는 번호당
+     * 단가를 이미 내므로 백엔드가 참가비를 부과하지 않는다.
+     * 차감된 포인트는 전액 소각되며 반환되지 않는다.
+     */
+    entry_min_days?: number;
+    entry_point_cost?: number;
     status: 'active' | 'waiting' | 'paused' | 'ended' | 'no_giving';
     is_paused: boolean;
     is_urgent: boolean;
@@ -109,8 +118,24 @@ export const givingApi = {
 
     config(
         id: number | string,
-        payload: { method: GivingMethod; capacity?: number | null; number_max?: number | null }
-    ): Promise<{ wr_id: number; method: string; seed_hash: string }> {
+        payload: {
+            method: GivingMethod;
+            capacity?: number | null;
+            number_max?: number | null;
+            /**
+             * N-2 참가 조건. 미전송이면 백엔드가 기존 값을 유지한다.
+             * 응모가 1건이라도 있으면 변경 시 409 다.
+             */
+            entry_min_days?: number;
+            entry_point_cost?: number;
+        }
+    ): Promise<{
+        wr_id: number;
+        method: string;
+        seed_hash: string;
+        entry_min_days?: number;
+        entry_point_cost?: number;
+    }> {
         return call(`/config/${id}`, { method: 'POST', body: JSON.stringify(payload) });
     },
 

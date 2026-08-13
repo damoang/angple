@@ -26,6 +26,9 @@
     let cfgCapacity = $state(1);
     let cfgNumberMax = $state(100);
     let cfgUnit = $state(100);
+    // N-2 참가 조건 (0 = 제한 없음)
+    let cfgEntryMinDays = $state(0);
+    let cfgEntryPointCost = $state(0);
 
     async function load() {
         loadError = null;
@@ -36,6 +39,8 @@
             cfgCapacity = d.capacity ?? 1;
             cfgNumberMax = d.number_max ?? 100;
             cfgUnit = d.unit_price || 100;
+            cfgEntryMinDays = d.entry_min_days ?? 0;
+            cfgEntryPointCost = d.entry_point_cost ?? 0;
         } catch (e) {
             loadError = e instanceof Error ? e.message : '나눔 정보를 불러오지 못했습니다.';
         }
@@ -104,6 +109,14 @@
     const parsedPreview = $derived(numbersInput ? parseBidNumbers(numbersInput) : []);
     const estCost = $derived(parsedPreview.length * (detail?.unit_price ?? 0));
 
+    // N-2 참가 조건. 참가비는 무료 방식에만 부과된다(백엔드와 같은 규칙) —
+    // 유료 방식은 번호당 단가를 이미 내므로 이중 부과가 되지 않게 제외돼 있다.
+    const entryMinDays = $derived(detail?.entry_min_days ?? 0);
+    const entryPointCost = $derived(METHOD_INFO[method].paid ? 0 : (detail?.entry_point_cost ?? 0));
+    const hasEntryCondition = $derived(entryMinDays > 0 || entryPointCost > 0);
+    // 응모가 하나라도 있으면 백엔드가 조건 변경을 409 로 막는다. 화면에서도 미리 잠근다.
+    const hasBids = $derived((detail?.total_bids ?? 0) > 0 || (detail?.participant_count ?? 0) > 0);
+
     function flash(msg: string, isErr = false) {
         if (isErr) {
             actionErr = msg;
@@ -154,7 +167,9 @@
             await givingApi.config(post.id, {
                 method: cfgMethod,
                 capacity: cfgCapacity,
-                number_max: cfgNumberMax
+                number_max: cfgNumberMax,
+                entry_min_days: cfgEntryMinDays,
+                entry_point_cost: cfgEntryPointCost
             });
             showSetup = false;
             flash('나눔 방식을 저장했습니다.');
@@ -298,6 +313,27 @@
 
         <!-- 참가 UI (비주최자, 진행 중, 미개표) -->
         {#if !detail.is_host && isActive && !drawn}
+            <!--
+                N-2 참가 조건 안내. 충족 여부는 백엔드가 판정하므로(가입일은 서버 시각 기준,
+                포인트는 차감 시점 잔액 기준) 화면에서 미리 막지 않고 조건만 명시한다.
+                미충족 시 백엔드가 사유를 담은 403/402 를 주고 guard() 가 그대로 띄운다.
+            -->
+            {#if hasEntryCondition && !detail.my_participation.joined}
+                <div
+                    class="border-border bg-muted/40 text-foreground mb-2 rounded-md border px-3 py-2 text-xs"
+                >
+                    <span class="font-medium">참가 조건</span>
+                    <span class="text-muted-foreground">
+                        {#if entryMinDays > 0}· 가입 {entryMinDays}일 이상{/if}
+                        {#if entryPointCost > 0}· 참가비 {entryPointCost.toLocaleString()}P{/if}
+                    </span>
+                    {#if entryPointCost > 0}
+                        <div class="text-muted-foreground mt-1">
+                            참가비는 응모 시 차감되며 <b>반환되지 않습니다</b>.
+                        </div>
+                    {/if}
+                </div>
+            {/if}
             {#if !authStore.isAuthenticated}
                 <p class="text-muted-foreground text-sm">참가하려면 로그인이 필요합니다.</p>
             {:else if method === 'lowest_unique'}
@@ -337,7 +373,11 @@
                         onclick={joinFree}
                         disabled={busy || detail.my_participation.joined}
                         class="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-                        >{detail.my_participation.joined ? '참가 완료' : '참가하기'}</button
+                        >{detail.my_participation.joined
+                            ? '참가 완료'
+                            : entryPointCost > 0
+                              ? `참가하기 (${entryPointCost.toLocaleString()}P)`
+                              : '참가하기'}</button
                     >
                 </div>
             {:else}
@@ -347,7 +387,11 @@
                     onclick={joinFree}
                     disabled={busy || detail.my_participation.joined}
                     class="bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
-                    >{detail.my_participation.joined ? '참가 완료' : '무료 응모하기'}</button
+                    >{detail.my_participation.joined
+                        ? '참가 완료'
+                        : entryPointCost > 0
+                          ? `응모하기 (${entryPointCost.toLocaleString()}P)`
+                          : '무료 응모하기'}</button
                 >
             {/if}
 
@@ -383,6 +427,57 @@
                             ※ 단가는 글 본문(번호 단가)에서 관리됩니다. 방식·정원·최대번호가
                             저장됩니다.
                         </p>
+
+                        <!-- N-2 참가 조건 -->
+                        <div class="border-border mt-3 space-y-2 border-t pt-3">
+                            <div class="text-foreground text-xs font-medium">
+                                참가 조건 <span class="text-muted-foreground font-normal"
+                                    >(0 = 제한 없음)</span
+                                >
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <label class="block">
+                                    <span class="text-muted-foreground mb-1 block text-xs"
+                                        >가입 후 경과일</span
+                                    >
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="365"
+                                        bind:value={cfgEntryMinDays}
+                                        disabled={hasBids}
+                                        class="border-border bg-background w-full rounded-md border px-2 py-1 text-sm disabled:opacity-50"
+                                    />
+                                </label>
+                                <label class="block">
+                                    <span class="text-muted-foreground mb-1 block text-xs"
+                                        >참가비 (포인트)</span
+                                    >
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="100000"
+                                        bind:value={cfgEntryPointCost}
+                                        disabled={hasBids || METHOD_INFO[cfgMethod].paid}
+                                        class="border-border bg-background w-full rounded-md border px-2 py-1 text-sm disabled:opacity-50"
+                                    />
+                                </label>
+                            </div>
+                            {#if METHOD_INFO[cfgMethod].paid}
+                                <p class="text-muted-foreground text-xs">
+                                    이 방식은 번호당 단가를 받으므로 참가비를 따로 받지 않습니다.
+                                </p>
+                            {:else if cfgEntryPointCost > 0}
+                                <p class="text-muted-foreground text-xs">
+                                    참가비는 응모 시 차감되며 <b>반환되지 않습니다</b>(소각).
+                                </p>
+                            {/if}
+                            {#if hasBids}
+                                <p class="text-muted-foreground text-xs">
+                                    이미 응모가 있어 참가 조건은 변경할 수 없습니다.
+                                </p>
+                            {/if}
+                        </div>
                         <button
                             type="button"
                             onclick={saveConfig}
