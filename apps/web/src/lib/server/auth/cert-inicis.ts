@@ -30,6 +30,28 @@ function getCertTokenKey(): string {
     return key;
 }
 
+/**
+ * DI 보조 키 — 2026-07-19 키 전환 대응.
+ *
+ * ⛔ 배경: 2026-07-19 경 DI 생성 키가 교체됐다. PHP(G5_TOKEN_ENCRYPTION_KEY)와
+ *    같은 키를 쓰던 것이 다른 값으로 바뀌면서, **같은 사람인데 다른 DI** 가
+ *    만들어져 재가입 중복차단이 25일간 무력화됐다
+ *    (실측: 같은 소셜계정 3쌍의 DI 상이 · 재가입 4명 통과).
+ *
+ *    원본 CI 는 저장되지 않아(단방향 해시) 소급 백필이 불가능하다. 그래서
+ *    **두 키로 각각 계산해 둘 다 저장·조회**한다. 그러면 어느 시기에 인증한
+ *    기존 계정이든 걸린다.
+ *
+ *      mb_dupinfo  = 주 키(PHP 와 동일)   → 2026-07-19 이전 인증 32,692명
+ *      mb_dupinfo2 = 보조 키(전환기 키)   → 2026-07-19~08-13 인증 1,292명
+ *
+ * ⛔ 주 키와 달리 fail-closed 로 막지 않는다. 미설정이면 보조 값을 만들지 않을 뿐,
+ *    주 키 경로(다수)는 정상 동작해야 한다. 없다고 인증 전체를 세우면 안 된다.
+ */
+function getCertTokenKeyAlt(): string {
+    return env.CERT_DUPINFO_ALT_KEY || '';
+}
+
 interface CertConfigRow extends RowDataPacket {
     cf_cert_use: number;
     cf_cert_req: number;
@@ -132,6 +154,18 @@ export async function getCertPendingMbId(mTxId: string): Promise<string | null> 
 export function buildDupinfo(ci: string): string {
     return createHash('sha256')
         .update(ci + getCertTokenKey())
+        .digest('hex');
+}
+
+/**
+ * 보조 DI 생성. 보조 키가 없으면 빈 문자열을 돌려준다(저장·조회에서 제외됨).
+ * ⛔ 빈 값이 저장되면 빈 값끼리 매칭될 수 있으므로, 호출부는 반드시 공백을 걸러야 한다.
+ */
+export function buildDupinfoAlt(ci: string): string {
+    const altKey = getCertTokenKeyAlt();
+    if (!altKey) return '';
+    return createHash('sha256')
+        .update(ci + altKey)
         .digest('hex');
 }
 
@@ -253,7 +287,8 @@ export async function flagDupinfoCollision(
 export async function saveCertResult(
     mbId: string,
     dupinfo: string,
-    birthDay: string
+    birthDay: string,
+    dupinfoAlt = ''
 ): Promise<void> {
     // DI 충돌 하드닝(구멍②) — 방어선(defense-in-depth).
     // 호출부(cert/inicis/result)는 이미 checkDupinfo 로 모든 dupinfo 충돌을 1차 차단하지만,
@@ -269,9 +304,11 @@ export async function saveCertResult(
     const adultDayStr = adult_day.toISOString().slice(0, 10).replace(/-/g, '');
     const adult = parseInt(birthDay) <= parseInt(adultDayStr) ? 1 : 0;
 
+    // ⛔ mb_dupinfo2 는 키 전환기(2026-07-19~08-13) 인증분과 대조하기 위한 보조 값이다.
+    //    보조 키가 없으면 빈 문자열이 들어가고, 조회 시 공백은 제외된다.
     await pool.query(
-        `UPDATE g5_member SET mb_certify = 'simple', mb_dupinfo = ?, mb_adult = ? WHERE mb_id = ?`,
-        [dupinfo, adult, mbId]
+        `UPDATE g5_member SET mb_certify = 'simple', mb_dupinfo = ?, mb_dupinfo2 = ?, mb_adult = ? WHERE mb_id = ?`,
+        [dupinfo, dupinfoAlt, adult, mbId]
     );
 
     // 인증 이력 저장.
@@ -286,19 +323,41 @@ export async function saveCertResult(
 }
 
 /** 이미 인증된 dupinfo가 존재하는지 체크 */
-export async function checkDupinfo(mbId: string, dupinfo: string): Promise<string | null> {
+export async function checkDupinfo(
+    mbId: string,
+    dupinfo: string,
+    dupinfoAlt = ''
+): Promise<string | null> {
+    // ⛔ 두 값 × 두 컬럼을 모두 본다. 하나라도 걸리면 중복이다.
+    //    mb_dupinfo 컬럼에는 2026-07-19 키 전환 때문에 **두 체계가 섞여** 있다
+    //    (이전 32,692명 = 주 키 값 / 전환기 1,292명 = 보조 키 값).
+    //    그래서 주 값만 조회하면 전환기 인증자를 놓치고, 보조 값만 조회하면
+    //    그 이전 전원을 놓친다.
+    // ⛔ 빈 문자열은 반드시 제외한다 — mb_dupinfo2 미채움 행이 3만 건이라
+    //    공백끼리 매칭되면 전원이 중복으로 잡힌다.
+    const candidates = [dupinfo, dupinfoAlt].filter((v) => v);
+    const ph = candidates.map(() => '?').join(',');
+
+    // ⛔ OR 로 묶으면 옵티마이저가 인덱스를 포기해 62,388행 풀스캔이 된다(EXPLAIN 확인).
+    //    UNION 으로 갈라야 mb_dupinfo2 가 idx_mb_dupinfo2 를 탄다(type: range).
+    //    ⚠️ mb_dupinfo 에는 인덱스가 없어 그쪽은 여전히 스캔이다 — 기존과 동일하며,
+    //       인증 빈도가 낮아 병목은 아니다. 필요하면 인덱스를 별도로 추가할 것.
     const [rows] = await readPool.query<RowDataPacket[]>(
-        'SELECT mb_id FROM g5_member WHERE mb_id <> ? AND mb_dupinfo = ?',
-        [mbId, dupinfo]
+        `SELECT mb_id FROM g5_member WHERE mb_id <> ? AND mb_dupinfo IN (${ph})
+         UNION
+         SELECT mb_id FROM g5_member WHERE mb_id <> ? AND mb_dupinfo2 IN (${ph})
+         LIMIT 1`,
+        [mbId, ...candidates, mbId, ...candidates]
     );
     if (rows[0]) {
         return rows[0].mb_id as string;
     }
 
-    // history 테이블에서도 체크
+    // history 테이블에서도 체크 (탈퇴·삭제 계정 커버)
     const [histRows] = await readPool.query<RowDataPacket[]>(
-        'SELECT count(*) as cnt FROM g5_member_cert_history WHERE mb_id <> ? AND ch_ci = ?',
-        [mbId, dupinfo]
+        `SELECT count(*) as cnt FROM g5_member_cert_history
+          WHERE mb_id <> ? AND ch_ci IN (${ph})`,
+        [mbId, ...candidates]
     );
     if (histRows[0]?.cnt > 0) {
         return '(탈퇴 또는 기존 계정)';
