@@ -195,11 +195,31 @@ export async function destroySession(sessionId: string): Promise<void> {
 }
 
 /**
- * 사용자의 모든 세션 파괴 ("모든 기기에서 로그아웃") — L1 전체 클리어
+ * 사용자의 모든 세션 파괴 ("모든 기기에서 로그아웃").
+ *
+ * ⚠️ **현재 live 호출처가 없다 — 그래도 지우지 말 것.**
+ *    유일한 호출처는 purge-auth-artifacts.ts 이고, 그건 다시 member-leave.ts 의
+ *    processMemberLeave()(PHP 호환, 현재 dead) 에서만 불린다.
+ *    실서비스 탈퇴의 세션 파기는 백엔드가 단독으로 맡는다
+ *    (backend/internal/handler/auth_artifacts.go).
+ *    ⛔ "호출처가 없으니 죽은 코드"라고 판단해 삭제하거나, 반대로 "죽은 코드에
+ *       기능을 붙였다"고 오판하지 말 것 — 2026-08-12 이 사안의 1차 구현이 정확히
+ *       그 혼동으로 실패했다(파기를 dead path 에만 붙여 실제 탈퇴에 안 걸림).
+ *    "모든 기기에서 로그아웃" UI 를 새로 만들면 이 함수가 그 자리에서 되살아난다.
+ *
+ * ⛔ **L1 만 비우면 소용이 없다.** TieredCache.get() 은 L1 미스 시 L2(Redis)에서 읽어
+ *    L1 을 다시 채운다. 그래서 예전 구현(clearL1() 만 호출)은 삭제한 세션이 다음 요청
+ *    한 번에 되살아나 **L2 TTL(300초) 동안 인증이 유지**됐다.
+ *    분쟁조정위 26R05-00197 검증에서 실측으로 확인된 결함이다.
+ *    → DELETE 하기 전에 대상 해시를 읽어 **키 단위로 L1+L2 를 모두 지운다.**
  */
 export async function destroyAllUserSessions(mbId: string): Promise<number> {
-    // L1 전체 클리어 (mbId로 필터링이 어려우므로)
-    sessionCache.clearL1();
+    // DELETE 전에 캐시 키를 확보해야 한다 — 지운 뒤에는 어떤 해시였는지 알 수 없다.
+    const [rows] = await pool.query<RowDataPacket[]>(
+        `SELECT session_id_hash FROM angple_sessions WHERE mb_id = ?`,
+        [mbId]
+    );
+    await Promise.allSettled(rows.map((r) => sessionCache.delete(String(r.session_id_hash))));
 
     const [result] = await pool.query<ResultSetHeader>(
         `DELETE FROM angple_sessions WHERE mb_id = ?`,

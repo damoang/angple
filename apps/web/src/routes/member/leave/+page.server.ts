@@ -88,7 +88,18 @@ export const actions: Actions = {
             });
         }
 
-        // 탈퇴 신청 성공 → 로그아웃 처리
+        // 탈퇴 신청 성공 → 현재 기기 로그아웃.
+        //
+        // ⛔ **여기서 세션·토큰 파기를 부르지 말 것.** (분쟁조정위 26R05-00197)
+        //    다른 기기에 남은 세션·토큰과 web 캐시(L2)의 파기는 백엔드
+        //    purgeAuthArtifacts(internal/handler/auth_artifacts.go)가 **단독으로** 맡는다.
+        //    위 requestMemberLeave() 가 그 경로를 이미 태우고 돌아온 뒤다.
+        //
+        //    한때 여기서도 한 번 더 불렀지만 소득이 거의 없었다 — 백엔드가 먼저 DB 행을
+        //    지우고 오므로 web 의 세션 조회가 0행이 되어 sess: 키는 하나도 못 지운다.
+        //    (회원 캐시는 지워지지만 그건 처리한 파드 1대뿐이고, 백엔드가 canary
+        //     네임스페이스까지 포함해 이미 커버한다.)
+        //    파기 주체를 둘로 나누면 어느 쪽이 무엇을 지웠는지 추적만 어려워진다.
         await clearAuthCookies(cookies, locals.sessionId, cookies.get('refresh_token'));
 
         const target = deadline
