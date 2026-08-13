@@ -109,6 +109,9 @@
     let error = $state<string | null>(null);
     let editorRef = $state<any>(null);
     let fileInputRef = $state<HTMLInputElement | null>(null);
+    // 포커스 플레이스홀더(textarea) 상태 — iOS 첫 탭에 키보드를 올리기 위한 실제 focusable 요소 (bug/13491)
+    let placeholderText = $state('');
+    let placeholderFocused = $state(false);
 
     // 페이지 이동 시 에디터 내용 초기화 (Safari bfcache 대응)
     afterNavigate(() => {
@@ -138,6 +141,20 @@
     // 대댓글: 폼이 마운트되면 바로 에디터 로드 시작
     $effect(() => {
         if (isReplyMode && canComment) loadEditor();
+    });
+
+    // bug/13491: 포커스 플레이스홀더(textarea) → Tiptap 포커스·입력 승계.
+    // iOS Safari 는 탭 시점에 실제 focusable 요소가 있어야 키보드를 올린다(기존 플레이스홀더는
+    // 포커스 불가능한 div 라 1탭에 키보드가 안 올라와 2탭 필요했음). 에디터가 마운트되면
+    // 그때까지의 포커스/입력분을 에디터로 넘겨, 첫 탭에 올라온 키보드를 유지한 채 전환한다.
+    $effect(() => {
+        if (editorRef && (placeholderFocused || placeholderText)) {
+            const carry = placeholderText;
+            placeholderText = '';
+            placeholderFocused = false;
+            editorRef.focus?.();
+            if (carry) editorRef.insertContent?.(carry);
+        }
     });
 
     // 이미지 업로드 상태
@@ -360,21 +377,24 @@
                         class={error ? 'border-destructive' : ''}
                     />
                 {:else}
-                    <!-- 에디터 로드 전 플레이스홀더 — hover로 preload, click으로 활성화 -->
-                    <!-- svelte-ignore a11y_no_static_element_interactions -->
-                    <div
-                        class="border-border bg-background text-muted-foreground min-h-20 cursor-text rounded-lg border p-3 text-sm"
+                    <!-- bug/13491: 포커스 가능한 native textarea 플레이스홀더.
+                         iOS 는 탭 시점에 실제 focusable 요소가 있어야 키보드를 올린다 → 첫 탭에
+                         바로 상승. focus/input 시 에디터를 로드하고, 마운트되면 위 $effect 가
+                         입력·포커스를 Tiptap 으로 승계한다. hover 는 데스크톱 preload.
+                         글자크기는 Tiptap(1rem)과 맞춰 교체 시 크기 점프도 없앤다. -->
+                    <textarea
+                        bind:value={placeholderText}
+                        placeholder={editorLoading ? '에디터 로딩 중...' : actualPlaceholder}
+                        rows="3"
+                        class="border-border bg-background text-foreground placeholder:text-muted-foreground min-h-20 w-full resize-none rounded-lg border p-3 text-base"
+                        onpointerdown={loadEditor}
                         onmouseenter={loadEditor}
-                        onfocusin={loadEditor}
-                        onclick={loadEditor}
-                        onkeydown={loadEditor}
-                    >
-                        {#if editorLoading}
-                            <span class="animate-pulse">에디터 로딩 중...</span>
-                        {:else}
-                            {actualPlaceholder}
-                        {/if}
-                    </div>
+                        onfocus={() => {
+                            placeholderFocused = true;
+                            loadEditor();
+                        }}
+                        oninput={loadEditor}
+                    ></textarea>
                 {/if}
 
                 {#if isUploading}
