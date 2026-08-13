@@ -210,7 +210,7 @@ export async function destroySession(sessionId: string): Promise<void> {
  * ⛔ **L1 만 비우면 소용이 없다.** TieredCache.get() 은 L1 미스 시 L2(Redis)에서 읽어
  *    L1 을 다시 채운다. 그래서 예전 구현(clearL1() 만 호출)은 삭제한 세션이 다음 요청
  *    한 번에 되살아나 **L2 TTL(300초) 동안 인증이 유지**됐다.
- *    분쟁조정위 26R05-00197 검증에서 실측으로 확인된 결함이다.
+ *    검증에서 실측으로 확인된 결함이다.
  *    → DELETE 하기 전에 대상 해시를 읽어 **키 단위로 L1+L2 를 모두 지운다.**
  */
 export async function destroyAllUserSessions(mbId: string): Promise<number> {

@@ -90,7 +90,7 @@ export const actions: Actions = {
 
         // 탈퇴 신청 성공 → 현재 기기 로그아웃.
         //
-        // ⛔ **여기서 세션·토큰 파기를 부르지 말 것.** (분쟁조정위 26R05-00197)
+        // ⛔ **여기서 세션·토큰 파기를 부르지 말 것.**
         //    다른 기기에 남은 세션·토큰과 web 캐시(L2)의 파기는 백엔드
         //    purgeAuthArtifacts(internal/handler/auth_artifacts.go)가 **단독으로** 맡는다.
         //    위 requestMemberLeave() 가 그 경로를 이미 태우고 돌아온 뒤다.
