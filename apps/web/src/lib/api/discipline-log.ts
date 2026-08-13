@@ -48,7 +48,10 @@ export const VIOLATION_TYPES: Record<number, { title: string; desc: string }> = 
     38: { title: '기타사유', desc: '기타 전항 각호에 준하는 사유' },
     // 추가 유형 (39-40)
     39: { title: '뉴스펌글누락', desc: '뉴스 펌글 작성 시 필수 사항(스크린샷, 출처, 의견) 누락' },
-    40: { title: '뉴스전문전재', desc: '뉴스 전문을 허가 없이 전재하는 행위' }
+    40: { title: '뉴스전문전재', desc: '뉴스 전문을 허가 없이 전재하는 행위' },
+    // ⛔ 41 은 운영 콘솔이 선택지로 제공하는데 이 표에 없었다 — 이 사유로 받은
+    //    제재가 회원 화면에서 이름 없이 사라진다.
+    41: { title: '부적절한 닉네임', desc: '부적절한 닉네임을 사용하는 행위' }
 };
 
 export interface ReportedItem {
