@@ -18,6 +18,12 @@
         is_urgent: boolean;
     }
 
+    /**
+     * 목록 개수. fetch 의 limit 과 로딩 스켈레톤 개수를 한 값으로 묶는다 —
+     * 둘이 어긋나면 하이드레이션 직후 높이가 바뀌어 그대로 CLS 가 된다.
+     */
+    const GIVING_WIDGET_LIMIT = 5;
+
     let items = $state<GivingItem[]>([]);
     let loading = $state(true);
     let error = $state(false);
@@ -34,8 +40,10 @@
     onMount(async () => {
         try {
             // timedFetch: 12s timeout + 1회 retry. (audit 2026-05-01 §3-1)
-            const res = await timedFetch(// tab=all: 진행중(임박순) 우선 + 최신 글 채움 — premium 포크와 동일 정책 (be#605 세트)
-                '/api/plugins/giving/list?tab=all&limit=5&sort=urgent');
+            const res = await timedFetch(
+                // tab=all: 진행중(임박순) 우선 + 최신 글 채움 — premium 포크와 동일 정책 (be#605 세트)
+                `/api/plugins/giving/list?tab=all&limit=${GIVING_WIDGET_LIMIT}&sort=urgent`
+            );
             if (res.ok) {
                 const data = await res.json();
                 if (data.success) {
@@ -78,13 +86,30 @@
     </h3>
 
     {#if loading}
-        <ul class="space-y-2">
-            {#each Array(3) as _}
-                <li class="bg-muted h-4 animate-pulse rounded"></li>
+        <!--
+            스켈레톤은 실제 목록과 **같은 개수·같은 구조**여야 한다.
+            onMount 는 SSR 에서 실행되지 않으므로 서버 HTML 에는 항상 이 블록이 나가고,
+            하이드레이션 후 실제 목록으로 교체되며 그 높이 차이가 그대로 CLS 가 된다.
+            개수는 위 fetch 의 limit(=5)과 맞춘다 — 바꾸면 여기도 같이 바꿔야 한다.
+            (2026-08-12 실측: 3개짜리 스켈레톤이 데스크톱 CLS 0.066 의 주범이었다)
+        -->
+        <ul class="text-muted-foreground space-y-2 text-xs">
+            {#each Array(GIVING_WIDGET_LIMIT) as _}
+                <li class="flex items-center gap-1.5">
+                    <span class="bg-muted h-4 min-w-0 flex-1 animate-pulse rounded"></span>
+                    <span class="bg-muted h-4 w-12 shrink-0 animate-pulse rounded"></span>
+                </li>
             {/each}
         </ul>
     {:else if error || items.length === 0}
-        <p class="text-muted-foreground py-2 text-center text-xs">진행중인 나눔이 없어요</p>
+        <!-- 빈 상태도 목록과 높이를 맞춰 축소 shift 를 막는다 -->
+        <div
+            class="text-muted-foreground flex items-center justify-center text-center text-xs"
+            style="min-height: calc({GIVING_WIDGET_LIMIT} * 1rem + {GIVING_WIDGET_LIMIT -
+                1} * 0.5rem)"
+        >
+            진행중인 나눔이 없어요
+        </div>
     {:else}
         <ul class="text-muted-foreground space-y-2 text-xs">
             {#each items as item (item.id)}

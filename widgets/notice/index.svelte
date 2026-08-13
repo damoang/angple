@@ -22,6 +22,12 @@
     // ~50 MiB/h 누적. apiClient 가 이제 AbortSignal 을 받으므로
     // AbortController 로 timeout + unmount 통합 abort.
     const FETCH_TIMEOUT_MS = 12_000;
+
+    /**
+     * 표시 개수. 목록 slice 와 로딩 스켈레톤 개수를 한 값으로 묶는다 —
+     * 둘이 어긋나면 하이드레이션 직후 높이가 바뀌어 그대로 CLS 가 된다.
+     */
+    const NOTICE_WIDGET_LIMIT = 5;
     let controller: AbortController | null = null;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
@@ -45,7 +51,7 @@
                     return null;
                 })
             ]);
-            notices = noticesData.slice(0, 5);
+            notices = noticesData.slice(0, NOTICE_WIDGET_LIMIT);
             if (latestData?.items?.length) {
                 latestNotice = latestData.items[0];
             }
@@ -80,13 +86,27 @@
     </h3>
 
     {#if loading}
-        <ul class="space-y-2">
-            {#each Array(3) as _}
-                <li class="bg-muted h-4 animate-pulse rounded"></li>
+        <!--
+            스켈레톤 개수는 실제 목록(slice 0..NOTICE_WIDGET_LIMIT)과 맞춰야 한다.
+            onMount 는 SSR 에서 실행되지 않아 서버 HTML 에는 항상 이 블록이 나가고,
+            하이드레이션 후 실제 목록으로 교체되며 높이 차이가 그대로 CLS 가 된다.
+        -->
+        <ul class="text-muted-foreground space-y-2 text-xs">
+            {#each Array(NOTICE_WIDGET_LIMIT) as _}
+                <li class="flex items-center gap-1">
+                    <span class="bg-muted h-4 min-w-0 flex-1 animate-pulse rounded"></span>
+                </li>
             {/each}
         </ul>
     {:else if error || notices.length === 0}
-        <p class="text-muted-foreground py-2 text-center text-xs">아직 공지사항이 없어요</p>
+        <!-- 빈 상태도 목록과 높이를 맞춰 축소 shift 를 막는다 -->
+        <div
+            class="text-muted-foreground flex items-center justify-center text-center text-xs"
+            style="min-height: calc({NOTICE_WIDGET_LIMIT} * 1rem + {NOTICE_WIDGET_LIMIT -
+                1} * 0.5rem)"
+        >
+            아직 공지사항이 없어요
+        </div>
     {:else}
         <ul class="text-muted-foreground space-y-2 text-xs">
             {#each notices as notice (notice.id)}
