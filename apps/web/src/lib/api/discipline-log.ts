@@ -48,7 +48,10 @@ export const VIOLATION_TYPES: Record<number, { title: string; desc: string }> = 
     38: { title: '기타사유', desc: '기타 전항 각호에 준하는 사유' },
     // 추가 유형 (39-40)
     39: { title: '뉴스펌글누락', desc: '뉴스 펌글 작성 시 필수 사항(스크린샷, 출처, 의견) 누락' },
-    40: { title: '뉴스전문전재', desc: '뉴스 전문을 허가 없이 전재하는 행위' }
+    40: { title: '뉴스전문전재', desc: '뉴스 전문을 허가 없이 전재하는 행위' },
+    // ⛔ 41 은 운영 콘솔이 선택지로 제공하는데 이 표에 없었다 — 이 사유로 받은
+    //    제재가 회원 화면에서 이름 없이 사라진다.
+    41: { title: '부적절한 닉네임', desc: '부적절한 닉네임을 사용하는 행위' }
 };
 
 export interface ReportedItem {
@@ -79,6 +82,18 @@ export interface DisciplineLogListItem {
     revoked?: boolean; // 소명 인용 등으로 회수된 제재 (목록 배지용)
 }
 
+/**
+ * 사유 정정 한 건 (소명 인용 등으로 사유가 빠지거나 더해진 경우).
+ *
+ * ⛔ 운영자 ID·내부 메모는 응답에 없다. 회수(revoked_at)와 같은 기준이다.
+ */
+export interface ReasonCorrection {
+    at: string;
+    removed?: string[];
+    added?: string[];
+    claim_id?: number;
+}
+
 export interface DisciplineLogDetail {
     id: number;
     member_id: string;
@@ -96,6 +111,7 @@ export interface DisciplineLogDetail {
     status: 'pending' | 'approved' | 'rejected';
     claim_post_id?: number;
     revoked_at?: string; // 소명 인용 등으로 회수된 경우 해제일 (revoked_by·admin_memo는 미노출)
+    reason_corrections?: ReasonCorrection[]; // 사유 정정 이력 (없으면 키 자체가 없다)
 }
 
 export interface DisciplineLogListResponse {

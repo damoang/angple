@@ -220,6 +220,49 @@
                         {/each}
                     </div>
                 {/if}
+
+                <!--
+                  사유 정정 — 소명이 인용돼 사유가 빠지면 위 목록에서 조용히 사라진다.
+                  그러면 회원은 소명이 반영됐는지 알 수 없다. 무엇이 빠졌는지 남긴다.
+                  ⛔ 정정한 운영자·내부 메모는 응답에 없다(회수 배너와 같은 기준).
+                -->
+                {#if log.reason_corrections?.length}
+                    <div class="mt-3 border-t pt-3">
+                        <div
+                            class="text-muted-foreground mb-1.5 flex items-center gap-1.5 text-xs font-medium"
+                        >
+                            <Info class="h-3.5 w-3.5" />
+                            사유 정정
+                        </div>
+                        <ul class="space-y-1.5">
+                            {#each log.reason_corrections as c, i (i)}
+                                <li class="text-sm">
+                                    {#if c.removed?.length}
+                                        <span class="text-emerald-700 dark:text-emerald-400"
+                                            >제외 — {c.removed.join(', ')}</span
+                                        >
+                                    {/if}
+                                    {#if c.added?.length}
+                                        <span class="text-muted-foreground"
+                                            >{c.removed?.length ? ' · ' : ''}추가 — {c.added.join(
+                                                ', '
+                                            )}</span
+                                        >
+                                    {/if}
+                                    <span class="text-muted-foreground/70 ml-1 text-xs">
+                                        {c.at.slice(0, 10)}
+                                        {#if c.claim_id}
+                                            · <a
+                                                href="/claim/{c.claim_id}"
+                                                class="underline underline-offset-2">소명 보기</a
+                                            >
+                                        {/if}
+                                    </span>
+                                </li>
+                            {/each}
+                        </ul>
+                    </div>
+                {/if}
             </Card.Content>
         </Card.Root>
 
