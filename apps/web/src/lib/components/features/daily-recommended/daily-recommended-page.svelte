@@ -268,7 +268,9 @@
     }
 </script>
 
-<div class="mx-auto max-w-5xl px-4 py-4">
+<!-- 좌우 여백은 모바일에서 게시판 목록과 맞춘다(상위 main 이 이미 px-2 를 준다).
+     종전 px-4 는 그 위에 16px 을 더 얹어 /free 목록(8px)과 어긋나 보였다. -->
+<div class="mx-auto max-w-5xl px-0 py-2 md:px-4 md:py-4">
     <div class="mb-4">
         <AdSlot position="empathy-top" height="90px" slotKey="empathy-top" />
     </div>

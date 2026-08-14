@@ -2320,8 +2320,11 @@
     .comment-item:first-child {
         padding-top: calc(var(--comment-pad-extra, 3px));
     }
+    /* 마지막 댓글은 first-child 와 대칭으로 0.75rem 을 뺀다. 종전 값은 base 규칙과
+       완전히 동일해서 아무 효과가 없었다(= 규칙이 없는 것과 구분 불가). 아래 댓글 작성
+       영역이 border-t + pt-6 로 이미 간격을 만들므로 여기서 12px 을 더 둘 이유가 없다. */
     .comment-item:last-child {
-        padding-bottom: calc(var(--comment-pad-extra, 3px) + 0.75rem);
+        padding-bottom: calc(var(--comment-pad-extra, 3px));
     }
 
     /* 긴 URL 레이아웃 깨짐 방지 */

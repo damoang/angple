@@ -459,7 +459,10 @@
 
 <!-- 운영 리포트 카드 -->
 <Card class="bg-background mb-6 px-3 md:px-3">
-    <CardHeader class="space-y-3">
+    <!-- gap-3: CardHeader 는 자체적으로 grid gap-1.5 를 갖는다. 종전 space-y-3 는
+         그 gap 을 대체하지 못하고 margin 으로 얹혀 6+12=18px 이 됐다(의도는 12px).
+         같은 축의 gap 으로 주면 tailwind-merge 가 gap-1.5 를 대체해 정확히 12px. -->
+    <CardHeader class="gap-3">
         <div>
             {#if post.category}
                 <div class="mb-3 flex flex-wrap gap-1.5">
@@ -741,7 +744,9 @@
         {/each}
 
         <!-- 글자 크기 조절 -->
-        <div class="mb-1 flex justify-end gap-1">
+        <!-- mb-1 제거: 부모 CardContent 의 space-y-6 가 specificity 0(:where)이라
+             이 mb-1 에 밀려 블록 간격이 24px 이 아니라 4px 로 좁아져 있었다. -->
+        <div class="flex justify-end gap-1">
             <button
                 type="button"
                 class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-3 py-1.5 text-sm transition-colors disabled:opacity-30"
