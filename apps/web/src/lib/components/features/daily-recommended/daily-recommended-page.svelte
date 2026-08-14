@@ -42,7 +42,7 @@
 
     // SPA 네비게이션 시 폴링 데이터 초기화
     $effect(() => {
-        date; // date 변경 추적
+        void date; // date 변경 추적
         pollData = null;
     });
 
@@ -79,7 +79,7 @@
 
     // SPA 네비게이션 시 댓글 데이터도 초기화
     $effect(() => {
-        date;
+        void date;
         lazyComments = null;
     });
 
@@ -105,6 +105,7 @@
                 ...(sections.info.posts ?? [])
             ];
             // 섹션 간 중복 게시글 제거 (id+board 기준)
+            // eslint-disable-next-line svelte/prefer-svelte-reactivity -- $derived.by 내부 중복 제거용 지역 변수.
             const seen = new Set<string>();
             posts = all.filter((p) => {
                 const key = `${p.id}-${p.board}`;
@@ -155,6 +156,7 @@
                 ...(commentSections.group?.comments ?? []),
                 ...(commentSections.info?.comments ?? [])
             ];
+            // eslint-disable-next-line svelte/prefer-svelte-reactivity -- $derived.by 내부 중복 제거용 지역 변수.
             const seen = new Set<string>();
             comments = all.filter((c) => {
                 const key = `${c.id}-${c.board}`;

@@ -92,6 +92,7 @@
 
     const availableBoards = $derived.by(() => {
         const items = viewMode === 'posts' ? currentPosts : currentComments;
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- $derived.by 내부 지역 변수.
         const seenBoards = new Set<string>();
         const boards: { id: string; label: string }[] = [];
 

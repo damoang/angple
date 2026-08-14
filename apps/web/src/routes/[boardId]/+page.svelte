@@ -312,6 +312,7 @@
     });
 
     const MEMO_CACHE_TTL_MS = 30_000;
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- TTL 캐시. 렌더에 쓰이지 않아 반응형일 필요가 없다.
     const memoBatchCache = new Map<
         string,
         {
@@ -319,6 +320,7 @@
             value: Record<string, { content: string; color: string } | null>;
         }
     >();
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 진행 중 요청 중복 방지용. 렌더에 쓰이지 않는다.
     const memoBatchPending = new Map<
         string,
         Promise<Record<string, { content: string; color: string } | null>>
@@ -654,7 +656,7 @@
         }
     }
 
-    function selectAllVisible(posts: any[]): void {
+    function selectAllVisible(posts: FreePost[]): void {
         selectedPostIds = posts.map((p) => p.id);
     }
 
@@ -859,6 +861,7 @@
     async function fetchBackfillPage(
         pageNum: number
     ): Promise<{ posts: FreePost[]; hasNext: boolean }> {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 함수 내부 지역 변수. URL 문자열을 만들고 버린다.
         const params = new URLSearchParams($page.url.searchParams);
         params.set('page', String(pageNum));
         // 태그 필터는 서버가 sfl=title_content&stx= 를 함께 붙여 조회한다 — 동일하게 재현.
@@ -909,6 +912,7 @@
         void (async () => {
             backfilling = true;
             const collected: FreePost[] = [];
+            // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 함수 내부 중복 제거용 지역 변수.
             const seen = new Set(posts.map((p) => p.id)); // id 중복 제거(원본 + 누적)
             let visible = startVisible;
             let nextPage = startPage + 1;

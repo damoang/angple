@@ -2130,6 +2130,7 @@
      동일 선언에 hidden 폴백을 먼저 두고 clip 으로 덮는 방식으로 cascade 처리:
      - clip 미지원 브라우저: hidden 적용 (이 wrapper 내부에는 position:sticky 가 없어 안전)
      - clip 지원 브라우저: clip 이 hidden 을 덮어 기존 동작 유지 -->
+<!-- eslint-disable-next-line svelte/no-dupe-style-properties -- 위 주석대로 의도된 cascade 폴백이다. -->
 <div class="mx-auto pt-1" style="overflow-x: hidden; overflow-x: clip;">
     <!-- 플러그인 슬롯: 글 상세 페이지 시작 — Slot Catalog Sprint 2c -->
     <PluginSlot name="post-detail-before" {boardId} postId={data.post.id} />
@@ -2761,6 +2762,9 @@
      initialPage(보통 1) 가 stale 상태로 남아 항상 1페이지가 표시되는 회귀.
      post.id 를 key 에 포함시켜 글 이동마다 RecentPosts 를 재마운트, URL ?page=N 반영. -->
 {#if canRead}
+    <!-- 위쪽 wrapper 와 같은 의도된 cascade 폴백(#12096): clip 미지원 브라우저는 hidden,
+         지원 브라우저는 clip 이 덮는다. (disable 지시자는 한 줄이어야 해서 아래에 따로 둔다) -->
+    <!-- eslint-disable-next-line svelte/no-dupe-style-properties -->
     <div style="overflow-x: hidden; overflow-x: clip;">
         {#key `${boardId}:${data.post.id}`}
             <RecentPosts
