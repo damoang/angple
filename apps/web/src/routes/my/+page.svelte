@@ -4,7 +4,6 @@
     import { Button } from '$lib/components/ui/button/index.js';
     import { Progress } from '$lib/components/ui/progress/index.js';
     import type { PageData } from './$types.js';
-    import type { MyComment } from '$lib/api/types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { getGradeName } from '$lib/utils/grade.js';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
@@ -15,7 +14,6 @@
     import Heart from '@lucide/svelte/icons/heart';
     import BarChart3 from '@lucide/svelte/icons/bar-chart-3';
     import User from '@lucide/svelte/icons/user';
-    import Trash2 from '@lucide/svelte/icons/trash-2';
 
     let { data }: { data: PageData } = $props();
 
@@ -142,60 +140,6 @@
         if (comment.deleted_at) return '삭제된 댓글입니다.';
         if (comment.post_deleted_at) return `[삭제된 글] ${stripHtml(comment.content)}`;
         return stripHtml(comment.content);
-    }
-
-    // bug/13518 Part 2: 마이페이지에서 내 댓글 직접 삭제.
-    // 상세 페이지의 삭제 UI 는 부모 글이 404/잠금이면 닿을 수 없다. 반면 삭제 엔드포인트
-    // (/api/boards/[boardId]/posts/[postId]/comments/[commentId])는 "댓글 소유자"만 확인하고
-    // 부모 글 접근성은 요구하지 않으므로, 여기서 그 엔드포인트를 그대로 재사용한다.
-    // 낙관적 처리: 성공한 댓글 key 를 모아 목록에서 숨기고 카운트를 줄인다.
-    function commentKey(c: { board_id: string; id: number | string }): string {
-        return `${c.board_id}-${c.id}`;
-    }
-
-    let deletedKeys = $state<string[]>([]);
-    let deletingKey = $state<string | null>(null);
-
-    // 탭/페이지/필터/검색이 바뀌면 낙관적 삭제 표시를 초기화한다.
-    // ⛔ 이 $state(deletedKeys) 를 읽고 쓰면 자기 재트리거가 나므로, 여기서는 URL 파생값만
-    //    읽고 lastListSig(평범한 let)로 변화를 감지한다(위 searchInput 패턴과 동일).
-    let lastListSig = `${data.tab}|${data.page}|${data.filter}|${data.q}`;
-    $effect(() => {
-        const sig = `${data.tab}|${data.page}|${data.filter}|${data.q}`;
-        if (sig !== lastListSig) {
-            lastListSig = sig;
-            deletedKeys = [];
-        }
-    });
-
-    async function deleteMyComment(comment: MyComment): Promise<void> {
-        const key = commentKey(comment);
-        if (deletedKeys.includes(key) || deletingKey) return;
-
-        // 삭제 엔드포인트는 부모 글(wr_parent) 기준으로 댓글을 찾는다.
-        const parentPostId = comment.post_id || comment.parent_id;
-        if (!comment.board_id || !parentPostId || !comment.id) return;
-
-        // 되돌릴 수 없으므로 반드시 확인을 받는다(일괄 삭제 없음 — 한 건씩).
-        if (!confirm('이 댓글을 삭제할까요? 삭제한 댓글은 되돌릴 수 없습니다.')) return;
-
-        deletingKey = key;
-        try {
-            const res = await fetch(
-                `/api/boards/${comment.board_id}/posts/${parentPostId}/comments/${comment.id}`,
-                { method: 'DELETE' }
-            );
-            if (res.ok) {
-                deletedKeys = [...deletedKeys, key];
-            } else {
-                const body = (await res.json().catch(() => ({}))) as { error?: string };
-                alert(body.error || '댓글 삭제에 실패했습니다.');
-            }
-        } catch {
-            alert('댓글 삭제에 실패했습니다.');
-        } finally {
-            deletingKey = null;
-        }
     }
 </script>
 
@@ -403,15 +347,12 @@
                             <ul class="divide-border divide-y">
                                 {#each result.posts.items as post (post.id)}
                                     <li class="py-3 first:pt-0 last:pb-0">
-                                        <!-- bug/13518 Part 3: 삭제한 글도 작성자 본인은 열 수 있다.
-                                             백엔드 GET posts/:id 는 FindPostByIDIncludeDeleted 로
-                                             삭제글을 200(본문 마스킹)으로 내려주고, 상세 페이지는
-                                             404 가 아니라 마스킹 렌더한다. #13174 서버 마스킹으로
-                                             본문 유출은 없고, 자진삭제 글은 댓글 스레드가 남아 본인이
-                                             논의를 확인할 수 있으므로 링크를 복원한다.
-                                             삭제글은 opacity-70 으로 시각적으로 구분한다. -->
-                                        <a
-                                            href="/{post.board_id || 'free'}/{post.id}"
+                                        <!-- 삭제한 글은 본문이 없어 열리지 않는다 — 링크 대신 기록만 -->
+                                        <svelte:element
+                                            this={post.deleted_at ? 'div' : 'a'}
+                                            href={post.deleted_at
+                                                ? undefined
+                                                : `/${post.board_id || 'free'}/${post.id}`}
                                             class="{post.deleted_at
                                                 ? 'opacity-70'
                                                 : 'hover:bg-accent'} -m-2 block w-full rounded-md p-2 no-underline transition-colors"
@@ -438,7 +379,7 @@
                                                     >
                                                 {/if}
                                             </div>
-                                        </a>
+                                        </svelte:element>
                                     </li>
                                 {/each}
                             </ul>
@@ -492,8 +433,7 @@
                             내가 쓴 댓글
                             {#if result.comments}
                                 <span class="text-muted-foreground text-sm font-normal">
-                                    <!-- bug/13518 Part 2: 방금 삭제한 건 반영 -->
-                                    ({Math.max(result.comments.total - deletedKeys.length, 0)}개)
+                                    ({result.comments.total}개)
                                 </span>
                             {/if}
                             <span class="ml-auto flex gap-1 text-sm font-normal">
@@ -521,57 +461,32 @@
                         {#if result.comments && result.comments.items.length > 0}
                             <ul class="divide-border divide-y">
                                 {#each result.comments.items as comment (`${comment.board_id}-${comment.id}`)}
-                                    {@const key = `${comment.board_id}-${comment.id}`}
                                     <li class="py-3 first:pt-0 last:pb-0">
-                                        {#if deletedKeys.includes(key)}
-                                            <!-- bug/13518 Part 2: 방금 삭제한 댓글 자리 표시 -->
-                                            <p class="text-muted-foreground -m-2 p-2 text-sm">
-                                                삭제된 댓글입니다.
-                                            </p>
-                                        {:else}
-                                            <div class="flex items-start gap-2">
-                                                <a
-                                                    href="/{comment.board_id ||
-                                                        'free'}/{comment.post_id ||
-                                                        comment.parent_id}#c_{comment.id}"
-                                                    class="hover:bg-accent -m-2 block min-w-0 flex-1 rounded-md p-2 no-underline transition-colors"
+                                        <a
+                                            href="/{comment.board_id || 'free'}/{comment.post_id ||
+                                                comment.parent_id}#c_{comment.id}"
+                                            class="hover:bg-accent -m-2 block rounded-md p-2 no-underline transition-colors"
+                                        >
+                                            {#if comment.post_title}
+                                                <p
+                                                    class="text-muted-foreground mb-1 line-clamp-1 text-xs"
                                                 >
-                                                    {#if comment.post_title}
-                                                        <p
-                                                            class="text-muted-foreground mb-1 line-clamp-1 text-xs"
-                                                        >
-                                                            {comment.post_title}
-                                                        </p>
-                                                    {/if}
-                                                    <p class="text-foreground mb-2 line-clamp-2">
-                                                        {getMyCommentContent(comment)}
-                                                    </p>
-                                                    <div
-                                                        class="text-muted-foreground flex items-center gap-2 text-xs"
-                                                    >
-                                                        <span>{formatDate(comment.created_at)}</span
-                                                        >
-                                                        {#if comment.likes}
-                                                            <span>·</span>
-                                                            <span>공감 {comment.likes}</span>
-                                                        {/if}
-                                                    </div>
-                                                </a>
-                                                <!-- bug/13518 Part 2: 이미 삭제된 댓글엔 버튼을 숨긴다 -->
-                                                {#if !comment.deleted_at}
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        class="text-muted-foreground hover:text-destructive h-8 shrink-0 px-2"
-                                                        disabled={deletingKey === key}
-                                                        aria-label="댓글 삭제"
-                                                        onclick={() => deleteMyComment(comment)}
-                                                    >
-                                                        <Trash2 class="h-4 w-4" />
-                                                    </Button>
+                                                    {comment.post_title}
+                                                </p>
+                                            {/if}
+                                            <p class="text-foreground mb-2 line-clamp-2">
+                                                {getMyCommentContent(comment)}
+                                            </p>
+                                            <div
+                                                class="text-muted-foreground flex items-center gap-2 text-xs"
+                                            >
+                                                <span>{formatDate(comment.created_at)}</span>
+                                                {#if comment.likes}
+                                                    <span>·</span>
+                                                    <span>공감 {comment.likes}</span>
                                                 {/if}
                                             </div>
-                                        {/if}
+                                        </a>
                                     </li>
                                 {/each}
                             </ul>
