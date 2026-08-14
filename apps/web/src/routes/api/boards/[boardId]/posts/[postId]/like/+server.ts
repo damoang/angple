@@ -15,6 +15,7 @@ import { checkCertification } from '$lib/server/certification';
 import { protectClientIp } from '$lib/server/ip-protection';
 import { isSanctionedPost, SANCTIONED_LOCK_MESSAGE } from '$lib/server/sanctioned-lock';
 import { getRedis } from '$lib/server/redis';
+import { siteSettingsProvider } from '$lib/server/settings/site-settings-provider.js';
 import {
     getPostReactionVersion,
     invalidateReactionCaches,
@@ -23,6 +24,8 @@ import {
 
 interface GoodRow extends RowDataPacket {
     bg_flag: string;
+    /** POST 취소 경로에서만 채워지는 계산 컬럼 (0/1). GET 등 다른 조회에서는 미포함. */
+    good_locked?: number;
 }
 
 interface WriteRow extends RowDataPacket {
@@ -292,6 +295,21 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
     const tableName = `g5_write_${safeBoardId}`;
     const column = action === 'good' ? 'wr_good' : 'wr_nogood';
 
+    // 추천(good) 취소 잠금 시간(시간) — 사이트 설정에서 런타임 조회.
+    // 0 = 제한 없음(항상 취소 가능). nogood/이모티콘 반응에는 적용하지 않는다(good 경로에서만 조회).
+    // 조회는 provider 캐시 경유(mysql=Redis 캐시, json=로컬 파일). nogood 는 조회 자체를 건너뛴다.
+    let goodCancelWindowHours = 0;
+    if (action === 'good') {
+        try {
+            const general = await siteSettingsProvider.get('general');
+            const parsed = Math.floor(Number(general?.goodCancelWindowHours));
+            goodCancelWindowHours = Number.isFinite(parsed) && parsed >= 0 ? parsed : 12;
+        } catch {
+            // 설정 조회 실패 시 기본값(12h)으로 안전하게 동작
+            goodCancelWindowHours = 12;
+        }
+    }
+
     const conn = await pool.getConnection();
     try {
         await conn.beginTransaction();
@@ -316,9 +334,23 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
         }
 
         // 현재 사용자의 기존 추천/비추천 기록 확인
+        // good_locked: 추천(good) 취소 잠금 여부(0/1) 를 DB(KST)에서 계산한다.
+        //   bg_datetime 은 KST 로 저장되므로 현재시각도 CONVERT_TZ 로 KST 로 맞춰 비교한다
+        //   (JS Date.now() 로 비교하면 9시간 어긋난다).
+        //   window(?)=0 이면 항상 0(제한 없음). bg_datetime 이 NULL/'0000-00-00 00:00:00' 이면
+        //   레거시/미상 데이터로 보고 잠그지 않는다(취소 허용).
         const [existingRows] = await conn.query<GoodRow[]>(
-            `SELECT bg_flag FROM g5_board_good WHERE bo_table = ? AND wr_id = ? AND mb_id = ?`,
-            [safeBoardId, safePostId, user.mb_id]
+            `SELECT bg_flag,
+                    CASE
+                        WHEN ? > 0
+                             AND bg_flag = 'good'
+                             AND bg_datetime IS NOT NULL
+                             AND bg_datetime <> '0000-00-00 00:00:00'
+                             AND TIMESTAMPDIFF(HOUR, bg_datetime, CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+09:00')) >= ?
+                        THEN 1 ELSE 0
+                    END AS good_locked
+             FROM g5_board_good WHERE bo_table = ? AND wr_id = ? AND mb_id = ?`,
+            [goodCancelWindowHours, goodCancelWindowHours, safeBoardId, safePostId, user.mb_id]
         );
 
         const existingGood = existingRows.find((r) => r.bg_flag === 'good');
@@ -347,6 +379,20 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
         }
 
         const alreadyExists = action === 'good' ? existingGood : existingNogood;
+
+        // 추천(good) 취소 잠금: 설정된 시간이 지난 추천은 취소를 거부한다(일방향).
+        //   good 취소 경로에서만 적용. INSERT/신규 추천·nogood·이모티콘 반응은 영향 없음.
+        //   window=0(제한 없음)이거나 시간 미경과면 good_locked=0 이라 통과한다.
+        if (action === 'good' && alreadyExists && alreadyExists.good_locked === 1) {
+            await conn.rollback();
+            return json(
+                {
+                    success: false,
+                    message: `추천은 ${goodCancelWindowHours}시간이 지나면 취소할 수 없습니다.`
+                },
+                { status: 403 }
+            );
+        }
 
         let nextLikes = writeRows[0].wr_good;
         let nextDislikes = writeRows[0].wr_nogood;

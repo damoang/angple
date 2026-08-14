@@ -5,6 +5,12 @@
     import { adminSettingsStore } from '$lib/stores/admin-settings-store.svelte.js';
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import Save from '@lucide/svelte/icons/save';
+
+    function setGoodCancelWindowHours(value: string) {
+        // 음수/NaN 은 0(제한 없음)으로 정규화. 소수점은 버림.
+        const n = Math.max(0, Math.floor(Number(value)));
+        adminSettingsStore.settings.general.goodCancelWindowHours = Number.isFinite(n) ? n : 0;
+    }
 </script>
 
 <div class="space-y-6">
@@ -24,6 +30,24 @@
             placeholder="사이트 설명을 입력하세요"
             bind:value={adminSettingsStore.settings.general.siteDescription}
         />
+    </div>
+
+    <div class="space-y-2">
+        <Label for="goodCancelWindowHours">추천(공감) 취소 가능 시간(시간). 0=제한 없음</Label>
+        <Input
+            id="goodCancelWindowHours"
+            type="number"
+            min="0"
+            step="1"
+            placeholder="12"
+            value={String(adminSettingsStore.settings.general.goodCancelWindowHours ?? 12)}
+            oninput={(e: Event) =>
+                setGoodCancelWindowHours((e.currentTarget as HTMLInputElement).value)}
+        />
+        <p class="text-muted-foreground text-xs">
+            추천을 누른 뒤 이 시간이 지나면 취소할 수 없습니다(일방향). 비추천/이모티콘 반응에는
+            적용되지 않습니다.
+        </p>
     </div>
 
     <div class="flex justify-end">
