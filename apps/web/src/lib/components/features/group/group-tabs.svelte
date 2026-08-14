@@ -23,7 +23,7 @@
 </script>
 
 <Card class="gap-0">
-    <CardHeader class="flex flex-row items-center justify-between space-y-0 py-3">
+    <CardHeader class="flex flex-row items-center justify-between py-3">
         <GroupHeader />
         <GroupTabs bind:activeTab onTabChange={handleTabChange} />
     </CardHeader>
