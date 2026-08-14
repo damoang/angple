@@ -301,6 +301,11 @@
     const fromBoard = $derived(sanitizeFromBoard($page.url.searchParams.get('from')));
     const boardTitle = $derived(data.board?.subject || data.board?.name || boardId);
 
+    // 브레드크럼 표시 여부. 목록 버튼이 "← {게시판명}" 으로 현재 위치를 겸하게 되면서
+    // 담고 있던 정보(홈/게시판/글 제목)가 전부 화면에 중복으로 남아 잠시 꺼둔다.
+    // 되살릴 일이 있을 수 있어 마크업은 남겨두고 이 플래그만 true 로 바꾸면 된다.
+    const SHOW_BREADCRUMB = false;
+
     // #12920: 이용제한 근거 콘텐츠 공개 워터마크용 열람자 정보를 스토어에 동기화.
     // 스토어가 모듈 싱글톤이라 teardown 에서 반드시 정리해 페이지 이탈 후 잔존을 방지.
     $effect(() => {
@@ -2125,33 +2130,42 @@
      동일 선언에 hidden 폴백을 먼저 두고 clip 으로 덮는 방식으로 cascade 처리:
      - clip 미지원 브라우저: hidden 적용 (이 wrapper 내부에는 position:sticky 가 없어 안전)
      - clip 지원 브라우저: clip 이 hidden 을 덮어 기존 동작 유지 -->
-<div class="mx-auto pt-2" style="overflow-x: hidden; overflow-x: clip;">
+<div class="mx-auto pt-1" style="overflow-x: hidden; overflow-x: clip;">
     <!-- 플러그인 슬롯: 글 상세 페이지 시작 — Slot Catalog Sprint 2c -->
     <PluginSlot name="post-detail-before" {boardId} postId={data.post.id} />
 
     <!-- 최상단 자체 배너 (없으면 GAM 폴백) -->
     {#if widgetLayoutStore.hasEnabledAds && !data.post.deleted_at}
-        <div class="mb-3">
+        <div class="mb-2">
             <PluginSlot name="board-view-banner" />
         </div>
     {/if}
 
-    <!-- 브레드크럼 -->
-    <nav
-        class="text-muted-foreground -mx-2 mb-1 flex items-center gap-1 px-2 text-sm md:mx-0 md:px-0"
-        aria-label="breadcrumb"
-    >
-        <a href="/" class="hover:text-foreground transition-colors">홈</a>
-        <span class="text-muted-foreground/50">/</span>
-        <a href="/{data.boardId}" class="hover:text-foreground transition-colors">{boardTitle}</a>
-        <span class="text-muted-foreground/50">/</span>
-        <span class="text-foreground min-w-0 break-words" title={data.post.title}
-            >{data.post.title}</span
+    <!-- 브레드크럼 — 현재 꺼둔 상태(SHOW_BREADCRUMB=false). 담고 있던 정보가 전부
+         화면 어딘가에 이미 있다: "홈 / 게시판"은 아래 목록 버튼(← 게시판명)이,
+         글 제목은 바로 아래 h1 이 글자 그대로 보여준다. 모바일·PC 각각 줄 하나(24px)를
+         통째로 아끼면서 잃는 정보가 없다.
+         되살리려면 SHOW_BREADCRUMB 를 true 로. 그 경우 모바일에서는 계속 숨고
+         md 이상에서만 나온다(hidden md:flex). -->
+    {#if SHOW_BREADCRUMB}
+        <nav
+            class="text-muted-foreground -mx-2 mb-1 hidden items-center gap-1 px-2 text-sm md:mx-0 md:flex md:px-0"
+            aria-label="breadcrumb"
         >
-    </nav>
+            <a href="/" class="hover:text-foreground transition-colors">홈</a>
+            <span class="text-muted-foreground/50">/</span>
+            <a href="/{data.boardId}" class="hover:text-foreground transition-colors"
+                >{boardTitle}</a
+            >
+            <span class="text-muted-foreground/50">/</span>
+            <span class="text-foreground min-w-0 break-words" title={data.post.title}
+                >{data.post.title}</span
+            >
+        </nav>
+    {/if}
 
     <!-- 빠른 이동(tag-nav) — 목록 페이지와 동일. 메뉴는 admin 설정/DEFAULT_MENUS 공유 -->
-    <div class="mb-3">
+    <div class="mb-1">
         <TagNav />
     </div>
 
@@ -2159,10 +2173,14 @@
          원래 44px(#12016)였으나 이 네비에만 걸린 값이라 같은 화면의 다른 버튼(32px)과 어긋나
          유독 커 보였다. 36px = Button 기본 높이(h-9)와 같고 WCAG 2.2 AA 최소(24px)를 상회한다. -->
     <div
-        class="-mx-2 mb-2 flex flex-wrap items-center gap-2 px-2 py-2 md:mx-0 md:flex-nowrap md:gap-2 md:px-0 [&_a]:min-h-9 md:[&_a]:min-h-0 [&_button]:min-h-9 md:[&_button]:min-h-0"
+        class="-mx-2 mb-1 flex flex-wrap items-center gap-1.5 px-2 py-0 md:mx-0 md:flex-nowrap md:gap-2 md:px-0 [&_a]:min-h-9 md:[&_a]:min-h-0 [&_button]:min-h-9 md:[&_button]:min-h-0"
     >
-        <Button variant="ghost" size="sm" onclick={() => history.back()} class="shrink-0">←</Button>
-        <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">목록으로</Button>
+        <!-- 목록 버튼이 현재 위치도 겸한다. 종전의 별도 ← 버튼은 이 버튼과 목적지가
+             같아 중복이었고, 라벨이 "목록으로"라 어느 게시판으로 가는지 말해주지 않았다.
+             게시판명을 넣으면 모바일에서 브레드크럼을 숨겨도 현재 위치가 유지된다. -->
+        <Button variant="outline" size="sm" onclick={goBack} class="shrink-0">
+            ← {boardTitle}
+        </Button>
 
         <!-- 상단에도 글쓰기 버튼 (하단 네비와 동일 권한/실명인증 로직) -->
         {#if authStore.isAuthenticated && checkPermission(data.board, 'can_write', authStore.user ?? null)}
@@ -2284,7 +2302,7 @@
     </div>
 
     <!-- 축하 메시지 롤링 (슬롯 기반) -->
-    <div class="mb-4">
+    <div class="mb-2">
         <PluginSlot name="board-view-rolling" />
     </div>
 

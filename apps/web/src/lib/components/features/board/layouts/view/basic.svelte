@@ -23,6 +23,8 @@
     import Paperclip from '@lucide/svelte/icons/paperclip';
     import Video from '@lucide/svelte/icons/video';
     import { deriveVideoPoster } from '$lib/utils/video-poster.js';
+    // formatDate 는 prop 으로 주입되지만, 모바일 축약 표기는 이 레이아웃에서만 쓰므로 직접 가져온다.
+    import { formatDateTime } from '$lib/utils/format-date.js';
     import Heart from '@lucide/svelte/icons/heart';
     import ThumbsDown from '@lucide/svelte/icons/thumbs-down';
     import Users from '@lucide/svelte/icons/users';
@@ -59,6 +61,17 @@
     };
 
     const currentFontSize = $derived(uiSettingsStore.contentFontSize);
+
+    // 모바일 메타 줄은 폭이 곧 줄 수다. 날짜(111px) + 조회·공감·댓글(175px)이 컬럼 폭을
+    // 넘으면 줄바꿈되어 한 줄이 통째로 더 붙는다. 올해 글은 연도를 빼 "08.13 21:58"(78px)로
+    // 줄여 한 줄에 담고, 작년 이전 글만 연도를 유지한다(그때도 대개 들어간다).
+    const createdShort = $derived.by(() => {
+        const full = formatDateTime(post.created_at); // "2026.08.13 21:58"
+        const thisYear = new Date()
+            .toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })
+            .slice(0, 4);
+        return full.startsWith(`${thisYear}.`) ? full.slice(5) : full;
+    });
 
     import { toast } from 'svelte-sonner';
     import { trackFileDownload } from '$lib/services/ga4.js';
@@ -202,12 +215,34 @@
     }
 </script>
 
+<!-- 조회/공감/댓글 — 모바일에서는 작성자 날짜 옆으로, md 이상은 메타 줄 우측으로
+     같은 마크업을 두 위치에 렌더한다(둘 중 하나만 보이므로 중복 노출은 없다). -->
+{#snippet metaCounts()}
+    <div class="text-secondary-foreground flex gap-2 sm:gap-4" style="font-size: 0.85em;">
+        <span>조회 {post.views.toLocaleString()}</span>
+        <span>공감 {likeCount.toLocaleString()}</span>
+        <!-- bug/13376: 옆의 조회·공감과 똑같이 생겨서 누를 수 있는 줄 몰랐다는
+             제보. hover 만으로는 터치 기기에서 아무 단서가 되지 못한다.
+             테두리와 아래 화살표로 "눌러서 아래로 간다"를 정지 상태에서 보인다. -->
+        <button
+            type="button"
+            class="border-border hover:bg-muted hover:text-foreground -my-0.5 inline-flex cursor-pointer items-center gap-0.5 rounded-full border px-2 py-0.5 transition-colors"
+            aria-label="댓글 {post.comments_count}개로 이동"
+            onclick={() =>
+                document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' })}
+        >
+            댓글 {post.comments_count.toLocaleString()}
+            <ChevronDown class="h-3 w-3" aria-hidden="true" />
+        </button>
+    </div>
+{/snippet}
+
 <!-- 게시글 카드 -->
-<Card class="bg-background mb-6 rounded-xl px-3 pb-5 pt-4 md:px-3">
+<Card class="bg-background mb-6 gap-3 rounded-xl px-3 pb-5 pt-3 md:px-3">
     <CardHeader class="space-y-3">
         <div>
             {#if post.category}
-                <div class="mb-3 flex flex-wrap gap-1.5">
+                <div class="mb-2 flex flex-wrap gap-1.5">
                     <span
                         class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[13px] font-medium"
                     >
@@ -279,27 +314,35 @@
             {/if}
         </div>
 
-        <div class="border-border flex flex-wrap items-center gap-4 border-t pt-4">
+        <!-- 작성자/메타 — 모바일(390px)에서 작성자 블록(239px)과 조회·공감·댓글(175px)이
+             한 줄에 안 들어가 줄바꿈되고, 그때 gap-4 의 행간 16px 까지 붙어 106px 이 됐다.
+             상단 chrome 전체에서 가장 큰 단일 항목이었다(#상단여백).
+             모바일은 카운트를 날짜 옆으로 접고 아바타를 size-7 로 줄여 2줄에 고정한다.
+             md 이상은 한 줄에 들어가므로 종전 레이아웃(우측 정렬) 그대로. -->
+        <div
+            class="border-border flex flex-wrap items-center gap-x-3 gap-y-1 border-t pt-2 md:gap-4 md:pt-4"
+        >
             {#if post.deleted_at}
-                <div class="flex items-center gap-2">
+                <div class="flex min-w-0 flex-1 items-center gap-2">
                     <div
-                        class="bg-muted text-muted-foreground flex size-10 items-center justify-center rounded-full"
+                        class="bg-muted text-muted-foreground flex size-7 shrink-0 items-center justify-center rounded-full md:size-10"
                     >
                         ?
                     </div>
-                    <div>
+                    <div class="min-w-0 flex-1">
                         <p class="text-muted-foreground font-medium">작성자 정보 비공개</p>
+                        <div class="mt-0.5 md:hidden">{@render metaCounts()}</div>
                     </div>
                 </div>
             {:else}
-                <div class="flex items-center gap-2">
+                <div class="flex min-w-0 flex-1 items-center gap-2">
                     {#if getAvatarUrl(post.author_image, post.author_image_updated_at)}
                         <img
                             src={getAvatarUrl(post.author_image, post.author_image_updated_at)}
                             alt={post.author}
                             loading="lazy"
                             decoding="async"
-                            class="size-10 rounded-full object-cover"
+                            class="size-7 shrink-0 rounded-full object-cover md:size-10"
                             onerror={(e) => {
                                 const img = e.currentTarget as HTMLImageElement;
                                 img.style.display = 'none';
@@ -308,18 +351,18 @@
                             }}
                         />
                         <div
-                            class="bg-primary text-primary-foreground hidden size-10 items-center justify-center rounded-full"
+                            class="bg-primary text-primary-foreground hidden size-7 shrink-0 items-center justify-center rounded-full md:size-10"
                         >
                             {post.author.charAt(0).toUpperCase()}
                         </div>
                     {:else}
                         <div
-                            class="bg-primary text-primary-foreground flex size-10 items-center justify-center rounded-full"
+                            class="bg-primary text-primary-foreground flex size-7 shrink-0 items-center justify-center rounded-full md:size-10"
                         >
                             {post.author.charAt(0).toUpperCase()}
                         </div>
                     {/if}
-                    <div>
+                    <div class="min-w-0 flex-1">
                         <p class="text-foreground flex items-center gap-1.5 font-medium">
                             <LevelBadge level={memberLevelStore.getLevel(post.author_id)} />
                             <AuthorLink
@@ -340,55 +383,42 @@
                                 >
                             {/if}
                         </p>
-                        <p class="text-secondary-foreground" style="font-size: 0.9em;">
-                            {formatDate(post.created_at)}
-                            <!-- 수정 배지: 리비전 기반 edit_count/last_edited_at (백엔드 주입) 사용.
+                        <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            <p class="text-secondary-foreground" style="font-size: 0.9em;">
+                                <!-- 모바일은 폭 절약형(올해 글이면 연도 생략),
+                                     md 이상은 종전의 읽기 좋은 상대형 표기를 유지한다. -->
+                                <span class="md:hidden">{createdShort}</span>
+                                <span class="hidden md:inline">{formatDate(post.created_at)}</span>
+                                <!-- 수정 배지: 리비전 기반 edit_count/last_edited_at (백엔드 주입) 사용.
                                  게시글 수정 시 wr_last 미갱신이라 post.updated_at 대신 이 값을 쓴다.
                                  ⛔ 5분 grace 숨김은 2026-08-05 제거했다. 실측상 그 게이트가
                                     글 수정의 67.3%, 댓글 수정의 88.2%를 화면에서 지웠다.
                                     특히 신고 직후 5분 안에 문제 표현을 순화하면 기록만 남고
                                     화면엔 흔적이 없어 판정 근거가 사라졌다. 수정은 수정이다. -->
-                            {#if post.edit_count && post.edit_count > 0 && post.last_edited_at && formatTimeShort}
-                                <span class="text-muted-foreground/70"
-                                    >· 수정 {post.edit_count}회({formatTimeShort(
-                                        post.last_edited_at,
-                                        post.created_at
-                                    )})</span
-                                >
-                            {/if}
-                            {#if post.deleted_at && formatTimeShort}
-                                <span class="text-red-500/70"
-                                    >· 삭제됨 {formatTimeShort(
-                                        post.deleted_at,
-                                        post.created_at
-                                    )}</span
-                                >
-                            {/if}
-                        </p>
+                                {#if post.edit_count && post.edit_count > 0 && post.last_edited_at && formatTimeShort}
+                                    <span class="text-muted-foreground/70"
+                                        >· 수정 {post.edit_count}회({formatTimeShort(
+                                            post.last_edited_at,
+                                            post.created_at
+                                        )})</span
+                                    >
+                                {/if}
+                                {#if post.deleted_at && formatTimeShort}
+                                    <span class="text-red-500/70"
+                                        >· 삭제됨 {formatTimeShort(
+                                            post.deleted_at,
+                                            post.created_at
+                                        )}</span
+                                    >
+                                {/if}
+                            </p>
+                            <div class="md:hidden">{@render metaCounts()}</div>
+                        </div>
                     </div>
                 </div>
             {/if}
 
-            <div
-                class="text-secondary-foreground ml-auto flex gap-2 sm:gap-4"
-                style="font-size: 0.85em;"
-            >
-                <span>조회 {post.views.toLocaleString()}</span>
-                <span>공감 {likeCount.toLocaleString()}</span>
-                <!-- bug/13376: 옆의 조회·공감과 똑같이 생겨서 누를 수 있는 줄 몰랐다는
-                     제보. hover 만으로는 터치 기기에서 아무 단서가 되지 못한다.
-                     테두리와 아래 화살표로 "눌러서 아래로 간다"를 정지 상태에서 보인다. -->
-                <button
-                    type="button"
-                    class="border-border hover:bg-muted hover:text-foreground -my-0.5 inline-flex cursor-pointer items-center gap-0.5 rounded-full border px-2 py-0.5 transition-colors"
-                    aria-label="댓글 {post.comments_count}개로 이동"
-                    onclick={() =>
-                        document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' })}
-                >
-                    댓글 {post.comments_count.toLocaleString()}
-                    <ChevronDown class="h-3 w-3" aria-hidden="true" />
-                </button>
-            </div>
+            <div class="ml-auto hidden md:flex">{@render metaCounts()}</div>
         </div>
 
         <!-- 별점 위젯 (앙티티 Phase 0): features.rating 보드에서만 백엔드가
