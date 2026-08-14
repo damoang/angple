@@ -188,7 +188,19 @@
         <h1 class="text-foreground mb-4 text-3xl font-bold">검색</h1>
 
         <!-- 검색 폼 -->
-        <form onsubmit={handleSearch} class="flex flex-wrap items-center gap-2">
+        <!-- bug/13503: method/action 을 명시해 JS(하이드레이션)가 죽어도 네이티브 제출로 검색된다.
+             기존엔 action·name 이 없어, 광고차단기·삼성브라우저에서 스크립트가 막혀 handleSearch 가
+             안 붙으면 빈 /search 로 되돌아가 오류 없이 아무것도 안 나왔다(제보와 일치).
+             JS 살아있으면 handleSearch 가 preventDefault 후 goto(); 죽어있으면 브라우저가
+             /search?q=…&sfl=… 로 네이티브 이동한다. +page.ts 가 이미 q/sfl 을 읽으므로 서버 무변. -->
+        <form
+            method="GET"
+            action="/search"
+            onsubmit={handleSearch}
+            class="flex flex-wrap items-center gap-2"
+        >
+            <!-- JS 없을 때 검색 필드도 함께 제출(Select 는 JS 전용이라 기본값이 나간다) -->
+            <input type="hidden" name="sfl" value={searchField} />
             <!-- 검색 필드 선택 -->
             <Select.Root type="single" value={searchField} onValueChange={handleFieldChange}>
                 <Select.Trigger class="w-[120px]">
@@ -204,6 +216,7 @@
             <!-- 검색어 입력 (자동완성) -->
             <div class="relative min-w-[250px] flex-1">
                 <SearchAutocomplete
+                    name="q"
                     initialQuery={searchQuery}
                     placeholder="검색어를 입력하세요"
                     onSearch={(q) => {
