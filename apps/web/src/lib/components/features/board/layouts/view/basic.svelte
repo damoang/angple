@@ -230,7 +230,9 @@
      bg-muted/40 은 옆의 텍스트 메타(닉네임·IP)와 시각 무게를 구분해 "누를 수 있는 것"임을
      정지 상태에서 알리는 용도다. -->
 {#snippet fontSizeControls()}
-    <span class="ml-auto flex shrink-0 items-center gap-1">
+    <!-- self-center: 부모 줄이 items-baseline 이라 그대로 두면 버튼 박스가 밑선에 매달려
+         줄 높이를 밀어낸다. 이 그룹만 세로 중앙으로 되돌린다 (bug/13536). -->
+    <span class="ml-auto flex shrink-0 items-center gap-1 self-center">
         <span class="text-muted-foreground hidden text-xs md:inline">글자크기</span>
         <button
             type="button"
@@ -265,15 +267,20 @@
 <!-- 조회/공감/댓글 — 모바일에서는 작성자 날짜 옆으로, md 이상은 메타 줄 우측으로
      같은 마크업을 두 위치에 렌더한다(둘 중 하나만 보이므로 중복 노출은 없다). -->
 {#snippet metaCounts()}
-    <div class="text-secondary-foreground flex gap-2 sm:gap-4" style="font-size: 0.85em;">
+    <!-- text-xs: 메타 보조 정보는 14px 한 값으로 통일한다(bug/13536). 종전 0.85em 은
+         부모 폰트에 따라 값이 흔들리고, 옆의 날짜(0.9em)와 크기가 달라 같은 줄에서
+         기준선이 어긋났다. items-baseline 과 함께 써야 효과가 있다. -->
+    <div class="text-secondary-foreground flex items-baseline gap-2 text-sm sm:gap-4">
         <span>조회 {post.views.toLocaleString()}</span>
         <span>공감 {likeCount.toLocaleString()}</span>
         <!-- bug/13376: 옆의 조회·공감과 똑같이 생겨서 누를 수 있는 줄 몰랐다는
              제보. hover 만으로는 터치 기기에서 아무 단서가 되지 못한다.
-             테두리와 아래 화살표로 "눌러서 아래로 간다"를 정지 상태에서 보인다. -->
+             테두리와 아래 화살표로 "눌러서 아래로 간다"를 정지 상태에서 보인다.
+             bug/13536: 종전 -my-0.5 가 배지를 줄 밖으로 4px 밀어내 "붕 떠 보인다"는
+             제보로 이어졌다. 음수 마진을 없애고 줄 안에 들어오게 한다. -->
         <button
             type="button"
-            class="border-border hover:bg-muted hover:text-foreground -my-0.5 inline-flex cursor-pointer items-center gap-0.5 rounded-full border px-2 py-0.5 transition-colors"
+            class="border-border hover:bg-muted hover:text-foreground inline-flex cursor-pointer items-center gap-0.5 rounded-full border px-2 py-0 leading-5 transition-colors"
             aria-label="댓글 {post.comments_count}개로 이동"
             onclick={() =>
                 document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' })}
@@ -416,7 +423,11 @@
                         </div>
                     {/if}
                     <div class="min-w-0 flex-1">
-                        <p class="text-foreground flex items-center gap-1.5 font-medium">
+                        <!-- 닉네임(16px)·IP(12px)가 한 줄에 서므로 밑선 정렬한다.
+                             종전 items-center 조합에서 기준선이 3px 어긋났다 (bug/13536).
+                             닉네임 크기는 줄이지 않는다 — 이 줄의 주 정보이고, 줄이면 메타 블록이
+                             2px 더 좁아져 "답답하다"는 같은 제보의 다른 지적과 충돌한다. -->
+                        <p class="text-foreground flex items-baseline gap-1.5 font-medium">
                             <LevelBadge level={memberLevelStore.getLevel(post.author_id)} />
                             <AuthorLink
                                 authorId={post.author_id}
@@ -437,8 +448,12 @@
                             {/if}
                             {@render fontSizeControls()}
                         </p>
-                        <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                            <p class="text-secondary-foreground" style="font-size: 0.9em;">
+                        <!-- items-baseline: 크기가 다른 요소를 items-center 로 묶으면 글자 밑선이
+                             어긋난다. 한글 폰트는 ascent/descent 비율이 OS 마다 달라(iOS Apple SD
+                             Gothic Neo vs Android Noto Sans KR) 어긋나는 정도도 기기별로 달라진다.
+                             밑선 정렬은 폰트 metrics 에 영향받지 않는다 (bug/13536). -->
+                        <div class="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                            <p class="text-secondary-foreground text-sm">
                                 <!-- 모바일은 폭 절약형(올해 글이면 연도 생략),
                                      md 이상은 종전의 읽기 좋은 상대형 표기를 유지한다. -->
                                 <span class="md:hidden">{createdShort}</span>
