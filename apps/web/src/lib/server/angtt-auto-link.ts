@@ -25,6 +25,13 @@ import {
 /** 자동 연결을 적용할 게시판 */
 const AUTO_LINK_BOARDS = new Set(['free', 'angtt']);
 
+/**
+ * 후기 게시판 — 이 게시판의 글은 그 자체가 작품 후기(review)다.
+ * free 등 다른 게시판의 글은 작품을 "언급(mention/auto)"할 뿐이지만,
+ * angtt 게시판 글은 작품 페이지에서 「후기」로 최상단에 노출돼야 한다.
+ */
+const REVIEW_BOARD = 'angtt';
+
 /** 시스템 태그 작성자 — 관리자/작성자와 구분 */
 const SYSTEM_TAG_MB_ID = 'ai';
 
@@ -157,11 +164,45 @@ export async function detectEntityFromTitle(title: string): Promise<AngttDetectM
 }
 
 /**
+ * entity_posts 링크 1건을 기록한다. 게시판에 따라 역할이 갈린다.
+ *
+ * - angtt(REVIEW_BOARD): 글 자체가 후기이므로 role='review'.
+ *   이미 auto/mention 으로 잘못 링크된 행이 있으면 review 로 **승격**한다
+ *   (ON DUPLICATE KEY UPDATE). 후기가 auto/mention 으로 남아 작품 페이지에서
+ *   「후기」로 안 뜨던 회귀를 여기서 바로잡는다.
+ * - free 등: 기존과 동일하게 `otherRole`(auto/mention)로 INSERT IGNORE —
+ *   이미 어떤 행이든 있으면 무변화(PK: bo_table, wr_id, entity_id). 언급 경로는 그대로다.
+ *
+ * ⛔ review 승격은 angtt 게시판에만 적용된다. free 글의 auto/mention 은 절대 덮지 않는다.
+ */
+async function upsertEntityLink(
+    entityId: number,
+    boardId: string,
+    wrId: number,
+    otherRole: 'auto' | 'mention'
+): Promise<void> {
+    if (boardId === REVIEW_BOARD) {
+        await pool.execute(
+            `INSERT INTO angple_entity_posts (entity_id, bo_table, wr_id, role, created_at)
+             VALUES (?, ?, ?, 'review', NOW(3))
+             ON DUPLICATE KEY UPDATE role = 'review'`,
+            [entityId, boardId, wrId]
+        );
+        return;
+    }
+    await pool.execute(
+        `INSERT IGNORE INTO angple_entity_posts (entity_id, bo_table, wr_id, role, created_at)
+         VALUES (?, ?, ?, ?, NOW(3))`,
+        [entityId, boardId, wrId, otherRole]
+    );
+}
+
+/**
  * 글의 태그(작성자가 확정한 것)를 보고 작품 링크를 만든다.
  *
- * 「앙티티」+ 별칭 정확 일치 태그가 있으면 entity_posts 에 role='mention' 을
- * INSERT IGNORE 한다 — 이미 auto/review/mention 행이 있으면 무변화(PK: bo_table,
- * wr_id, entity_id). 태그는 건드리지 않고(작성자 소유) 링크만 **추가**한다.
+ * 「앙티티」+ 별칭 정확 일치 태그가 있으면 entity_posts 에 링크를 남긴다.
+ * angtt 게시판이면 role='review'(후기 본체), 그 외 게시판이면 role='mention'.
+ * 태그는 건드리지 않고(작성자 소유) 링크만 **추가**한다.
  * 제안 칩 [연결]·수동 태그 입력 양쪽이 이 경로로 작품페이지에 연결된다.
  *
  * @returns 링크한 작품 slug, 대상 아니면 null
@@ -186,11 +227,7 @@ export async function linkEntityFromTags(boardId: string, wrId: number): Promise
     const info = slugToInfo.get(hit.entitySlug);
     if (!info) return null;
 
-    await pool.execute(
-        `INSERT IGNORE INTO angple_entity_posts (entity_id, bo_table, wr_id, role, created_at)
-         VALUES (?, ?, ?, 'mention', NOW(3))`,
-        [info.id, boardId, wrId]
-    );
+    await upsertEntityLink(info.id, boardId, wrId, 'mention');
 
     return hit.entitySlug;
 }
@@ -288,7 +325,8 @@ export async function isAutoLinkSuspended(): Promise<boolean> {
 
 /**
  * 새 글의 제목을 보고 작품에 자동 연결한다.
- * 연결 시 「앙티티」 + 작품명 태그를 달고 angple_entity_posts 에 role='auto' 링크를 남긴다.
+ * 연결 시 「앙티티」 + 작품명 태그를 달고 angple_entity_posts 에 링크를 남긴다 —
+ * angtt 게시판이면 role='review'(후기 본체), 그 외 게시판이면 role='auto'.
  *
  * @returns 연결한 작품 slug, 연결 안 했으면 null
  */
@@ -318,11 +356,7 @@ export async function autoLinkAngttEntity(
     await attachTag(boardId, wrId, ANGTT_TAG);
     await attachTag(boardId, wrId, hit.entitySlug);
 
-    await pool.execute(
-        `INSERT IGNORE INTO angple_entity_posts (entity_id, bo_table, wr_id, role, created_at)
-         VALUES (?, ?, ?, 'auto', NOW(3))`,
-        [entityId, boardId, wrId]
-    );
+    await upsertEntityLink(entityId, boardId, wrId, 'auto');
 
     return hit.entitySlug;
 }
