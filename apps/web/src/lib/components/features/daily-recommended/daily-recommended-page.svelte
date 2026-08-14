@@ -42,7 +42,7 @@
 
     // SPA 네비게이션 시 폴링 데이터 초기화
     $effect(() => {
-        date; // date 변경 추적
+        void date; // date 변경 추적
         pollData = null;
     });
 
@@ -79,7 +79,7 @@
 
     // SPA 네비게이션 시 댓글 데이터도 초기화
     $effect(() => {
-        date;
+        void date;
         lazyComments = null;
     });
 
@@ -105,6 +105,7 @@
                 ...(sections.info.posts ?? [])
             ];
             // 섹션 간 중복 게시글 제거 (id+board 기준)
+            // eslint-disable-next-line svelte/prefer-svelte-reactivity -- $derived.by 내부 중복 제거용 지역 변수.
             const seen = new Set<string>();
             posts = all.filter((p) => {
                 const key = `${p.id}-${p.board}`;
@@ -155,6 +156,7 @@
                 ...(commentSections.group?.comments ?? []),
                 ...(commentSections.info?.comments ?? [])
             ];
+            // eslint-disable-next-line svelte/prefer-svelte-reactivity -- $derived.by 내부 중복 제거용 지역 변수.
             const seen = new Set<string>();
             comments = all.filter((c) => {
                 const key = `${c.id}-${c.board}`;
@@ -268,7 +270,9 @@
     }
 </script>
 
-<div class="mx-auto max-w-5xl px-4 py-4">
+<!-- 좌우 여백은 모바일에서 게시판 목록과 맞춘다(상위 main 이 이미 px-2 를 준다).
+     종전 px-4 는 그 위에 16px 을 더 얹어 /free 목록(8px)과 어긋나 보였다. -->
+<div class="mx-auto max-w-5xl px-0 py-2 md:px-4 md:py-4">
     <div class="mb-4">
         <AdSlot position="empathy-top" height="90px" slotKey="empathy-top" />
     </div>

@@ -92,6 +92,7 @@
 
     const availableBoards = $derived.by(() => {
         const items = viewMode === 'posts' ? currentPosts : currentComments;
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- $derived.by 내부 지역 변수.
         const seenBoards = new Set<string>();
         const boards: { id: string; label: string }[] = [];
 
@@ -158,8 +159,11 @@
     }}
 />
 
-<div class="mx-auto max-w-4xl px-4 py-6">
-    <div class="mb-4">
+<!-- 좌우 여백은 모바일에서 게시판 목록과 맞춘다. 종전 px-4 는 상위 main 의 px-2 위에
+     16px 을 더 얹어 콘텐츠가 24px 안쪽에서 시작했고, /free 목록(8px)과 어긋나 보였다.
+     md 이상은 종전대로 px-4. 상하도 목록 페이지(pt-2)와 같은 기준으로. -->
+<div class="mx-auto max-w-4xl px-0 pb-6 pt-2 md:px-4 md:py-6">
+    <div class="mb-2">
         <TagNav />
     </div>
 

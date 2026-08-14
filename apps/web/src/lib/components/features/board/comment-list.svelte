@@ -202,6 +202,14 @@
     let isRestoring = $state<string | null>(null);
 
     // 수정 폼 이미지 업로드
+    /**
+     * 댓글 수정 에디터 인스턴스.
+     * LazyCommentEditor 는 동적 import 라 인스턴스 타입이 SvelteComponent<{}> 로만 잡혀
+     * 실제 메서드(insertContent/insertImage/getImageCount)가 타입에 없다. 구조적 인터페이스를
+     * 붙이면 bind:this 대입에서 타입이 충돌하므로 any 를 유지한다.
+     * 호출하는 메서드는 아래 세 개뿐이다: insertContent, insertImage, getImageCount.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let editEditorRef = $state<any>(null);
     let editFileInputRef = $state<HTMLInputElement | null>(null);
     let editIsUploading = $state(false);
@@ -815,6 +823,7 @@
     // TipTap 에디터로 작성된 댓글은 <p>, <strong> 등 HTML 태그를 포함하므로
     // escapeHtml 대신 DOMPurify로 산화하여 안전한 태그는 보존
     const ssrCommentHtml = $derived.by(() => {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- $derived.by 내부 지역 변수. 반응형 상태가 아니라 계산 중 임시 조회표다.
         const map = new Map<string | number, string>();
         for (const comment of commentTree) {
             if (!comment.content) {
@@ -1077,6 +1086,7 @@
     // #12856: 로드 성공 시에만 loadedIds 에 표시. 진행중(inflight)·시도상한으로 중복/폭주 방지.
     let likerAvatarsLoadedIds = new SvelteSet<string>();
     let likerAvatarsInflight = new SvelteSet<string>();
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 재시도 횟수 기록용. 화면에 렌더되지 않아 반응형일 필요가 없다.
     const likerAvatarsAttempts = new Map<string, number>();
     const LIKER_AVATARS_MAX_ATTEMPTS = 4;
     $effect(() => {
@@ -2320,8 +2330,11 @@
     .comment-item:first-child {
         padding-top: calc(var(--comment-pad-extra, 3px));
     }
+    /* 마지막 댓글은 first-child 와 대칭으로 0.75rem 을 뺀다. 종전 값은 base 규칙과
+       완전히 동일해서 아무 효과가 없었다(= 규칙이 없는 것과 구분 불가). 아래 댓글 작성
+       영역이 border-t + pt-6 로 이미 간격을 만들므로 여기서 12px 을 더 둘 이유가 없다. */
     .comment-item:last-child {
-        padding-bottom: calc(var(--comment-pad-extra, 3px) + 0.75rem);
+        padding-bottom: calc(var(--comment-pad-extra, 3px));
     }
 
     /* 긴 URL 레이아웃 깨짐 방지 */

@@ -278,7 +278,10 @@
 
 <!-- 게시글 카드 -->
 <Card class="bg-background mb-6 gap-3 rounded-xl px-3 pb-5 pt-3 md:px-3">
-    <CardHeader class="space-y-3">
+    <!-- gap-3: CardHeader 는 자체적으로 grid gap-1.5 를 갖는다. 종전 space-y-3 는
+         그 gap 을 대체하지 못하고 margin 으로 얹혀 6+12=18px 이 됐다(의도는 12px).
+         같은 축의 gap 으로 주면 tailwind-merge 가 gap-1.5 를 대체해 정확히 12px. -->
+    <CardHeader class="gap-3">
         <div>
             {#if post.category}
                 <div class="mb-2 flex flex-wrap gap-1.5">

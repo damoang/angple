@@ -312,6 +312,7 @@
     });
 
     const MEMO_CACHE_TTL_MS = 30_000;
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- TTL 캐시. 렌더에 쓰이지 않아 반응형일 필요가 없다.
     const memoBatchCache = new Map<
         string,
         {
@@ -319,6 +320,7 @@
             value: Record<string, { content: string; color: string } | null>;
         }
     >();
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 진행 중 요청 중복 방지용. 렌더에 쓰이지 않는다.
     const memoBatchPending = new Map<
         string,
         Promise<Record<string, { content: string; color: string } | null>>
@@ -654,7 +656,7 @@
         }
     }
 
-    function selectAllVisible(posts: any[]): void {
+    function selectAllVisible(posts: FreePost[]): void {
         selectedPostIds = posts.map((p) => p.id);
     }
 
@@ -859,6 +861,7 @@
     async function fetchBackfillPage(
         pageNum: number
     ): Promise<{ posts: FreePost[]; hasNext: boolean }> {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 함수 내부 지역 변수. URL 문자열을 만들고 버린다.
         const params = new URLSearchParams($page.url.searchParams);
         params.set('page', String(pageNum));
         // 태그 필터는 서버가 sfl=title_content&stx= 를 함께 붙여 조회한다 — 동일하게 재현.
@@ -909,6 +912,7 @@
         void (async () => {
             backfilling = true;
             const collected: FreePost[] = [];
+            // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 함수 내부 중복 제거용 지역 변수.
             const seen = new Set(posts.map((p) => p.id)); // id 중복 제거(원본 + 누적)
             let visible = startVisible;
             let nextPage = startPage + 1;
@@ -976,9 +980,11 @@
             </div>
         </div>
     {:else}
-        <div class="mx-auto pt-4">
+        <!-- 상단 여백 축소 — 첫 게시물까지 PC 450px / 모바일 265px 을 쓰고 있었다.
+             글 상세(#2079)와 같은 기준으로 맞춘다. -->
+        <div class="mx-auto pt-2">
             <!-- 빠른 이동 네비게이션 -->
-            <div class="mb-4">
+            <div class="mb-2">
                 <TagNav />
             </div>
 
@@ -993,7 +999,7 @@
             {/if}
 
             <!-- 헤더 -->
-            <div class="mb-4 flex min-w-0 flex-wrap items-center justify-between gap-2">
+            <div class="mb-3 flex min-w-0 flex-wrap items-center justify-between gap-2">
                 <div class="flex min-w-0 shrink items-center gap-2">
                     <h1 class="text-2xl font-bold sm:text-3xl">
                         <a
@@ -1194,14 +1200,15 @@
 
             <!-- 최상단 자체 배너 (자체 배너 없으면 안 보임) -->
             {#if widgetLayoutStore.hasEnabledAds}
-                <div class="mb-3">
+                <div class="mb-2">
                     <PluginSlot name="board-list-banner" />
                 </div>
             {/if}
 
-            <!-- 축하 메시지 롤링 (슬롯 기반) -->
+            <!-- 축하 메시지 롤링 (슬롯 기반) — 글 상세와 같은 mb-2.
+                 메시지가 없어도 h-7(28px) 자리표시자가 남는 건 의도된 CLS 방지다. -->
             {#if !isSearching}
-                <div class="mb-4">
+                <div class="mb-2">
                     <PluginSlot name="board-list-rolling" />
                 </div>
             {/if}
@@ -1224,7 +1231,7 @@
             <!-- #12012: 내가 쓴 글/댓글 빠른 필터 (로그인 시) -->
             <!-- #12592: 모바일에서는 상단 SearchForm 과 검색 input 중복 → PC(md+) 전용 -->
             {#if authStore.isAuthenticated}
-                <div class="mb-3 hidden flex-wrap items-center gap-2 md:flex">
+                <div class="mb-2 hidden flex-wrap items-center gap-2 md:flex">
                     <Button
                         variant={isMyPostsActive ? 'default' : 'outline'}
                         size="sm"
