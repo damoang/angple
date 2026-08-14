@@ -27,6 +27,12 @@ export interface OAuthProviderMeta {
 export interface GeneralSettings {
     siteName: string;
     siteDescription: string;
+    /**
+     * 추천(공감/good) 취소 가능 시간(단위: 시간).
+     * 추천을 누른 뒤 이 시간이 지나면 취소할 수 없다(레거시 일방향 정책).
+     * 0 = 제한 없음(항상 취소 가능). 비추천/이모티콘 반응에는 적용되지 않는다.
+     */
+    goodCancelWindowHours: number;
 }
 
 /** OAuth 설정 */
@@ -112,7 +118,8 @@ function defaultOAuthProvider(): OAuthProviderConfig {
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     general: {
         siteName: '',
-        siteDescription: ''
+        siteDescription: '',
+        goodCancelWindowHours: 12
     },
     oauth: {
         google: defaultOAuthProvider(),
