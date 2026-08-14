@@ -454,9 +454,25 @@
     }
 
     // 변경 감지
+    // bug/13534: saveDraft 가 저장하는 모든 필드를 조건 판정 전에 지역변수로 먼저 읽어
+    // 항상 의존성으로 추적되게 한다. 종전 `title || content || category` 는 || 단축평가라
+    // title 에 글자가 들어가는 순간 뒤의 content/category 를 읽지 않아 추적에서 빠졌고,
+    // 그 결과 본문만 바꾸면 이 감지기가 깨어나지 않아 자동저장이 첫 주기 이후 멈추고
+    // 수동 저장 버튼이 비활성으로 고착됐다. 이 effect 는 hasUnsavedChanges 를 쓰기만 하고
+    // 읽지 않으므로 자기재실행(무한 루프)은 없다.
     $effect(() => {
-        // title, content, category, isSecret 변경시 unsaved 표시
-        if (browser && (title || content || category)) {
+        // saveDraft 직렬화 대상 전부를 무조건 먼저 읽는다(단축평가 이전).
+        const t = title;
+        const c = content;
+        const cat = category;
+        const sec = isSecret;
+        const tagCount = tags.length;
+        const l1 = link1;
+        const l2 = link2;
+        const fileCount = uploadedFiles.length;
+        if (!browser) return;
+        // 저장할 만한 입력이 하나라도 있으면 unsaved 로 표시
+        if (t || c || cat || sec || tagCount > 0 || l1 || l2 || fileCount > 0) {
             hasUnsavedChanges = true;
         }
     });
@@ -802,7 +818,7 @@
                     variant="ghost"
                     size="sm"
                     onclick={handleManualSave}
-                    disabled={!hasUnsavedChanges || isSaving}
+                    disabled={isSaving || (!title.trim() && !content.trim())}
                     class="h-8"
                 >
                     <Save class="h-4 w-4" />
