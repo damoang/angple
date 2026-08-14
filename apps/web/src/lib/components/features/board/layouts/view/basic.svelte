@@ -215,6 +215,45 @@
     }
 </script>
 
+<!-- 글자 크기 조절 — 종전에는 본문 바로 위에 전용 줄(34px)을 차지했다. 한 번 맞추면
+     다시 건드릴 일이 드문 설정인데 매 게시글마다 고정으로 한 줄을 먹어 작성자 줄로 옮겼다.
+     라벨은 화면 폭에 따라 다르게 쓴다:
+       - md 이상: "작게/보통/크게" (여유 356px, 3버튼 124px)
+       - 모바일:  "가−/가+" (여유 127px, 2버튼 72px). 3버튼은 폭이 안 나온다.
+     +/− 기호만 쓰면 뜻이 안 통한다는 제보가 있어 모바일도 "가" 를 붙여 글자 크기임을 알린다.
+     py-1.5 는 터치 타겟 26px 확보용(WCAG 2.2 AA 최소). -->
+{#snippet fontSizeControls()}
+    <span class="ml-auto flex shrink-0 items-center gap-1">
+        <button
+            type="button"
+            class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-2 py-1.5 text-xs leading-none transition-colors disabled:opacity-30"
+            disabled={currentFontSize === 'small'}
+            onclick={() => uiSettingsStore.changeContentFontSize(-1)}
+            aria-label="글자 작게"
+        >
+            <span class="md:hidden">가−</span>
+            <span class="hidden md:inline">작게</span>
+        </button>
+        <!-- 기본값 복귀는 md 이상에서만. 모바일은 폭이 없어 가−/가+ 로 오갈 수 있게만 둔다. -->
+        <button
+            type="button"
+            class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted hidden rounded border px-2 py-1.5 text-xs leading-none transition-colors md:inline-block"
+            onclick={() => uiSettingsStore.changeContentFontSize(0)}
+            aria-label="글자 기본">보통</button
+        >
+        <button
+            type="button"
+            class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-2 py-1.5 text-xs leading-none transition-colors disabled:opacity-30"
+            disabled={currentFontSize === '3xlarge'}
+            onclick={() => uiSettingsStore.changeContentFontSize(1)}
+            aria-label="글자 크게"
+        >
+            <span class="md:hidden">가+</span>
+            <span class="hidden md:inline">크게</span>
+        </button>
+    </span>
+{/snippet}
+
 <!-- 조회/공감/댓글 — 모바일에서는 작성자 날짜 옆으로, md 이상은 메타 줄 우측으로
      같은 마크업을 두 위치에 렌더한다(둘 중 하나만 보이므로 중복 노출은 없다). -->
 {#snippet metaCounts()}
@@ -330,7 +369,10 @@
                         ?
                     </div>
                     <div class="min-w-0 flex-1">
-                        <p class="text-muted-foreground font-medium">작성자 정보 비공개</p>
+                        <p class="text-muted-foreground flex items-center font-medium">
+                            작성자 정보 비공개
+                            {@render fontSizeControls()}
+                        </p>
                         <div class="mt-0.5 md:hidden">{@render metaCounts()}</div>
                     </div>
                 </div>
@@ -382,6 +424,7 @@
                                     >({post.author_ip})</span
                                 >
                             {/if}
+                            {@render fontSizeControls()}
                         </p>
                         <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                             <p class="text-secondary-foreground" style="font-size: 0.9em;">
@@ -471,29 +514,8 @@
             />
         {/each}
 
-        <!-- 글자 크기 조절 -->
-        <div class="mb-1 flex items-center justify-end gap-1">
-            <button
-                type="button"
-                class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-2.5 py-1.5 text-xs transition-colors disabled:opacity-30"
-                disabled={currentFontSize === 'small'}
-                onclick={() => uiSettingsStore.changeContentFontSize(-1)}
-                aria-label="글자 작게">- 작게</button
-            >
-            <button
-                type="button"
-                class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-2.5 py-1.5 text-xs transition-colors"
-                onclick={() => uiSettingsStore.changeContentFontSize(0)}
-                aria-label="글자 기본">보통</button
-            >
-            <button
-                type="button"
-                class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-2.5 py-1.5 text-xs transition-colors disabled:opacity-30"
-                disabled={currentFontSize === '3xlarge'}
-                onclick={() => uiSettingsStore.changeContentFontSize(1)}
-                aria-label="글자 크게">크게 +</button
-            >
-        </div>
+        <!-- 글자 크기 조절 줄은 여기 있었다 → 작성자 줄로 이동(fontSizeControls snippet).
+             본문 바로 위 34px 을 매 게시글마다 고정으로 쓰던 자리다. -->
 
         <!-- 게시글 본문 -->
         {#if canViewSecret}
@@ -797,9 +819,6 @@
                      통째로 제거했더니 사용자가 글 읽고 누르던 위치의 스크랩이 사라졌다는 제보.
                      → 하단본을 initialScrapped 와 함께 복원(정확 표시 + 익숙한 위치 둘 다 충족). -->
                 <div class="ml-auto flex items-center gap-1">
-                    {#if authStore.isAuthenticated}
-                        <ScrapButton {boardId} postId={post.id} {initialScrapped} />
-                    {/if}
                     {#if board?.use_sns}
                         <ShareButton {boardId} postId={post.id} title={post.title || ''} />
                     {/if}
@@ -820,6 +839,13 @@
                             <Flag class="h-4 w-4" />
                             <span>신고</span>
                         </Button>
+                    {/if}
+                    <!-- 스크랩은 신고 오른쪽 끝에. 종전엔 이 줄 맨 왼쪽에 아이콘만 있어서
+                         옆의 공유·신고가 아이콘+문구인데 혼자 문구가 없었고, 북마크 아이콘만으로는
+                         무슨 버튼인지 알기 어려웠다. size="sm" 이면 컴포넌트가 "스크랩"/"스크랩됨"
+                         문구를 함께 렌더한다(상단 툴바본은 아이콘만 유지). -->
+                    {#if authStore.isAuthenticated}
+                        <ScrapButton {boardId} postId={post.id} {initialScrapped} size="sm" />
                     {/if}
                     <PluginSlot
                         name="post-detail-actions"
