@@ -202,8 +202,23 @@
                     </span>
                 </div>
 
-                <!-- 사유는 요약 헤더 안에 둔다 — 제재의 "무엇 때문에"가 기간과 떨어지면 안 읽힌다 -->
-                {#if log.violation_types.length > 0}
+                <!--
+                  사유는 요약 헤더 안에 둔다 — 제재의 "무엇 때문에"가 기간과 떨어지면 안 읽힌다.
+
+                  ⛔ 단, **글마다 사유가 다르면 여기에 나열하지 않는다.**
+                     상단 사유는 항목별 사유의 합집합이라, 다섯 글이 A·B 이고 한 글만 C·D 여도
+                     A·B·C·D 가 전부 뜬다. 회원은 네 가지 사유로 제한받았다고 읽는다.
+                     사람은 큰 글씨를 먼저 읽어서, 아래 글별 목록을 봐도 오해가 풀리지 않는다.
+                     그런 건은 안내 한 줄로 대체하고 사유는 글별 목록에서만 읽게 한다.
+                -->
+                {#if log.reasons_differ_by_item}
+                    <div class="mt-3 flex items-baseline gap-2 border-t pt-3">
+                        <AlertTriangle class="text-muted-foreground mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <span class="text-muted-foreground text-sm">
+                            적용 사유는 글마다 다릅니다 — 아래 목록에서 확인하세요
+                        </span>
+                    </div>
+                {:else if log.violation_types.length > 0}
                     <div class="mt-3 space-y-2 border-t pt-3">
                         {#each log.violation_types as vt}
                             <div>

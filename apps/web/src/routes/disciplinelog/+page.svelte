@@ -230,15 +230,27 @@
                                             <span
                                                 class="hidden max-w-[45%] flex-wrap justify-end gap-1 sm:flex"
                                             >
-                                                {#each log.violation_titles.slice(0, 2) as title}
+                                                <!--
+                                                  ⛔ violation_titles 는 글별 사유의 **합집합**이다.
+                                                     글마다 다르면 나열하지 않는다 — 한 글에만
+                                                     적용한 사유가 전건에 붙은 것처럼 읽힌다.
+                                                -->
+                                                {#if log.reasons_differ_by_item}
                                                     <Badge variant="outline" class="text-[10px]"
-                                                        >{title}</Badge
+                                                        >사유 여러 건</Badge
                                                     >
-                                                {/each}
-                                                {#if log.violation_titles.length > 2}
-                                                    <Badge variant="outline" class="text-[10px]"
-                                                        >+{log.violation_titles.length - 2}</Badge
-                                                    >
+                                                {:else}
+                                                    {#each log.violation_titles.slice(0, 2) as title}
+                                                        <Badge variant="outline" class="text-[10px]"
+                                                            >{title}</Badge
+                                                        >
+                                                    {/each}
+                                                    {#if log.violation_titles.length > 2}
+                                                        <Badge variant="outline" class="text-[10px]"
+                                                            >+{log.violation_titles.length -
+                                                                2}</Badge
+                                                        >
+                                                    {/if}
                                                 {/if}
                                             </span>
                                         </a>
