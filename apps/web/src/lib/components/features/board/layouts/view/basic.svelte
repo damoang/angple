@@ -217,39 +217,47 @@
 
 <!-- 글자 크기 조절 — 종전에는 본문 바로 위에 전용 줄(34px)을 차지했다. 한 번 맞추면
      다시 건드릴 일이 드문 설정인데 매 게시글마다 고정으로 한 줄을 먹어 작성자 줄로 옮겼다.
-     라벨은 화면 폭에 따라 다르게 쓴다:
-       - md 이상: "작게/보통/크게" (여유 356px, 3버튼 124px)
-       - 모바일:  "가−/가+" (여유 127px, 2버튼 72px). 3버튼은 폭이 안 나온다.
-     +/− 기호만 쓰면 뜻이 안 통한다는 제보가 있어 모바일도 "가" 를 붙여 글자 크기임을 알린다.
-     py-1.5 는 터치 타겟 26px 확보용(WCAG 2.2 AA 최소). -->
+
+     라벨은 화면 폭에 맞춰 다르게 쓴다. 닉네임 줄의 실측 여유는 모바일 45px / PC 356px 이다.
+       - md 이상: "글자크기" 라벨 + 작게·보통·크게 (170px, 여유 안)
+       - 모바일:  작은 "가" / 큰 "가" 두 버튼 (62px). 라벨이나 아이콘을 더 붙이면
+                 101~118px 이 되어 여유를 넘긴다.
+     모바일이 기호(+/−) 대신 글자 크기 차이로 방향을 나타내는 이유: "+/− 는 뜻이 안 통한다"는
+     제보가 있었고, 이 방식은 종전 "가−/가+"(76px)보다 오히려 14px 좁다.
+
+     버튼은 h-[26px] 로 높이를 고정한다. 안쪽 글자 크기가 11px/15px 로 달라도 버튼 높이가
+     흔들리지 않아야 작성자 줄(26px)이 커지지 않는다. 26px 은 터치 타겟 최소치이기도 하다.
+     bg-muted/40 은 옆의 텍스트 메타(닉네임·IP)와 시각 무게를 구분해 "누를 수 있는 것"임을
+     정지 상태에서 알리는 용도다. -->
 {#snippet fontSizeControls()}
     <span class="ml-auto flex shrink-0 items-center gap-1">
+        <span class="text-muted-foreground hidden text-xs md:inline">글자크기</span>
         <button
             type="button"
-            class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-2 py-1.5 text-xs leading-none transition-colors disabled:opacity-30"
+            class="text-muted-foreground hover:text-foreground active:bg-muted border-border bg-muted/40 hover:bg-muted inline-flex h-[26px] min-w-[30px] items-center justify-center rounded border px-2 leading-none transition-colors disabled:opacity-30"
             disabled={currentFontSize === 'small'}
             onclick={() => uiSettingsStore.changeContentFontSize(-1)}
             aria-label="글자 작게"
         >
-            <span class="md:hidden">가−</span>
-            <span class="hidden md:inline">작게</span>
+            <span class="text-[11px] md:hidden">가</span>
+            <span class="hidden text-xs md:inline">작게</span>
         </button>
-        <!-- 기본값 복귀는 md 이상에서만. 모바일은 폭이 없어 가−/가+ 로 오갈 수 있게만 둔다. -->
+        <!-- 기본값 복귀는 md 이상에서만. 모바일은 폭이 없어 작은가/큰가 로 오갈 수 있게만 둔다. -->
         <button
             type="button"
-            class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted hidden rounded border px-2 py-1.5 text-xs leading-none transition-colors md:inline-block"
+            class="text-muted-foreground hover:text-foreground active:bg-muted border-border bg-muted/40 hover:bg-muted hidden h-[26px] items-center justify-center rounded border px-2 text-xs leading-none transition-colors md:inline-flex"
             onclick={() => uiSettingsStore.changeContentFontSize(0)}
             aria-label="글자 기본">보통</button
         >
         <button
             type="button"
-            class="text-muted-foreground hover:text-foreground active:bg-muted border-border hover:bg-muted rounded border px-2 py-1.5 text-xs leading-none transition-colors disabled:opacity-30"
+            class="text-muted-foreground hover:text-foreground active:bg-muted border-border bg-muted/40 hover:bg-muted inline-flex h-[26px] min-w-[30px] items-center justify-center rounded border px-2 leading-none transition-colors disabled:opacity-30"
             disabled={currentFontSize === '3xlarge'}
             onclick={() => uiSettingsStore.changeContentFontSize(1)}
             aria-label="글자 크게"
         >
-            <span class="md:hidden">가+</span>
-            <span class="hidden md:inline">크게</span>
+            <span class="text-[15px] md:hidden">가</span>
+            <span class="hidden text-xs md:inline">크게</span>
         </button>
     </span>
 {/snippet}

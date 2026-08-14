@@ -1199,8 +1199,11 @@
             {/if}
 
             <!-- 최상단 자체 배너 (자체 배너 없으면 안 보임) -->
+            <!-- 배너는 아래 목록과 같은 폭을 쓴다. 모바일에서 목록은 -mx-2 로 풀블리드인데
+                 배너만 상위 main 의 px-2 안쪽(8px)에 머물러, 배너가 혼자 들여쓰기된 것처럼 보였다.
+                 md 이상은 목록도 여백을 두므로 종전대로. -->
             {#if widgetLayoutStore.hasEnabledAds}
-                <div class="mb-2">
+                <div class="-mx-2 mb-2 md:mx-0">
                     <PluginSlot name="board-list-banner" />
                 </div>
             {/if}
