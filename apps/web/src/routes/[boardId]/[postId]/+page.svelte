@@ -2495,9 +2495,12 @@
                     : {}}
             />
         {/each}
-        <!-- 본문 직후, 댓글 직전 광고 (삭제된 글에서는 비표시) -->
+        <!-- 본문 직후, 댓글 직전 광고 (삭제된 글에서는 비표시)
+             my-6 → my-2: 바로 위 AdSense(390px)와 이 슬롯(예약 100px)이 연달아 붙어
+             본문 끝~댓글 사이 426px 의 대부분을 만들고 있었다. 슬롯은 그대로 두고
+             위아래 여백만 24+24 → 8+8 로 줄인다(32px 회수, 노출 영향 없음). -->
         {#if widgetLayoutStore.hasEnabledAds && !data.post.deleted_at}
-            <div class="my-6">
+            <div class="my-2">
                 <AdSlot
                     position="board-before-comments"
                     height="90px"
