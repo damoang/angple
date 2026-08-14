@@ -9,9 +9,16 @@
         placeholder?: string;
         initialQuery?: string;
         onSearch?: (query: string) => void;
+        /** 네이티브 폼 제출용 input name (JS 죽어도 검색되게, bug/13503) */
+        name?: string;
     }
 
-    let { placeholder = '검색어를 입력하세요', initialQuery = '', onSearch }: Props = $props();
+    let {
+        placeholder = '검색어를 입력하세요',
+        initialQuery = '',
+        onSearch,
+        name
+    }: Props = $props();
 
     let query = $state(initialQuery);
     let results = $state<GlobalSearchResult[]>([]);
@@ -110,6 +117,7 @@
         <input
             bind:this={inputEl}
             type="text"
+            {name}
             value={query}
             oninput={handleInput}
             onkeydown={handleKeydown}
