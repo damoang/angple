@@ -213,7 +213,7 @@
     <!-- 요약 카드 -->
     <div class="mb-6 grid gap-4 md:grid-cols-3">
         <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader class="flex flex-row items-center justify-between pb-2">
                 <CardTitle class="text-sm font-medium">검토 대기</CardTitle>
                 <Star class="text-muted-foreground h-4 w-4" />
             </CardHeader>
@@ -226,7 +226,7 @@
         </Card>
 
         <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader class="flex flex-row items-center justify-between pb-2">
                 <CardTitle class="text-sm font-medium">승인된 리뷰</CardTitle>
                 <Check class="text-muted-foreground h-4 w-4" />
             </CardHeader>
@@ -238,7 +238,7 @@
         </Card>
 
         <Card>
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader class="flex flex-row items-center justify-between pb-2">
                 <CardTitle class="text-sm font-medium">평균 평점</CardTitle>
                 <Star class="text-muted-foreground h-4 w-4" />
             </CardHeader>

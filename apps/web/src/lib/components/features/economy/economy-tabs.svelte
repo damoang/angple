@@ -23,7 +23,7 @@
 </script>
 
 <Card class="gap-0">
-    <CardHeader class="flex flex-row items-center justify-between space-y-0 py-3">
+    <CardHeader class="flex flex-row items-center justify-between py-3">
         <a href="/economy" class="hover:text-foreground flex items-center gap-2 transition-colors">
             <div
                 class="flex h-7 w-7 items-center justify-center rounded-lg bg-green-100 dark:bg-green-900/30"

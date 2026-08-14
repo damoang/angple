@@ -129,7 +129,7 @@
 
 <div class="mx-auto max-w-5xl px-4 py-8">
     <Card class="gap-0">
-        <CardHeader class="space-y-0 pb-0">
+        <CardHeader class="pb-0">
             <!-- 헤더 -->
             <div class="mb-4 flex items-center gap-3">
                 <Users class="text-primary h-7 w-7" />

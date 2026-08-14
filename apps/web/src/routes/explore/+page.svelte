@@ -172,7 +172,7 @@
     </div>
 
     <Card class="gap-0">
-        <CardHeader class="space-y-0 pb-0">
+        <CardHeader class="pb-0">
             <!-- 헤더 + 탭 한 줄 -->
             <div class="flex items-center justify-between gap-3">
                 <div class="flex items-center gap-2">

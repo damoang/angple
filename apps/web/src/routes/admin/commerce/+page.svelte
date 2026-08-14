@@ -162,7 +162,7 @@
         <!-- 통계 카드 -->
         <div class="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
-                <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardHeader class="flex flex-row items-center justify-between pb-2">
                     <CardTitle class="text-sm font-medium">총 상품</CardTitle>
                     <Package class="text-muted-foreground h-4 w-4" />
                 </CardHeader>
@@ -175,7 +175,7 @@
             </Card>
 
             <Card>
-                <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardHeader class="flex flex-row items-center justify-between pb-2">
                     <CardTitle class="text-sm font-medium">총 주문</CardTitle>
                     <ShoppingCart class="text-muted-foreground h-4 w-4" />
                 </CardHeader>
@@ -188,7 +188,7 @@
             </Card>
 
             <Card>
-                <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardHeader class="flex flex-row items-center justify-between pb-2">
                     <CardTitle class="text-sm font-medium">총 매출</CardTitle>
                     <DollarSign class="text-muted-foreground h-4 w-4" />
                 </CardHeader>
@@ -202,7 +202,7 @@
             </Card>
 
             <Card>
-                <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardHeader class="flex flex-row items-center justify-between pb-2">
                     <CardTitle class="text-sm font-medium">정산 대기</CardTitle>
                     <ClipboardList class="text-muted-foreground h-4 w-4" />
                 </CardHeader>

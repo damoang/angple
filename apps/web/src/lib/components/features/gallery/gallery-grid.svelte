@@ -14,7 +14,7 @@
 </script>
 
 <Card class="gap-0">
-    <CardHeader class="flex flex-row flex-nowrap items-center space-y-0 py-3">
+    <CardHeader class="flex flex-row flex-nowrap items-center py-3">
         <a href="/gallery" class="hover:text-foreground flex items-center gap-2 transition-colors">
             <div
                 class="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30"

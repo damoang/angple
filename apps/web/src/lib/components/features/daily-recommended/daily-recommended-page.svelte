@@ -278,7 +278,7 @@
     </div>
 
     <Card class="gap-0 overflow-hidden">
-        <CardHeader class="space-y-0 pb-0">
+        <CardHeader class="pb-0">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div class="flex items-center gap-2">
                     <Compass class="text-primary h-5 w-5" />

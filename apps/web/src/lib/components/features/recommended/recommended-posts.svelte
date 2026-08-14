@@ -169,7 +169,7 @@
 </script>
 
 <Card class="gap-0">
-    <CardHeader class="flex flex-row items-center justify-between gap-2 space-y-0 py-3">
+    <CardHeader class="flex flex-row items-center justify-between gap-2 py-3">
         <RecommendedHeader />
         <RecommendedTabs bind:activeTab onTabChange={handleTabChange} />
     </CardHeader>
