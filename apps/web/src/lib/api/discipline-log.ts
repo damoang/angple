@@ -80,6 +80,8 @@ export interface DisciplineLogListItem {
     violation_titles: string[];
     memo?: string;
     revoked?: boolean; // 소명 인용 등으로 회수된 제재 (목록 배지용)
+    /** 글마다 적용 사유가 다름 — violation_titles(합집합) 대신 배지로 대체한다 */
+    reasons_differ_by_item?: boolean;
 }
 
 /**
@@ -112,6 +114,13 @@ export interface DisciplineLogDetail {
     claim_post_id?: number;
     revoked_at?: string; // 소명 인용 등으로 회수된 경우 해제일 (revoked_by·admin_memo는 미노출)
     reason_corrections?: ReasonCorrection[]; // 사유 정정 이력 (없으면 키 자체가 없다)
+    /**
+     * 글마다 적용 사유가 다른 경우.
+     *
+     * ⛔ `violation_types` 는 항목별 사유의 **합집합**이다. 참일 때 그대로 나열하면
+     *    한 글에만 적용한 사유가 전건에 적용된 것처럼 읽힌다.
+     */
+    reasons_differ_by_item?: boolean;
 }
 
 export interface DisciplineLogListResponse {
