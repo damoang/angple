@@ -42,8 +42,10 @@ let intervalId: ReturnType<typeof setInterval> | null = null;
 let loadedDateKST = '';
 // visibilitychange 리스너 중복 등록 방지 (스토어는 앱 수명 동안 단일 인스턴스).
 let visibilityBound = false;
-// 롤링 주기. 사용자 요청으로 3s → 2s 로 추가 단축 (메시지 6개 기준 한 바퀴 12s).
-const CELEBRATION_ROTATION_INTERVAL_MS = 2_000;
+// 롤링 주기. bug/13237: 마음메시지가 2개 이상일 때 너무 빨리 바뀌어 긴 문구를 다 못 읽는다는
+// 요청으로 2s → 5s 로 늘렸다(약 2.5배). 전환 애니메이션 500ms 를 빼도 정지 노출이 ~4.5s 라
+// 긴 문구도 편히 읽힌다.
+const CELEBRATION_ROTATION_INTERVAL_MS = 5_000;
 
 /**
  * KST(Asia/Seoul) 기준 오늘 YYYY-MM-DD.

@@ -320,8 +320,12 @@
                 {/if}
                 <!-- bug/13388: 맨몸 텍스트는 익명 flex item 이 되어 min-width/줄바꿈을
                      제어할 수 없고, iOS WebKit 에서 줄바꿈 폭 오계산 → 1행 넘침이
-                     조상 overflow-x:hidden 에 잘려 글자가 소실된다. 실요소로 감싼다. -->
-                <span class="min-w-0 [overflow-wrap:anywhere]">
+                     조상 overflow-x:hidden 에 잘려 글자가 소실된다. 실요소로 감싼다.
+                     bug/13516: flex-basis:auto(기본) 이면 WebKit 계열이 이 flex item 을
+                     콘텐츠(max-content) 폭으로 잡아 min-w-0·overflow-wrap 만으론 여전히
+                     한 글자 넘쳐 잘렸다(Android/WebKit 계열 재현). flex-1(=flex:1 1 0%)로
+                     basis 를 0 으로 두면 남는 폭 기준으로 감싸 넘침이 사라진다. Chromium 동작 불변. -->
+                <span class="min-w-0 flex-1 [overflow-wrap:anywhere]">
                     {#if post.is_discipline_related}
                         <DisciplinedContent
                             inline
