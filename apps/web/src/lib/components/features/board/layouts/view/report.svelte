@@ -503,7 +503,8 @@
             {/if}
         </div>
 
-        <div class="border-border flex flex-wrap items-center gap-4 border-t pt-4">
+        <!-- items-baseline: 크기가 다른 메타 요소의 글자 밑선을 맞춘다 (bug/13536, basic.svelte 와 동일 규칙) -->
+        <div class="border-border flex flex-wrap items-baseline gap-4 border-t pt-4">
             <div class="flex items-center gap-2">
                 {#if getAvatarUrl(post.author_image, post.author_image_updated_at)}
                     <img
@@ -532,7 +533,7 @@
                     </div>
                 {/if}
                 <div>
-                    <p class="text-foreground flex items-center gap-1.5 font-medium">
+                    <p class="text-foreground flex items-baseline gap-1.5 font-medium">
                         <LevelBadge level={memberLevelStore.getLevel(post.author_id)} />
                         <AuthorLink
                             authorId={post.author_id}
@@ -547,7 +548,7 @@
                             />
                         {/if}
                     </p>
-                    <p class="text-secondary-foreground" style="font-size: 0.9em;">
+                    <p class="text-secondary-foreground text-sm">
                         {formatDate(post.created_at)}
                         <!-- 수정 배지: 리비전 기반 edit_count/last_edited_at(백엔드 주입). 게시글은
                              wr_last 미갱신이라 post.updated_at 대신 사용.
@@ -569,16 +570,16 @@
                 </div>
             </div>
 
+            <!-- text-xs: 메타 보조 정보는 14px 로 통일 (bug/13536) -->
             <div
-                class="text-secondary-foreground ml-auto flex gap-2 sm:gap-4"
-                style="font-size: 0.85em;"
+                class="text-secondary-foreground ml-auto flex items-baseline gap-2 text-sm sm:gap-4"
             >
                 <span>조회 {post.views.toLocaleString()}</span>
                 <span>공감 {likeCount.toLocaleString()}</span>
                 <!-- bug/13376 — basic.svelte 와 같은 이유로 같은 모양을 쓴다. -->
                 <button
                     type="button"
-                    class="border-border hover:bg-muted hover:text-foreground -my-0.5 inline-flex cursor-pointer items-center gap-0.5 rounded-full border px-2 py-0.5 transition-colors"
+                    class="border-border hover:bg-muted hover:text-foreground inline-flex cursor-pointer items-center gap-0.5 rounded-full border px-2 py-0 leading-5 transition-colors"
                     aria-label="댓글 {post.comments_count}개로 이동"
                     onclick={() =>
                         document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' })}
