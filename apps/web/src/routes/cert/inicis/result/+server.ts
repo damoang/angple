@@ -11,6 +11,8 @@ import {
     saveCertResult,
     checkDupinfo,
     flagDupinfoCollision,
+    verifySameIdentity,
+    flagIdentityMismatch,
     getCertPendingMbId
 } from '$lib/server/auth/cert-inicis.js';
 
@@ -155,11 +157,42 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
         );
     }
 
+    // 명의 동일성 확인(구멍③) — 이미 DI 가 있는 계정이 **다른 명의로** 갈아타는 것을 막는다.
+    // checkDupinfo 는 다른 계정과의 충돌만 보므로, 빌린 명의의 주인이 회원이 아니면 통과해 버린다.
+    const identity = await verifySameIdentity(mbId, mbDupinfo, mbDupinfoAlt);
+    if (identity.hasPrior && !identity.sameIdentity) {
+        await flagIdentityMismatch(mbId).catch((e) => {
+            console.error('[Cert] 명의 불일치 플래그 기록 실패:', e);
+        });
+        return certResultPage(
+            false,
+            '기존에 본인인증하신 명의와 일치하지 않습니다. 본인 명의로 진행해 주세요. ' +
+                '변경이 필요하시면 고객센터로 문의해 주세요.'
+        );
+    }
+
     // DB 업데이트
     try {
         await saveCertResult(mbId, mbDupinfo, userBirthday, mbDupinfoAlt);
     } catch (err) {
         console.error('[Cert] DB 저장 실패:', err);
+        // 방어선이 막은 경우와 실제 저장 실패를 구분해 안내한다 —
+        // "저장 실패"로 뭉뚱그리면 회원이 재시도만 반복하게 된다.
+        const reason = err instanceof Error ? err.message : '';
+        if (reason === 'IDENTITY_MISMATCH') {
+            return certResultPage(
+                false,
+                '기존에 본인인증하신 명의와 일치하지 않습니다. 본인 명의로 진행해 주세요. ' +
+                    '변경이 필요하시면 고객센터로 문의해 주세요.'
+            );
+        }
+        if (reason === 'DI_COLLISION_BLOCKED') {
+            return certResultPage(
+                false,
+                '이전에 가입하신 계정이 있어 본인인증이 제한되었습니다. ' +
+                    '기존 계정으로 로그인하시거나, 계정 복구가 필요하시면 고객센터로 문의해 주세요.'
+            );
+        }
         return certResultPage(false, '인증 정보 저장에 실패했습니다.');
     }
 

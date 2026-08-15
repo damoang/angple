@@ -150,6 +150,13 @@ export async function getCertPendingMbId(mTxId: string): Promise<string | null> 
     return rows[0].cp_mb_id as string;
 }
 
+/**
+ * DI 값이 현재 체계(SHA-256 64자 hex)인지. 명의 동일성 비교의 전제다.
+ * ⛔ mb_dupinfo 에는 2024-06-11 초기 마이그레이션분 **SHA-1 40자가 41건** 섞여 있다.
+ *    그 값은 어떤 키로도 재현되지 않으므로 비교 대상에서 제외해야 한다.
+ */
+const SHA256_HEX = /^[0-9a-f]{64}$/;
+
 /** CI 기반 mb_dupinfo 생성 (PHP 호환) */
 export function buildDupinfo(ci: string): string {
     return createHash('sha256')
@@ -255,11 +262,13 @@ export async function flagDupinfoCollision(
             `${formatLeaveDate()} [기존계정확인] 동일 본인확인정보의 기존 활성 계정 ` +
             `${activeIds} 존재 — 계정 복구 안내 대상`;
         try {
+            // ⛔ 같은 날 같은 사유가 이미 있으면 덧붙이지 않는다 — 재시도할 때마다 기록이 쌓인다
+            //    (실측: 한 회원에 [DI충돌차단] 4줄까지 누적돼 있었다).
             await pool.query(
                 `UPDATE g5_member
                     SET mb_memo = CONCAT(?, IF(mb_memo IS NULL OR mb_memo = '', '', CONCAT('\n', mb_memo)))
-                  WHERE mb_id = ?`,
-                [memo, mbId]
+                  WHERE mb_id = ? AND (mb_memo IS NULL OR mb_memo NOT LIKE ?)`,
+                [memo, mbId, `%${memo}%`]
             );
         } catch (e) {
             console.error('[Cert][DI-guard] active-collision memo write failed:', e);
@@ -281,11 +290,12 @@ export async function flagDupinfoCollision(
     // durable 운영 플래그: 재인증 시도 계정 mb_memo 앞줄에 기록(관리자 회원관리 화면 노출).
     // 실패해도 차단 판정 자체는 유지(로그만).
     try {
+        // ⛔ 중복 억제 — 위와 같은 이유.
         await pool.query(
             `UPDATE g5_member
                 SET mb_memo = CONCAT(?, IF(mb_memo IS NULL OR mb_memo = '', '', CONCAT('\n', mb_memo)))
-              WHERE mb_id = ?`,
-            [memo, mbId]
+              WHERE mb_id = ? AND (mb_memo IS NULL OR mb_memo NOT LIKE ?)`,
+            [memo, mbId, `%${memo}%`]
         );
     } catch (e) {
         console.error('[Cert][DI-guard] mb_memo flag write failed:', e);
@@ -305,6 +315,89 @@ export async function flagDupinfoCollision(
     return { matched: true, blocked: true };
 }
 
+/**
+ * 재인증 시 **명의 동일성** 검증 (구멍③).
+ *
+ * 이미 DI 가 있는 계정이 **다른 사람 명의로** 재인증하는 것을 막는다.
+ * 기존 코드는 `mb_id <> ?` 로 **다른 계정과의 충돌만** 봤고, 자기 계정의 DI 는
+ * `saveCertResult` 가 무조건 덮어썼다. 즉 빌린 명의의 주인이 다모앙 회원만 아니면
+ * DI 를 갈아치울 수 있었다(명의 세탁). 지금까지 안 터진 것은 인증 완료 회원에게
+ * 재인증 진입점이 없었기 때문이고, 재인증을 유도하면 그 막이 사라진다.
+ *
+ * ⭐ 판별은 이미 있는 값으로 된다 — 새 컬럼도 DDL 도 필요 없다.
+ *   같은 사람이면 두 축 중 **하나는 반드시 일치**한다.
+ *     · 2026-07-19 이전 인증자 → 기존 mb_dupinfo 가 현재 키 값     → 새 **주 DI** 와 일치
+ *     · 키 전환기(07-19~08-13) → 기존 mb_dupinfo 가 전환기 키 값   → 새 **보조 DI** 와 일치
+ *     · 명의가 다르면                                              → **둘 다 불일치**
+ *
+ * ⚠️ 기존 DI 가 없으면(최초 인증·탈퇴로 비워진 계정) 검증 대상이 아니다 — 통과시킨다.
+ *    그 경우의 방어는 checkDupinfo(다른 계정 충돌) 가 담당한다.
+ */
+export async function verifySameIdentity(
+    mbId: string,
+    dupinfo: string,
+    dupinfoAlt = ''
+): Promise<{ hasPrior: boolean; sameIdentity: boolean }> {
+    const [rows] = await readPool.query<RowDataPacket[]>(
+        `SELECT COALESCE(mb_dupinfo, '') AS di, COALESCE(mb_dupinfo2, '') AS di2
+           FROM g5_member WHERE mb_id = ?`,
+        [mbId]
+    );
+    // ⛔ 비교 가능한 값만 후보로 삼는다. mb_dupinfo 에는 **세 체계**가 섞여 있다:
+    //      SHA-1 40자(2024-06-11 초기 마이그레이션 41명) / 주 키 SHA-256 / 전환기 키 SHA-256.
+    //    SHA-1 값은 어떤 키로도 재현되지 않아, 그대로 비교하면 그 41명이 **영원히 차단**되고
+    //    [명의불일치] 낙인까지 찍힌다. 전원 정상 활성 회원이다. 포맷이 다르면 판정하지 않는다.
+    const prior = [rows[0]?.di, rows[0]?.di2].filter((v) => SHA256_HEX.test(v ?? ''));
+    // ⛔ 주 DI 가 없으면 판정하지 않는다. buildDupinfo 가 fail-closed 라 현재는 도달하지 않지만,
+    //    비교 기준의 절반이 빠진 채 "불일치"로 떨어지면 정상 회원이 차단된다.
+    if (prior.length === 0 || !dupinfo) {
+        return { hasPrior: false, sameIdentity: true };
+    }
+
+    // ⭐ 주 DI 부터 비교한다. 전환기 이전 인증자(31,887명)는 보조 키 없이도 여기서 판정된다.
+    const fresh = [dupinfo, dupinfoAlt].filter((v) => v);
+    if (prior.some((p) => fresh.includes(p))) {
+        return { hasPrior: true, sameIdentity: true };
+    }
+
+    // ⛔ 여기까지 왔으면 불일치다. 그런데 보조 키가 없으면 **판정할 수 없다** —
+    //    전환기(2026-07-19~08-13) 인증자의 기존 DI 는 전환기 키 값이라 주 DI 와는 원래 안 맞는다.
+    //    그대로 막으면 정상 회원 1,300여 명이 전부 차단된다. 명의 세탁보다 이쪽 피해가 크다.
+    //    ⚠️ 이 경로로 빠지면 구멍③ 가드가 꺼진 것이다 — 보조 키가 사라지면 조용히 무방비가 되므로
+    //       로그를 반드시 남긴다. 다른 계정과의 충돌은 checkDupinfo 가 계속 막는다.
+    if (!dupinfoAlt) {
+        console.warn(
+            '[Cert][DI-guard] 보조 키(CERT_DUPINFO_ALT_KEY) 미설정 — 명의 동일성 판정 불가, 통과시킴',
+            { mbId }
+        );
+        return { hasPrior: true, sameIdentity: true };
+    }
+
+    return { hasPrior: true, sameIdentity: false };
+}
+
+/**
+ * 명의 불일치를 운영 플래그로 남긴다(감사용).
+ * ⛔ DI 값 자체는 저장하지 않는다 — mb_id 와 사실만 남긴다(개인정보방침 제2조3항 목적 범위).
+ */
+export async function flagIdentityMismatch(mbId: string): Promise<void> {
+    // ⛔ 문구는 **사실만** 쓴다. "다른 명의로 시도" 라고 단정하면, 실제 원인이 값 포맷·키 문제일 때
+    //    정상 회원에게 명의도용 낙인이 남는다. 관리자 화면에 그대로 노출되는 기록이다.
+    const memo = `${formatLeaveDate()} [명의불일치] 기존 본인확인정보와 일치하지 않아 재인증을 거부함`;
+    try {
+        // ⛔ 같은 날 같은 사유가 이미 있으면 덧붙이지 않는다 — 재시도할 때마다 낙인이 쌓인다.
+        await pool.query(
+            `UPDATE g5_member
+                SET mb_memo = CONCAT(?, IF(mb_memo IS NULL OR mb_memo = '', '', CONCAT('\n', mb_memo)))
+              WHERE mb_id = ? AND (mb_memo IS NULL OR mb_memo NOT LIKE ?)`,
+            [memo, mbId, `%${memo}%`]
+        );
+    } catch (e) {
+        console.error('[Cert][DI-guard] identity-mismatch memo write failed:', e);
+    }
+    console.warn('[Cert][DI-guard] blocked re-certification on identity mismatch', { mbId });
+}
+
 /** 인증 결과를 DB에 저장 (g5_member 업데이트 + 인증 이력) */
 export async function saveCertResult(
     mbId: string,
@@ -320,6 +413,14 @@ export async function saveCertResult(
     const { blocked } = await flagDupinfoCollision(mbId, dupinfo, dupinfoAlt);
     if (blocked) {
         throw new Error('DI_COLLISION_BLOCKED');
+    }
+
+    // 명의 동일성 방어선(구멍③) — 호출부가 이미 걸렀더라도, DI 를 덮어쓰기 직전에 한 번 더 본다.
+    // 이 검사가 없으면 다른 명의로 인증해 mb_dupinfo 를 갈아치울 수 있다.
+    const identity = await verifySameIdentity(mbId, dupinfo, dupinfoAlt);
+    if (identity.hasPrior && !identity.sameIdentity) {
+        await flagIdentityMismatch(mbId);
+        throw new Error('IDENTITY_MISMATCH');
     }
 
     const adult_day = new Date();
@@ -359,6 +460,11 @@ export async function checkDupinfo(
     // ⛔ 빈 문자열은 반드시 제외한다 — mb_dupinfo2 미채움 행이 3만 건이라
     //    공백끼리 매칭되면 전원이 중복으로 잡힌다.
     const candidates = [dupinfo, dupinfoAlt].filter((v) => v);
+    // ⛔ 후보가 없으면 `IN ()` 구문 에러가 난다. 주 키는 fail-closed 라 현재는 도달하지 않지만,
+    //    flagDupinfoCollision 과 방어 수준을 맞춘다.
+    if (candidates.length === 0) {
+        return null;
+    }
     const ph = candidates.map(() => '?').join(',');
 
     // ⛔ OR 로 묶으면 옵티마이저가 인덱스를 포기해 62,388행 풀스캔이 된다(EXPLAIN 확인).
