@@ -1,6 +1,8 @@
 <script lang="ts">
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
+    import * as Dialog from '$lib/components/ui/dialog/index.js';
+    import { toast } from 'svelte-sonner';
     import { Badge } from '$lib/components/ui/badge/index.js';
     import { Progress } from '$lib/components/ui/progress/index.js';
     import * as Tabs from '$lib/components/ui/tabs/index.js';
@@ -134,6 +136,8 @@
     // 차단 상태
     let isBlocking = $state(false);
     let isBlocked = $state(false);
+    // #13526: iOS Safari 네이티브 confirm() 미동작 대응 — 인앱 확인 다이얼로그
+    let blockDialogOpen = $state(false);
 
     // 탭 데이터 (lazy load)
     interface RecentPost {
@@ -296,32 +300,37 @@
         followLoading = false;
     }
 
-    // 차단
+    // 차단 버튼: 이미 차단이면 즉시 해제, 아니면 인앱 확인 다이얼로그 표시 (#13526)
     async function handleBlock(): Promise<void> {
         if (!p || !authStore.isAuthenticated) return;
-        isBlocking = true;
-        try {
-            if (isBlocked) {
+        if (isBlocked) {
+            isBlocking = true;
+            try {
                 await apiClient.unblockMember(p.mb_id);
                 blockedUsersStore.remove(p.mb_id);
                 isBlocked = false;
-            } else {
-                if (!confirm(`${p.mb_name}님을 차단하시겠습니까?`)) {
-                    isBlocking = false;
-                    return;
-                }
-                try {
-                    await apiClient.blockMember(p.mb_id);
-                } catch {
-                    // 이미 차단된 경우(409) 등 → 무시하고 차단 상태로 처리
-                }
-                blockedUsersStore.add(p.mb_id);
-                isBlocked = true;
+            } catch {
+                toast.error('차단 처리에 실패했습니다.');
             }
-        } catch {
-            alert('차단 처리에 실패했습니다.');
+            isBlocking = false;
+            return;
         }
+        blockDialogOpen = true;
+    }
+
+    // 다이얼로그 확인 시에만 실제 차단 API 호출
+    async function confirmBlock(): Promise<void> {
+        if (!p || isBlocking) return;
+        isBlocking = true;
+        try {
+            await apiClient.blockMember(p.mb_id);
+        } catch {
+            // 이미 차단된 경우(409) 등 → 무시하고 차단 상태로 처리
+        }
+        blockedUsersStore.add(p.mb_id);
+        isBlocked = true;
         isBlocking = false;
+        blockDialogOpen = false;
     }
 
     // 상대 시간
@@ -1091,4 +1100,26 @@
             followDialogOpen = false;
         }}
     />
+
+    <!-- #13526: 네이티브 confirm() 대체 인앱 차단 확인 다이얼로그 -->
+    <Dialog.Root bind:open={blockDialogOpen}>
+        <Dialog.Content class="sm:max-w-sm">
+            <Dialog.Header>
+                <Dialog.Title>차단 확인</Dialog.Title>
+                <Dialog.Description>{p.mb_name}님을 차단하시겠습니까?</Dialog.Description>
+            </Dialog.Header>
+            <Dialog.Footer>
+                <Button
+                    variant="outline"
+                    onclick={() => (blockDialogOpen = false)}
+                    disabled={isBlocking}
+                >
+                    취소
+                </Button>
+                <Button variant="destructive" onclick={confirmBlock} disabled={isBlocking}>
+                    {isBlocking ? '처리 중...' : '차단'}
+                </Button>
+            </Dialog.Footer>
+        </Dialog.Content>
+    </Dialog.Root>
 {/if}

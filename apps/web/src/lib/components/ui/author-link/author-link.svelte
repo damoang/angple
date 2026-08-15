@@ -1,5 +1,8 @@
 <script lang="ts">
     import * as DropdownMenu from '$lib/components/ui/dropdown-menu/index.js';
+    import * as Dialog from '$lib/components/ui/dialog/index.js';
+    import { Button } from '$lib/components/ui/button/index.js';
+    import { toast } from 'svelte-sonner';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { goto } from '$app/navigation';
     import { page } from '$app/stores';
@@ -89,30 +92,50 @@
     }
 
     let blockLoading = $state(false);
+    // #13526: iOS Safari 는 portal 된 드롭다운 항목 첫 탭에서 네이티브 confirm() 이
+    // user-activation 밖으로 밀려 무반응/새로고침 후에야 뜨는 문제가 있다. 네이티브
+    // confirm/alert 을 인앱 Dialog(+toast) 로 대체해 user-activation 의존을 제거한다.
+    let blockDialogOpen = $state(false);
+    let pendingScope = $state<'all' | 'message'>('all');
 
-    async function handleBlock(scope: 'all' | 'message' = 'all'): Promise<void> {
+    const blockConfirmMsg = $derived(
+        pendingScope === 'message'
+            ? `${authorName}님의 쪽지만 차단하시겠습니까? (게시글·댓글은 그대로 표시됩니다)`
+            : `${authorName}님을 차단하시겠습니까?`
+    );
+
+    // 드롭다운 항목 선택 시: 인증 확인 후 인앱 확인 다이얼로그를 연다.
+    // 드롭다운이 닫히는 같은 이벤트에서 다이얼로그를 동기로 열면 bits-ui 의
+    // interact-outside 처리와 충돌해 즉시 닫힐 수 있어, 다음 태스크로 미룬다.
+    function requestBlock(scope: 'all' | 'message' = 'all'): void {
         if (!authStore.isAuthenticated) {
             authStore.redirectToLogin();
             return;
         }
         if (blockLoading) return;
-        const confirmMsg =
-            scope === 'message'
-                ? `${authorName}님의 쪽지만 차단하시겠습니까? (게시글·댓글은 그대로 표시됩니다)`
-                : `${authorName}님을 차단하시겠습니까?`;
-        if (!confirm(confirmMsg)) return;
+        pendingScope = scope;
+        setTimeout(() => {
+            blockDialogOpen = true;
+        }, 0);
+    }
+
+    // 다이얼로그 확인 시에만 실제 차단 API 호출.
+    async function confirmBlock(): Promise<void> {
+        if (blockLoading) return;
+        const scope = pendingScope;
         blockLoading = true;
         try {
             await apiClient.blockMember(authorId, scope);
             blockedUsersStore.add(authorId, scope);
-            alert(
+            toast.success(
                 scope === 'message'
                     ? `${authorName}님의 쪽지를 차단했습니다.`
                     : `${authorName}님을 차단했습니다.`
             );
+            blockDialogOpen = false;
         } catch (err) {
             console.error('[Block] Failed:', authorId, err);
-            alert('차단 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+            toast.error('차단 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.');
         } finally {
             blockLoading = false;
         }
@@ -264,7 +287,7 @@
                     </DropdownMenu.Item>
                     <DropdownMenu.Item
                         class="cursor-pointer gap-2"
-                        onclick={() => handleBlock('message')}
+                        onSelect={() => requestBlock('message')}
                         disabled={blockLoading}
                     >
                         <Ban class="h-3.5 w-3.5" />
@@ -272,7 +295,7 @@
                     </DropdownMenu.Item>
                     <DropdownMenu.Item
                         class="text-destructive cursor-pointer gap-2"
-                        onclick={() => handleBlock('all')}
+                        onSelect={() => requestBlock('all')}
                         disabled={blockLoading}
                     >
                         <Ban class="h-3.5 w-3.5" />
@@ -282,4 +305,26 @@
             </DropdownMenu.Content>
         </DropdownMenu.Root>
     </span>
+
+    <!-- #13526: 네이티브 confirm() 대체 인앱 차단 확인 다이얼로그 (portal → body, user-activation 무관) -->
+    <Dialog.Root bind:open={blockDialogOpen}>
+        <Dialog.Content class="sm:max-w-sm">
+            <Dialog.Header>
+                <Dialog.Title>차단 확인</Dialog.Title>
+                <Dialog.Description>{blockConfirmMsg}</Dialog.Description>
+            </Dialog.Header>
+            <Dialog.Footer>
+                <Button
+                    variant="outline"
+                    onclick={() => (blockDialogOpen = false)}
+                    disabled={blockLoading}
+                >
+                    취소
+                </Button>
+                <Button variant="destructive" onclick={confirmBlock} disabled={blockLoading}>
+                    {blockLoading ? '처리 중...' : '차단'}
+                </Button>
+            </Dialog.Footer>
+        </Dialog.Content>
+    </Dialog.Root>
 {/if}
