@@ -184,7 +184,8 @@ interface DupCollisionRow extends RowDataPacket {
 /**
  * DI(mb_dupinfo) 충돌 하드닝(구멍②).
  *
- * 동일 dupinfo 를 가진 다른 계정을 조회한다. mb_dupinfo = 본인확인(CI)의 단방향 해시라
+ * 동일 DI 를 가진 다른 계정을 조회한다(주 DI + 보조 DI × mb_dupinfo + mb_dupinfo2 —
+ * checkDupinfo 와 동일 범위). mb_dupinfo = 본인확인(CI)의 단방향 해시라
  * 충돌 = 동일인. 매칭 계정이 **제재중(mb_intercept_date≠'') 또는 탈퇴(mb_leave_date≠'')**면
  * 징계회피/다중이 재가입 정황 → durable 운영 플래그를 재인증 시도 계정 mb_memo 에 기록하고
  * `blocked=true` 를 반환한다(호출부가 본인인증 거부·dupinfo 미저장에 사용).
@@ -203,15 +204,36 @@ interface DupCollisionRow extends RowDataPacket {
  */
 export async function flagDupinfoCollision(
     mbId: string,
-    dupinfo: string
+    dupinfo: string,
+    dupinfoAlt = ''
 ): Promise<{ matched: boolean; blocked: boolean }> {
+    // ⛔ checkDupinfo 와 **같은 범위**를 봐야 한다. 예전엔 주 DI(mb_dupinfo) 하나만 조회해서,
+    //    보조 DI 로만 걸린 충돌은 차단은 되는데 mb_memo 에 기록이 남지 않았다 —
+    //    2026-07-19~08-13 키 전환기 계정과의 매칭이 정확히 그 경우라, 재인증을 권장하면
+    //    정작 잡으려던 신호(다중이·징계회피)가 통째로 새어 나간다.
+    // ⛔ 빈 문자열은 반드시 제외한다 — mb_dupinfo2 미채움 행이 3만 건이라 공백끼리 매칭되면
+    //    전원이 충돌로 잡힌다.
+    // ⛔ OR 로 묶지 않는다 — 옵티마이저가 인덱스를 포기해 풀스캔이 된다(checkDupinfo 주석 참조).
+    //    UNION 으로 갈라야 mb_dupinfo2 가 idx_mb_dupinfo2 를 탄다.
+    const candidates = [dupinfo, dupinfoAlt].filter((v) => v);
+    if (candidates.length === 0) {
+        return { matched: false, blocked: false };
+    }
+    const ph = candidates.map(() => '?').join(',');
+
     const [rows] = await readPool.query<DupCollisionRow[]>(
         `SELECT mb_id, mb_level,
                 COALESCE(mb_intercept_date, '') AS mb_intercept_date,
                 COALESCE(mb_leave_date, '')     AS mb_leave_date
            FROM g5_member
-          WHERE mb_dupinfo = ? AND mb_id <> ?`,
-        [dupinfo, mbId]
+          WHERE mb_id <> ? AND mb_dupinfo IN (${ph})
+         UNION
+         SELECT mb_id, mb_level,
+                COALESCE(mb_intercept_date, '') AS mb_intercept_date,
+                COALESCE(mb_leave_date, '')     AS mb_leave_date
+           FROM g5_member
+          WHERE mb_id <> ? AND mb_dupinfo2 IN (${ph})`,
+        [mbId, ...candidates, mbId, ...candidates]
     );
 
     if (rows.length === 0) {
@@ -294,7 +316,8 @@ export async function saveCertResult(
     // 호출부(cert/inicis/result)는 이미 checkDupinfo 로 모든 dupinfo 충돌을 1차 차단하지만,
     // 그 게이트가 우회되더라도 제재/탈퇴 계정과 동일 DI 인 경우 dupinfo 를 절대 저장하지 않는다.
     // 정상 저장(충돌 없음/활성계정만)은 기존과 100% 동일하게 진행된다.
-    const { blocked } = await flagDupinfoCollision(mbId, dupinfo);
+    // ⛔ 보조 DI 도 함께 넘긴다 — 주 DI 만 보면 키 전환기 계정과의 충돌을 이 방어선이 놓친다.
+    const { blocked } = await flagDupinfoCollision(mbId, dupinfo, dupinfoAlt);
     if (blocked) {
         throw new Error('DI_COLLISION_BLOCKED');
     }
