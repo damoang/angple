@@ -725,7 +725,12 @@ export const load: PageServerLoad = async ({
                 (c: { report_count?: string | number }) => c.report_count === 'lock'
             ) ?? false;
         let watermark: { nickname: string; userId: string; clientIp: string } | null = null;
-        if (boardId === 'truthroom' || post.extra_7 === 'lock' || hasLockedComment) {
+        // ⛔ locals.user 가드 필수 — 익명 SSR 응답은 CDN 캐시라 워터마크에 요청자 IP 가
+        //    박히면 첫 익명 방문자 IP 가 이후 모두에게 노출된다(#12920, 아래 disciplineViewer 와 동일 이유).
+        if (
+            (boardId === 'truthroom' || post.extra_7 === 'lock' || hasLockedComment) &&
+            locals.user
+        ) {
             let clientIp = '';
             try {
                 clientIp = getClientAddress();
