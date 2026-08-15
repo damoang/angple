@@ -143,6 +143,42 @@
                                         {item.detail}
                                     </p>
                                 {/if}
+                                <!--
+                                    신고 시점 본문. 대상이 삭제·비밀 처리되거나 잠겨도
+                                    내가 무엇을 신고했는지는 남는다(bug/13538).
+                                    ⛔ 서버가 평문으로 잘라 내려준다 — {@html} 을 쓰지 않는다.
+                                -->
+                                {#if item.snapshot}
+                                    {#if item.masked}
+                                        <details class="mt-1.5">
+                                            <summary
+                                                class="text-muted-foreground hover:text-foreground cursor-pointer select-none text-xs"
+                                            >
+                                                신고 시점 내용 보기
+                                            </summary>
+                                            <p
+                                                class="text-muted-foreground bg-muted/40 mt-1 rounded px-2 py-1.5 text-xs"
+                                            >
+                                                {item.snapshot}
+                                            </p>
+                                        </details>
+                                    {:else}
+                                        <div class="mt-1.5">
+                                            <span class="text-muted-foreground/70 text-[11px]">
+                                                신고 시점 내용
+                                            </span>
+                                            <p
+                                                class="text-muted-foreground bg-muted/40 mt-0.5 line-clamp-2 rounded px-2 py-1.5 text-xs"
+                                            >
+                                                {item.snapshot}
+                                            </p>
+                                        </div>
+                                    {/if}
+                                {:else}
+                                    <p class="text-muted-foreground/70 mt-1.5 text-xs">
+                                        신고 시점의 내용이 보관되어 있지 않습니다.
+                                    </p>
+                                {/if}
                             </div>
                             <time
                                 datetime={item.reportedAt}

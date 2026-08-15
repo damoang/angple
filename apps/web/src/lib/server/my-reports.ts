@@ -20,6 +20,38 @@ const LABEL_DELETED_POST = '[삭제된 게시물]';
 const LABEL_SECRET_POST = '[비밀글]';
 const LABEL_NO_TITLE = '(제목 없음)';
 
+/**
+ * 신고 시점 본문 스냅샷(`g5_na_singo.target_content`)에서 잘라 보여줄 평문 길이.
+ * 전문을 싣지 않는다 — 대상 글이 삭제·비밀 처리된 뒤에도 남는 사본이라 최소한만 남긴다.
+ */
+const SNAPSHOT_MAX = 300;
+/** DB 전송량 상한. 본문 최대 5만자대까지 있어 그대로 끌어오면 목록 응답이 무거워진다. */
+const SNAPSHOT_FETCH_BYTES = 2000;
+
+/**
+ * 스냅샷은 **HTML 원문**이다. 태그를 걷어내고 앞부분만 남긴다.
+ *
+ * ⛔ 원문을 그대로 렌더하면 이미지·외부 링크·스크립트가 신고자 화면에서 되살아난다.
+ *    Svelte 는 기본 이스케이프하므로 `{@html}` 만 쓰지 않으면 XSS 는 없으나,
+ *    태그가 글자로 노출되는 것도 읽기를 방해하므로 여기서 정리한다.
+ */
+function toPlainExcerpt(html: string): string {
+    const text = html
+        // 블록 경계는 공백으로 — 안 그러면 문단이 다 붙는다
+        .replace(/<(br|\/p|\/div|\/li|\/h[1-6])[^>]*>/gi, ' ')
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        // ⛔ &amp; 는 마지막에 — 먼저 풀면 다른 엔티티가 이중 디코딩된다
+        .replace(/&amp;/g, '&')
+        .replace(/\s+/g, ' ')
+        .trim();
+    return text.length > SNAPSHOT_MAX ? `${text.slice(0, SNAPSHOT_MAX)}…` : text;
+}
+
 export interface MyReportItem {
     boardId: string;
     /** 신고 대상 wr_id — (boardId, targetId) 가 그룹 PK 라 목록 키로 안전하다 */
@@ -37,6 +69,16 @@ export interface MyReportItem {
     reasonCodes: number[];
     /** 내가 적은 상세 사유 (내 입력물) */
     detail: string;
+    /**
+     * 신고 시점 본문(평문 발췌). null 이면 스냅샷이 보관되지 않은 옛 신고다
+     * (`target_content` 는 2025-11 부터 채워진다 — 그 전 건은 소급 생성하지 않는다).
+     */
+    snapshot: string | null;
+    /**
+     * 대상이 가려진 상태(삭제·비밀·징계 근거글). UI 가 스냅샷을 접어 두는 데 쓴다 —
+     * 가려진 대상의 내용이 목록을 훑다 우발적으로 눈에 띄지 않게 한다.
+     */
+    masked: boolean;
     reportedAt: string;
 }
 
@@ -126,11 +168,45 @@ export async function getMyReports(
         idsByTable.set(g.sg_table, set);
     }
 
+    // 스냅샷은 신고 대상(sg_id) 것만 필요하다 — 원글(sg_parent)은 제목 용도라 제외한다.
+    const snapIdsByTable = new Map<string, Set<number>>();
+    for (const g of groups) {
+        if (!SAFE_TABLE_RE.test(g.sg_table)) continue;
+        const set = snapIdsByTable.get(g.sg_table) ?? new Set<number>();
+        set.add(g.sg_id);
+        snapIdsByTable.set(g.sg_table, set);
+    }
+
     const writeMap = new Map<string, WriteRow>(); // "table:wrId"
     const disciplinedMap = new Map<string, Set<number>>(); // table → wr_id 집합
     const boardNames = new Map<string, string>();
+    const snapshotMap = new Map<string, string>(); // "table:sgId"
 
     await Promise.all([
+        // ── 신고 시점 스냅샷 (이 페이지 20건에 한정한 배치 조회) ──
+        // ⛔ 위 그룹 쿼리에 MIN(target_content) 를 얹지 않는다. GROUP BY 가 그 회원의 **전체**
+        //    신고 행을 훑기 때문에, 신고가 많은 회원(최다 14,631행 / 합계 2.2MB)에서 매 페이지마다
+        //    수 MB 를 집계하게 된다. 20건을 확정한 뒤 따로 가져오는 편이 훨씬 싸다.
+        //    인덱스 index1(sg_flag, mb_id, sg_table, sg_id) 를 그대로 탄다.
+        ...[...snapIdsByTable.entries()].map(async ([table, ids]) => {
+            try {
+                const [rows] = await readPool.query<RowDataPacket[]>(
+                    `SELECT sg_id, MIN(LEFT(target_content, ${SNAPSHOT_FETCH_BYTES})) AS snap
+                       FROM g5_na_singo
+                      WHERE mb_id = ? AND sg_flag = 0 AND sg_table = ? AND sg_id IN (?)
+                      GROUP BY sg_id`,
+                    [mbId, table, [...ids]]
+                );
+                // 같은 제출은 사유별로 행이 여러 개지만 본문은 동일하다 → 그룹당 하나만 취한다
+                for (const r of rows) {
+                    const text = toPlainExcerpt(String(r.snap ?? ''));
+                    if (text) snapshotMap.set(`${table}:${r.sg_id}`, text);
+                }
+            } catch (err) {
+                // 스냅샷은 부가 정보다 — 실패해도 목록 자체는 나와야 한다
+                console.error('[my-reports] 스냅샷 조회 실패:', err);
+            }
+        }),
         ...[...idsByTable.entries()].map(async ([table, ids]) => {
             try {
                 const [rows] = await readPool.query<WriteRow[]>(
@@ -173,18 +249,23 @@ export async function getMyReports(
         // 삭제·비밀 처리됐다면 이 목록이 원제목 유출 통로가 되면 안 된다.
         let title: string;
         let href: string | null;
+        // 가려진 대상인가 — 스냅샷을 접어 둘지 판단하는 데만 쓴다. 제목·링크 규칙은 그대로다.
+        let masked = false;
         if (!post || isDeleted(post.wr_deleted_at)) {
             title = LABEL_DELETED_POST;
             href = null;
+            masked = true;
         } else if ((post.wr_option ?? '').includes('secret')) {
             title = LABEL_SECRET_POST;
             href = null;
+            masked = true;
         } else if (disciplined.has(titleSourceId)) {
             // 근거글은 상세가 blur+워터마크로 열리는 정책이라 링크는 유지한다
             title = DISCIPLINED_TITLE;
             href = isComment
                 ? `/${g.sg_table}/${g.sg_parent}#c_${g.sg_id}`
                 : `/${g.sg_table}/${g.sg_id}`;
+            masked = true;
         } else {
             title = (post.wr_subject ?? '').trim() || LABEL_NO_TITLE;
             href = isComment
@@ -193,6 +274,8 @@ export async function getMyReports(
         }
 
         const commentDeleted = isComment && (!commentRow || isDeleted(commentRow.wr_deleted_at));
+        // 신고한 댓글이 지워졌으면 원글이 살아 있어도 그 댓글은 못 본다 → 접어 둔다
+        if (commentDeleted) masked = true;
         // 삭제된 댓글의 앵커는 죽어 있다 — 원글이 살아 있으면 앵커만 뗀다
         if (commentDeleted && href) href = `/${g.sg_table}/${g.sg_parent}`;
 
@@ -209,6 +292,8 @@ export async function getMyReports(
                 .map(Number)
                 .filter((n) => Number.isFinite(n)),
             detail: (g.sg_desc ?? '').trim(),
+            snapshot: snapshotMap.get(`${g.sg_table}:${g.sg_id}`) ?? null,
+            masked,
             reportedAt: new Date(g.sg_time).toISOString()
         };
     });
