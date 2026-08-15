@@ -733,6 +733,18 @@
     // 트리거되지 않아 URL 이 plain text 로 들어가던 회귀 대응.
     const IMAGE_URL_PASTE_PATTERN = /^https?:\/\/[^\s]+\.(gif|jpe?g|png|webp|avif)(\?[^\s]*)?$/i;
 
+    // #13530: youtube.com/live/<id> 형식은 @tiptap/extension-youtube 의
+    // getEmbedUrlFromYoutubeUrl 이 v=/list=/shorts 만 인식하고 live/ 는 못 잡아
+    // null 을 반환 → src 없는 깨진 임베드가 되어 stripBrokenYoutube 로 사라진다.
+    // 영상 ID(11자) 를 추출해 canonical watch?v=<id> 로 정규화하면 확장이
+    // 정상적으로 /embed/<id> iframe 을 만든다. start(t=) 은 호출부에서 별도로
+    // 추출해 setYoutubeVideo 의 start 인자로 전달하므로 쿼리스트링을 버려도 무방.
+    // ID 를 못 찾으면(비유튜브/잘못된 URL) 원본을 그대로 반환한다.
+    function toCanonicalYoutubeSrc(url: string): string {
+        const id = url.match(YOUTUBE_PASTE_PATTERN)?.[1];
+        return id ? `https://www.youtube.com/watch?v=${id}` : url;
+    }
+
     function handlePaste(e: ClipboardEvent): void {
         if (disabled) return;
 
@@ -778,7 +790,11 @@
             e.preventDefault();
             const timeMatch = text.match(/[?&]t=(\d+)/);
             const start = timeMatch ? parseInt(timeMatch[1], 10) : 0;
-            editor?.chain().focus().setYoutubeVideo({ src: text, start }).run();
+            editor
+                ?.chain()
+                .focus()
+                .setYoutubeVideo({ src: toCanonicalYoutubeSrc(text), start })
+                .run();
             return;
         }
 
@@ -1122,7 +1138,11 @@
         }
         const timeMatch = url.match(/[?&]t=(\d+)/);
         const start = timeMatch ? parseInt(timeMatch[1], 10) : 0;
-        editor?.chain().focus().setYoutubeVideo({ src: url, start }).run();
+        editor
+            ?.chain()
+            .focus()
+            .setYoutubeVideo({ src: toCanonicalYoutubeSrc(url), start })
+            .run();
         showYoutubeDialog = false;
         youtubeUrl = '';
     }
