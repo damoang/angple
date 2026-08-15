@@ -35,6 +35,15 @@
     );
 
     let items = $state<TrendingGroupItem[]>([]);
+    /**
+     * 첫 렌더에서 자리를 예약하기 위한 상태.
+     *
+     * onMount 는 SSR 에서 실행되지 않으므로 서버 HTML 에는 이 위젯이 통째로 빠져 있었고,
+     * 데이터가 도착하는 순간 286px 가 한꺼번에 생겨 아래 위젯·광고를 전부 밀어냈다
+     * (2026-08-15 실측: 데스크톱 CLS 0.077 의 최대 기여자).
+     * 로딩 동안 같은 높이의 스켈레톤을 그려 그 이동을 없앤다.
+     */
+    let loading = $state(true);
 
     onMount(async () => {
         try {
@@ -45,6 +54,8 @@
             }
         } catch {
             // 무해 실패 — 위젯 미표시
+        } finally {
+            loading = false;
         }
     });
 
@@ -57,7 +68,32 @@
     }
 </script>
 
-{#if items.length > 0}
+{#if loading}
+    <!--
+        실제 항목과 같은 골격(제목 20px + 최신글 16px)으로 itemCount 개를 그려 높이를 맞춘다.
+        ⛔ 개수를 하드코딩하지 말 것 — fetch limit 과 어긋나면 그만큼이 다시 shift 가 된다.
+        데이터가 0건이면 아래 분기에서 통째로 접힌다("활동 0이면 미표시" 정책 유지).
+    -->
+    <div class="bg-card rounded-lg border p-4" aria-hidden="true">
+        <div class="mb-3 flex items-center justify-between">
+            <h3 class="flex items-center gap-1.5 text-sm font-semibold">
+                <Flame class="h-4 w-4 text-orange-500" />
+                지금 뜨는 소모임
+            </h3>
+        </div>
+        <ul class="space-y-2.5">
+            {#each Array(itemCount) as _}
+                <li class="min-w-0">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-muted h-5 min-w-0 flex-1 animate-pulse rounded"></span>
+                        <span class="bg-muted h-5 w-8 shrink-0 animate-pulse rounded"></span>
+                    </div>
+                    <span class="bg-muted block h-4 w-3/4 animate-pulse rounded"></span>
+                </li>
+            {/each}
+        </ul>
+    </div>
+{:else if items.length > 0}
     <div class="bg-card rounded-lg border p-4">
         <div class="mb-3 flex items-center justify-between">
             <h3 class="flex items-center gap-1.5 text-sm font-semibold">
