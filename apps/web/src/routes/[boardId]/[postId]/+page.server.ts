@@ -711,9 +711,26 @@ export const load: PageServerLoad = async ({
             };
         })();
 
-        // 워터마크 대상 게시판: 열람자 정보 전달
+        // 워터마크 대상: 열람자 정보 전달
+        // bug/13548: 진실의방 외에도 신고잠금(report-lock) 글/댓글을 [보기]로 열람할 때 캡처방지
+        // (Watermark 전체화면 오버레이)를 진실의방과 동일하게 적용한다. 기존엔 truthroom 만 채워
+        // 일반 보드(free 등)의 신고잠금 글은 ContentBlur 로 열려도 캡처방지가 없었다.
+        // - 글 잠금 신호: post.extra_7 === 'lock' (= wr_7. fetchPostReportCount 와 동일 컬럼이라
+        //   postReportCount === 'lock' 과 동치이며, 기존 line 749 도 이 신호를 신뢰한다)
+        // - 댓글 잠금 신호: SSR 스레드 댓글 중 report_count === 'lock' 존재 (line 635 필터와 동일 소스)
+        // 페이지의 단일 {#if data.watermark} 가 그대로 발동해 글·댓글을 한 오버레이로 커버하고,
+        // clientIp 는 SSR(getClientAddress)에서만 확정된다. always-on-when-locked.
+        const hasLockedComment =
+            commentsData?.comments?.items?.some(
+                (c: { report_count?: string | number }) => c.report_count === 'lock'
+            ) ?? false;
         let watermark: { nickname: string; userId: string; clientIp: string } | null = null;
-        if (boardId === 'truthroom') {
+        // ⛔ locals.user 가드 필수 — 익명 SSR 응답은 CDN 캐시라 워터마크에 요청자 IP 가
+        //    박히면 첫 익명 방문자 IP 가 이후 모두에게 노출된다(#12920, 아래 disciplineViewer 와 동일 이유).
+        if (
+            (boardId === 'truthroom' || post.extra_7 === 'lock' || hasLockedComment) &&
+            locals.user
+        ) {
             let clientIp = '';
             try {
                 clientIp = getClientAddress();
