@@ -2417,6 +2417,7 @@
                 pageData={data}
                 {postReactions}
                 {postReportCount}
+                isSanctioned={data.isSanctioned}
                 truthroomPostId={data.truthroomPostId}
                 originalPostLink={data.originalPostLink}
             />

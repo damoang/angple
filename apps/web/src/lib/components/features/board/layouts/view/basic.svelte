@@ -122,6 +122,7 @@
         promotionExpired = false,
         postReactions,
         postReportCount,
+        isSanctioned = false,
         truthroomPostId,
         originalPostLink
     }: ViewLayoutProps = $props();
@@ -848,8 +849,11 @@
                     {#if board?.use_sns}
                         <ShareButton {boardId} postId={post.id} title={post.title || ''} />
                     {/if}
-                    {#if !isAuthor && !isLockedPost}
-                        <!-- #12420: 이미 신고 누적으로 잠긴 글은 추가 신고 불가 -->
+                    {#if !isAuthor && !isSanctioned}
+                        <!-- #12420: 신고잠금 글의 추가 신고 게이트.
+                             제재 확정(B형)만 숨긴다 — 재신고 시 백엔드 409+트리거로 차단되기 때문.
+                             신고 누적 자동잠금(A형)은 다시 열어 추가 신고를 허용한다(백엔드가 계속 accept).
+                             ⛔ isLockedPost(가림/배지/워터마크)는 그대로 유지 — 게이트만 isSanctioned 로 분리. -->
                         <Button
                             variant="ghost"
                             size="sm"
