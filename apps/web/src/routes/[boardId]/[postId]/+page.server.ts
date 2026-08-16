@@ -21,6 +21,7 @@ import {
 } from '$lib/server/viewcount.js';
 import { addReadPost } from '$lib/server/read-posts.js';
 import { fetchPostReportCount } from '$lib/server/report-count.js';
+import { isSanctionedPost } from '$lib/server/sanctioned-lock.js';
 import { fetchReactionsByParentId } from '$lib/server/reactions.js';
 import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
@@ -739,6 +740,18 @@ export const load: PageServerLoad = async ({
         // 신고잠금(wr_7='lock') 동기 신호 — post.extra_7 은 백엔드 상세 응답에 없어 항상
         // undefined 이므로, 확실한 lock 신호인 신고 횟수 조회 결과를 워터마크 판정에 사용한다.
         const postReportLock = (await postReportCountPromise) === 'lock';
+
+        // 신고잠금(wr_7='lock') 2형 구분 — 신고 버튼 게이트 전용.
+        //  A형: 신고 누적 자동잠금(미제재). 백엔드가 신고를 계속 accept 하므로 추가 신고를 다시 연다.
+        //  B형: 관리자 제재 확정(g5_na_singo processed=1 AND admin_approved=1 AND discipline_log_id>0).
+        //       백엔드가 409(제재 확정)+DB 트리거로 재신고를 막으므로 버튼은 계속 숨긴다.
+        // B형은 정의상 wr_7='lock' 이므로 잠긴 글에서만 조회한다(비잠금 글엔 불필요한 DB 왕복 회피).
+        // isSanctionedPost 는 내부 try/catch 로 실패 시 false 수렴 — 판정 불가가 신고 차단이 되지 않는다.
+        const isSanctioned =
+            postReportLock || post.extra_7 === 'lock'
+                ? await isSanctionedPost(boardId, Number(postId))
+                : false;
+
         let watermark: { nickname: string; userId: string; clientIp: string } | null = null;
         // ⛔ locals.user 가드 필수 — 익명 SSR 응답은 CDN 캐시라 워터마크에 요청자 IP 가
         //    박히면 첫 익명 방문자 IP 가 이후 모두에게 노출된다(#12920, 아래 disciplineViewer 와 동일 이유).
@@ -871,6 +884,11 @@ export const load: PageServerLoad = async ({
             promotionExpired,
             watermark,
             disciplineViewer,
+            /**
+             * 신고잠금 글이 관리자 제재 확정(B형)인지. true 면 신고 버튼을 계속 숨긴다.
+             * A형(신고 누적 자동잠금)은 false → 추가 신고 버튼을 다시 노출. isLockedPost(가림/배지)와 독립.
+             */
+            isSanctioned,
             truthroomPostId,
             originalPostLink,
             recentPosts,

@@ -129,6 +129,12 @@ export interface ViewLayoutProps {
     /** 게시글 신고 횟수 (관리자만, wr_7 값) */
     postReportCount?: number | string | null;
 
+    /**
+     * 관리자 제재가 확정된 신고잠금 글(B형)인지. true 면 신고 버튼을 숨긴다.
+     * A형(신고 누적 자동잠금)은 false → 추가 신고 버튼 노출. isLockedPost(가림/배지)와 독립된 게이트.
+     */
+    isSanctioned?: boolean;
+
     /** 잠긴 게시글의 진실의방 참조 글 ID */
     truthroomPostId?: number | null;
 
