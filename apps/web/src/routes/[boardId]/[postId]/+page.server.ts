@@ -282,6 +282,19 @@ export const load: PageServerLoad = async ({
                 ? Promise.resolve(undefined)
                 : resolveAngttMatch(post.tags, { boardId, wrId: post.id }).catch(() => undefined);
 
+        // 게시글 신고 잠금 상태(wr_7='lock') — 단일 조회를 outer scope 에서 미리 시작해
+        // (1) 워터마크 대상 판정(동기 SSR 필요, 아래 line 731) 과
+        // (2) 스트리밍 auxiliaryData 의 postReportCount (클라이언트 소비용, 아래 line 596)
+        // 두 곳에서 같은 promise 를 공유한다 — DB 중복 조회 없이 동기 lock 신호를 확보.
+        // bug/13548 후속: 백엔드 상세 응답에 extra_7(wr_7) 필드가 없어 post.extra_7 이 항상
+        // undefined → 워터마크가 신고잠금 글에 안 뜨던 문제. 확실한 lock 신호를 이 값으로 대체.
+        const postReportCountPromise: Promise<'lock' | null> = fetchPostReportCount(
+            boardId,
+            Number(postId)
+        )
+            .then((c) => (c === 'lock' ? ('lock' as const) : null))
+            .catch(() => null);
+
         // 게시글 작성자 프로필 이미지 즉시 조회 (1단계 — 본문 렌더에 필요)
         // 작성자 탈퇴 여부 — 닉네임 취소선 표시용(5분 캐시라 활동 게이트 조회와 중복돼도 저렴).
         if (post.author_id) {
@@ -593,9 +606,8 @@ export const load: PageServerLoad = async ({
                 // 신고 버튼이 살아 있어 "이미 신고 처리가 완료된 게시물입니다" 409 가 뜨던 문제.
                 // lock 이면 비관리자에도 'lock' 을 내려 버튼 숨김+신고잠금 배지를 켠다.
                 // 숫자 신고 횟수는 기존대로 노출하지 않는다(관리 기능은 /admin).
-                fetchPostReportCount(boardId, Number(postId))
-                    .then((c) => (c === 'lock' ? 'lock' : null))
-                    .catch(() => null),
+                // outer scope 에서 미리 시작한 공유 promise 재사용(워터마크 판정과 동일 조회).
+                postReportCountPromise,
                 // 게시글 추천/비추천 상태 (로그인 시만, DB 직접 조회)
                 locals.user?.id
                     ? fetchPostLikeStatus(boardId, Number(postId), locals.user.id).catch(() => ({
@@ -724,11 +736,17 @@ export const load: PageServerLoad = async ({
             commentsData?.comments?.items?.some(
                 (c: { report_count?: string | number }) => c.report_count === 'lock'
             ) ?? false;
+        // 신고잠금(wr_7='lock') 동기 신호 — post.extra_7 은 백엔드 상세 응답에 없어 항상
+        // undefined 이므로, 확실한 lock 신호인 신고 횟수 조회 결과를 워터마크 판정에 사용한다.
+        const postReportLock = (await postReportCountPromise) === 'lock';
         let watermark: { nickname: string; userId: string; clientIp: string } | null = null;
         // ⛔ locals.user 가드 필수 — 익명 SSR 응답은 CDN 캐시라 워터마크에 요청자 IP 가
         //    박히면 첫 익명 방문자 IP 가 이후 모두에게 노출된다(#12920, 아래 disciplineViewer 와 동일 이유).
         if (
-            (boardId === 'truthroom' || post.extra_7 === 'lock' || hasLockedComment) &&
+            (boardId === 'truthroom' ||
+                post.extra_7 === 'lock' ||
+                postReportLock ||
+                hasLockedComment) &&
             locals.user
         ) {
             let clientIp = '';
