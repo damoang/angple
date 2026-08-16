@@ -147,6 +147,11 @@
         total_cases?: number;
         total_month_cases?: number;
         total_reports?: number;
+        /**
+         * 선택된 사유 수. 신고 1건에 사유를 여러 개 고르면 각각 센다 —
+         * total_reports(신고 건수)와 다른 지표다. 예전 보고서엔 없으므로 optional.
+         */
+        reason_selections?: number;
         completed_reports?: number;
         report_count?: number;
         claim_reports?: number;
@@ -196,6 +201,7 @@
             posts?: number;
             comments?: number;
             total_reports?: number;
+            reason_selections?: number;
             report_count?: number;
             report_month?: number;
             reporter_count?: number;
@@ -314,6 +320,16 @@
             icon: Shield,
             color: 'text-purple-600 dark:text-purple-400',
             bg: 'bg-purple-50 dark:bg-purple-950/30'
+        },
+        // 「신고 접수」 바로 옆에 둔다 — 두 숫자가 왜 다른지가 나란히 보여야 오해가 없다.
+        // 신고 1건에 사유를 여러 개 고르면 각각 세므로 접수 건수보다 크다(2026-08-15: 352 vs 738).
+        {
+            label: '선택된 사유',
+            value: stats.reason_selections ?? 0,
+            prev: stats.prev_day?.reason_selections,
+            icon: Shield,
+            color: 'text-violet-600 dark:text-violet-400',
+            bg: 'bg-violet-50 dark:bg-violet-950/30'
         },
         {
             label: '신고된 글',
