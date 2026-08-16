@@ -113,11 +113,28 @@ const ANGTICON_IDS = [
     'emo-067'
 ];
 
+/**
+ * 리액션 아이콘은 **정지 썸네일**을 쓴다.
+ *
+ * 리액션바는 20×20(`h-5 w-5`)으로 그리는데 원본 GIF 를 그대로 받고 있었다.
+ * 2026-08-17 실측: `damoang-emo-039.gif` 는 152,924B, 같은 파일의 `_thumb.webp` 는
+ * 1,142B — **134배** 차이다. 리액션바 영역에서만 1,602KB 를 받고 있었다.
+ * 44개 전체로는 3,347KB → 약 127KB(96% 감소).
+ *
+ * ⛔ 원본(`.gif`)으로 되돌리지 말 것. 20px 에서 애니메이션 인지가 거의 없어
+ *    이모티콘 피커도 같은 이유로 정지 썸네일을 쓴다(2026-08-04 결정).
+ * ⛔ 썸네일이 없는 앙티콘을 이 목록에 추가하면 아이콘이 깨진다(404).
+ *    `scripts/make-reaction-thumbs.py` 로 `_thumb.webp` 를 **먼저** 만들어야 한다.
+ *    (파일 먼저·코드 나중 — 2026-08-11 이모티콘 승격 때 전 파일 404 를 낸 전례)
+ *
+ * 경로는 그대로 `/api/emoticons/nariya/` 를 쓴다. nginx 가 `/emoticons/` 와 같은
+ * 호스트 디렉토리를 alias 하므로 파일명만 바꾸면 된다(둘 다 200 확인).
+ */
 const ANGTICONS: EmoticonDef[] = ANGTICON_IDS.map((id) => ({
     reaction: `angticon:${id}`,
     category: 'angticon',
     renderType: 'image' as const,
-    url: `${ANGTICON_BASE}/damoang-${id}.gif`
+    url: `${ANGTICON_BASE}/damoang-${id}_thumb.webp`
 }));
 
 // Noto 움직이는 이모지
