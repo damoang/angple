@@ -741,12 +741,19 @@ export const load: PageServerLoad = async ({
         // undefined 이므로, 확실한 lock 신호인 신고 횟수 조회 결과를 워터마크 판정에 사용한다.
         const postReportLock = (await postReportCountPromise) === 'lock';
 
-        // 신고잠금(wr_7='lock') 2형 구분 — 신고 버튼 게이트 전용.
-        //  A형: 신고 누적 자동잠금(미제재). 백엔드가 신고를 계속 accept 하므로 추가 신고를 다시 연다.
-        //  B형: 관리자 제재 확정(g5_na_singo processed=1 AND admin_approved=1 AND discipline_log_id>0).
-        //       백엔드가 409(제재 확정)+DB 트리거로 재신고를 막으므로 버튼은 계속 숨긴다.
-        // B형은 정의상 wr_7='lock' 이므로 잠긴 글에서만 조회한다(비잠금 글엔 불필요한 DB 왕복 회피).
-        // isSanctionedPost 는 내부 try/catch 로 실패 시 false 수렴 — 판정 불가가 신고 차단이 되지 않는다.
+        // 신고잠금(wr_7='lock') 2형 구분 — 제재 확정(B형) 여부.
+        //  A형: 신고 누적 자동잠금(미제재)
+        //  B형: 관리자 제재 확정(g5_na_singo processed=1 AND admin_approved=1 AND discipline_log_id>0)
+        //
+        // ⛔ 2026-08-18: **더 이상 신고 버튼 게이트가 아니다.** 신고는 두 형 모두 받는다.
+        // 종전 주석에 "백엔드가 409+DB 트리거로 재신고를 막는다"고 적혀 있었으나
+        // 그 트리거는 애초에 존재하지 않았고, 409 도 제거했다(angple-backend).
+        // 중복 처분은 동일인 중복 가드 · contentSanctioned(재잠금 금지) ·
+        // ops inbox 의 processedExclusionSQL 이 나눠 막는다.
+        //
+        // 값은 계속 내려보낸다 — 레이아웃·테마가 같은 ViewLayoutProps 를 쓰고,
+        // 앞으로 다른 표시(배지 등)에 쓸 수 있다. 잠긴 글에서만 조회하므로 비용은 제한적이다.
+        // isSanctionedPost 는 내부 try/catch 로 실패 시 false 수렴한다.
         const isSanctioned =
             postReportLock || post.extra_7 === 'lock'
                 ? await isSanctionedPost(boardId, Number(postId))
