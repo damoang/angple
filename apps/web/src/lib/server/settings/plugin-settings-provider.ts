@@ -8,7 +8,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { env } from '$env/dynamic/private';
-import { MySqlPluginSettingsProvider } from './mysql-plugin-settings-provider';
+import { DbPluginSettingsProvider } from './db-plugin-settings-provider';
 
 /**
  * 플러그인 설정 Provider 인터페이스
@@ -50,6 +50,13 @@ export interface PluginSettingsProvider {
      * 전체 플러그인 설정 조회 (디버깅/백업용)
      */
     getAllPluginSettings(): Promise<Record<string, unknown>>;
+
+    /**
+     * 프로세스 로컬(in-memory) 캐시 무효화 (선택).
+     * pub/sub 구독자가 다른 파드의 변경을 수신했을 때 호출한다.
+     * 로컬 캐시가 없는 구현(JSON 파일 등)은 구현하지 않아도 된다.
+     */
+    invalidateLocal?(): void;
 }
 
 /**
@@ -228,24 +235,29 @@ class JsonPluginSettingsProvider implements PluginSettingsProvider {
 /**
  * 전역 플러그인 설정 Provider (Facade)
  *
- * 환경변수로 저장소 선택:
- *   - PLUGIN_SETTINGS_PROVIDER=json  (기본값) 파일. 단일 인스턴스·셀프호스팅용
- *   - PLUGIN_SETTINGS_PROVIDER=mysql  MySQL+Redis. **다중 파드 운영은 이쪽이어야 한다**
+ * 환경변수로 저장소 선택 (PLUGIN_SETTINGS_PROVIDER 우선, 없으면 SETTINGS_PROVIDER 재사용):
+ *   - json  (기본값) 파일. 단일 인스턴스·셀프호스팅용
+ *   - mysql  MySQL 전용 테이블(angple_plugin_settings) + Redis. **다중 파드 운영은 이쪽**
  *
  * ⛔ 기본값을 mysql 로 바꾸지 말 것 — 셀프호스팅 사용자는 DB 스키마 없이 설치한다.
- * ⛔ json 구현을 지우지 말 것 — env 를 되돌리면 즉시 복귀하는 롤백 경로다.
+ *    운영 env 는 이미 mysql 이다. 이 코드는 mysql 매핑을 기존 MySqlPluginSettingsProvider
+ *    (공유 angple_settings)에서 DbPluginSettingsProvider(전용 angple_plugin_settings)로 바꾼다.
+ *    ⛔ 배포 전 반드시 006 DDL → 007 백필(angple_settings.active_plugins → 전용 테이블)을 선행할 것.
+ *       백필 없이 배포하면 빈 전용 테이블을 SoT 로 읽어 전 플러그인이 꺼진다.
+ * ⛔ json 구현을 지우지 말 것 — 셀프호스팅 롤백 경로다.
  *
- * 파일 기반의 한계(2026-07-31 실측): prod web 파드 13개에 볼륨 마운트가 없어 파일이
+ * 파일 기반의 한계(2026-07-31 실측): prod web 파드 다수에 볼륨 마운트가 없어 파일이
  * 이미지에 구워진 채 파드별로 분리된다 → admin 토글이 파드 1개에만 적용되고 재배포 시
  * 소실되며, Redis L2 공유와 맞물려 변경이 스스로 되돌아가는 flapping 까지 발생했다.
- * 자세한 배경은 mysql-plugin-settings-provider.ts 상단 주석 참조.
+ * mysql 구현은 플러그인당 1행(원자적 UPSERT) + pub/sub 무효화로 이를 해소한다.
+ * 자세한 배경은 db-plugin-settings-provider.ts 상단 주석 참조.
  */
-const PROVIDER_TYPE = env.PLUGIN_SETTINGS_PROVIDER || 'json';
+const PROVIDER_TYPE = env.PLUGIN_SETTINGS_PROVIDER || env.SETTINGS_PROVIDER || 'json';
 
 function createProvider(): PluginSettingsProvider {
     if (PROVIDER_TYPE === 'mysql') {
-        console.log('[PluginSettings] Using MySQL + Redis provider');
-        return new MySqlPluginSettingsProvider();
+        console.log('[PluginSettings] Using MySQL + Redis provider (angple_plugin_settings)');
+        return new DbPluginSettingsProvider();
     }
     console.log('[PluginSettings] Using JSON file provider');
     return new JsonPluginSettingsProvider();
