@@ -25,6 +25,7 @@ import { generateAccessToken } from '$lib/server/auth/jwt.js';
 import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 import { parseUserBasicCookie, issueUserBasicCookie } from '$lib/server/auth/user-basic.js';
 import { loadAllPluginServerHooks } from '$lib/server/plugin-server-loader.js';
+import { initPluginInvalidationSubscriber } from '$lib/server/plugins/invalidation-subscriber.js';
 import { CompositeSiteResolver } from '$lib/server/site-resolver/composite.js';
 import { ConfigSiteResolver } from '$lib/server/site-resolver/config.js';
 import { DbSiteResolver } from '$lib/server/site-resolver/db.js';
@@ -33,6 +34,10 @@ import { DbSiteResolver } from '$lib/server/site-resolver/db.js';
 // Fire-and-forget: load 실패해도 앱 전체가 멈추지 않음.
 // 모듈 load 시점 1회 실행 (최초 요청 전 ready).
 void loadAllPluginServerHooks();
+
+// 플러그인 캐시 무효화 pub/sub 구독 시작 (Option C 2단계).
+// 다른 파드의 플러그인 토글/설정변경을 수신해 이 파드의 로컬 캐시를 비운다. 멱등·best-effort.
+initPluginInvalidationSubscriber();
 
 // Phase 1 (multisite domain → theme/SEO resolver) — Strategy 패턴.
 // 부팅 시 1회 ConfigSiteResolver 가 host-overrides JSON 로드. miss 시 null → 기본 테마.

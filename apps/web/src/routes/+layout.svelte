@@ -679,13 +679,15 @@
                 });
         }
 
-        // 플러그인 hooks/components 지연 로드 (SSR에서는 빈 배열로 전달하여 __data.json 축소)
+        // 플러그인 hooks/components 지연 로드 (SSR에서는 hooks 빈 배열로 전달하여 __data.json 축소)
+        // Option C 3단계: activePlugins 는 CDN 캐시(layout/hooks·layout/init)에서 분리하고
+        // no-store 인 /api/plugins/active 에서 직접 가져온다 → admin 토글 즉시 반영.
         if ((data.activePlugins?.length ?? 0) > 0) {
-            fetch('/api/layout/hooks')
+            fetch('/api/plugins/active')
                 .then((res) => (res.ok ? res.json() : null))
-                .then((payload: { activePlugins?: typeof data.activePlugins } | null) => {
-                    if (!payload?.activePlugins?.length) return;
-                    pluginStore.initFromServer(payload.activePlugins);
+                .then((payload: { plugins?: typeof data.activePlugins } | null) => {
+                    if (!payload?.plugins?.length) return;
+                    pluginStore.initFromServer(payload.plugins);
                 })
                 .catch(() => {});
         }

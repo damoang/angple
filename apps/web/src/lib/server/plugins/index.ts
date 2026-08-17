@@ -21,6 +21,7 @@ import { TieredCache } from '$lib/server/cache';
 import type { ExtensionManifest } from '@angple/types';
 import { runPluginMigrations, rollbackPluginMigrations } from './migration-runner';
 import { invalidateHandlerCache } from './route-dispatcher';
+import { publishPluginInvalidation } from './invalidation';
 
 /**
  * 설치된 플러그인의 전체 정보
@@ -113,7 +114,9 @@ export async function getPluginById(pluginId: string): Promise<InstalledPlugin |
 //
 // ⛔ 근본 해결은 아니다. 무효화 pub/sub 전파(TieredCache 전 소비자가 함께 이득)는
 //    별건으로 남긴다. 열어 둔 탭은 body-end 슬롯 특성상 하드 리로드가 필요한 것도 그대로다.
-const activePluginsTieredCache = new TieredCache<InstalledPlugin[]>(
+// export: pub/sub 구독자(invalidation-subscriber.ts)가 다른 파드의 변경 수신 시
+//         이 캐시의 L1 을 비운다(deleteL1).
+export const activePluginsTieredCache = new TieredCache<InstalledPlugin[]>(
     'plugins:active',
     3_000,
     300,
@@ -139,9 +142,16 @@ export async function getActivePlugins(): Promise<InstalledPlugin[]> {
     });
 }
 
-/** 플러그인 캐시 무효화 (활성화/비활성화 시 호출) */
+/**
+ * 플러그인 캐시 무효화 (활성화/비활성화/설정변경 시 호출).
+ *
+ * 1) 이 파드의 TieredCache(L1+L2) 를 지운다.
+ * 2) pub/sub 으로 전 파드에 방송 → 각 파드 구독자가 자기 L1/provider 로컬 캐시를 비운다.
+ *    (방송이 없으면 다른 파드는 L1 TTL 만큼 옛 값을 계속 쓴다 — 파드별 캐시 문제)
+ */
 export async function invalidateActivePluginsCache(): Promise<void> {
     await activePluginsTieredCache.delete('list');
+    await publishPluginInvalidation({ type: 'active' });
 }
 
 /**
