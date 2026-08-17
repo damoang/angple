@@ -103,9 +103,18 @@ export function getReactionDisplay(reaction: string): {
                 label: hexToEmoji(reactionId)
             };
         case 'angticon':
+            // 정지 썸네일을 쓴다. 리액션바는 20×20(h-5 w-5)으로 그리는데 원본 GIF 는
+            // 최대 152,924B 이고 같은 파일의 _thumb.webp 는 1,142B 다(134배).
+            //
+            // ⛔ 여기가 **실제로 화면에 그려지는 경로**다. reaction-config.ts 의 ANGTICONS 는
+            //    피커에 "고를 수 있는 목록"을 만들 뿐, 이미 달린 리액션은 이 함수를 탄다.
+            //    2026-08-17 에 config 만 고치고 이 줄을 놓쳐서 번들에 .gif 가 남았었다.
+            //    앙티콘 URL 을 바꿀 때는 **두 곳을 같이** 바꿔야 한다.
+            // ⛔ 썸네일이 없는 앙티콘은 404 로 깨진다. scripts/make-reaction-thumbs.py 로
+            //    _thumb.webp 를 먼저 만들고 호스트에 동기화한 뒤 바꿀 것(파일 먼저·코드 나중).
             return {
                 renderType: 'image',
-                url: `/api/emoticons/nariya/damoang-${reactionId}.gif`,
+                url: `/api/emoticons/nariya/damoang-${reactionId}_thumb.webp`,
                 label: `앙티콘 ${reactionId}`
             };
         case 'noto-animoji': {
