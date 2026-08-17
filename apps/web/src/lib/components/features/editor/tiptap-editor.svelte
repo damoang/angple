@@ -455,8 +455,20 @@
         if (!editor) return;
         if (!c || c === lastLoadedContent) return;
 
-        // 에디터에 이미 사용자 입력이 있으면 덮어쓰지 않음
+        // IME 조합 중의 setContent 는 조합 세션을 파괴해 iOS Safari·서드파티
+        // 키보드에서 자모가 깨진다(#13590). 조합이 끝난 뒤 다시 판단한다.
+        if (editor.view.composing) return;
+
         const currentHtml = editor.getHTML();
+
+        // onUpdate 로 흘러나간 값이 부모를 거쳐 prop 으로 되돌아온 echo —
+        // 다시 주입하면 커서·조합이 깨진다(#13590 신규 글 첫 글자 트리거).
+        if (c === currentHtml) {
+            lastLoadedContent = c;
+            return;
+        }
+
+        // 에디터에 이미 사용자 입력이 있으면 덮어쓰지 않음
         const editorHasContent =
             currentHtml !== '' && currentHtml !== '<p></p>' && currentHtml !== lastLoadedContent;
         if (editorHasContent && lastLoadedContent !== '') {
