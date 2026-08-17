@@ -1,0 +1,12 @@
+{
+    "id": "game-lobby",
+    "name": "온라인 대전 현황",
+    "version": "1.0.0",
+    "description": "오목·장기 온라인 대전의 지금 대기 인원을 보여줍니다. 대기자가 있으면 강조합니다.",
+    "author": { "name": "Angple" },
+    "category": "content",
+    "slots": ["main", "sidebar"],
+    "icon": "PlayCircle",
+    "allowMultiple": false,
+    "main": "index.svelte"
+}

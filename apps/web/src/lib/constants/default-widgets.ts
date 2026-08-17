@@ -17,33 +17,38 @@ import type { WidgetConfig } from '$lib/stores/widget-layout.svelte';
  */
 export const DEFAULT_WIDGETS: WidgetConfig[] = [
     { id: 'tag-nav', type: 'tag-nav', position: 0, enabled: true },
-    { id: 'empathy-explore-row', type: 'empathy-explore-row', position: 1, enabled: true },
+    // ⭐ 온라인 대전 현황 — tag-nav 바로 아래(상단). 2026-08-17 추가.
+    //    오목·장기가 완성·배포됐는데 접속이 0 이었다. 진입 경로가 3단 깊이라
+    //    아무도 못 찾았기 때문이다(헤더 메뉴에 없고 사이드바는 hidden 2xl:block).
+    //    대기 인원을 회원이 이미 있는 메인으로 끌어온다. 한 줄짜리라 자리를 거의 안 먹는다.
+    { id: 'game-lobby', type: 'game-lobby', position: 1, enabled: true },
+    { id: 'empathy-explore-row', type: 'empathy-explore-row', position: 2, enabled: true },
     {
         id: 'ad-top',
         type: 'ad-slot',
-        position: 2,
+        position: 3,
         enabled: true,
         settings: { position: 'index-top' }
     },
     {
         id: 'group',
         type: 'post-list',
-        position: 3,
+        position: 4,
         enabled: true,
         settings: { boardId: 'group', layout: 'card', sortBy: 'date', count: 10, showTitle: true }
     },
     {
         id: 'ad-middle-1',
         type: 'ad-slot',
-        position: 4,
+        position: 5,
         enabled: true,
         settings: { position: 'index-middle-1' }
     },
-    { id: 'news-economy-row', type: 'news-economy-row', position: 5, enabled: true },
+    { id: 'news-economy-row', type: 'news-economy-row', position: 6, enabled: true },
     {
         id: 'gallery',
         type: 'post-list',
-        position: 6,
+        position: 7,
         enabled: true,
         settings: {
             boardId: 'gallery',
@@ -56,20 +61,20 @@ export const DEFAULT_WIDGETS: WidgetConfig[] = [
     {
         id: 'ad-middle-2',
         type: 'ad-slot',
-        position: 7,
+        position: 8,
         enabled: true,
         settings: { position: 'index-middle-2' }
     },
     {
         id: 'celebration',
         type: 'celebration',
-        position: 8,
+        position: 9,
         enabled: true
     },
     {
         id: 'ad-bottom',
         type: 'ad-slot',
-        position: 9,
+        position: 10,
         enabled: true,
         settings: { position: 'index-bottom' }
     }
