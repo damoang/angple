@@ -122,7 +122,10 @@
         promotionExpired = false,
         postReactions,
         postReportCount,
-        isSanctioned = false,
+        // ⛔ 2026-08-18 이후 이 컴포넌트에서는 쓰지 않는다(신고 버튼을 항상 노출).
+        // 선언은 남긴다 — 부모(+page.svelte)가 계속 넘기고, 다른 레이아웃·테마가
+        // 같은 ViewLayoutProps 를 쓰기 때문에 지우면 그쪽이 조용히 깨진다.
+        isSanctioned: _isSanctioned = false,
         truthroomPostId,
         originalPostLink
     }: ViewLayoutProps = $props();
@@ -849,11 +852,14 @@
                     {#if board?.use_sns}
                         <ShareButton {boardId} postId={post.id} title={post.title || ''} />
                     {/if}
-                    {#if !isAuthor && !isSanctioned}
-                        <!-- #12420: 신고잠금 글의 추가 신고 게이트.
-                             제재 확정(B형)만 숨긴다 — 재신고 시 백엔드 409+트리거로 차단되기 때문.
-                             신고 누적 자동잠금(A형)은 다시 열어 추가 신고를 허용한다(백엔드가 계속 accept).
-                             ⛔ isLockedPost(가림/배지/워터마크)는 그대로 유지 — 게이트만 isSanctioned 로 분리. -->
+                    {#if !isAuthor}
+                        <!-- ⭐ 2026-08-18: 신고 버튼은 항상 보인다 — 제재 확정(B형) 글에서도.
+                             종전에 B형을 숨긴 근거는 "재신고 시 백엔드 409+트리거로 차단되기 때문"이었는데
+                             ⛔ 그 트리거는 존재하지 않았고, 409 도 같은 날 제거했다(angple-backend).
+                             접수는 열고 중복 처분은 세 곳이 나눠 막는다 —
+                             동일인 재신고 가드 · contentSanctioned(재잠금 금지) · ops inbox 제외.
+                             ⛔ isLockedPost(가림/배지/워터마크)는 그대로 유지 — 게이트만 없앤다.
+                             설계: ops-docs/2026-08-18-report-accept-always-inbox-exclude-design.html -->
                         <Button
                             variant="ghost"
                             size="sm"
