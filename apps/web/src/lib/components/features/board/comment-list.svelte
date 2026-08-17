@@ -1690,8 +1690,11 @@
                                                     <Trash2 class="h-4 w-4" />
                                                 </Button>
                                             {/if}
-                                            {#if !isAuthor && authStore.isAuthenticated && !isLocked}
-                                                <!-- 신고 버튼 (본인이 아닌 경우에만, #12420: 잠긴 댓글은 추가 신고 불가) -->
+                                            {#if !isAuthor && authStore.isAuthenticated}
+                                                <!-- 신고 버튼 (본인이 아닌 경우에만).
+                                                     ⭐ 2026-08-18: 잠긴 댓글에서도 노출한다 — 백엔드가 409 를
+                                                     돌려주던 것을 제거했다(angple-backend). 게시글 쪽과 같은 규약.
+                                                     ⛔ canEditComment 의 잠금 차단(수정 금지)은 그대로 둔다. -->
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
@@ -2080,8 +2083,9 @@
                                 </Button>
                             {/if}
 
-                            <!-- 신고 버튼 (본인이 아닌 경우, #12420: 잠긴 댓글은 추가 신고 불가) -->
-                            {#if !isAuthor && authStore.isAuthenticated && !isLocked}
+                            <!-- 신고 버튼 (본인이 아닌 경우).
+                                 ⭐ 2026-08-18: 잠긴 댓글에서도 노출 — 위 분기와 같은 규약. -->
+                            {#if !isAuthor && authStore.isAuthenticated}
                                 <Button
                                     variant="ghost"
                                     size="sm"
