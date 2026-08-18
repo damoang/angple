@@ -8,18 +8,36 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
+import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 import { getAuthUser } from '$lib/server/auth';
 import { getRedis } from '$lib/server/redis';
 import { isInternalAppRequest } from '$lib/server/internal-api.js';
 import { getCommentLikersBatchVersion } from '$lib/server/member-activity-cache';
 
 const COMMENT_LIKERS_BATCH_CACHE_TTL_SEC = 15;
-const INTERNAL_COMMENT_LIKERS_BATCH_LIMIT = 50;
-const EXTERNAL_COMMENT_LIKERS_BATCH_LIMIT = 5;
-const INTERNAL_COMMENT_LIKERS_BATCH_IDS = 50;
-// 외부 배치 IDs 한도. 과거 10이면 11번째 이후 댓글은 preview/팝업 데이터가 아예 비어,
+// 공감자 미리보기 수·배치 ID 수. **요청자와 무관하게 동일하다.**
+//
+// ⛔ 예전에는 외부 요청을 5명으로 잘랐다(EXTERNAL_COMMENT_LIKERS_BATCH_LIMIT=5).
+//    IDs 쪽은 이미 같은 이유로 10→50 으로 올린 적이 있다(아래 이력) — 같은 교훈을 두 번 겪었다.
+//    2026-08-18 댓글 절단 제거와 함께 남은 절단도 걷어낸다.
+//
+//  ① **이미 무력했다.** nginx 가 이 경로를 `proxy_cache_key "$request_uri"` 로만 캐시해
+//     응답 종류를 구분하지 못했다(같은 588행 location, 댓글과 동일). 먼저 채운 쪽 응답이
+//     모두에게 배포된다 — 실측 브라우저 22,542B vs 봇 11,437B 가 서로 뒤바뀐다.
+//  ② **정상 사용자를 오분류했다.** 판정이 Referer·Sec-Fetch-Site 헤더에 의존하는데,
+//     그 헤더가 제거되는 환경에서는 영구히 5명만 보였다.
+//
+// ⛔ 다시 절단으로 되돌리지 마라. 공감자는 공개 데이터이고, 남용은 rate-limit 으로 막는다.
+//    (글 목록이 #826 → #12571 에서 같은 결론에 먼저 도달했다)
+const COMMENT_LIKERS_BATCH_LIMIT = 50;
+// 배치 ID 한도. 과거 10이면 11번째 이후 댓글은 preview/팝업 데이터가 아예 비어,
 // 사용자가 해당 댓글의 공감자 리스트를 열 수 없었음.
-const EXTERNAL_COMMENT_LIKERS_BATCH_IDS = 50;
+const COMMENT_LIKERS_BATCH_IDS = 50;
+
+// 외부 요청 rate-limit — 댓글·글 목록과 같은 기준.
+// ⚠️ checkRateLimit 은 파드 in-memory 라 실효 한도는 (이 값 × 파드 수) 다.
+const EXTERNAL_LIKERS_BATCH_RATE_LIMIT = 60; // 분당 60회
+const EXTERNAL_LIKERS_BATCH_RATE_WINDOW_MS = 60_000;
 
 // bg_datetime 이 null / '' / '0000-00-00 00:00:00' 일 때 new Date() 가
 // Invalid Date 를 반환하며, 이후 toLocaleString() 결과가 minify 돼서
@@ -55,17 +73,33 @@ interface CountRow extends RowDataPacket {
     total: number;
 }
 
-export const GET: RequestHandler = async ({ params, url, cookies, request }) => {
+export const GET: RequestHandler = async ({ params, url, cookies, request, getClientAddress }) => {
     const { boardId } = params;
     const isInternalRequest = isInternalAppRequest(request);
     const commentIdsParam = url.searchParams.get('commentIds');
     const requestedLimit = Math.max(1, parseInt(url.searchParams.get('limit') || '5', 10));
-    const limit = Math.min(
-        requestedLimit,
-        isInternalRequest
-            ? INTERNAL_COMMENT_LIKERS_BATCH_LIMIT
-            : EXTERNAL_COMMENT_LIKERS_BATCH_LIMIT
-    );
+    const limit = Math.min(requestedLimit, COMMENT_LIKERS_BATCH_LIMIT);
+
+    // 외부 요청은 자르지 않고 rate-limit 으로 억제한다(위 주석 참조).
+    if (!isInternalRequest) {
+        const ip = getClientAddress();
+        const rl = checkRateLimit(
+            ip,
+            'comment-likers-batch',
+            EXTERNAL_LIKERS_BATCH_RATE_LIMIT,
+            EXTERNAL_LIKERS_BATCH_RATE_WINDOW_MS
+        );
+        if (!rl.allowed) {
+            return json(
+                { success: false, message: '요청이 너무 잦습니다. 잠시 후 다시 시도해주세요.' },
+                {
+                    status: 429,
+                    headers: rl.retryAfter ? { 'Retry-After': String(rl.retryAfter) } : {}
+                }
+            );
+        }
+        recordAttempt(ip, 'comment-likers-batch');
+    }
 
     if (!boardId || !commentIdsParam) {
         return json(
@@ -81,12 +115,7 @@ export const GET: RequestHandler = async ({ params, url, cookies, request }) => 
         .split(',')
         .map((id) => parseInt(id.trim(), 10))
         .filter((id) => !isNaN(id))
-        .slice(
-            0,
-            isInternalRequest
-                ? INTERNAL_COMMENT_LIKERS_BATCH_IDS
-                : EXTERNAL_COMMENT_LIKERS_BATCH_IDS
-        );
+        .slice(0, COMMENT_LIKERS_BATCH_IDS);
 
     if (commentIds.length === 0) {
         return json({ success: false, message: '유효한 commentIds가 없습니다.' }, { status: 400 });

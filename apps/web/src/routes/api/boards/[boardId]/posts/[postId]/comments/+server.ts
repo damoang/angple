@@ -20,6 +20,7 @@ import {
 } from '$lib/server/affiliate-links';
 import { isLinkProcessingPluginEnabled } from '$lib/server/link-processing/runtime';
 import { isInternalAppRequest } from '$lib/server/internal-api.js';
+import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
 import { prefetchBlueskyDIDs } from '$lib/server/bluesky/transform.js';
 
@@ -98,11 +99,34 @@ function maskIp(ip: string): string {
     return ip;
 }
 
-const INTERNAL_COMMENT_LIMIT = 200;
-const EXTERNAL_COMMENT_LIMIT = 20;
-const MAX_EXTERNAL_COMMENT_PAGE = 1;
+// 한 번에 가져올 수 있는 댓글 수. **요청자와 무관하게 동일하다.**
+//
+// ⛔ 예전에는 외부 요청을 20건·1페이지로 잘랐다(EXTERNAL_COMMENT_LIMIT=20,
+//    MAX_EXTERNAL_COMMENT_PAGE=1). 2026-08-18 제보(free/7058811 "댓글이 다 표출이 안 된다")로
+//    걷어냈다. 그 절단은 두 가지로 잘못돼 있었다.
+//
+//  ① **이미 무력했다.** nginx 가 이 경로를 `proxy_cache_key "$request_uri"` 로만 캐시해서
+//     응답 종류를 구분하지 못했다. 브라우저가 채운 전체 목록을 봇이 그대로 받아가는 것을 실측했다
+//     (98건 글에서 봇이 98건 수령). 자르고 있던 대상은 **정상 사용자뿐**이었다.
+//  ② **정상 사용자를 오분류했다.** 판정(isInternalAppRequest)은 Referer·Sec-Fetch-Site 같은
+//     헤더에 의존하는데, 그 헤더가 제거되는 환경(프라이버시 확장, 헤더를 지우는 프록시 등)에서는
+//     **새로고침해도 영원히 20건**만 보였다.
+//
+// ⭐ 같은 저장소가 글 목록에서 이미 같은 결론에 도달했다(#826 → #12571):
+//    "첫페이지 하드캡은 콘텐츠를 보호하지 못하면서 RecentPosts 만 깨뜨렸다.
+//     하드캡 대신 rate-limit 으로 정상 페이지네이션은 허용하고 대량 스크래핑만 억제한다."
+//    댓글만 전환이 안 된 채 남아 있었다. 여기서 맞춘다.
+//
+// ⛔ 다시 절단으로 되돌리지 마라. 댓글은 로그인 없이 웹에서 보이는 공개 데이터이고
+//    SSR HTML 에도 실린다. JSON 절단은 스크래퍼를 못 막고 사용자만 깨뜨린다.
+const COMMENT_LIMIT = 200;
 
-export const GET: RequestHandler = async ({ params, url, locals, request }) => {
+// 외부 요청 rate-limit — 글 목록(EXTERNAL_POSTS_RATE_LIMIT)과 같은 기준.
+// ⚠️ checkRateLimit 은 파드 in-memory 라 실효 한도는 (이 값 × 파드 수) 다.
+const EXTERNAL_COMMENTS_RATE_LIMIT = 60; // 분당 60회
+const EXTERNAL_COMMENTS_RATE_WINDOW_MS = 60_000;
+
+export const GET: RequestHandler = async ({ params, url, locals, request, getClientAddress }) => {
     const { boardId, postId } = params;
     const isAdmin = (locals.user?.level ?? 0) >= 10;
     // 비로그인에게는 마스킹된 IP 조차 내리지 않는다 — `120.♡.35.175` 는 4옥텟 중
@@ -127,19 +151,30 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
 
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
     const requestedLimit = Math.max(1, parseInt(url.searchParams.get('limit') || '200', 10));
-    const limit = Math.min(
-        requestedLimit,
-        isInternalRequest ? INTERNAL_COMMENT_LIMIT : EXTERNAL_COMMENT_LIMIT
-    );
+    const limit = Math.min(requestedLimit, COMMENT_LIMIT);
 
-    if (!isInternalRequest && page > MAX_EXTERNAL_COMMENT_PAGE) {
-        return json(
-            { success: false, message: '외부 요청은 첫 페이지 댓글만 조회할 수 있습니다.' },
-            { status: 403 }
+    // 외부 요청은 자르지 않고 rate-limit 으로 억제한다(위 주석 참조).
+    if (!isInternalRequest) {
+        const ip = getClientAddress();
+        const rl = checkRateLimit(
+            ip,
+            'board-comments',
+            EXTERNAL_COMMENTS_RATE_LIMIT,
+            EXTERNAL_COMMENTS_RATE_WINDOW_MS
         );
+        if (!rl.allowed) {
+            return json(
+                { success: false, message: '요청이 너무 잦습니다. 잠시 후 다시 시도해주세요.' },
+                {
+                    status: 429,
+                    headers: rl.retryAfter ? { 'Retry-After': String(rl.retryAfter) } : {}
+                }
+            );
+        }
+        recordAttempt(ip, 'board-comments');
     }
 
-    const effectivePage = isInternalRequest ? page : Math.min(page, MAX_EXTERNAL_COMMENT_PAGE);
+    const effectivePage = page;
 
     const tableName = `g5_write_${safeBoardId}`;
 
