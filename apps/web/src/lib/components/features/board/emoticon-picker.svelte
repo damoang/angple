@@ -239,10 +239,18 @@
                                         평소엔 정지 썸네일(~2KB), 확대할 때만 애니(~60KB).
                                         DINKIssTyle 팩 기준 6.22MB → 0.07MB.
                                     -->
+                                    <!--
+                                        확대(hover)는 hover 가능한 기기에만 건다.
+                                        iOS Safari 는 hover 로 모습이 바뀌는 요소의
+                                        첫 탭을 hover 에만 쓰고 click(삽입)은 두 번째
+                                        탭에서야 발화한다(#13614). @media(hover:hover)
+                                        가드로 터치 기기에선 확대를 끄면 첫 탭에 바로
+                                        삽입된다. transition-transform 은 그대로 둔다.
+                                    -->
                                     <img
                                         src={stillThumbUrl(item)}
                                         alt={item.file}
-                                        class="emoticon-inline size-10 object-contain transition-transform group-hover/emo:z-50 group-hover/emo:scale-[3]"
+                                        class="emoticon-inline size-10 object-contain transition-transform [@media(hover:hover)]:group-hover/emo:z-50 [@media(hover:hover)]:group-hover/emo:scale-[3]"
                                         loading="lazy"
                                     />
                                 </button>
