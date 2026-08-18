@@ -893,28 +893,6 @@
                             </Button>
                         </div>
                     {/if}
-
-                    <!-- 화나요 버튼 (#2108): 로컬 전용 이펙트. 서버 요청·DB·타인 노출 0,
-                         GA 익명 카운트만. 카운트·토글 상태 없음. claim 제외·비밀글 게이트는
-                         상위 boardId/canViewSecret 조건에서 자동 상속(새 게이트 추가 안 함). -->
-                    <div class="border-border relative flex items-center rounded-lg border">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onclick={triggerAngry}
-                            class="gap-2"
-                            aria-label="화나요"
-                        >
-                            <span class="text-lg leading-none" aria-hidden="true">💢</span>
-                            <span class="font-semibold">화나요</span>
-                        </Button>
-                        {#if showAngryPop}
-                            <span
-                                class="da-angry-pop pointer-events-none absolute -top-2 left-1/2 text-xl"
-                                aria-hidden="true">💢</span
-                            >
-                        {/if}
-                    </div>
                 {/if}
 
                 <!-- 스크랩 + 공유 + 신고 (우측 정렬).
@@ -922,9 +900,15 @@
                      하단본이 initialScrapped 를 안 받아 표시가 부정확했다. bug/13468: 하단본을
                      통째로 제거했더니 사용자가 글 읽고 누르던 위치의 스크랩이 사라졌다는 제보.
                      → 하단본을 initialScrapped 와 함께 복원(정확 표시 + 익숙한 위치 둘 다 충족). -->
-                <div class="ml-auto flex items-center gap-1">
+                <div class="ml-auto flex flex-wrap items-center justify-end gap-1">
                     {#if board?.use_sns}
                         <ShareButton {boardId} postId={post.id} title={post.title || ''} />
+                    {/if}
+                    <!-- 스크랩: 최종 순서 공유 → 스크랩 → 신고 → 화나요(사장님 확정). 종전엔 아이콘만
+                         이라 옆의 공유·신고(아이콘+문구)와 어긋났는데, size="sm" 이면 컴포넌트가
+                         "스크랩"/"스크랩됨" 문구를 함께 렌더한다(상단 툴바본은 아이콘만 유지). -->
+                    {#if authStore.isAuthenticated}
+                        <ScrapButton {boardId} postId={post.id} {initialScrapped} size="sm" />
                     {/if}
                     {#if !isAuthor}
                         <!-- ⭐ 2026-08-18: 신고 버튼은 항상 보인다 — 제재 확정(B형) 글에서도.
@@ -950,19 +934,36 @@
                             <span>신고</span>
                         </Button>
                     {/if}
-                    <!-- 스크랩은 신고 오른쪽 끝에. 종전엔 이 줄 맨 왼쪽에 아이콘만 있어서
-                         옆의 공유·신고가 아이콘+문구인데 혼자 문구가 없었고, 북마크 아이콘만으로는
-                         무슨 버튼인지 알기 어려웠다. size="sm" 이면 컴포넌트가 "스크랩"/"스크랩됨"
-                         문구를 함께 렌더한다(상단 툴바본은 아이콘만 유지). -->
-                    {#if authStore.isAuthenticated}
-                        <ScrapButton {boardId} postId={post.id} {initialScrapped} size="sm" />
-                    {/if}
                     <PluginSlot
                         name="post-detail-actions"
                         {boardId}
                         postId={post.id}
                         postAuthorId={post.author_id}
                     />
+                    <!-- 화나요 버튼 (#2108): 로컬 전용 이펙트. 서버 요청·DB·타인 노출 0,
+                         GA 익명 카운트만. 카운트·토글 상태 없음. 우측 액션 그룹 맨 끝으로 이동.
+                         비밀글 게이트는 상위 canViewSecret(CardFooter)에서 상속되지만, claim
+                         제외는 이 그룹이 boardId 게이트 밖이라 여기서 유지한다(동작 보존). -->
+                    {#if boardId !== 'claim'}
+                        <div class="relative flex items-center">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onclick={triggerAngry}
+                                class="text-muted-foreground hover:text-destructive gap-2"
+                                aria-label="화나요"
+                            >
+                                <span class="text-base leading-none" aria-hidden="true">💢</span>
+                                <span>화나요</span>
+                            </Button>
+                            {#if showAngryPop}
+                                <span
+                                    class="da-angry-pop pointer-events-none absolute -top-2 left-1/2 text-xl"
+                                    aria-hidden="true">💢</span
+                                >
+                            {/if}
+                        </div>
+                    {/if}
                 </div>
             </div>
 
