@@ -8,6 +8,8 @@
     import type { ExplorePost } from '$lib/api/types';
     import Gem from '@lucide/svelte/icons/gem';
     import { trackEvent } from '$lib/services/ga4.js';
+    import { blockedUsersStore } from '$lib/stores/blocked-users.svelte.js';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
 
     let { config, prefetchData }: WidgetProps = $props();
 
@@ -15,8 +17,13 @@
         Number((config?.settings as Record<string, unknown> | undefined)?.item_count ?? 4)
     );
 
+    // 셔플/slice(정원) 앞에서 차단 회원 + 차단 키워드(제목)를 제외한다 (#13598)
     const pool = $derived(
-        ((prefetchData as { posts?: ExplorePost[] })?.posts ?? []) as ExplorePost[]
+        (((prefetchData as { posts?: ExplorePost[] })?.posts ?? []) as ExplorePost[]).filter(
+            (post) =>
+                !blockedUsersStore.isBlocked(post.author) &&
+                !uiSettingsStore.isMuted(post.title ?? '')
+        )
     );
 
     // 방문(마운트)마다 다른 조합 — 서버 30초 캐시와 무관하게 클라에서 셔플
