@@ -493,7 +493,7 @@
                 class="text-foreground flex items-center gap-2 text-xl font-bold sm:text-2xl"
             >
                 <!-- bug/13388: basic.svelte 와 동일 — 익명 flex 텍스트를 실요소로 감싼다 -->
-                <span class="min-w-0 [overflow-wrap:anywhere]">
+                <span class="min-w-0 [overflow-wrap:anywhere] [word-break:break-word]">
                     {#if post.is_discipline_related}
                         <DisciplinedContent
                             inline
