@@ -904,6 +904,12 @@
                     {#if board?.use_sns}
                         <ShareButton {boardId} postId={post.id} title={post.title || ''} />
                     {/if}
+                    <!-- 스크랩: 최종 순서 공유 → 스크랩 → 신고 → 화나요(사장님 확정). 종전엔 아이콘만
+                         이라 옆의 공유·신고(아이콘+문구)와 어긋났는데, size="sm" 이면 컴포넌트가
+                         "스크랩"/"스크랩됨" 문구를 함께 렌더한다(상단 툴바본은 아이콘만 유지). -->
+                    {#if authStore.isAuthenticated}
+                        <ScrapButton {boardId} postId={post.id} {initialScrapped} size="sm" />
+                    {/if}
                     {#if !isAuthor}
                         <!-- ⭐ 2026-08-18: 신고 버튼은 항상 보인다 — 제재 확정(B형) 글에서도.
                              종전에 B형을 숨긴 근거는 "재신고 시 백엔드 409+트리거로 차단되기 때문"이었는데
@@ -927,13 +933,6 @@
                             <Flag class="h-4 w-4" />
                             <span>신고</span>
                         </Button>
-                    {/if}
-                    <!-- 스크랩은 신고 오른쪽 끝에. 종전엔 이 줄 맨 왼쪽에 아이콘만 있어서
-                         옆의 공유·신고가 아이콘+문구인데 혼자 문구가 없었고, 북마크 아이콘만으로는
-                         무슨 버튼인지 알기 어려웠다. size="sm" 이면 컴포넌트가 "스크랩"/"스크랩됨"
-                         문구를 함께 렌더한다(상단 툴바본은 아이콘만 유지). -->
-                    {#if authStore.isAuthenticated}
-                        <ScrapButton {boardId} postId={post.id} {initialScrapped} size="sm" />
                     {/if}
                     <PluginSlot
                         name="post-detail-actions"
