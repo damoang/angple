@@ -227,6 +227,12 @@
 
     // 이펙트 재생: 클래스를 뗐다가 다음 프레임에 다시 붙여 재클릭 시 재발화되게 한다.
     function playAngryEffect(): void {
+        // 햅틱: 화나요답게 짧고 단호한 단발 진동. Android만 동작하고
+        // iOS Safari는 navigator.vibrate 미지원 → 자동 no-op. reduced-motion 사용자는
+        // triggerAngry 에서 이 함수 호출 자체가 스킵되므로 진동도 함께 스킵된다.
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate(40);
+        }
         isAngryShaking = false;
         showAngryPop = false;
         clearTimeout(angryTimer);
