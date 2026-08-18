@@ -40,6 +40,7 @@
     import {
         uiSettingsStore,
         BLUR_KEYWORDS,
+        BLUR_SPOILER_KEYWORDS,
         type FontFamily,
         type LineHeight,
         type ContentFontSize,
@@ -708,7 +709,9 @@
                         <div>
                             <Label>본문 흐림 사용</Label>
                             <p class="text-muted-foreground text-xs">
-                                대상 키워드: {BLUR_KEYWORDS.join(', ')}
+                                대상 키워드: {[...BLUR_KEYWORDS, ...BLUR_SPOILER_KEYWORDS].join(
+                                    ', '
+                                )}
                             </p>
                         </div>
                         <Switch

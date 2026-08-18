@@ -146,10 +146,39 @@ export const LIST_FONT_SIZES: Record<ListFontSize, string> = {
     xlarge: '20px'
 };
 
-/** 본문 흐림 대상 키워드 (제목에 포함 시 블러 처리) */
-export const BLUR_KEYWORDS = ['후방', '혐오', '혐짤', 'NSFW', 'nsfw', '스포일러'];
-/** 단어 경계 매칭 키워드 (뒤에 한글 음절이 오면 매칭 제외 — "스포티파이" 등 false positive 방지) */
-export const BLUR_KEYWORDS_BOUNDARY = ['스포'];
+/**
+ * 이미지 지시성 블러 키워드 (제목에 포함 시 본문 블러 처리).
+ * '혐오'는 담론성 표현('혐오 문화/표현/범죄' 등) 오탐이 심해 bare 매칭을 제거하고,
+ * 이미지 지시 변형('혐짤/혐오짤/혐오사진/혐오 사진/혐오 이미지')만 대상으로 한다.
+ */
+export const BLUR_KEYWORDS = [
+    '후방',
+    '혐짤',
+    '혐오짤',
+    '혐오사진',
+    '혐오 사진',
+    '혐오 이미지',
+    'NSFW',
+    'nsfw'
+];
+/** 스포일러 계열 키워드 (부정/관용 표현 화이트리스트에 걸리지 않을 때만 블러) */
+export const BLUR_SPOILER_KEYWORDS = ['스포일러', '스포'];
+/**
+ * 스포일러 계열 오탐 방지 화이트리스트.
+ * 제목에 이 중 하나라도 포함되면 스포일러 계열 블러를 적용하지 않는다.
+ * ('노스포 후기', '스포주의', '스포 없음' 등 부정/주의 관용 표현)
+ */
+export const BLUR_SPOILER_WHITELIST = [
+    '노스포',
+    '무스포',
+    '스포주의',
+    '스포 주의',
+    '스포방지',
+    '스포 방지',
+    '스포 없',
+    '스포없',
+    '스포x'
+];
 
 function loadSettings(): UiSettings {
     if (!browser) return { ...DEFAULTS };
@@ -542,17 +571,11 @@ function createUiSettingsStore() {
         shouldBlurContent(title: string): boolean {
             if (!settings.contentBlur) return false;
             const lower = title.toLowerCase();
-            // 일반 키워드: 포함 매칭
+            // 이미지 지시성 키워드: 포함 매칭
             if (BLUR_KEYWORDS.some((k) => lower.includes(k.toLowerCase()))) return true;
-            // 경계 매칭 키워드: 뒤에 한글 음절(가-힣)이 오면 단어 일부이므로 제외
-            return BLUR_KEYWORDS_BOUNDARY.some((k) => {
-                const kLower = k.toLowerCase();
-                const idx = lower.indexOf(kLower);
-                if (idx === -1) return false;
-                const after = lower[idx + kLower.length];
-                if (after && after >= '\uAC00' && after <= '\uD7A3') return false;
-                return true;
-            });
+            // 스포일러 계열: 부정/관용 표현(노스포·스포주의 등)이 있으면 블러 제외
+            if (BLUR_SPOILER_WHITELIST.some((w) => lower.includes(w.toLowerCase()))) return false;
+            return BLUR_SPOILER_KEYWORDS.some((k) => lower.includes(k.toLowerCase()));
         }
     };
 }
