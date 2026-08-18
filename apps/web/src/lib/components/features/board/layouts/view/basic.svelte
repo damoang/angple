@@ -398,7 +398,7 @@
                 <!-- bug/13388: 맨몸 텍스트는 익명 flex item 이 되어 min-width/줄바꿈을
                      제어할 수 없고, iOS WebKit 에서 줄바꿈 폭 오계산 → 1행 넘침이
                      조상 overflow-x:hidden 에 잘려 글자가 소실된다. 실요소로 감싼다. -->
-                <span class="min-w-0 [overflow-wrap:anywhere]">
+                <span class="min-w-0 [overflow-wrap:anywhere] [word-break:break-word]">
                     {#if post.is_discipline_related}
                         <DisciplinedContent
                             inline
