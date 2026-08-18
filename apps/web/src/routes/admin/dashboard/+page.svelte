@@ -30,39 +30,49 @@
     let dashboardStats = $state<DashboardStats | null>(null);
     let recentActivities = $state<RecentActivity[]>([]);
 
+    // ⛔ 카드는 **실제로 백엔드가 주는 값**만 쓴다.
+    // 종전에는 총 게시글·오늘 방문자 카드가 있었으나 백엔드에 그 값이 없다
+    // (방문자는 g5_visit 테이블이 비어 있다). 없는 값을 0 으로 채우면
+    // 화면이 "방문자 0명" 이라는 거짓을 말하게 되므로 카드를 뺐다.
+    // ⭐ 총 회원은 g5_member 전체(탈퇴 포함)다. 탈퇴는 행이 남으므로
+    //    활동 회원을 부제로 함께 보여 두 숫자가 어긋나 보이지 않게 한다.
     const stats = $derived(
         dashboardStats
             ? [
                   {
-                      label: '총 게시글',
-                      value: dashboardStats.totalPosts.toLocaleString(),
-                      icon: FileText,
-                      change: dashboardStats.postsChange
-                  },
-                  {
                       label: '총 회원',
                       value: dashboardStats.totalMembers.toLocaleString(),
+                      sub: `활동 ${dashboardStats.activeMembers.toLocaleString()} · 탈퇴 ${dashboardStats.leftMembers.toLocaleString()}`,
                       icon: Users,
                       change: dashboardStats.membersChange
                   },
                   {
-                      label: '오늘 댓글',
-                      value: dashboardStats.todayComments.toLocaleString(),
-                      icon: MessageSquare,
-                      change: dashboardStats.commentsChange
+                      label: '오늘 접속',
+                      value: dashboardStats.todayLogin.toLocaleString(),
+                      sub: `신규 가입 ${dashboardStats.todayJoined.toLocaleString()}`,
+                      icon: Eye,
+                      change: 0
                   },
                   {
-                      label: '오늘 방문자',
-                      value: dashboardStats.todayVisitors.toLocaleString(),
-                      icon: Eye,
-                      change: dashboardStats.visitorsChange
+                      label: '오늘 게시글',
+                      value: dashboardStats.todayPosts.toLocaleString(),
+                      sub: '',
+                      icon: FileText,
+                      change: 0
+                  },
+                  {
+                      label: '오늘 댓글',
+                      value: dashboardStats.todayComments.toLocaleString(),
+                      sub: '',
+                      icon: MessageSquare,
+                      change: 0
                   }
               ]
             : [
-                  { label: '총 게시글', value: '-', icon: FileText, change: 0 },
-                  { label: '총 회원', value: '-', icon: Users, change: 0 },
-                  { label: '오늘 댓글', value: '-', icon: MessageSquare, change: 0 },
-                  { label: '오늘 방문자', value: '-', icon: Eye, change: 0 }
+                  { label: '총 회원', value: '-', sub: '', icon: Users, change: 0 },
+                  { label: '오늘 접속', value: '-', sub: '', icon: Eye, change: 0 },
+                  { label: '오늘 게시글', value: '-', sub: '', icon: FileText, change: 0 },
+                  { label: '오늘 댓글', value: '-', sub: '', icon: MessageSquare, change: 0 }
               ]
     );
 
@@ -88,12 +98,6 @@
         } finally {
             loading = false;
         }
-    }
-
-    function formatChange(change: number): string {
-        if (change > 0) return `+${change}%`;
-        if (change < 0) return `${change}%`;
-        return '0%';
     }
 
     function getActivityIcon(type: RecentActivity['type']): string {
@@ -180,12 +184,16 @@
                 </CardHeader>
                 <CardContent>
                     <div class="text-2xl font-bold">{stat.value}</div>
-                    {#if dashboardStats}
+                    <!-- ⛔ 종전에는 모든 카드에 "지난 주 대비 N%" 를 붙였는데,
+                         백엔드가 증감률을 준 적이 없어 늘 "0%" 였다.
+                         지금은 실제 값이 있는 카드만, 그 값이 무엇인지 그대로 적는다. -->
+                    {#if dashboardStats && stat.sub}
+                        <p class="text-muted-foreground text-xs">{stat.sub}</p>
+                    {/if}
+                    {#if dashboardStats && stat.change > 0}
                         <p class="text-muted-foreground text-xs">
-                            <span class={stat.change >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                {formatChange(stat.change)}
-                            </span>
-                            지난 주 대비
+                            <span class="text-green-600">+{stat.change.toLocaleString()}</span>
+                            최근 7일
                         </p>
                     {/if}
                 </CardContent>
