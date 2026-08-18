@@ -9,6 +9,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
+import { getDisciplineIds } from '$lib/server/discipline-ids';
 import { isValidBoardId } from '$lib/utils/board-id.js';
 import {
     applyAffiliateField,
@@ -86,10 +87,6 @@ interface CommentResponseItem {
     from_board_name?: string;
     /** 리뷰 별점(리뷰=댓글+별점): 작성자가 이 댓글에 남긴 리뷰 점수(1~5). 별점 게시판만. */
     review_rating?: number;
-}
-
-interface DisciplineRow extends RowDataPacket {
-    sg_id: number;
 }
 
 function maskIp(ip: string): string {
@@ -257,20 +254,16 @@ export const GET: RequestHandler = async ({ params, url, locals, request }) => {
         const commentIds = rows.map((r) => r.wr_id);
 
         // 이용제한 근거 댓글 식별 (g5_na_singo.discipline_log_id IS NOT NULL)
-        // INDEX hit: (sg_table, sg_id) — idx_singo_table_id / idx_table_id_time.
-        // 실패 무시 (defensive, slow query 차단).
+        //
+        // ⛔ 예전에는 여기서 댓글 ID 목록을 넣어 **요청마다** DB 를 쳤다.
+        //    2026-08-18 실측: 2억 544만회 · 156,047초 = DB 실행시간의 5.0%.
+        //    한 번이 느린 게 아니라(EXPLAIN rows:5) 부르는 횟수가 문제였고,
+        //    반환은 평균 0.0행 — 거의 언제나 빈손이었다.
+        // → 게시판 단위 집합을 캐시하고 메모리에서 판정한다(전 게시판 합쳐 3,407개·54KB).
+        const boardDisciplineIds = await getDisciplineIds(safeBoardId);
         const disciplineSet = new Set<number>();
-        if (commentIds.length > 0) {
-            try {
-                const [dRows] = await pool.query<DisciplineRow[]>(
-                    `SELECT DISTINCT sg_id FROM g5_na_singo
-                     WHERE sg_table = ? AND sg_id IN (?) AND discipline_log_id IS NOT NULL`,
-                    [safeBoardId, commentIds]
-                );
-                for (const d of dRows) disciplineSet.add(d.sg_id);
-            } catch (e) {
-                console.warn('[discipline] enrich(comments) failed:', e);
-            }
+        for (const id of commentIds) {
+            if (boardDisciplineIds.has(id)) disciplineSet.add(id);
         }
 
         // 리뷰 별점(리뷰=댓글+별점): angple_post_ratings 에서 댓글 wr_id 별 평균(작성자 리뷰 점수).
