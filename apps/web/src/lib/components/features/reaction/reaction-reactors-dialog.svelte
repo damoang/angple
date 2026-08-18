@@ -114,10 +114,16 @@
                             {#each reactor.reactions as reaction (reaction)}
                                 {@const display = getReactionDisplay(reaction)}
                                 {#if display.renderType === 'image' && display.url}
+                                    <!-- ⛔ 여기는 **정지본**을 쓴다(`staticUrl`). 이 목록은 사람 수만큼
+                                         아이콘을 그리므로 수십 개가 동시에 움직이면 산만하고 모바일에서
+                                         디코딩 비용이 크다. 움직이는 것은 리액션바와 피커 호버로 충분하다.
+                                         staticUrl 이 없는 종류(noto 등)는 기존 동작을 유지한다. -->
                                     <img
-                                        src={display.url}
+                                        src={display.staticUrl ?? display.url}
                                         alt={display.label}
                                         title={display.label}
+                                        loading="lazy"
+                                        decoding="async"
                                         class="h-6 w-6 object-scale-down"
                                     />
                                 {:else}
