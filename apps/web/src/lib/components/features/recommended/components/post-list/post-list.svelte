@@ -6,6 +6,7 @@
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { getReadPostClasses } from '$lib/stores/read-post-style.svelte.js';
     import { blockedUsersStore } from '$lib/stores/blocked-users.svelte.js';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
 
     const PREVIEW_COUNT = 17;
 
@@ -38,6 +39,7 @@
             for (const post of section.posts ?? []) {
                 if (seen.has(post.id)) continue;
                 if (blockedUsersStore.isBlocked(post.author)) continue;
+                if (uiSettingsStore.isMuted(post.title)) continue; // 차단 키워드 필터 (#13598)
                 seen.add(post.id);
                 result.push({ ...post, uniqueKey: `${section.key}-${post.id}` });
             }

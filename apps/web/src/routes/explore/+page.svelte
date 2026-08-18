@@ -16,6 +16,8 @@
     } from '$lib/components/features/recommended/utils/index.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { getReadPostClasses } from '$lib/stores/read-post-style.svelte.js';
+    import { blockedUsersStore } from '$lib/stores/blocked-users.svelte.js';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import TagNav from '$lib/components/ui/tag-nav/tag-nav.svelte';
     import { formatCommentCountBadge } from '$lib/utils/comment-count.js';
     import type { PageData } from './$types';
@@ -107,13 +109,29 @@
     });
 
     const filteredPosts = $derived.by((): ExplorePost[] => {
-        if (selectedBoard === 'all') return currentPosts;
-        return currentPosts.filter((post) => post.board === selectedBoard);
+        const byBoard =
+            selectedBoard === 'all'
+                ? currentPosts
+                : currentPosts.filter((post) => post.board === selectedBoard);
+        // 차단 회원 + 차단 키워드(제목) 제외 (#13598)
+        return byBoard.filter(
+            (post) =>
+                !blockedUsersStore.isBlocked(post.author) && !uiSettingsStore.isMuted(post.title)
+        );
     });
 
     const filteredComments = $derived.by((): ExploreComment[] => {
-        if (selectedBoard === 'all') return currentComments;
-        return currentComments.filter((comment) => comment.board === selectedBoard);
+        const byBoard =
+            selectedBoard === 'all'
+                ? currentComments
+                : currentComments.filter((comment) => comment.board === selectedBoard);
+        // 차단 회원 + 차단 키워드(원글 제목·댓글 본문) 제외 (#13598)
+        return byBoard.filter(
+            (comment) =>
+                !blockedUsersStore.isBlocked(comment.author) &&
+                !uiSettingsStore.isMuted(comment.parent_title ?? '') &&
+                !uiSettingsStore.isMuted(comment.content ?? '')
+        );
     });
 
     $effect(() => {

@@ -15,6 +15,7 @@
     import ThresholdFilter from './threshold-filter.svelte';
     import SortSelector from './sort-selector.svelte';
     import { blockedUsersStore } from '$lib/stores/blocked-users.svelte.js';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import DailyStatsBar from './daily-stats-bar.svelte';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card';
@@ -117,8 +118,10 @@
             posts = [...(sections[activeTab]?.posts ?? [])];
         }
 
-        // 차단된 사용자 글 필터
-        posts = posts.filter((p) => !blockedUsersStore.isBlocked(p.author));
+        // 차단된 사용자 글 + 차단 키워드(제목) 필터 (#13598)
+        posts = posts.filter(
+            (p) => !blockedUsersStore.isBlocked(p.author) && !uiSettingsStore.isMuted(p.title)
+        );
 
         // 최소 추천수 필터
         if (threshold > 0) {
@@ -168,8 +171,13 @@
             comments = [...(commentSections[activeTab]?.comments ?? [])];
         }
 
-        // 차단된 사용자 댓글 필터
-        comments = comments.filter((c) => !blockedUsersStore.isBlocked(c.author));
+        // 차단된 사용자 댓글 + 차단 키워드(원글 제목·댓글 본문) 필터 (#13598)
+        comments = comments.filter(
+            (c) =>
+                !blockedUsersStore.isBlocked(c.author) &&
+                !uiSettingsStore.isMuted(c.parent_title ?? '') &&
+                !uiSettingsStore.isMuted(c.content ?? '')
+        );
 
         if (threshold > 0) {
             comments = comments.filter((c) => c.recommend_count >= threshold);

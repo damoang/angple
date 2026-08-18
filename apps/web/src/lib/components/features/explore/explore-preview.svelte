@@ -12,6 +12,7 @@
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import { getReadPostClasses } from '$lib/stores/read-post-style.svelte.js';
     import { blockedUsersStore } from '$lib/stores/blocked-users.svelte.js';
+    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
     import type { ExploreData, ExploreMode, ExplorePost } from '$lib/api/types.js';
     import { TimedFetchError, timedFetch } from '$lib/utils/timed-fetch';
 
@@ -56,10 +57,11 @@
         } else {
             posts = modeData.posts ?? [];
         }
-        // 차단 사용자 제외 + 공감글 중복 제외 후 PREVIEW_COUNT 로 채운다
-        // (제외를 slice 앞에 둬야 빠진 만큼 다른 글로 채워져 목록이 빈약해지지 않음).
+        // 차단 사용자 + 차단 키워드(제목) 제외 + 공감글 중복 제외 후 PREVIEW_COUNT 로 채운다
+        // (제외를 slice 앞에 둬야 빠진 만큼 다른 글로 채워져 목록이 빈약해지지 않음). (#13598)
         return posts
             .filter((p) => !blockedUsersStore.isBlocked(p.author))
+            .filter((p) => !uiSettingsStore.isMuted(p.title))
             .filter((p) => !excludeIds || !excludeIds.has(p.id))
             .slice(0, PREVIEW_COUNT);
     });
