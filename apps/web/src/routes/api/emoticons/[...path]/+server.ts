@@ -2,8 +2,8 @@
  * 이모티콘 이미지 프록시 (SvelteKit fallback)
  *
  * 운영 환경에서는 nginx가 직접 서빙 (SvelteKit 우회):
- *   /api/emoticons/nariya/* → /home/damoang/www/plugin/nariya/skin/emo/
- *   /emoticons/*            → /home/damoang/www/plugin/nariya/skin/emo/
+ *   /api/emoticons/nariya/* → /home/damoang/legacy-data/emoticons/
+ *   /emoticons/*            → /home/damoang/legacy-data/emoticons/
  *
  * 이 라우트는 dev 서버용 fallback으로만 사용됨.
  */
@@ -22,7 +22,7 @@ const MIME_TYPES: Record<string, string> = {
 };
 
 const ALLOWED_DIRS: Record<string, string> = {
-    nariya: '/home/damoang/www/plugin/nariya/skin/emo',
+    nariya: '/home/damoang/legacy-data/emoticons',
     da_reaction: '/home/damoang/www/plugin/da_reaction/public/emoticon-images'
 };
 
