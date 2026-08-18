@@ -250,7 +250,7 @@
                                     <img
                                         src={stillThumbUrl(item)}
                                         alt={item.file}
-                                        class="emoticon-inline size-10 object-contain transition-transform [@media(hover:hover)]:group-hover/emo:z-50 [@media(hover:hover)]:group-hover/emo:scale-[3]"
+                                        class="emoticon-inline pointer-events-none size-10 object-contain transition-transform [@media(hover:hover)]:group-hover/emo:z-50 [@media(hover:hover)]:group-hover/emo:scale-[3]"
                                         loading="lazy"
                                     />
                                 </button>

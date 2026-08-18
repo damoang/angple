@@ -434,7 +434,7 @@
                                 alt={emo.reaction}
                                 loading="lazy"
                                 decoding="async"
-                                class="h-7 w-7 object-scale-down transition-transform group-hover/emo:z-50 group-hover/emo:scale-[4]"
+                                class="pointer-events-none h-7 w-7 object-scale-down transition-transform [@media(hover:hover)]:group-hover/emo:z-50 [@media(hover:hover)]:group-hover/emo:scale-[4]"
                             />
                         {:else}
                             <span class="text-xl leading-none">{emo.emoji}</span>
