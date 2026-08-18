@@ -615,7 +615,11 @@
         {#if canViewSecret}
             <AdultBlur isAdult={post.is_adult ?? false}>
                 <ContentBlur
-                    shouldBlur={uiSettingsStore.shouldBlurContent(post.title) || isLockedPost}
+                    shouldBlur={(post.is_blur === true
+                        ? true
+                        : post.is_blur === false
+                          ? false
+                          : uiSettingsStore.shouldBlurContent(post.title)) || isLockedPost}
                     blurReason={isLockedPost
                         ? '신고 누적으로 가려진 글입니다 — 클릭하면 본인 책임 하에 표시'
                         : undefined}

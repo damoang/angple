@@ -795,7 +795,13 @@
         <!-- 게시글 본문 -->
         {#if canViewSecret}
             <AdultBlur isAdult={post.is_adult ?? false}>
-                <ContentBlur shouldBlur={uiSettingsStore.shouldBlurContent(post.title)}>
+                <ContentBlur
+                    shouldBlur={post.is_blur === true
+                        ? true
+                        : post.is_blur === false
+                          ? false
+                          : uiSettingsStore.shouldBlurContent(post.title)}
+                >
                     <div id="economy-post-content" style="font-size: {FONT_SIZES[currentFontSize]}">
                         {#if post.is_discipline_related}
                             <DisciplinedContent

@@ -570,6 +570,15 @@ function createUiSettingsStore() {
         /** 제목에 블러 키워드가 포함되어 본문을 흐림 처리해야 하는지 */
         shouldBlurContent(title: string): boolean {
             if (!settings.contentBlur) return false;
+            return this.matchesBlurKeyword(title);
+        },
+
+        /**
+         * 제목이 블러 키워드셋에 매칭되는지 — 리더의 contentBlur 토글과 무관.
+         * 작성 후 부끄앙(가림) 팝업 감지용(#13571 Phase3). 작성자 개인 설정이
+         * 꺼져 있어도 제목에 키워드가 있으면 감지돼야 하므로 shouldBlurContent 와 분리한다.
+         */
+        matchesBlurKeyword(title: string): boolean {
             const lower = title.toLowerCase();
             // 이미지 지시성 키워드: 포함 매칭
             if (BLUR_KEYWORDS.some((k) => lower.includes(k.toLowerCase()))) return true;
