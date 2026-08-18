@@ -74,7 +74,7 @@
     });
 
     import { toast } from 'svelte-sonner';
-    import { trackFileDownload } from '$lib/services/ga4.js';
+    import { trackFileDownload, trackEvent } from '$lib/services/ga4.js';
     import PinOff from '@lucide/svelte/icons/pin-off';
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
     import { onMount } from 'svelte';
@@ -217,6 +217,54 @@
             togglingNotice = false;
         }
     }
+
+    // 화나요 버튼 (#2108): 로컬 전용 리액션. 서버 요청·다모앙 DB 기록·타인 노출 0.
+    // 누른 사람 화면에서만 이펙트 1회(카드 흔들림 + 💢 팝) + GA 익명 카운트(글당 1회).
+    // 카운트·토글 상태 없음 — fetch/authStore/리액션 store 미접근.
+    let isAngryShaking = $state(false);
+    let showAngryPop = $state(false);
+    let angryTimer: ReturnType<typeof setTimeout> | undefined;
+
+    // 이펙트 재생: 클래스를 뗐다가 다음 프레임에 다시 붙여 재클릭 시 재발화되게 한다.
+    function playAngryEffect(): void {
+        isAngryShaking = false;
+        showAngryPop = false;
+        clearTimeout(angryTimer);
+        requestAnimationFrame(() => {
+            isAngryShaking = true;
+            showAngryPop = true;
+            // CSS 1회 재생 후 클래스 제거(다음 클릭 재발화 가능). shake 0.5s / pop 0.7s 여유.
+            angryTimer = setTimeout(() => {
+                isAngryShaking = false;
+                showAngryPop = false;
+            }, 800);
+        });
+    }
+
+    function triggerAngry(): void {
+        // GA는 글당 1회만. localStorage 존재 여부로 게이트(없으면 게이트 없이 매번 발화 — 무해).
+        let shouldTrack = true;
+        try {
+            const key = `angple_angry_${post.id}`;
+            if (localStorage.getItem(key)) shouldTrack = false;
+            else localStorage.setItem(key, '1');
+        } catch {
+            /* localStorage 접근 불가 → 게이트 스킵 */
+        }
+        if (shouldTrack) {
+            trackEvent('angry_reaction', { board_id: boardId, post_id: String(post.id) });
+        }
+
+        // reduced-motion 이면 이펙트는 스킵(GA는 이미 발화됨).
+        if (
+            typeof window !== 'undefined' &&
+            window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+        ) {
+            return;
+        }
+
+        playAngryEffect();
+    }
 </script>
 
 <!-- 글자 크기 조절 — 종전에는 본문 바로 위에 전용 줄(34px)을 차지했다. 한 번 맞추면
@@ -296,7 +344,11 @@
 {/snippet}
 
 <!-- 게시글 카드 -->
-<Card class="bg-background mb-6 gap-3 rounded-xl px-3 pb-5 pt-3 md:px-3">
+<Card
+    class="bg-background mb-6 gap-3 rounded-xl px-3 pb-5 pt-3 md:px-3 {isAngryShaking
+        ? 'da-angry-shake'
+        : ''}"
+>
     <!-- gap-3: CardHeader 는 자체적으로 grid gap-1.5 를 갖는다. 종전 space-y-3 는
          그 gap 을 대체하지 못하고 margin 으로 얹혀 6+12=18px 이 됐다(의도는 12px).
          같은 축의 gap 으로 주면 tailwind-merge 가 gap-1.5 를 대체해 정확히 12px. -->
@@ -841,6 +893,28 @@
                             </Button>
                         </div>
                     {/if}
+
+                    <!-- 화나요 버튼 (#2108): 로컬 전용 이펙트. 서버 요청·DB·타인 노출 0,
+                         GA 익명 카운트만. 카운트·토글 상태 없음. claim 제외·비밀글 게이트는
+                         상위 boardId/canViewSecret 조건에서 자동 상속(새 게이트 추가 안 함). -->
+                    <div class="border-border relative flex items-center rounded-lg border">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onclick={triggerAngry}
+                            class="gap-2"
+                            aria-label="화나요"
+                        >
+                            <span class="text-lg leading-none" aria-hidden="true">💢</span>
+                            <span class="font-semibold">화나요</span>
+                        </Button>
+                        {#if showAngryPop}
+                            <span
+                                class="da-angry-pop pointer-events-none absolute -top-2 left-1/2 text-xl"
+                                aria-hidden="true">💢</span
+                            >
+                        {/if}
+                    </div>
                 {/if}
 
                 <!-- 스크랩 + 공유 + 신고 (우측 정렬).
@@ -924,5 +998,66 @@
 
     :global(.like-animation) {
         animation: da-thumbs-up 1s ease-in-out;
+    }
+
+    /* 화나요 버튼 (#2108): 글 카드 1회 흔들림. 클래스는 Card 자식 요소에 붙으므로 :global. */
+    @keyframes da-angry-shake {
+        0%,
+        100% {
+            transform: translateX(0);
+        }
+        15% {
+            transform: translateX(-6px) rotate(-1deg);
+        }
+        30% {
+            transform: translateX(6px) rotate(1deg);
+        }
+        45% {
+            transform: translateX(-5px) rotate(-1deg);
+        }
+        60% {
+            transform: translateX(5px) rotate(1deg);
+        }
+        75% {
+            transform: translateX(-3px);
+        }
+        90% {
+            transform: translateX(3px);
+        }
+    }
+
+    :global(.da-angry-shake) {
+        animation: da-angry-shake 0.5s ease-in-out;
+    }
+
+    /* 💢 팝 파티클: 위로 튀며 페이드아웃. 이 컴포넌트 템플릿 요소라 scoped 클래스. */
+    @keyframes da-angry-pop {
+        0% {
+            transform: translate(-50%, 0) scale(0.4);
+            opacity: 0;
+        }
+        30% {
+            transform: translate(-50%, -8px) scale(1.2);
+            opacity: 1;
+        }
+        100% {
+            transform: translate(-50%, -28px) scale(1);
+            opacity: 0;
+        }
+    }
+
+    .da-angry-pop {
+        animation: da-angry-pop 0.7s ease-out forwards;
+    }
+
+    /* reduced-motion: 이펙트 무력화(트리거 핸들러도 스킵하지만 CSS로 이중 보장). */
+    @media (prefers-reduced-motion: reduce) {
+        :global(.da-angry-shake) {
+            animation: none;
+        }
+        .da-angry-pop {
+            animation: none;
+            opacity: 0;
+        }
     }
 </style>
