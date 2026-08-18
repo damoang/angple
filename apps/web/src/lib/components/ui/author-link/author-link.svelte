@@ -29,6 +29,13 @@
          * 댓글/상세처럼 인접 제목이 없는 곳은 true 로 짧은 닉네임 클릭을 보장.
          */
         expandTouchArea?: boolean;
+        /**
+         * 닉네임을 한 줄로 고정한다 (#13608).
+         * 글 상세 작성자 줄처럼 긴 메모 배지가 같은 flex 행에 붙는 곳에서, 닉네임이
+         * min-content(1음절)까지 눌려 한글이 세로로 쌓이는 붕괴를 막는다.
+         * 공용 컴포넌트라 기본은 false — 목록/댓글 등 flex-wrap 메타 행의 줄바꿈 동작을 보존한다.
+         */
+        nowrap?: boolean;
         children?: Snippet;
     }
 
@@ -38,8 +45,12 @@
         isWithdrawn = false,
         class: className = '',
         expandTouchArea = false,
+        nowrap = false,
         children
     }: Props = $props();
+
+    // 닉네임 세로 붕괴 차단용 클래스 (opt-in). 상세뷰에서만 적용.
+    const nowrapClass = $derived(nowrap ? 'whitespace-nowrap' : '');
 
     const isOwnProfile = $derived(authStore.user?.mb_id === authorId);
 
@@ -190,7 +201,7 @@
       뜨는 문제를 해소. 비회원에겐 프로필/팔로우/쪽지 같은 dropdown 메뉴가 무의미하므로
       클릭 영역 자체를 없애 부모 anchor (글 링크) 로 자연스럽게 propagate.
     -->
-    <span class="{className} {isWithdrawn ? 'line-through opacity-60' : ''}">
+    <span class="{className} {nowrapClass} {isWithdrawn ? 'line-through opacity-60' : ''}">
         {#if children}
             {@render children()}
         {:else}
@@ -224,7 +235,7 @@
               모바일은 기본 텍스트 너비만큼만 클릭 영역 — 제목 의도 터치 보호.
             -->
             <DropdownMenu.Trigger
-                class="inline-block cursor-pointer text-left hover:underline focus:outline-none {touchAreaClass} {className} {isWithdrawn
+                class="inline-block cursor-pointer text-left hover:underline focus:outline-none {touchAreaClass} {nowrapClass} {className} {isWithdrawn
                     ? 'line-through opacity-60'
                     : ''}"
             >

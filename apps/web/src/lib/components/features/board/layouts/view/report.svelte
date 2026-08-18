@@ -548,13 +548,19 @@
                         {post.author.charAt(0).toUpperCase()}
                     </div>
                 {/if}
-                <div>
-                    <p class="text-foreground flex items-baseline gap-1.5 font-medium">
+                <div class="min-w-0">
+                    <!-- #13608: flex-wrap + min-w-0 로 긴 회원 메모 배지가 닉네임을
+                         min-content 까지 눌러 한글이 세로로 붕괴하는 것을 막는다.
+                         폭 부족 시 배지가 다음 줄로 내려가고 닉네임(nowrap)은 한 줄 유지. -->
+                    <p
+                        class="text-foreground flex min-w-0 flex-wrap items-baseline gap-1.5 font-medium"
+                    >
                         <LevelBadge level={memberLevelStore.getLevel(post.author_id)} />
                         <AuthorLink
                             authorId={post.author_id}
                             authorName={post.author}
                             isWithdrawn={!!post.is_left}
+                            nowrap
                         />
                         {#if authStore.isAuthenticated && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
                             <MemoBadge
