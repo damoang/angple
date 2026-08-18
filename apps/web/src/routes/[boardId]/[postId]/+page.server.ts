@@ -462,7 +462,14 @@ export const load: PageServerLoad = async ({
             // 2.5s 상한. 초과/네트워크 오류는 .catch → failedMeta 로 일관 처리(무제한 대기 차단).
             const commentsResult = await svelteKitFetch(
                 `${url.origin}/api/boards/${boardId}/posts/${postId}/comments?page=1&limit=${initialCommentsLimit}`,
-                { signal: AbortSignal.timeout(2_500) }
+                {
+                    signal: AbortSignal.timeout(2_500),
+                    // ⛔ Referer 를 붙여야 이 호출이 **내부 요청**으로 분류된다.
+                    //    event.fetch 는 쿠키·인증 헤더만 승계할 뿐 Referer·x-real-ip 를 넘기지 않아,
+                    //    붙이지 않으면 외부 요청으로 오분류돼 IP 속도제한 경로를 탄다.
+                    //    (그 경로가 x-real-ip 부재로 500 을 냈다 — 2026-08-19 사고)
+                    headers: { referer: `${url.origin}/${boardId}/${postId}` }
+                }
             )
                 .then(async (res) => {
                     if (!res.ok) {
