@@ -2,6 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types.js';
 import type { Board, FreePost } from '$lib/api/types.js';
 import { fetchPromotionPosts, fetchPromotionBoardPosts } from '$lib/server/ads/promotion.js';
+import { getPageIndex } from '$lib/server/page-index';
 import {
     applyAffiliateField,
     fetchPostAffiliateLinks,
@@ -827,18 +828,15 @@ export const load: PageServerLoad = async ({
         let recentPostsPage = urlPage > 0 ? urlPage : 1;
 
         if (urlPage === 0 && !post.deleted_at) {
-            try {
-                const piRes = await svelteKitFetch(
-                    `/api/boards/${boardId}/posts/${postId}/page-index`
-                );
-                if (piRes.ok) {
-                    const body = (await piRes.json()) as { page?: number };
-                    if (body.page && body.page > 1) {
-                        recentPostsPage = body.page;
-                    }
-                }
-            } catch {
-                // page-index 실패 시 1 유지 (사용자 흐름 방해 X)
+            // ⛔ 예전에는 여기서 `/api/.../page-index` 를 svelteKitFetch 로 불렀다.
+            //    같은 프로세스인데 Request/Response 생성과 JSON 왕복이 매 요청 일어나서,
+            //    캐시 적중인데도 1~3ms 가 걸렸다(Redis GET 하나면 1ms 미만이어야 한다).
+            //    실측상 이 계산의 호출자는 100% SSR 이라(브라우저 요청 0건) HTTP 계층이 순수 낭비였다.
+            // → 같은 로직을 함수로 직접 부른다. 결과·캐시 키·TTL 은 완전히 동일하다.
+            //    getPageIndex 는 던지지 않고 실패 시 page:1 을 돌려주므로 try 가 필요 없다.
+            const pi = await getPageIndex(boardId, Number(postId));
+            if (pi.page > 1) {
+                recentPostsPage = pi.page;
             }
         }
 
