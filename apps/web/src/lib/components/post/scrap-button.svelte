@@ -12,6 +12,8 @@
         initialScrapped?: boolean;
         size?: 'default' | 'sm' | 'lg' | 'icon';
         variant?: 'default' | 'outline' | 'ghost';
+        /** true 면 모바일(<640px)에서 라벨을 숨기고 아이콘만 표시. 기본값 false=현행 유지. size!=='icon' 일 때만 라벨이 존재한다. */
+        labelHiddenMobile?: boolean;
     }
 
     let {
@@ -19,7 +21,8 @@
         postId,
         initialScrapped = false,
         size = 'icon',
-        variant = 'ghost'
+        variant = 'ghost',
+        labelHiddenMobile = false
     }: Props = $props();
 
     let scrapped = $state(initialScrapped);
@@ -72,6 +75,8 @@
 >
     <Bookmark class="h-4 w-4" fill={scrapped ? 'currentColor' : 'none'} />
     {#if size !== 'icon'}
-        <span class="ml-1.5">{scrapped ? '스크랩됨' : '스크랩'}</span>
+        <span class="ml-1.5 {labelHiddenMobile ? 'hidden sm:inline' : ''}"
+            >{scrapped ? '스크랩됨' : '스크랩'}</span
+        >
     {/if}
 </Button>

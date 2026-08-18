@@ -19,9 +19,11 @@
         postId: string | number;
         title: string;
         imageUrl?: string;
+        /** true 면 모바일(<640px)에서 "공유" 텍스트를 숨기고 아이콘만 표시. 기본값 false=현행 유지. */
+        labelHiddenMobile?: boolean;
     }
 
-    let { boardId, postId, title, imageUrl }: Props = $props();
+    let { boardId, postId, title, imageUrl, labelHiddenMobile = false }: Props = $props();
 
     let open = $state(false);
 
@@ -109,7 +111,7 @@
         aria-expanded={open}
     >
         <Share2 class="h-4 w-4" />
-        <span>공유</span>
+        <span class={labelHiddenMobile ? 'hidden sm:inline' : ''}>공유</span>
     </button>
 
     {#if open}
