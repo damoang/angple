@@ -41,6 +41,7 @@ import { getPostAspects, type AspectRating } from '$lib/server/rating-aspects.js
 import { getBoardAspectPreset } from '$plugins/angtt-review/lib/aspect-presets';
 import { fetchAngmapArchiveRating } from '$lib/server/angmap-archive-rating.js';
 import { getBoardOwnerContext } from '$lib/server/board-owner';
+import { resolveClientIp } from '$lib/server/rate-limit.js';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -94,6 +95,7 @@ export const load: PageServerLoad = async ({
     locals,
     url,
     cookies,
+    request,
     getClientAddress,
     setHeaders,
     isDataRequest
@@ -365,12 +367,7 @@ export const load: PageServerLoad = async ({
             const alreadyViewedByCookie = viewed.includes(vcKey);
 
             // 서버 사이드 IP 기반 중복 방지 (Redis — pod 간 공유)
-            let clientIp = '';
-            try {
-                clientIp = getClientAddress();
-            } catch {
-                clientIp = '';
-            }
+            let clientIp = resolveClientIp(getClientAddress, request) ?? '';
             const alreadyViewedByIp = clientIp
                 ? await hasRecentlyViewed(clientIp, boardId, Number(postId))
                 : false;
@@ -790,12 +787,7 @@ export const load: PageServerLoad = async ({
                 hasLockedComment) &&
             locals.user
         ) {
-            let clientIp = '';
-            try {
-                clientIp = getClientAddress();
-            } catch {
-                clientIp = '';
-            }
+            let clientIp = resolveClientIp(getClientAddress, request) ?? '';
             watermark = {
                 nickname: locals.user?.nickname || '',
                 userId: locals.user?.id || '',
@@ -807,12 +799,7 @@ export const load: PageServerLoad = async ({
         // 로그인 사용자에게만 발급 — 익명 SSR/데이터 캐시 응답에 IP 가 잔존하지 않게 한다.
         let disciplineViewer: { nickname: string; userId: string; clientIp: string } | null = null;
         if (locals.user) {
-            let clientIp = '';
-            try {
-                clientIp = getClientAddress();
-            } catch {
-                clientIp = '';
-            }
+            let clientIp = resolveClientIp(getClientAddress, request) ?? '';
             disciplineViewer = {
                 nickname: locals.user.nickname || '',
                 userId: locals.user.id || '',

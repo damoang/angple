@@ -27,6 +27,7 @@ import { applyFilter } from '$lib/hooks/registry.js';
 import { buildHookContext } from '$lib/hooks/context.js';
 import { getBoardOwnerContext, getBoardIntro } from '$lib/server/board-owner';
 import { sanitizeIntroHtml } from '$lib/server/sanitize';
+import { resolveClientIp } from '$lib/server/rate-limit.js';
 
 // --- 인메모리 캐시: 비로그인 게시글 목록 (15초 TTL) ---
 interface PostsCacheData {
@@ -177,6 +178,7 @@ export const load: PageServerLoad = async ({
     url,
     params,
     locals,
+    request,
     getClientAddress,
     isDataRequest,
     setHeaders
@@ -868,12 +870,7 @@ export const load: PageServerLoad = async ({
     // 진실의방 워터마크 데이터 (목록 페이지)
     let watermark: { nickname: string; userId: string; clientIp: string } | null = null;
     if (boardId === 'truthroom') {
-        let clientIp = '';
-        try {
-            clientIp = getClientAddress();
-        } catch {
-            clientIp = '';
-        }
+        let clientIp = resolveClientIp(getClientAddress, request) ?? '';
         watermark = {
             nickname: locals.user?.nickname || '',
             userId: locals.user?.id || '',

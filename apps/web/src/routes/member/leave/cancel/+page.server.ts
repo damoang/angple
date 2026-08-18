@@ -25,6 +25,7 @@ import {
     computeWithdrawalGrace,
     cancelMemberLeave
 } from '$lib/server/auth/withdrawal.js';
+import { resolveClientIp } from '$lib/server/rate-limit.js';
 
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || (dev ? undefined : '.damoang.net');
 
@@ -74,7 +75,7 @@ export const actions: Actions = {
             return fail(403, { error: '이미 탈퇴가 확정되어 취소할 수 없습니다.' });
         }
 
-        const clientIp = getClientAddress();
+        const clientIp = resolveClientIp(getClientAddress, request) ?? '';
 
         // 백엔드 탈퇴 취소 (DELETE /api/v1/members/me/leave)
         try {

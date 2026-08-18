@@ -7,7 +7,7 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { isInternalAppRequest } from '$lib/server/internal-api.js';
-import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
+import { checkRateLimit, recordAttempt, resolveClientIp } from '$lib/server/rate-limit.js';
 
 interface Post {
     wr_id: number;
@@ -46,23 +46,27 @@ export const GET: RequestHandler = async ({ params, url, request, getClientAddre
 
     // 외부(브라우저) 요청 rate-limit — 정상 페이지네이션 허용, 대량 호출만 차단.
     if (!isInternalRequest) {
-        const ip = getClientAddress();
-        const rl = checkRateLimit(
-            ip,
-            'board-posts',
-            EXTERNAL_POSTS_RATE_LIMIT,
-            EXTERNAL_POSTS_RATE_WINDOW_MS
-        );
-        if (!rl.allowed) {
-            return json(
-                { success: false, error: '요청이 너무 잦습니다. 잠시 후 다시 시도해주세요.' },
-                {
-                    status: 429,
-                    headers: rl.retryAfter ? { 'Retry-After': String(rl.retryAfter) } : {}
-                }
+        // [A 공개 읽기] IP 를 못 구하면 제한을 건너뛴다 — 키 없이는 제한을 걸 수 없고,
+        // 못 건다는 이유로 요청을 죽이면 SSR 이 통째로 깨진다(2026-08-19 댓글 사고).
+        const ip = resolveClientIp(getClientAddress, request);
+        if (ip) {
+            const rl = checkRateLimit(
+                ip,
+                'board-posts',
+                EXTERNAL_POSTS_RATE_LIMIT,
+                EXTERNAL_POSTS_RATE_WINDOW_MS
             );
+            if (!rl.allowed) {
+                return json(
+                    { success: false, error: '요청이 너무 잦습니다. 잠시 후 다시 시도해주세요.' },
+                    {
+                        status: 429,
+                        headers: rl.retryAfter ? { 'Retry-After': String(rl.retryAfter) } : {}
+                    }
+                );
+            }
+            recordAttempt(ip, 'board-posts');
         }
-        recordAttempt(ip, 'board-posts');
     }
 
     // boardId 유효성 검사 (영문, 숫자, 언더스코어만 허용)

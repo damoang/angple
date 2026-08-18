@@ -9,6 +9,7 @@
 import type { RequestHandler } from './$types';
 import { redirect } from '@sveltejs/kit';
 import { logAffiliateClick } from '$lib/server/affiliate-click-log';
+import { resolveClientIp } from '$lib/server/rate-limit.js';
 
 /** 허용된 프로토콜 (open redirect 방지) */
 const ALLOWED_PROTOCOLS = ['https:', 'http:'];
@@ -44,12 +45,7 @@ export const GET: RequestHandler = async ({ url, locals, getClientAddress, reque
     }
 
     // 클릭 로깅 (fire-and-forget — 리다이렉트를 블로킹하지 않음)
-    let clientIp = '';
-    try {
-        clientIp = getClientAddress();
-    } catch {
-        clientIp = '';
-    }
+    let clientIp = resolveClientIp(getClientAddress, request) ?? '';
 
     void logAffiliateClick({
         userId: locals.user?.id,

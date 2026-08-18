@@ -26,7 +26,12 @@ import { generateRefreshToken } from '$lib/server/auth/jwt.js';
 import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 import { getMemberById } from '$lib/server/auth/oauth/member.js';
 import { issueUserBasicCookie } from '$lib/server/auth/user-basic.js';
-import { checkRateLimit, recordAttempt, resetAttempts } from '$lib/server/rate-limit.js';
+import {
+    checkRateLimit,
+    recordAttempt,
+    resetAttempts,
+    resolveClientIp
+} from '$lib/server/rate-limit.js';
 
 // 미설정 시 .damoang.net 폴백 — host-only 쿠키 시 새 탭/PWA 세션 격리 (#12260, #12179).
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '.damoang.net';
@@ -66,12 +71,19 @@ export const actions: Actions = {
         const cfg = reviewConfig();
         if (!cfg) throw error(404, 'Not Found');
 
-        const clientIp = getClientAddress();
-        const rate = checkRateLimit(clientIp, 'review-login', 10, 15 * 60 * 1000);
+        // [B 인증·남용 방지] IP 를 못 구해도 **제한을 건너뛰지 않는다.**
+        // ⛔ 건너뛰면 로그인·가입 무제한 시도가 조용히 열린다. 막히면 즉시 제보가 들어오지만
+        //    뚫리면 아무도 모른다 — fail-closed 를 택한다(2026-08-19).
+        // ⛔ 기록·캡차에는 공용 버킷 키를 쓰지 않는다. 'unknown' 이 mb_ip 에 저장되거나
+        //    Turnstile remoteip 로 나가면 데이터가 오염되고 검증이 깨진다.
+        const resolvedIp = resolveClientIp(getClientAddress, request);
+        const clientIp = resolvedIp ?? '';
+        const rateKey = resolvedIp ?? 'unknown';
+        const rate = checkRateLimit(rateKey, 'review-login', 10, 15 * 60 * 1000);
         if (!rate.allowed) {
             return fail(429, { message: '시도가 너무 많습니다. 잠시 후 다시 시도해주세요.' });
         }
-        recordAttempt(clientIp, 'review-login');
+        recordAttempt(rateKey, 'review-login');
 
         const data = await request.formData();
         const username = String(data.get('username') ?? '');
@@ -92,7 +104,7 @@ export const actions: Actions = {
             return fail(500, { message: '심사용 계정을 찾을 수 없습니다. 운영자에게 문의하세요.' });
         }
 
-        resetAttempts(clientIp, 'review-login');
+        resetAttempts(rateKey, 'review-login');
 
         // OAuth 콜백 / 일반 로그인과 동일한 세션·쿠키 스택 발급
         const session = await createSession(member.mb_id, {

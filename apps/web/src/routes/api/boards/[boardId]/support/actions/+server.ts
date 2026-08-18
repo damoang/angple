@@ -31,6 +31,7 @@ import {
     countActiveSupportLocks,
     getLastSupportAction
 } from '$lib/server/board-support';
+import { resolveClientIp } from '$lib/server/rate-limit.js';
 
 const REASON_MAX = 200;
 /** 보드당 동시 잠금 상한 — 남용(무더기 잠금) 1차 방어선 */
@@ -149,7 +150,7 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
                     reason,
                     subject: summary.subject
                 }),
-                getClientAddress()
+                resolveClientIp(getClientAddress, request) ?? ''
             ]);
             await conn.commit();
         } catch (e) {
@@ -214,7 +215,7 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
                 reason,
                 subject: summary.subject
             }),
-            getClientAddress()
+            resolveClientIp(getClientAddress, request) ?? ''
         ]);
         await conn.commit();
     } catch (e) {

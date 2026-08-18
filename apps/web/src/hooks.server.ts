@@ -58,6 +58,7 @@ void siteResolver.resolve('').catch(() => {}); // warm-up: load() 강제 실행
 
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
+import { resolveClientIp } from '$lib/server/rate-limit.js';
 
 // --- 환경별 접근 제어 (hostname → 환경변수 매핑) ---
 // 각 환경변수가 설정된 경우에만 해당 호스트에서 접근 제어 활성화
@@ -385,11 +386,9 @@ const CSRF_EXEMPT_PATHS = [
  * 향후 getClientAddress() 호출 추가 시에도 같은 문제를 방지합니다.
  */
 function safeGetClientAddress(event: Parameters<Handle>[0]['event']): string | null {
-    try {
-        return event.getClientAddress();
-    } catch {
-        return null;
-    }
+    // ⛔ 로직을 여기 두지 않는다. 이 파일 안에만 있던 탓에 다른 라우트가 같은 함정을
+    //    그대로 밟았다(2026-08-19 댓글 SSR 500). 정본은 rate-limit.ts 의 resolveClientIp 하나다.
+    return resolveClientIp(() => event.getClientAddress(), event.request);
 }
 
 function getGlobalApiRateLimitKey(
@@ -943,6 +942,12 @@ const handleInner: Handle = async ({ event, resolve }) => {
     }
 
     // Rate limiting: 인증 관련 엔드포인트 보호 (SSR 내부 fetch는 IP 없으므로 건너뜀)
+    //
+    // ⛔ 여기서 건너뛰는 것은 의도적이다. 'unknown' 공용 버킷으로 바꾸지 마라 —
+    //    SSR 내부 fetch 가 인증 경로를 지날 때 자기 자신을 429 로 막게 된다.
+    //    IP 를 못 구했을 때의 인증 남용 방어는 **라우트 단**에서 한다
+    //    (api/auth/login · register · password-reset · login/review 가
+    //     resolvedIp ?? 'unknown' 으로 제한을 유지한다). 계층이 다르다.
     const rateLimitRule = RATE_LIMITED_PATHS.find((r) => pathname.startsWith(r.path));
     if (rateLimitRule) {
         const clientIp = safeGetClientAddress(event);

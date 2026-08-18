@@ -2,6 +2,7 @@ import type { RequestHandler } from './$types';
 import { redirect } from '@sveltejs/kit';
 import { logAffiliateClick } from '$lib/server/affiliate-click-log';
 import { resolveAffiliateRedirectFromStorage } from '$lib/server/affiliate-links';
+import { resolveClientIp } from '$lib/server/rate-limit.js';
 
 const ALLOWED_PROTOCOLS = ['https:', 'http:'];
 
@@ -22,12 +23,7 @@ export const GET: RequestHandler = async ({ params, locals, getClientAddress, re
         throw redirect(302, '/');
     }
 
-    let clientIp = '';
-    try {
-        clientIp = getClientAddress();
-    } catch {
-        clientIp = '';
-    }
+    let clientIp = resolveClientIp(getClientAddress, request) ?? '';
 
     void logAffiliateClick({
         userId: locals.user?.id,

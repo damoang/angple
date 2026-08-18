@@ -31,6 +31,7 @@ import {
 } from '$lib/server/auth/register.js';
 import { generateAppLoginCode } from '$lib/server/auth/jwt.js';
 import type { OAuthUserProfile } from '$lib/server/auth/oauth/types.js';
+import { resolveClientIp } from '$lib/server/rate-limit.js';
 
 const APPLE_ISSUER = 'https://appleid.apple.com';
 // Apple 공개키(JWKS)는 회전되므로 원격 세트로 검증(jose 가 캐시/회전 처리)
@@ -166,7 +167,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
                     mb_nick: nickname,
                     mb_email: verifiedEmail,
                     mb_name: nickname,
-                    mb_ip: getClientAddress(),
+                    mb_ip: resolveClientIp(getClientAddress, request) ?? '',
                     skipNickLock: true
                 });
             }

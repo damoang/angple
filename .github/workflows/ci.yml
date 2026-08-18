@@ -39,6 +39,15 @@ jobs:
       - name: Check admin API auth guard
         run: node scripts/check-admin-api-guard.mjs
 
+      # getClientAddress() 직접 호출 가드 — 2026-08-19.
+      # ADDRESS_HEADER=x-real-ip 환경에서 그 헤더가 없으면 이 함수는 throw 한다.
+      # SSR 이 event.fetch 로 자기 API 를 부르는 경로에는 x-real-ip 가 없어서,
+      # 댓글 API 가 시간당 약 3.6만 건의 500 을 냈고 댓글이 통째로 안 실렸다.
+      # ⛔ hooks.server.ts 에 이미 같은 함정을 막는 헬퍼와 주석이 있었는데도 재발했다.
+      #    파일 안에만 있고 강제 장치가 없어서다. 주석으로는 못 막아 기계가 막는다.
+      - name: Check direct getClientAddress() calls
+        run: node scripts/check-client-address.mjs
+
   # 하이드레이션 AST 가드 — 두 검사가 pnpm install 을 공유한다.
   #
   #  1) 중첩 <a>  (2026-07-28)

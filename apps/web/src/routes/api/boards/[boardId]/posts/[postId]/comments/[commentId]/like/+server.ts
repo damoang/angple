@@ -19,6 +19,7 @@ import {
     invalidateReactionCaches,
     syncFeedReactionCounts
 } from '$lib/server/member-activity-cache.js';
+import { resolveClientIp } from '$lib/server/rate-limit.js';
 
 interface GoodRow extends RowDataPacket {
     bg_flag: string;
@@ -374,7 +375,10 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
         } else {
             // 추가
             // IP 보호: super admin/지정 멤버는 실제 IP 대신 치환 IP 기록 (Go 미들웨어와 동일 규칙)
-            const clientIp = protectClientIp(user, getClientAddress());
+            const clientIp = protectClientIp(
+                user,
+                resolveClientIp(getClientAddress, request) ?? ''
+            );
             await conn.query(
                 `INSERT INTO g5_board_good (bo_table, wr_id, mb_id, bg_flag, bg_datetime, bg_ip) VALUES (?, ?, ?, ?, CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+09:00'), ?)`,
                 [safeBoardId, safeCommentId, user.mb_id, action, clientIp]
