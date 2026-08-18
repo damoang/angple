@@ -62,7 +62,8 @@ const EMOJIS: EmoticonDef[] = [
     { reaction: 'emoji:2705', category: 'emoji', renderType: 'emoji', emoji: '✅' },
     { reaction: 'emoji:1f4af', category: 'emoji', renderType: 'emoji', emoji: '💯' },
     { reaction: 'emoji:1f62d', category: 'emoji', renderType: 'emoji', emoji: '😭' },
-    { reaction: 'emoji:1fae1', category: 'emoji', renderType: 'emoji', emoji: '🫡' }
+    { reaction: 'emoji:1fae1', category: 'emoji', renderType: 'emoji', emoji: '🫡' },
+    { reaction: 'emoji:1f92c', category: 'emoji', renderType: 'emoji', emoji: '🤬' }
 ];
 
 // 앙티콘 세트 (다모앙 커스텀 GIF)
