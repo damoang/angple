@@ -43,6 +43,30 @@
     let blockedReactions = $state<string[]>([]);
     let isLoading = $state(false);
     let isReacting = $state(false);
+
+    /**
+     * 피커에서 지금 호버(또는 포커스)된 이모티콘. 이 1개만 움직이는 파생본으로 바꾼다.
+     * ⛔ 그리드 전체를 애니로 두면 44개 = 812KB 를 한 번에 받는다. 호버는 1개씩이라 싸다.
+     */
+    let hoveredEmoticon = $state<string | null>(null);
+
+    /**
+     * 호버 미리보기용 애니메이션 URL. 앙티콘이 아니거나 모션 최소화 설정이면 null 을 돌려
+     * 정지 썸네일을 그대로 쓰게 한다.
+     *
+     * ⛔ 모션 최소화 판정을 모듈 최상단이나 $derived 로 올리지 마라 — 이 컴포넌트는 SSR 로도
+     *    그려지는데 window 가 없다. 호버는 클라이언트에서만 일어나므로 여기서 보면 안전하다.
+     */
+    function animatedUrlFor(emo: { reaction: string; url?: string }): string | null {
+        if (
+            typeof window !== 'undefined' &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ) {
+            return null;
+        }
+        const animated = getReactionDisplay(emo.reaction).url;
+        return animated && animated !== emo.url ? animated : null;
+    }
     let showPicker = $state(false);
     let activeCategory = $state('angticon');
     let pickerStyle = $state('');
@@ -285,7 +309,19 @@
             title={blocked ? '현재 사용할 수 없는 리액션입니다.' : display.label}
         >
             {#if display.renderType === 'image' && display.url}
-                <img src={display.url} alt={display.label} class="h-5 w-5 object-scale-down" />
+                <!-- 움직이는 아이콘을 쓰되 모션 최소화 사용자에게는 정지본을 준다.
+                     ⛔ JS(matchMedia)로 고르지 마라 — 이 바는 SSR 로 그려지므로
+                        클라이언트에서 갈아끼우면 첫 페인트가 흔들린다. <source media> 는
+                        브라우저가 첫 요청부터 골라주므로 왕복도 깜빡임도 없다. -->
+                <picture class="contents">
+                    {#if display.staticUrl}
+                        <source
+                            srcset={display.staticUrl}
+                            media="(prefers-reduced-motion: reduce)"
+                        />
+                    {/if}
+                    <img src={display.url} alt={display.label} class="h-5 w-5 object-scale-down" />
+                </picture>
             {:else}
                 <span class="text-base leading-none">{display.emoji}</span>
             {/if}
@@ -374,18 +410,27 @@
                     : 6}, minmax(0, 1fr));"
             >
                 {#each categoryEmoticons as emo (emo.reaction)}
+                    {@const previewUrl =
+                        hoveredEmoticon === emo.reaction ? animatedUrlFor(emo) : null}
                     <button
                         type="button"
                         onclick={() => react(emo.reaction, 'add')}
+                        onmouseenter={() => (hoveredEmoticon = emo.reaction)}
+                        onmouseleave={() => (hoveredEmoticon = null)}
+                        onfocus={() => (hoveredEmoticon = emo.reaction)}
+                        onblur={() => (hoveredEmoticon = null)}
                         disabled={isReacting}
                         class="hover:bg-accent group/emo relative flex items-center justify-center rounded-lg p-1 transition-all hover:scale-110"
                         title={emo.emoji || emo.reaction}
                     >
                         {#if emo.renderType === 'image' && emo.url}
                             <!-- 첫 오픈 시 탭 전체(앙티콘 44개)가 한꺼번에 내려오던 것을 막는다.
-                                 개별 파일이 최대 679KB 애니 GIF 라 합계 ~2.9MB 였다(2026-08-11 실측). -->
+                                 개별 파일이 최대 679KB 애니 GIF 라 합계 ~2.9MB 였다(2026-08-11 실측).
+                                 그래서 그리드는 정지 썸네일을 쓰고, **호버한 1개만** 움직이는
+                                 파생본으로 바꾼다(아래 4배 확대 미리보기가 살아난다).
+                                 ⛔ 그리드 전체를 애니로 바꾸지 마라 — 44개 합계 812KB 다. -->
                             <img
-                                src={emo.url}
+                                src={previewUrl ?? emo.url}
                                 alt={emo.reaction}
                                 loading="lazy"
                                 decoding="async"
