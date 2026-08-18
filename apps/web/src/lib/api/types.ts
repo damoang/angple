@@ -65,6 +65,8 @@ export interface FreePost {
     /** 게시글 링크(wr_link1/2)와 클릭수. /files 라우트가 g5_write_{board} 에서 직접 읽어 채운다. */
     linkHits?: { n: number; url: string; hit: number }[];
     is_secret?: boolean; // 비밀글 여부
+    /** 작성자 부끄앙(가림) 통제 (#13571 Phase3). true=강제 흐림(리더 설정 무관), false=안 흐림, 생략=미지정(리더 shouldBlurContent 폴백). */
+    is_blur?: boolean;
     is_comments_disabled?: boolean; // 댓글 비활성화 (읽기 전용 공지)
     is_notice?: boolean; // 공지사항 여부
     notice_type?: 'normal' | 'important'; // 공지 타입 (일반/필수)
@@ -657,6 +659,7 @@ export interface UpdatePostRequest {
     content?: string; // 선택, 1자 이상
     category?: string; // 선택
     is_secret?: boolean; // 선택 (비밀글 설정/해제 — 생략 시 변경 없음) (#13161)
+    is_blur?: boolean; // 선택 (부끄앙/가림 설정/해제 — 생략 시 변경 없음) (#13571 Phase3)
     tags?: string[]; // 선택 (태그 목록)
     link1?: string; // 선택 (링크1)
     link2?: string; // 선택 (링크2)
