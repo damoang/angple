@@ -192,7 +192,7 @@ export async function findExistingTempAccount(baseMbId: string): Promise<{ mb_id
  * 닉네임 검증 (PHP register.lib.php 호환)
  * - 빈 값 불가
  * - 2~20자
- * - 한글/영문/숫자/점/밑줄 허용
+ * - 한글/한자/영문/숫자/점/밑줄 허용
  * - 연속 점 불가
  * - 금지어 불가
  * - 중복 불가
@@ -210,9 +210,12 @@ export async function validateNickname(
         return { valid: false, error: '닉네임은 2~20자로 입력해주세요.' };
     }
 
-    // 허용 문자: 한글, 영문, 숫자, 점, 밑줄
-    if (!/^[가-힣a-zA-Z0-9._]+$/.test(trimmed)) {
-        return { valid: false, error: '닉네임은 한글, 영문, 숫자, 점, 밑줄만 사용 가능합니다.' };
+    // 허용 문자: 한글, 한자(CJK 통합 U+4E00–U+9FFF), 영문, 숫자, 점, 밑줄
+    if (!/^[가-힣a-zA-Z0-9._一-鿿]+$/.test(trimmed)) {
+        return {
+            valid: false,
+            error: '닉네임은 한글, 한자, 영문, 숫자, 점, 밑줄만 사용 가능합니다.'
+        };
     }
 
     // 연속 점 불가
