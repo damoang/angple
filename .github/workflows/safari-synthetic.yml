@@ -2,6 +2,15 @@ name: Safari Synthetic
 
 on:
   workflow_dispatch:
+    inputs:
+      run_hydration_diagnostic:
+        description: 'iOS Safari 하이드레이션 무결성 진단도 함께 실행'
+        type: boolean
+        default: false
+      hydration_iterations:
+        description: '경로당 반복 횟수 (기본 4)'
+        type: string
+        default: '4'
   schedule:
     - cron: '*/15 * * * *'
 
@@ -39,7 +48,11 @@ jobs:
         env:
           E2E_EXTERNAL_BASE_URL: https://damoang.net
           E2E_SYNTHETIC_POST_PATH: /free/5998999
-        run: pnpm exec playwright test --config=playwright.synthetic.config.ts
+        # ⛔ @hydration 은 여기서 돌리지 않는다.
+        #    현재 iOS Safari 실패율이 ~68% 라 15분마다 실패 → 하루 96번 텔레그램이 울리고
+        #    곧 아무도 안 본다(경보 피로). 원인을 고쳐 0 이 된 뒤 이 제외를 풀고
+        #    E2E_HYDRATION_MAX_FAIL_RATE=0 으로 회귀 가드로 승격한다.
+        run: pnpm exec playwright test --config=playwright.synthetic.config.ts --grep-invert @hydration
 
       - name: Upload synthetic report
         if: always()
@@ -48,6 +61,59 @@ jobs:
           name: playwright-report-safari-synthetic
           path: apps/web/playwright-report-synthetic/
           retention-days: 7
+
+  # iOS Safari 하이드레이션 무결성 진단 — 수동 실행 전용.
+  #
+  # 원격 계측(error_logs.js_errors)은 "iOS 에서 ~68% 깨진다"까지 알려줬지만
+  # **왜** 는 못 알려준다. 여기서 WebKit 으로 재현해 trace/video 를 남긴다.
+  #
+  # ⛔ notify 잡이 이 잡을 needs 하지 않는다 — 진단이 빨개도 텔레그램은 울리지 않는다.
+  #    운영 알림 채널을 진단용으로 오염시키지 않기 위한 의도적 분리다.
+  hydration-diagnostic:
+    name: Hydration Integrity (iOS Safari)
+    if: github.event_name == 'workflow_dispatch' && inputs.run_hydration_diagnostic
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        working-directory: apps/web
+        run: pnpm exec playwright install --with-deps webkit
+
+      - name: Measure hydration integrity
+        working-directory: apps/web
+        env:
+          E2E_EXTERNAL_BASE_URL: https://damoang.net
+          E2E_SYNTHETIC_POST_PATH: /free/5998999
+          E2E_HYDRATION_ITERATIONS: ${{ inputs.hydration_iterations }}
+          # 진단 단계에서는 수치만 본다. 고친 뒤 0 으로 낮춰 가드로 쓴다.
+          E2E_HYDRATION_MAX_FAIL_RATE: '1'
+        run: pnpm exec playwright test --config=playwright.synthetic.config.ts --grep @hydration
+
+      - name: Upload diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: hydration-integrity-report
+          path: |
+            apps/web/playwright-report-synthetic/
+            apps/web/test-results/
+          retention-days: 14
 
   notify:
     name: Notify Telegram
