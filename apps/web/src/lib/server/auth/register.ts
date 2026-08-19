@@ -189,6 +189,49 @@ export async function findExistingTempAccount(baseMbId: string): Promise<{ mb_id
 }
 
 /**
+ * 닉네임 정규화에서 제거하는 "눈에 보이지 않는 문자"의 코드포인트 목록.
+ * 각 항목은 [시작, 끝] 코드포인트 범위(단일 문자는 시작=끝)다.
+ *
+ * ⚠️ 일반 공백(U+0020)은 목록에 없다 — 닉 중간 공백을 거부하는 기존 정책을 그대로 유지하기 위함.
+ *     여기 있는 것은 화면에 흔적이 없어 사용자가 의도하지 않은 문자들뿐이다.
+ */
+const INVISIBLE_CHAR_RANGES: ReadonlyArray<readonly [number, number]> = [
+    [0x0000, 0x001f], // C0 제어문자
+    [0x007f, 0x009f], // DEL · C1 제어문자
+    [0x200b, 0x200d], // ZWSP · ZWNJ · ZWJ (제로폭)
+    [0x2060, 0x2060], // Word joiner
+    [0xfeff, 0xfeff], // BOM / ZWNBSP
+    [0x3000, 0x3000] // 전각공백(눈에 보이지 않는 공백)
+];
+
+/**
+ * 위 코드포인트로 문자 클래스를 조립한다. String.fromCharCode 로 만들기 때문에
+ * 소스에는 눈에 안 보이는 문자가 직접 들어가지 않아 리뷰가 가능하다.
+ */
+const INVISIBLE_CHARS_RE = new RegExp(
+    '[' +
+        INVISIBLE_CHAR_RANGES.map(
+            ([start, end]) => String.fromCharCode(start) + '-' + String.fromCharCode(end)
+        ).join('') +
+        ']',
+    'g'
+);
+
+/**
+ * 닉네임에서 눈에 보이지 않는 문자를 제거한다.
+ *
+ * 외부 사이트에서 닉네임을 복사·붙여넣기 하면 눈에 안 보이는 문자가 딸려 오는 경우가 있다.
+ * 예를 들어 순수 한자 닉("山寂")을 붙여넣어도 앞뒤에 전각공백/제로폭 문자가 섞여
+ * 허용 문자 정규식(`^[가-힣a-zA-Z0-9._一-鿿™]+$`)을 통과하지 못해 거부됐다.
+ * (2026-08-19 실측: free/7070278 제보 — 딴지 등에서 복사한 한자 닉이 거부됨)
+ *
+ * 제거 대상은 INVISIBLE_CHAR_RANGES 참고. 일반 공백(U+0020)은 제거하지 않는다.
+ */
+export function stripInvisibleChars(value: string): string {
+    return value.replace(INVISIBLE_CHARS_RE, '');
+}
+
+/**
  * 닉네임 검증 (PHP register.lib.php 호환)
  * - 빈 값 불가
  * - 2~20자
@@ -196,15 +239,24 @@ export async function findExistingTempAccount(baseMbId: string): Promise<{ mb_id
  * - 연속 점 불가
  * - 금지어 불가
  * - 중복 불가
+ *
+ * 검증에 앞서 눈에 보이지 않는 문자(제로폭·전각공백·제어문자)를 제거하며,
+ * 길이·정규식·금지어·중복 검증과 최종 저장은 모두 정규화된 값(`normalized`) 기준으로 한다.
+ * 호출부는 검증 성공 시 `normalized` 값을 저장해야 한다.
  */
 export async function validateNickname(
     nickname: string
-): Promise<{ valid: boolean; error?: string }> {
+): Promise<{ valid: boolean; error?: string; normalized?: string }> {
     if (!nickname || !nickname.trim()) {
         return { valid: false, error: '닉네임을 입력해주세요.' };
     }
 
-    const trimmed = nickname.trim();
+    // 기존 trim → 안 보이는 문자 제거 순서. 이후 모든 검증·저장은 이 값 기준.
+    const trimmed = stripInvisibleChars(nickname.trim());
+
+    if (!trimmed) {
+        return { valid: false, error: '닉네임을 입력해주세요.' };
+    }
 
     if (trimmed.length < 2 || trimmed.length > 20) {
         return { valid: false, error: '닉네임은 2~20자로 입력해주세요.' };
@@ -234,7 +286,7 @@ export async function validateNickname(
         return { valid: false, error: '이미 사용 중인 닉네임입니다.' };
     }
 
-    return { valid: true };
+    return { valid: true, normalized: trimmed };
 }
 
 /**

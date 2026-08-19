@@ -82,17 +82,19 @@ export async function updateNickname(
         }
     }
 
-    // 닉네임 유효성 검사 (중복 체크 포함)
+    // 닉네임 유효성 검사 (중복 체크 포함). 검증기가 안 보이는 문자(제로폭·전각공백 등)를
+    // 제거한 정규화 값을 돌려주므로, 저장·이력도 반드시 그 값(finalNick)을 써야 한다.
     const validation = await validateNickname(trimmed);
     if (!validation.valid) {
         return { success: false, error: validation.error };
     }
+    const finalNick = validation.normalized ?? trimmed;
 
     // UPDATE + 이력 저장
     try {
         const [result] = await pool.query<ResultSetHeader>(
             'UPDATE g5_member SET mb_nick = ?, mb_nick_date = CURDATE() WHERE mb_id = ?',
-            [trimmed, mbId]
+            [finalNick, mbId]
         );
         if (result.affectedRows === 0) {
             return { success: false, error: '회원 정보를 찾을 수 없습니다.' };
@@ -102,7 +104,7 @@ export async function updateNickname(
         try {
             await pool.query(
                 'INSERT INTO g5_member_nick_history (mb_id, old_nick, new_nick) VALUES (?, ?, ?)',
-                [mbId, profile.mb_nick, trimmed]
+                [mbId, profile.mb_nick, finalNick]
             );
         } catch (e) {
             console.error('[updateNickname] 이력 저장 실패:', e);
