@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       run_hydration_diagnostic:
-        description: 'iOS Safari 하이드레이션 무결성 진단도 함께 실행'
+        description: 'iOS Safari 하이드레이션·스크롤복원 진단도 함께 실행'
         type: boolean
         default: false
       hydration_iterations:
@@ -75,7 +75,7 @@ jobs:
         #    현재 iOS Safari 실패율이 ~68% 라 15분마다 실패 → 하루 96번 텔레그램이 울리고
         #    곧 아무도 안 본다(경보 피로). 원인을 고쳐 0 이 된 뒤 이 제외를 풀고
         #    E2E_HYDRATION_MAX_FAIL_RATE=0 으로 회귀 가드로 승격한다.
-        run: pnpm exec playwright test --config=playwright.synthetic.config.ts --grep-invert @hydration
+        run: pnpm exec playwright test --config=playwright.synthetic.config.ts --grep-invert '@hydration|@scroll'
 
       - name: Upload synthetic report
         if: always()
@@ -144,7 +144,7 @@ jobs:
           E2E_HYDRATION_ITERATIONS: ${{ inputs.hydration_iterations }}
           # 진단 단계에서는 수치만 본다. 고친 뒤 0 으로 낮춰 가드로 쓴다.
           E2E_HYDRATION_MAX_FAIL_RATE: '1'
-        run: pnpm exec playwright test --config=playwright.synthetic.config.ts --grep @hydration
+        run: pnpm exec playwright test --config=playwright.synthetic.config.ts --grep '@hydration|@scroll'
 
       - name: Upload diagnostic report
         if: always()
