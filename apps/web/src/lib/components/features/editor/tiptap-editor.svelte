@@ -39,6 +39,7 @@
     import { Marked } from 'marked';
     import TurndownService from 'turndown';
     import { isImageFile } from '$lib/utils/image-convert.js';
+    import { dompurify } from '$lib/utils/dompurify.js';
 
     // ⛔ 전역 `marked` 싱글턴을 쓰지 않는다. breaks:true 를 켜는 곳이
     //    markdown.svelte 의 모듈 최상위라서, 글 상세를 한 번도 안 거치고
@@ -792,6 +793,45 @@
                 alert(
                     `이미지가 ${imgCount}개 포함되어 있어 이미지를 제외하고 텍스트만 붙여넣었습니다.\n이미지는 한 번에 최대 10개까지 붙여넣기 가능합니다.`
                 );
+                return;
+            }
+        }
+
+        // 외부 '퍼가기' HTML(<a href><img src=외부https>)을 plain text 로 붙여넣는 경우 (#free-7066603)
+        // kdemo 등의 퍼가기 코드는 클립보드에 text/html 없이 text/plain 만 담겨,
+        // ProseMirror 가 텍스트 노드로 넣어 getHTML() 이 `<`→`&lt;` 로 이스케이프 → 태그가 글자로 노출됐다.
+        // text/html 이 있는 리치 붙여넣기(에디터 간 복사 등)와, 코드블록 안(코드 공유 의도)은 건드리지 않는다.
+        if (!htmlData) {
+            const rawPlain = e.clipboardData?.getData('text/plain');
+            const inCodeBlock = editor?.isActive('codeBlock') ?? false;
+            if (rawPlain && /<(a|img)\b[^>]*>/i.test(rawPlain) && !inCodeBlock) {
+                e.preventDefault();
+                // XSS 1차 방어: dompurify allowlist (script/on*/javascript:/style/iframe 차단)
+                const cleaned = dompurify.sanitize(rawPlain, {
+                    ALLOWED_TAGS: ['a', 'img', 'p', 'br', 'figure', 'span'],
+                    ALLOWED_ATTR: [
+                        'href',
+                        'title',
+                        'target',
+                        'rel',
+                        'src',
+                        'alt',
+                        'width',
+                        'height'
+                    ],
+                    FORBID_TAGS: ['script', 'style', 'iframe'],
+                    FORBID_ATTR: ['style'],
+                    ALLOW_DATA_ATTR: false
+                });
+                // target="_blank" 링크에 rel="noopener noreferrer" 강제 (탭내빙 방지)
+                const tpl = document.createElement('template');
+                tpl.innerHTML = cleaned;
+                tpl.content.querySelectorAll('a[target="_blank"]').forEach((a) => {
+                    a.setAttribute('rel', 'noopener noreferrer');
+                });
+                // XSS 2차 방어: insertContent → ProseMirror 스키마가 허용 노드(LinkedImage/Link)만 통과.
+                // (3차 방어는 렌더 시점 재 sanitize — 서버/렌더 무변경)
+                editor?.commands.insertContent(tpl.innerHTML);
                 return;
             }
         }
