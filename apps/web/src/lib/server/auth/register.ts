@@ -210,8 +210,8 @@ export async function validateNickname(
         return { valid: false, error: '닉네임은 2~20자로 입력해주세요.' };
     }
 
-    // 허용 문자: 한글, 한자(CJK 통합 U+4E00–U+9FFF), 영문, 숫자, 점, 밑줄
-    if (!/^[가-힣a-zA-Z0-9._一-鿿]+$/.test(trimmed)) {
+    // 허용 문자: 한글, 한자(CJK 통합 U+4E00–U+9FFF), 영문, 숫자, 점, 밑줄, ™(U+2122)
+    if (!/^[가-힣a-zA-Z0-9._一-鿿™]+$/.test(trimmed)) {
         return {
             valid: false,
             error: '닉네임은 한글, 한자, 영문, 숫자, 점, 밑줄만 사용 가능합니다.'
