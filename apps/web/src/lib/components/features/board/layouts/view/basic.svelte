@@ -918,24 +918,13 @@
                      → 하단본을 initialScrapped 와 함께 복원(정확 표시 + 익숙한 위치 둘 다 충족). -->
                 <div class="ml-auto flex flex-wrap items-center justify-end gap-1">
                     {#if board?.use_sns}
-                        <ShareButton
-                            {boardId}
-                            postId={post.id}
-                            title={post.title || ''}
-                            labelHiddenMobile
-                        />
+                        <ShareButton {boardId} postId={post.id} title={post.title || ''} />
                     {/if}
                     <!-- 스크랩: 최종 순서 공유 → 스크랩 → 신고 → 화나요(사장님 확정). 종전엔 아이콘만
                          이라 옆의 공유·신고(아이콘+문구)와 어긋났는데, size="sm" 이면 컴포넌트가
                          "스크랩"/"스크랩됨" 문구를 함께 렌더한다(상단 툴바본은 아이콘만 유지). -->
                     {#if authStore.isAuthenticated}
-                        <ScrapButton
-                            {boardId}
-                            postId={post.id}
-                            {initialScrapped}
-                            size="sm"
-                            labelHiddenMobile
-                        />
+                        <ScrapButton {boardId} postId={post.id} {initialScrapped} size="sm" />
                     {/if}
                     {#if !isAuthor}
                         <!-- ⭐ 2026-08-18: 신고 버튼은 항상 보인다 — 제재 확정(B형) 글에서도.
@@ -959,7 +948,7 @@
                             aria-label="신고"
                         >
                             <Flag class="h-4 w-4" />
-                            <span class="hidden sm:inline">신고</span>
+                            <span>신고</span>
                         </Button>
                     {/if}
                     <PluginSlot
