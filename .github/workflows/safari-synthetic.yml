@@ -39,9 +39,32 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Playwright browsers
+      # ⛔ 이 워크플로는 **15분마다** 돈다(하루 96회). 캐시 없이 webkit 을 매번 받으면
+      #    그 다운로드만 하루 수 시간의 러너 시간을 태운다(실측: 회당 2~7분).
+      #    캐시 키에 버전을 넣어 버전이 오르면 자동으로 새로 받게 한다.
+      - name: Resolve Playwright version
+        id: pw
+        working-directory: apps/web
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-webkit-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Install Playwright browsers (cache miss)
+        if: steps.pw-cache.outputs.cache-hit != 'true'
         working-directory: apps/web
         run: pnpm exec playwright install --with-deps webkit
+
+      # ⛔ 브라우저 바이너리는 캐시돼도 apt 의존 패키지는 캐시되지 않는다.
+      #    빼먹으면 캐시 적중일 때만 알 수 없는 실행 오류로 죽는다 — 가장 찾기 어려운 종류다.
+      - name: Install Playwright system deps (cache hit)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        working-directory: apps/web
+        run: pnpm exec playwright install-deps webkit
 
       - name: Run Mobile Safari synthetic monitor
         working-directory: apps/web
@@ -91,9 +114,27 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Playwright browsers
+      - name: Resolve Playwright version
+        id: pw
+        working-directory: apps/web
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-webkit-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Install Playwright browsers (cache miss)
+        if: steps.pw-cache.outputs.cache-hit != 'true'
         working-directory: apps/web
         run: pnpm exec playwright install --with-deps webkit
+
+      - name: Install Playwright system deps (cache hit)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        working-directory: apps/web
+        run: pnpm exec playwright install-deps webkit
 
       - name: Measure hydration integrity
         working-directory: apps/web
