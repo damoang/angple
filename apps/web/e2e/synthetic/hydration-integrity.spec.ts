@@ -135,6 +135,89 @@ async function loadOnce(
     return result;
 }
 
+/**
+ * 항해 시나리오 — 목록 → 글 → 뒤로.
+ *
+ * ⛔ 신선 로드만 재면 0% 가 나온다(2026-08-19 첫 진단, 0/15).
+ *    실제 사용자는 목록과 글을 오간다. 그리고 `app.html` 에는 **iOS 전용**
+ *    bfcache 스크립트가 있어 `pageshow(persisted)` 에서 `location.reload()` 를 건다.
+ *    뒤로가기 복원이 바로 그 경로다 — 신선 로드로는 절대 안 밟는다.
+ *    제보의 "뒤로가기 시 위치가 위로 튄다" 도 같은 자리다.
+ */
+async function navigateOnce(
+    browser: import('@playwright/test').Browser,
+    baseURL: string
+): Promise<LoadResult[]> {
+    const context = await browser.newContext({ ...IOS_DEVICE, baseURL });
+    const page = await context.newPage();
+    const collected: LoadResult[] = [];
+    let current: LoadResult = {
+        path: 'nav:list',
+        anchorReason: null,
+        hydrationWarnings: 0,
+        adNodes: -1
+    };
+
+    page.on('console', (msg) => {
+        if (/hydrat/i.test(msg.text())) current.hydrationWarnings++;
+    });
+
+    const corsHeaders = {
+        'access-control-allow-origin': new URL(baseURL).origin,
+        'access-control-allow-credentials': 'true',
+        'access-control-allow-methods': 'POST, OPTIONS',
+        'access-control-allow-headers': 'content-type'
+    };
+    await page.route('**/api/v1/dantry', async (route) => {
+        const request = route.request();
+        if (request.method() === 'OPTIONS') {
+            await route.fulfill({ status: 204, headers: corsHeaders });
+            return;
+        }
+        try {
+            const body = JSON.parse(request.postData() ?? '{}');
+            if (body?.channel === 'anchor' && typeof body.reason === 'string') {
+                current.anchorReason = body.reason;
+            }
+        } catch {
+            /* 관측 실패는 테스트를 죽이지 않는다 */
+        }
+        await route.fulfill({ status: 204, headers: corsHeaders });
+    });
+
+    const settle = async () => {
+        await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {});
+        await page.waitForTimeout(BEACON_GRACE_MS);
+    };
+
+    try {
+        // ① 목록 진입
+        await page.goto(LIST_PATH, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+        await settle();
+        collected.push(current);
+
+        // ② 글로 이동 (SPA 내비게이션 — 실제 사용자 경로)
+        current = { path: 'nav:post', anchorReason: null, hydrationWarnings: 0, adNodes: -1 };
+        const firstPost = page.locator('a.post-row').first();
+        if ((await firstPost.count()) > 0) {
+            await firstPost.click({ timeout: 10_000 }).catch(() => {});
+        } else {
+            await page.goto(POST_PATH, { waitUntil: 'domcontentloaded' });
+        }
+        await settle();
+        collected.push(current);
+
+        // ③ 뒤로가기 — bfcache 복원 경로. iOS 전용 reload 스크립트가 여기서 발화한다.
+        current = { path: 'nav:back', anchorReason: null, hydrationWarnings: 0, adNodes: -1 };
+        await page.goBack({ waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {});
+        await settle();
+        collected.push(current);
+    } finally {
+        await context.close();
+    }
+    return collected;
+}
+
 test.describe('@hydration iOS Safari hydration integrity', () => {
     // 반복 로드라 기본 타임아웃으로는 부족하다.
     test.setTimeout(10 * 60_000);
@@ -158,13 +241,19 @@ test.describe('@hydration iOS Safari hydration integrity', () => {
             }
         }
 
+        // 항해 시나리오(목록→글→뒤로)를 함께 잰다. 신선 로드만으로는 0% 가 나왔다.
+        for (let i = 0; i < ITERATIONS; i++) {
+            results.push(...(await navigateOnce(browser, base)));
+        }
+
         const failed = results.filter(
             (r) => r.anchorReason === 'anchor_detached' || r.anchorReason === 'anchor_missing'
         );
         const rate = failed.length / results.length;
 
         // 사람이 읽을 수 있게 남긴다 — 이 로그가 이번 작업의 산출물이다.
-        const byPath = paths.map((p) => {
+        const allPaths = [...paths, 'nav:list', 'nav:post', 'nav:back'];
+        const byPath = allPaths.map((p) => {
             const rs = results.filter((r) => r.path === p);
             const f = rs.filter((r) => r.anchorReason && r.anchorReason !== 'anchor_ok');
             return `  ${p.padEnd(18)} 실패 ${f.length}/${rs.length}  경고 ${rs.reduce((a, r) => a + r.hydrationWarnings, 0)}  광고 ${rs.map((r) => r.adNodes).join(',')}`;
