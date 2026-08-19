@@ -12,6 +12,58 @@
  */
 import { trackEvent } from './ga4';
 
+/**
+ * ⛔ GA4 로만 보내면 SQL 로 캘 수 없다 — 그래서 dantry(ClickHouse)로도 함께 보낸다.
+ *
+ * 2026-08-19 실측: 데스크톱 CLS 가 8/04 0.12~0.14 → 8/19 0.15~0.20 으로
+ * **보름 만에 43% 악화**됐다(목록 0.20 은 구글 "나쁨" 경계 0.25 에 근접).
+ * 모바일은 전부 FAST 인데 데스크톱만 AVERAGE 이고, 그 원인이 CLS 하나다.
+ *
+ * 범인 selector(largestShiftTarget)는 이미 수집되고 있었지만 **GA4 안에만 있어**
+ * "무엇이 미는가" 를 쿼리로 좁힐 수 없었다. 그 갭을 메운다.
+ *
+ * ⛔ 프런트를 늦추지 않는다:
+ *   - web-vitals 가 pagehide/visibilitychange(hidden) 시점에 최종값을 1회만 준다.
+ *     그 콜백 안에서 sendBeacon 한 번 — 렌더 경로에 아무것도 추가하지 않는다.
+ *   - **표본은 페이지 단위로 한 번 결정한다.** 지표별로 따로 뽑으면 같은 페이지의
+ *     CLS·LCP·INP 가 짝이 안 맞아 조인이 불가능해진다.
+ */
+const DANTRY_URL = 'https://aplog.damoang.net/api/v1/dantry';
+const RUM_SAMPLE_RATE = 0.1;
+/** 이 페이지 로드를 표본으로 삼을지 — 한 번 정하고 세 지표가 같은 결정을 공유한다 */
+const rumSampled = typeof window !== 'undefined' && Math.random() < RUM_SAMPLE_RATE;
+
+function sendToDantry(name: string, value: number, target: string, group: string): void {
+    if (!rumSampled) return;
+    try {
+        const nav = (
+            performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined
+        )?.type;
+        const payload = {
+            type: 'web_vitals',
+            reason: name,
+            channel: 'rum',
+            message: `web_vitals ${name}`,
+            // ⛔ 수집기는 스키마에 없는 필드를 버린다(js_errors 컬럼 고정). stack 에 싣는다.
+            stack: [
+                `value=${value}`,
+                `target=${target}`,
+                `page=${group}`,
+                `nav=${nav ?? '?'}`,
+                `vw=${window.innerWidth}`
+            ].join('\n'),
+            url: location.href,
+            userAgent: navigator.userAgent
+        };
+        const body = JSON.stringify(payload);
+        if (typeof navigator.sendBeacon === 'function') {
+            navigator.sendBeacon(DANTRY_URL, new Blob([body], { type: 'application/json' }));
+        }
+    } catch {
+        // 관측 실패는 무시 — 사용자 영향이 없어야 한다
+    }
+}
+
 /** URL 경로를 게시판 단위로 그룹화(고카디널리티 방지). /free/123 → /free/:id */
 function pathGroup(pathname: string): string {
     return pathname
@@ -35,12 +87,17 @@ export function initWebVitalsRum(): void {
          *               web-vitals v6 에서 `.element` 가 아니라 `.target` — 2026-07-31 Evaluator 정정)
          */
         const send = (name: string, value: number, target: string | undefined) => {
+            const v = name === 'CLS' ? Math.round(value * 1000) : Math.round(value);
+            const t = (target ?? '').slice(0, 100);
+            const g = pathGroup(location.pathname);
             trackEvent('web_vitals', {
                 metric_name: name,
-                metric_value: name === 'CLS' ? Math.round(value * 1000) : Math.round(value),
-                metric_target: (target ?? '').slice(0, 100),
-                page_group: pathGroup(location.pathname)
+                metric_value: v,
+                metric_target: t,
+                page_group: g
             });
+            // GA4 와 **같은 값**을 dantry 로도 보낸다(표본만). 두 곳이 어긋나면 안 된다.
+            sendToDantry(name, v, t, g);
         };
         // 각 메트릭은 페이지 생애 최종값을 pagehide/visibilitychange(hidden) 시 1회 보고한다.
         // gtag 는 sendBeacon 으로 hidden 시점 플러시 → 언로드 유실 없음.
