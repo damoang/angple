@@ -404,8 +404,29 @@
                     if (kids.length > lim) out.push('+' + (kids.length - lim));
                     return out.join(',');
                 }
+                // 하이드레이션 타깃(앱 div) **내부** 서명. 앵커 주석이 사는 곳이 여기다.
+                // body 서명만으로는 정상 로드와 구분이 안 됐다(스크립트는 늘 붙는다).
+                // 주석 노드까지 담아야 SSR 마커가 그대로인지 보인다.
+                function targetSig(el) {
+                    if (!el) return '(no-target)';
+                    var out = [];
+                    var n = el.firstChild;
+                    var i = 0;
+                    for (; n && i < 12; n = n.nextSibling, i++) {
+                        if (n.nodeType === 8) out.push('#' + String(n.data).slice(0, 3));
+                        else if (n.nodeType === 3) out.push('t');
+                        else if (n.nodeType === 1) {
+                            var t = n.tagName.toLowerCase();
+                            if (n.id) t += '#' + n.id;
+                            out.push(t);
+                        }
+                    }
+                    if (n) out.push('+');
+                    return out.join(',');
+                }
                 try {
                     window.__angpleBodySig = bodySig();
+                    window.__angpleTargetSig = targetSig(document.body.firstElementChild);
                 } catch (e) {
                     /* 관측용 */
                 }
