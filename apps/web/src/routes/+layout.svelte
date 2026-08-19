@@ -673,6 +673,19 @@
         }
     }
 
+    // 내비게이션 유형(navigate/reload/back_forward)과 가시성.
+    // ⛔ 새 필드를 만들지 않는다 — 수집기가 스키마 밖 필드를 버린다. stack 에 싣는다.
+    function navType(): string {
+        try {
+            const nav = performance.getEntriesByType('navigation')[0] as
+                | PerformanceNavigationTiming
+                | undefined;
+            return `${nav?.type ?? '?'}/${document.visibilityState}`;
+        } catch {
+            return '?/?';
+        }
+    }
+
     function buildAnchorStack(
         sigPre: string,
         sigNow: string,
@@ -688,7 +701,13 @@
             `tpre=${tgtPre}`,
             `tpost=${tgtNow}`,
             `tsame=${tgtPre === tgtNow}`,
-            `ads=${adCounts()}`
+            `ads=${adCounts()}`,
+            // ⛔ 내비게이션 유형이 다음 판별자 후보다.
+            //    Playwright WebKit 으로 신선 로드·항해를 24회 돌려도 실패율 0% 였는데
+            //    운영 iOS 사파리는 ~50~68% 다(비로그인 포함). 차이가 뭔지 좁혀야 한다.
+            //    `back_forward` = bfcache 복원 — app.html 의 iOS 전용 reload 스크립트가
+            //    발화하는 바로 그 경로이고, Playwright 의 goBack 은 이걸 재현하지 못한다.
+            `nav=${navType()}`
         ]
             .join('\n')
             .slice(0, 1500);
