@@ -28,6 +28,7 @@ import { AppleProvider } from '$lib/server/auth/oauth/providers/apple.js';
 import { TwitterProvider } from '$lib/server/auth/oauth/providers/twitter.js';
 import type { OAuthUserProfile } from '$lib/server/auth/oauth/types.js';
 import { runSocialLoginPostProcess } from '$lib/server/auth/social-login-postprocess.js';
+import { resolveClientIp } from '$lib/server/rate-limit.js';
 
 // 미설정 시 prod 에서 .damoang.net 으로 폴백 — host-only 쿠키 시 새 탭/PWA 세션 격리 (#12260, #12179).
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || (dev ? undefined : '.damoang.net');
@@ -245,7 +246,7 @@ export const GET: RequestHandler = async ({ url, cookies, request, getClientAddr
         redirect(302, '/login?error=missing_params');
     }
 
-    const clientIp = getClientAddress();
+    const clientIp = resolveClientIp(getClientAddress, request) ?? '';
     const origin = resolveOrigin(request);
     return handleCallback(url, cookies, code, stateParam, clientIp, origin);
 };
@@ -265,7 +266,7 @@ export const POST: RequestHandler = async ({ url, cookies, request, getClientAdd
         redirect(302, '/login?error=missing_params');
     }
 
-    const clientIp = getClientAddress();
+    const clientIp = resolveClientIp(getClientAddress, request) ?? '';
     const origin = resolveOrigin(request);
     return handleCallback(url, cookies, code, stateParam, clientIp, origin);
 };

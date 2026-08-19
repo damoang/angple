@@ -50,6 +50,7 @@ import {
     computeWithdrawalGrace,
     signWithdrawalGraceToken
 } from '$lib/server/auth/withdrawal.js';
+import { resolveClientIp } from '$lib/server/rate-limit.js';
 
 // 미설정 시 .damoang.net 으로 폴백 — host-only 쿠키가 되면 새 탭/PWA 에서 세션이 격리됨 (#12260, #12179).
 const COOKIE_DOMAIN = env.COOKIE_DOMAIN || (dev ? undefined : '.damoang.net');
@@ -534,7 +535,7 @@ export const GET: RequestHandler = async ({
         redirectError('missing_params', peekAppMode(cookies, stateParam));
     }
 
-    const clientIp = getClientAddress();
+    const clientIp = resolveClientIp(getClientAddress, request) ?? '';
     const origin = resolveOrigin(request);
     return handleCallback(params.provider!, cookies, locals, code, stateParam, clientIp, origin);
 };
@@ -560,7 +561,7 @@ export const POST: RequestHandler = async ({
         redirectError('missing_params', peekAppMode(cookies, stateParam));
     }
 
-    const clientIp = getClientAddress();
+    const clientIp = resolveClientIp(getClientAddress, request) ?? '';
     const origin = resolveOrigin(request);
     return handleCallback(params.provider!, cookies, locals, code, stateParam, clientIp, origin);
 };

@@ -32,7 +32,7 @@ import {
 import type { OAuthUserProfile, SocialProvider } from '$lib/server/auth/oauth/types.js';
 import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 import { verifyTurnstile } from '$lib/server/captcha.js';
-import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
+import { checkRateLimit, recordAttempt, resolveClientIp } from '$lib/server/rate-limit.js';
 import { getCertConfig } from '$lib/server/auth/cert-inicis.js';
 import { getContent, getSiteTitle, replaceContentVariables } from '$lib/server/content.js';
 import { sanitizePostContent } from '$lib/server/sanitize.js';
@@ -136,7 +136,14 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 export const actions: Actions = {
     default: async ({ request, cookies, getClientAddress }) => {
         console.log('[Register] Action started');
-        const clientIp = getClientAddress();
+        // [B 인증·남용 방지] IP 를 못 구해도 **제한을 건너뛰지 않는다.**
+        // ⛔ 건너뛰면 로그인·가입 무제한 시도가 조용히 열린다. 막히면 즉시 제보가 들어오지만
+        //    뚫리면 아무도 모른다 — fail-closed 를 택한다(2026-08-19).
+        // ⛔ 기록·캡차에는 공용 버킷 키를 쓰지 않는다. 'unknown' 이 mb_ip 에 저장되거나
+        //    Turnstile remoteip 로 나가면 데이터가 오염되고 검증이 깨진다.
+        const resolvedIp = resolveClientIp(getClientAddress, request);
+        const clientIp = resolvedIp ?? '';
+        const rateKey = resolvedIp ?? 'unknown';
         const formData = await request.formData();
         const redirectUrl = safeRedirectUrl(formData.get('redirect') as string);
         const isInviteFlow = redirectUrl.includes('ads.damoang.net/invite/');
@@ -147,14 +154,14 @@ export const actions: Actions = {
         const isRecovery = formData.get('intent') === 'recover';
 
         // Rate limit 체크 (5회/시간)
-        const rateCheck = checkRateLimit(clientIp, 'register', 5, 60 * 60 * 1000);
+        const rateCheck = checkRateLimit(rateKey, 'register', 5, 60 * 60 * 1000);
         if (!rateCheck.allowed) {
             return fail(429, {
                 error: `요청이 너무 많습니다. ${rateCheck.retryAfter}초 후 다시 시도해주세요.`,
                 nickname
             });
         }
-        recordAttempt(clientIp, 'register');
+        recordAttempt(rateKey, 'register');
 
         // Turnstile CAPTCHA 검증 (초대·복구 플로우는 소셜 인증 완료 상태이므로 스킵)
         if (!isInviteFlow && !isRecovery) {

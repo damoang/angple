@@ -11,7 +11,12 @@ import {
 import { generateRefreshToken } from '$lib/server/auth/jwt.js';
 import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 import { getMemberById } from '$lib/server/auth/oauth/member.js';
-import { checkRateLimit, recordAttempt, resetAttempts } from '$lib/server/rate-limit.js';
+import {
+    checkRateLimit,
+    recordAttempt,
+    resetAttempts,
+    resolveClientIp
+} from '$lib/server/rate-limit.js';
 import { checkAndPromoteMember } from '$lib/server/auth/auto-promotion.js';
 import { grantLoginXP } from '$lib/server/auth/xp-grant.js';
 
@@ -28,10 +33,17 @@ const COOKIE_DOMAIN = env.COOKIE_DOMAIN || '.damoang.net';
  * 3. 세션 쿠키 + CSRF 쿠키 설정
  */
 export const POST: RequestHandler = async ({ request, cookies, getClientAddress }) => {
-    const clientIp = getClientAddress();
+    // [B 인증·남용 방지] IP 를 못 구해도 **제한을 건너뛰지 않는다.**
+    // ⛔ 건너뛰면 로그인·가입 무제한 시도가 조용히 열린다. 막히면 즉시 제보가 들어오지만
+    //    뚫리면 아무도 모른다 — fail-closed 를 택한다(2026-08-19).
+    // ⛔ 기록·캡차에는 공용 버킷 키를 쓰지 않는다. 'unknown' 이 mb_ip 에 저장되거나
+    //    Turnstile remoteip 로 나가면 데이터가 오염되고 검증이 깨진다.
+    const resolvedIp = resolveClientIp(getClientAddress, request);
+    const clientIp = resolvedIp ?? '';
+    const rateKey = resolvedIp ?? 'unknown';
 
     // Rate limiting
-    const rateCheck = checkRateLimit(clientIp, 'login', 10, 15 * 60 * 1000);
+    const rateCheck = checkRateLimit(rateKey, 'login', 10, 15 * 60 * 1000);
     if (!rateCheck.allowed) {
         return json(
             { success: false, message: '로그인 시도가 너무 많습니다. 잠시 후 다시 시도해주세요.' },
@@ -41,7 +53,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
             }
         );
     }
-    recordAttempt(clientIp, 'login');
+    recordAttempt(rateKey, 'login');
 
     const body = await request.json();
     const { username, password } = body;
@@ -88,7 +100,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
         }
 
         // 로그인 성공 → Rate limit 초기화
-        resetAttempts(clientIp, 'login');
+        resetAttempts(rateKey, 'login');
 
         const mbId = userData.user.user_id;
 
