@@ -30,6 +30,93 @@ const MAX_FRAMES = 60;
 /** 늦게 로드되는 자산까지 기다리는 상한. 넘으면 포기한다 */
 const OBSERVE_TIMEOUT_MS = 3000;
 
+/**
+ * 관측 — 복원이 실제로 됐는지 데이터로 본다.
+ *
+ * ⛔ 왜 필요한가: 뒤로가기 스크롤 복원에는 **텔레메트리가 전혀 없었다.**
+ *    "한참 위로 간다"는 제보(free/7060456)를 받고도 몇 명이 겪는지, 어느 경로인지
+ *    알 방법이 없었다. Playwright 로는 3/3 정상 복원돼 재현도 안 된다
+ *    (goBack 이 진짜 bfcache 복원을 만들지 않아 iOS 전용 경로를 못 탄다).
+ *
+ * ⛔ 프런트를 늦추지 않는 것이 이 코드의 첫 번째 제약이다.
+ *    - 복원 루프(rAF/ResizeObserver) **안에서는 아무 일도 하지 않는다.** 종료 시점 1회뿐.
+ *    - `sendBeacon` 을 쓴다. fetch 와 달리 응답을 기다리지 않고 언로드도 막지 않는다.
+ *    - `requestIdleCallback` 으로 한가할 때 보낸다(없으면 setTimeout 0).
+ *    - **실패 전량 + 성공 1% 표본.** 대부분의 뒤로가기에서는 전송 자체가 없다.
+ *
+ * ⛔ 대조군(성공 표본)을 빼지 마라. 실패만 모으면 "실패 시 이렇더라"만 알 뿐
+ *    정상과 비교가 안 된다 — 2026-08-19 하이드레이션 조사에서 그 벽에 부딪혔다.
+ */
+const DANTRY_URL = 'https://aplog.damoang.net/api/v1/dantry';
+const OK_SAMPLE_RATE = 0.01;
+
+type RestoreCause = 'done' | 'timeout' | 'cancelled';
+
+interface RestoreOutcome {
+    /** done=복원 성공 · timeout=3초 안에 못 함 · cancelled=사용자가 먼저 떠남 */
+    cause: RestoreCause;
+    target: number;
+    finalY: number;
+    maxScroll: number;
+    elapsedMs: number;
+    /** 높이가 목표에 한 번이라도 닿았는가 — 처방을 가르는 값 */
+    heightReached: boolean;
+}
+
+function reportRestore(o: RestoreOutcome): void {
+    // ⛔ cancelled 는 실패가 아니다. 사용자가 복원이 끝나기 전에 떠난 것뿐인데,
+    //    이걸 실패로 세면 실패율이 부풀려져 판단이 틀어진다. 아예 보내지 않는다.
+    if (o.cause === 'cancelled') return;
+    // 보낼 이유가 없으면 아무것도 하지 않는다(대부분의 경우).
+    if (o.cause === 'done' && Math.random() >= OK_SAMPLE_RATE) return;
+    const send = () => {
+        try {
+            const nav = (
+                performance.getEntriesByType('navigation')[0] as
+                    | PerformanceNavigationTiming
+                    | undefined
+            )?.type;
+            const payload = {
+                type: 'scroll_restore',
+                reason: o.cause === 'done' ? 'restore_ok' : 'restore_timeout',
+                channel: 'snapshot',
+                message: `scroll restore ${o.cause}`,
+                // ⛔ 수집기는 스키마에 없는 필드를 버린다(js_errors 컬럼 고정). stack 에 싣는다.
+                stack: [
+                    `target=${o.target}`,
+                    `final=${o.finalY}`,
+                    `maxScroll=${o.maxScroll}`,
+                    `heightReached=${o.heightReached}`,
+                    `elapsed=${o.elapsedMs}ms`,
+                    `nav=${nav ?? '?'}`
+                ].join('\n'),
+                url: location.href,
+                userAgent: navigator.userAgent
+            };
+            const body = JSON.stringify(payload);
+            if (typeof navigator.sendBeacon === 'function') {
+                const blob = new Blob([body], { type: 'application/json' });
+                if (navigator.sendBeacon(DANTRY_URL, blob)) return;
+            }
+            fetch(DANTRY_URL, {
+                mode: 'cors',
+                credentials: 'include',
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body,
+                keepalive: true
+            }).catch(() => {});
+        } catch {
+            // 관측 실패는 무시한다 — 사용자 영향이 없어야 한다
+        }
+    };
+    // 한가할 때 보낸다. 복원 직후는 렌더가 바쁜 구간이라 여기서 경쟁시키지 않는다.
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void) => void })
+        .requestIdleCallback;
+    if (typeof ric === 'function') ric(send);
+    else setTimeout(send, 0);
+}
+
 export interface ScrollSnapshotValue {
     scrollY: number;
 }
@@ -71,9 +158,28 @@ export function createScrollSnapshot(): {
             let rafId = 0;
             let ro: ResizeObserver | null = null;
             let timeoutId: ReturnType<typeof setTimeout> | undefined;
+            // 관측용. ⛔ 루프 안에서는 계산하지 않는다 — 플래그 하나만 켜고 끝낸다.
+            const startedAt = Date.now();
+            let heightReached = false;
+            let reported = false;
 
             /** rAF·ResizeObserver·timeout 을 모두 정리하고 활성 핸들을 비운다 */
-            const cleanup = () => {
+            const cleanup = (cause: RestoreCause = done ? 'done' : 'cancelled') => {
+                // 이 복원의 결말을 한 번만 보고한다.
+                // ⛔ cleanup 은 성공·타임아웃·이탈 세 경로에서 불린다. 셋을 구분해야
+                //    "실패율" 이 의미를 갖는다. 기본값은 done 여부로 추정하되,
+                //    타임아웃 경로는 명시적으로 넘긴다.
+                if (!reported) {
+                    reported = true;
+                    reportRestore({
+                        cause,
+                        target,
+                        finalY: window.scrollY,
+                        maxScroll: document.documentElement.scrollHeight - window.innerHeight,
+                        elapsedMs: Date.now() - startedAt,
+                        heightReached
+                    });
+                }
                 done = true;
                 if (rafId && typeof cancelAnimationFrame !== 'undefined')
                     cancelAnimationFrame(rafId);
@@ -91,6 +197,9 @@ export function createScrollSnapshot(): {
             const tryScroll = () => {
                 const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
                 if (maxScroll >= target - TOLERANCE_PX) {
+                    // 처방을 가르는 값: 높이는 됐는데 스크롤이 안 된 것인지,
+                    // 높이가 끝내 안 된 것인지. 대입 하나라 비용이 없다.
+                    heightReached = true;
                     window.scrollTo(0, target);
                     if (Math.abs(window.scrollY - target) <= TOLERANCE_PX) done = true;
                 }
@@ -121,7 +230,8 @@ export function createScrollSnapshot(): {
                 });
                 ro.observe(document.documentElement);
                 timeoutId = setTimeout(() => {
-                    cleanup();
+                    // 여기 도달 = 3초 안에 목표에 못 갔다. 진짜 실패다.
+                    cleanup('timeout');
                 }, OBSERVE_TIMEOUT_MS);
             }
         }
