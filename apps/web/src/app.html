@@ -531,10 +531,54 @@
                                 var done = false;
                                 var tries = 0;
                                 var maxTries = 180; // ~3s
+                                // 관측 — 이 경로에는 지금까지 텔레메트리가 **전혀 없었다.**
+                                // "뒤로가면 한참 위" 제보(free/7060456)를 받고도 몇 명이
+                                // 겪는지 알 방법이 없었고, Playwright 는 진짜 bfcache 복원을
+                                // 만들지 못해 재현도 안 된다. 그래서 여기서 직접 잰다.
+                                // ⛔ 루프 안에서는 플래그만 켠다. 전송은 끝에 1회뿐이다.
+                                var startedAt = Date.now();
+                                var heightReached = false;
+                                var reported = false;
+                                var report = function (cause) {
+                                    if (reported) return;
+                                    reported = true;
+                                    // 성공은 1% 표본만. 대부분의 뒤로가기에서는 전송이 없다.
+                                    if (cause === 'done' && Math.random() >= 0.01) return;
+                                    try {
+                                        var payload = {
+                                            type: 'scroll_restore',
+                                            reason:
+                                                cause === 'done' ? 'restore_ok' : 'restore_timeout',
+                                            channel: 'bfcache',
+                                            message: 'scroll restore ' + cause,
+                                            stack: [
+                                                'target=' + target,
+                                                'final=' + window.scrollY,
+                                                'maxScroll=' +
+                                                    (document.documentElement.scrollHeight -
+                                                        window.innerHeight),
+                                                'heightReached=' + heightReached,
+                                                'elapsed=' + (Date.now() - startedAt) + 'ms'
+                                            ].join('\n'),
+                                            url: location.href,
+                                            userAgent: navigator.userAgent
+                                        };
+                                        var body = JSON.stringify(payload);
+                                        if (typeof navigator.sendBeacon === 'function') {
+                                            navigator.sendBeacon(
+                                                'https://aplog.damoang.net/api/v1/dantry',
+                                                new Blob([body], { type: 'application/json' })
+                                            );
+                                        }
+                                    } catch (e) {
+                                        /* 관측 실패는 무시 */
+                                    }
+                                };
                                 var tryScroll = function () {
                                     var maxScroll =
                                         document.documentElement.scrollHeight - window.innerHeight;
                                     if (maxScroll >= target - 2) {
+                                        heightReached = true;
                                         window.scrollTo(0, target);
                                         if (Math.abs(window.scrollY - target) <= 2) done = true;
                                     }
@@ -542,20 +586,31 @@
                                 var attempt = function () {
                                     if (done) return;
                                     tryScroll();
-                                    if (!done && tries++ < maxTries) requestAnimationFrame(attempt);
+                                    if (done) {
+                                        report('done');
+                                        return;
+                                    }
+                                    if (tries++ < maxTries) requestAnimationFrame(attempt);
                                 };
                                 requestAnimationFrame(attempt);
                                 if (typeof ResizeObserver !== 'undefined') {
                                     var ro = new ResizeObserver(function () {
                                         if (done) {
                                             ro.disconnect();
+                                            report('done');
                                             return;
                                         }
                                         tryScroll();
-                                        if (done) ro.disconnect();
+                                        if (done) {
+                                            ro.disconnect();
+                                            report('done');
+                                        }
                                     });
                                     ro.observe(document.documentElement);
                                     setTimeout(function () {
+                                        // ⛔ 여기서 done=true 로 만들면 성공과 포기가 섞인다.
+                                        //    루프를 멈추되 결말은 timeout 으로 남긴다.
+                                        report(done ? 'done' : 'timeout');
                                         done = true;
                                         ro.disconnect();
                                     }, 5000);
