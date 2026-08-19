@@ -251,6 +251,8 @@ export const actions: Actions = {
                     nickname
                 });
             }
+            // 검증기가 안 보이는 문자(제로폭·전각공백 등)를 제거한 정규화 값을 저장한다.
+            nickname = nicknameResult.normalized ?? nickname;
 
             // 같은 소셜 계정으로 만들어진 계정이 이미 있으면 새로 만들지 않는다.
             // mb_id는 소셜 sub에서 결정적으로 나오므로 충돌 = 동일인이 확실하다.
