@@ -548,9 +548,7 @@
                                         var payload = {
                                             type: 'scroll_restore',
                                             reason:
-                                                cause === 'done'
-                                                    ? 'restore_ok'
-                                                    : 'restore_timeout',
+                                                cause === 'done' ? 'restore_ok' : 'restore_timeout',
                                             channel: 'bfcache',
                                             message: 'scroll restore ' + cause,
                                             stack: [
