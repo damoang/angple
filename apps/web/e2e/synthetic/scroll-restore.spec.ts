@@ -71,10 +71,36 @@ async function measure(browser: import('@playwright/test').Browser, baseURL: str
             `목록이 목표(${TARGET_Y}px)까지 스크롤되지 않았다 — 문서가 짧다(${capturedY}px). 측정 불가`
         ).toBeGreaterThan(TARGET_Y * 0.5);
 
-        // 화면에 보이는 글로 들어간다(실제 사용자 경로 = SPA 이동).
-        const row = page.locator('a.post-row').filter({ hasText: /\S/ }).first();
-        const href = (await row.getAttribute('href')) ?? '';
+        // ⛔ `.first()` 를 클릭하면 안 된다. 첫 글은 목록 **맨 위**에 있어서 Playwright 가
+        //    클릭 전에 요소를 화면에 보이게 **되올려 스크롤**한다. 그러면 capture() 가
+        //    1800 이 아니라 되올라간 위치(실측 215px)를 저장하고, 복원은 그 값으로 정확히
+        //    동작한다 — 그런데 겉보기엔 "복원 실패" 로 읽힌다.
+        //    실제로 2026-08-19 첫 실행에서 3/3 실패로 나와 하마터면 오진할 뻔했다.
+        //    **지금 화면에 보이는 글**을 골라야 스크롤이 안 움직인다.
+        const rows = page.locator('a.post-row');
+        const count = await rows.count();
+        let row = rows.first();
+        let href = '';
+        const vh = (await page.evaluate(() => window.innerHeight)) || 800;
+        for (let i = 0; i < count; i++) {
+            const cand = rows.nth(i);
+            const box = await cand.boundingBox();
+            // boundingBox 는 뷰포트 기준이다. 화면 안(위아래 여백 제외)에 있는 것만 고른다.
+            if (box && box.y > 80 && box.y + box.height < vh - 80) {
+                row = cand;
+                href = (await cand.getAttribute('href')) ?? '';
+                break;
+            }
+        }
+        expect(href, '화면에 보이는 글을 못 찾았다 — 측정 불가').not.toBe('');
+
+        const beforeClick = await page.evaluate(() => window.scrollY);
         await row.click({ timeout: 10_000 });
+        // ⛔ 클릭이 스크롤을 움직였는지 반드시 확인한다. 움직였다면 이 측정은 무효다.
+        expect(
+            Math.abs(beforeClick - capturedY),
+            `클릭 준비 중 스크롤이 움직였다(${capturedY} → ${beforeClick}) — 측정 무효`
+        ).toBeLessThanOrEqual(5);
         await page.waitForLoadState('networkidle', { timeout: 15_000 }).catch(() => {});
         await page.waitForTimeout(800);
 
