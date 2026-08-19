@@ -121,6 +121,74 @@ function getRegistry(): Registry {
     return win[REGISTRY_KEY]!;
 }
 
+/**
+ * 광고 슬롯 확장 관측 — 2026-08-20.
+ *
+ * ⛔ 왜: 실사용자 CWV 에서 CLS 1위 원인이 **광고 슬롯 확장**으로 좁혀졌다.
+ *    밀린 요소(largestShiftTarget) 상위가 `#comments`(기여 65.4) · `footer`(41.2) ·
+ *    본문 — 전부 **광고 아래에 있는 것들**이다. 즉 위에서 무언가 커졌다는 뜻이고,
+ *    아래 `grewBy > 0` 경로가 정확히 그 "커짐" 이다.
+ *    바로 아래 주석(#12632)이 이미 인정하고 있다: "확장은 layout shift 를 만든다".
+ *
+ * ⛔ 그런데 **예약값을 얼마로 올려야 하는지 데이터가 없다.** 어떤 크기의 creative 가
+ *    실제로 오는지 모른 채 예약을 키우면 광고 없을 때 빈 공간만 커진다.
+ *    그래서 고치기 전에 잰다 — 2026-08-19 하이드레이션에서 배운 순서다
+ *    (데이터 없이 세운 가설이 네 번 연속 죽었다).
+ *
+ * ⛔ 프런트를 늦추지 않는다:
+ *    - 확장이 실제로 일어난 순간에만 보낸다. 대부분의 로드에서 전송 0건.
+ *    - 표본은 **페이지 단위로 한 번** 결정한다. 슬롯마다 따로 뽑으면 같은 페이지의
+ *      슬롯들을 함께 볼 수 없어 "이 페이지에서 무엇이 얼마나 밀었나" 를 못 센다.
+ *    - sendBeacon — 응답을 기다리지 않는다.
+ */
+const AD_EXPAND_DANTRY_URL = 'https://aplog.damoang.net/api/v1/dantry';
+const AD_EXPAND_SAMPLE_RATE = 0.1;
+let adExpandSampled: boolean | null = null;
+let adExpandSent = 0;
+/** 한 페이지에서 너무 많이 보내지 않는다 — 슬롯 수만큼이면 충분하다 */
+const AD_EXPAND_MAX_PER_PAGE = 8;
+
+function reportAdExpansion(
+    slotId: string,
+    reserved: number,
+    creative: number,
+    grewBy: number,
+    inViewport: boolean
+): void {
+    try {
+        if (adExpandSampled === null) adExpandSampled = Math.random() < AD_EXPAND_SAMPLE_RATE;
+        if (!adExpandSampled || adExpandSent >= AD_EXPAND_MAX_PER_PAGE) return;
+        adExpandSent++;
+        const payload = {
+            type: 'ad_slot_expand',
+            reason: 'expanded',
+            channel: 'gpt',
+            message: `ad slot expand ${slotId}`,
+            // ⛔ 수집기는 스키마에 없는 필드를 버린다(js_errors 컬럼 고정). stack 에 싣는다.
+            stack: [
+                `slot=${slotId}`,
+                `reserved=${Math.round(reserved)}`,
+                `creative=${Math.round(creative)}`,
+                `grewBy=${Math.round(grewBy)}`,
+                `inViewport=${inViewport}`,
+                `vw=${window.innerWidth}`,
+                `path=${location.pathname.replace(/\/\d+/g, '/:id').slice(0, 60)}`
+            ].join('\n'),
+            url: location.href,
+            userAgent: navigator.userAgent
+        };
+        const body = JSON.stringify(payload);
+        if (typeof navigator.sendBeacon === 'function') {
+            navigator.sendBeacon(
+                AD_EXPAND_DANTRY_URL,
+                new Blob([body], { type: 'application/json' })
+            );
+        }
+    } catch {
+        // 관측 실패는 무시 — 광고 렌더를 방해하면 안 된다
+    }
+}
+
 function emitRender(slotId: string, isEmpty: boolean) {
     const registry = getRegistry();
     const callbacks = registry.callbacks.get(slotId);
@@ -178,9 +246,12 @@ function ensureSlotListener() {
                     //      (Safari 수동 anchoring — 읽던 위치 유지)
                     const rectBefore = (frame ?? container).getBoundingClientRect();
                     let grewBy = 0;
+                    // 관측용 — 어느 슬롯이 얼마나 모자라게 예약돼 있었는지 남긴다.
+                    let reservedBefore = 0;
                     for (const el of [container, frame]) {
                         if (!el) continue;
                         const current = parseFloat(getComputedStyle(el).minHeight) || 0;
+                        reservedBefore = Math.max(reservedBefore, current);
                         if (creativeHeight > current) {
                             el.style.minHeight = `${creativeHeight}px`;
                             grewBy = Math.max(grewBy, creativeHeight - current);
@@ -189,6 +260,15 @@ function ensureSlotListener() {
                     if (grewBy > 0 && frame) {
                         const inViewport =
                             rectBefore.bottom > 0 && rectBefore.top < window.innerHeight;
+                        // ⛔ 예약이 모자란 순간을 그대로 기록한다. 이 값들이 있어야
+                        //    예약 높이를 근거 있게 올릴 수 있다(지금은 코드에 고정값).
+                        reportAdExpansion(
+                            slotId,
+                            reservedBefore,
+                            creativeHeight,
+                            grewBy,
+                            inViewport
+                        );
                         if (rectBefore.bottom <= 0) {
                             // (b) viewport 위에서 확장 → 보이는 콘텐츠가 밀리지 않게 보정
                             window.scrollBy(0, grewBy);
