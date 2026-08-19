@@ -608,6 +608,74 @@
         return () => window.removeEventListener('auth:session-expired', handleSessionExpired);
     });
 
+    // 하이드레이션 앵커 관측용 서명 헬퍼 (2026-08-19).
+    // ⛔ 실패한 로드만 보면 아무것도 못 가른다 — 정상 로드에서도 스크립트는 붙고
+    //    광고도 붙는다. 실제로 첫 배포(#2129) 데이터에서 광고 인과 가설이
+    //    "광고 없이 실패 91건 / 있고 실패 102건" 으로 기각됐다.
+    //    그래서 **성공 로드도 1% 표본으로 같은 서명을 보낸다.** 분포를 비교해야
+    //    실패에 특이한 신호가 무엇인지 갈린다.
+    const ANCHOR_OK_SAMPLE_RATE = 0.01;
+
+    function bodySigNow(): string {
+        try {
+            const kids = Array.from(document.body.children).slice(0, 14);
+            const parts = kids.map((e) => {
+                let t = e.tagName.toLowerCase();
+                if (e.id) t += `#${e.id}`;
+                else if (typeof e.className === 'string' && e.className)
+                    t += `.${e.className.split(' ')[0]}`;
+                return t;
+            });
+            const extra = document.body.children.length - kids.length;
+            if (extra > 0) parts.push(`+${extra}`);
+            return parts.join(',');
+        } catch {
+            return '(sig-failed)';
+        }
+    }
+
+    function targetSigNow(): string {
+        try {
+            const el = document.body.firstElementChild;
+            if (!el) return '(no-target)';
+            const out: string[] = [];
+            let n = el.firstChild;
+            let i = 0;
+            for (; n && i < 12; n = n.nextSibling, i++) {
+                if (n.nodeType === 8) out.push(`#${String((n as Comment).data).slice(0, 3)}`);
+                else if (n.nodeType === 3) out.push('t');
+                else if (n.nodeType === 1) {
+                    const e = n as Element;
+                    out.push(e.id ? `${e.tagName.toLowerCase()}#${e.id}` : e.tagName.toLowerCase());
+                }
+            }
+            if (n) out.push('+');
+            return out.join(',');
+        } catch {
+            return '(sig-failed)';
+        }
+    }
+
+    function buildAnchorStack(
+        sigPre: string,
+        sigNow: string,
+        tgtPre: string,
+        tgtNow: string
+    ): string {
+        return [
+            `at=${Math.round(performance.now())}ms`,
+            '(anchor-context)',
+            `pre=${sigPre}`,
+            `post=${sigNow}`,
+            `same=${sigPre === sigNow}`,
+            `tpre=${tgtPre}`,
+            `tpost=${tgtNow}`,
+            `tsame=${tgtPre === tgtNow}`
+        ]
+            .join('\n')
+            .slice(0, 1500);
+    }
+
     onMount(() => {
         // 하이드레이션 앵커 판정 — 로그 없는 실패 경로 포착 (app.html 의 앵커 캡처와 한 쌍)
         //
@@ -638,33 +706,11 @@
                     //
                     //    ⛔ 수집기는 스키마에 없는 필드를 버린다(js_errors 컬럼 고정).
                     //       그래서 부가 정보는 새 필드가 아니라 stack 에 실어 보낸다.
-                    const sigNow = (() => {
-                        try {
-                            const kids = Array.from(document.body.children).slice(0, 14);
-                            const parts = kids.map((e) => {
-                                let t = e.tagName.toLowerCase();
-                                if (e.id) t += `#${e.id}`;
-                                else if (typeof e.className === 'string' && e.className)
-                                    t += `.${e.className.split(' ')[0]}`;
-                                return t;
-                            });
-                            const extra = document.body.children.length - kids.length;
-                            if (extra > 0) parts.push(`+${extra}`);
-                            return parts.join(',');
-                        } catch {
-                            return '(sig-failed)';
-                        }
-                    })();
+                    const sigNow = bodySigNow();
+                    const tgtNow = targetSigNow();
                     const sigPre = String(w.__angpleBodySig ?? '(none)');
-                    const stack = [
-                        `at=${Math.round(performance.now())}ms`,
-                        '(anchor-context)',
-                        `pre=${sigPre}`,
-                        `post=${sigNow}`,
-                        `same=${sigPre === sigNow}`
-                    ]
-                        .join('\n')
-                        .slice(0, 1500);
+                    const tgtPre = String(w.__angpleTargetSig ?? '(none)');
+                    const stack = buildAnchorStack(sigPre, sigNow, tgtPre, tgtNow);
                     fetch('https://aplog.damoang.net/api/v1/dantry', {
                         mode: 'cors',
                         credentials: 'include',
@@ -680,10 +726,31 @@
                             userAgent: navigator.userAgent
                         })
                     }).catch(() => {});
+                } else if (Math.random() < ANCHOR_OK_SAMPLE_RATE) {
+                    // 대조군 — 성공 로드 1% 표본. 실패 분포와 비교할 기준선이다.
+                    // ⛔ 이게 없으면 "실패 시 이렇더라"만 알 뿐 정상과 구분이 안 된다.
+                    const sigPre = String(w.__angpleBodySig ?? '(none)');
+                    const tgtPre = String(w.__angpleTargetSig ?? '(none)');
+                    fetch('https://aplog.damoang.net/api/v1/dantry', {
+                        mode: 'cors',
+                        credentials: 'include',
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            type: 'hydration_error',
+                            reason: 'anchor_ok',
+                            channel: 'anchor',
+                            message: 'hydration anchor anchor_ok',
+                            stack: buildAnchorStack(sigPre, bodySigNow(), tgtPre, targetSigNow()),
+                            url: window.location.href,
+                            userAgent: navigator.userAgent
+                        })
+                    }).catch(() => {});
                 }
                 delete w.__angpleHydrationAnchor;
                 // 서명도 함께 버린다 — 참조를 남기면 노드 누수와 같은 종류의 낭비다.
                 delete w.__angpleBodySig;
+                delete w.__angpleTargetSig;
             }
         } catch {
             // 관측용이라 실패해도 무시
