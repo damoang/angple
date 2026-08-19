@@ -636,7 +636,9 @@
 
     function targetSigNow(): string {
         try {
-            const el = document.body.firstElementChild;
+            // ⛔ app.html 과 **같은 방식**으로 앱 루트를 찾아야 한다. 한쪽만 고치면
+            //    pre/post 서명이 서로 다른 요소를 보게 돼 tsame 이 무의미해진다.
+            const el = document.getElementById('app-root') ?? document.body.firstElementChild;
             if (!el) return '(no-target)';
             const out: string[] = [];
             let n = el.firstChild;
@@ -663,7 +665,7 @@
     function adCounts(): string {
         try {
             const all = document.querySelectorAll('ins.adsbygoogle, iframe[id^="aswift"]').length;
-            const root = document.body.firstElementChild;
+            const root = document.getElementById('app-root') ?? document.body.firstElementChild;
             const inRoot = root
                 ? root.querySelectorAll('ins.adsbygoogle, iframe[id^="aswift"]').length
                 : -1;
