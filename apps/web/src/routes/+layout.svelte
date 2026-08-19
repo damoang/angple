@@ -656,6 +656,23 @@
         }
     }
 
+    // ⛔ 광고 노드는 **문서 전체**에서 세야 한다. body 직계 자식만 보면
+    //    앱 div 안에 꽂히는 인피드 광고를 통째로 놓친다 — 실제로 그래서 2026-08-19 에
+    //    "광고 없이도 실패 91건" 이라는 잘못된 기각 판정을 냈다.
+    //    ok(대조군) 대비로 비교해야 의미가 있다.
+    function adCounts(): string {
+        try {
+            const all = document.querySelectorAll('ins.adsbygoogle, iframe[id^="aswift"]').length;
+            const root = document.body.firstElementChild;
+            const inRoot = root
+                ? root.querySelectorAll('ins.adsbygoogle, iframe[id^="aswift"]').length
+                : -1;
+            return `${all}/${inRoot}`;
+        } catch {
+            return '?/?';
+        }
+    }
+
     function buildAnchorStack(
         sigPre: string,
         sigNow: string,
@@ -670,7 +687,8 @@
             `same=${sigPre === sigNow}`,
             `tpre=${tgtPre}`,
             `tpost=${tgtNow}`,
-            `tsame=${tgtPre === tgtNow}`
+            `tsame=${tgtPre === tgtNow}`,
+            `ads=${adCounts()}`
         ]
             .join('\n')
             .slice(0, 1500);
