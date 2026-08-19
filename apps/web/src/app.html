@@ -377,7 +377,12 @@
         </script>
     </head>
     <body>
-        <div style="display: contents">%sveltekit.body%</div>
+        <!-- ⛔ id 를 지우지 말 것. 하이드레이션 앵커 탐지가 이 id 로 앱 루트를 찾는다.
+             예전엔 document.body.firstElementChild 로 찾았는데, AdSense 가 body 첫 요소로
+             div#aswift_0_host 를 끼워 넣으면 광고 컨테이너를 앱 루트로 오인했다.
+             그 결과 anchor_missing 이 하루 802명 규모로 찍혔는데 **전부 거짓 양성**이었다
+             (실측 2026-08-19: missing 432창 중 실제 하이드레이션 실패 동반은 1창). -->
+        <div id="app-root" style="display: contents">%sveltekit.body%</div>
         <script>
             // 하이드레이션 앵커 캡처 — 로그가 아예 없는 실패 경로를 잡기 위한 것.
             //
@@ -437,14 +442,20 @@
                     if (n) out.push('+');
                     return out.join(',');
                 }
+                // ⛔ firstElementChild 로 앱 루트를 찾지 마라. AdSense 가 body 첫 요소로
+                //    끼어들면 광고 컨테이너를 잡는다(실측: tpre=div#aswift_0_host 1,055건).
+                //    id 로 찾고, 없을 때만 예전 방식으로 물러선다.
+                function appRoot() {
+                    return document.getElementById('app-root') || document.body.firstElementChild;
+                }
                 try {
                     window.__angpleBodySig = bodySig();
-                    window.__angpleTargetSig = targetSig(document.body.firstElementChild);
+                    window.__angpleTargetSig = targetSig(appRoot());
                 } catch (e) {
                     /* 관측용 */
                 }
                 try {
-                    var target = document.body.firstElementChild;
+                    var target = appRoot();
                     if (!target) return;
                     for (var n = target.firstChild; n; n = n.nextSibling) {
                         // Comment 노드이면서 data 가 '[' 이면 HYDRATION_START
