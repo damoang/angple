@@ -110,6 +110,19 @@
             })();
         </script>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <!-- ⛔ iOS Safari 자동 데이터 감지 끄기 — 하이드레이션 파손 방지.
+             iOS Safari 는 날짜·전화번호·주소를 스스로 감지해 <a> 로 감싼다.
+             그 DOM 변형이 SSR 마크업과 클라이언트 기대치를 어긋나게 만들어
+             하이드레이션이 통째로 폐기된다(문서 끝인 footer 에서 발각됨).
+        
+             실측(2026-08-19): iOS 사파리 하이드레이션 실패율 ~50~68%,
+             데스크톱 ~1.5% · 안드로이드 ~0.4% — 약 50배. 하루 3,302명.
+             Playwright WebKit(Linux)에서는 24회 전부 통과 — iOS 플랫폼 전용
+             기능이라 CI 에서는 재현되지 않는다. 글 상세 한 페이지에 날짜 패턴 116건.
+        
+             ⛔ 되돌리려면 아래 한 줄만 지운다. 지우기 전에
+                error_logs.js_errors 의 anchor_detached 추이를 먼저 볼 것. -->
+        <meta name="format-detection" content="telephone=no, date=no, address=no, email=no" />
         <!-- Critical CSS: FOUC 방지 (CSS 번들 로드 전 즉시 적용) -->
         <style>
             .mobile-meta,
