@@ -627,6 +627,44 @@
                           ? 'anchor_detached' // 하이드레이션 폐기 후 CSR 재마운트됨
                           : null;
                 if (reason) {
+                    // ⛔ 여기서 Error 를 만들어 스택을 떠도 소용없다. 이 코드는 onMount,
+                    //    즉 하이드레이션이 이미 폐기된 **뒤**라 onMount 의 스택만 나온다.
+                    //    원인 지점은 그보다 앞에서 이미 지나갔다.
+                    //
+                    //    그래서 스택 대신 **DOM 서명 전후 비교**를 싣는다. app.html 이
+                    //    하이드레이션 직전에 body 자식 서명을 남겨두므로, 지금 다시 떠서
+                    //    비교하면 그 사이에 노드가 끼어들었는지 데이터로 갈린다
+                    //    (광고 스크립트·브라우저 확장·번역기 주입 가설의 직접 검증).
+                    //
+                    //    ⛔ 수집기는 스키마에 없는 필드를 버린다(js_errors 컬럼 고정).
+                    //       그래서 부가 정보는 새 필드가 아니라 stack 에 실어 보낸다.
+                    const sigNow = (() => {
+                        try {
+                            const kids = Array.from(document.body.children).slice(0, 14);
+                            const parts = kids.map((e) => {
+                                let t = e.tagName.toLowerCase();
+                                if (e.id) t += `#${e.id}`;
+                                else if (typeof e.className === 'string' && e.className)
+                                    t += `.${e.className.split(' ')[0]}`;
+                                return t;
+                            });
+                            const extra = document.body.children.length - kids.length;
+                            if (extra > 0) parts.push(`+${extra}`);
+                            return parts.join(',');
+                        } catch {
+                            return '(sig-failed)';
+                        }
+                    })();
+                    const sigPre = String(w.__angpleBodySig ?? '(none)');
+                    const stack = [
+                        `at=${Math.round(performance.now())}ms`,
+                        '(anchor-context)',
+                        `pre=${sigPre}`,
+                        `post=${sigNow}`,
+                        `same=${sigPre === sigNow}`
+                    ]
+                        .join('\n')
+                        .slice(0, 1500);
                     fetch('https://aplog.damoang.net/api/v1/dantry', {
                         mode: 'cors',
                         credentials: 'include',
@@ -637,13 +675,15 @@
                             reason,
                             channel: 'anchor',
                             message: `hydration anchor ${reason}`,
-                            stack: '(no stack)',
+                            stack,
                             url: window.location.href,
                             userAgent: navigator.userAgent
                         })
                     }).catch(() => {});
                 }
                 delete w.__angpleHydrationAnchor;
+                // 서명도 함께 버린다 — 참조를 남기면 노드 누수와 같은 종류의 낭비다.
+                delete w.__angpleBodySig;
             }
         } catch {
             // 관측용이라 실패해도 무시

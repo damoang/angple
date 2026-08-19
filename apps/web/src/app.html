@@ -381,6 +381,34 @@
             // 여기 해당한다. 앵커 노드를 붙잡아 두고 마운트 후 isConnected 를 보면
             // 폐기 여부를 확정할 수 있다. 비용은 노드 참조 1개 + boolean 1회.
             (function () {
+                // ⛔ 여기서 "왜" 는 알 수 없다. 폐기 판정은 마운트 후에나 가능한데,
+                //    그때 스택을 떠봐야 onMount 의 스택일 뿐 원인 지점이 아니다.
+                //    (2026-08-19: anchor_detached 3,302명/일인데 원인 미특정이었다)
+                //
+                //    대신 **하이드레이션 직전의 DOM 서명**을 남겨 둔다. 마운트 후 같은
+                //    서명을 다시 떠서 비교하면, SSR 과 하이드레이션 사이에 노드가
+                //    끼어들었는지(광고 스크립트·확장·번역기) 데이터로 갈린다.
+                //    ⛔ 이 스크립트는 구형 브라우저에서도 돌아야 한다 — ES5 로 쓴다.
+                function bodySig() {
+                    var kids = document.body.children;
+                    var out = [];
+                    var lim = kids.length < 14 ? kids.length : 14;
+                    for (var i = 0; i < lim; i++) {
+                        var e = kids[i];
+                        var t = e.tagName.toLowerCase();
+                        if (e.id) t += '#' + e.id;
+                        else if (typeof e.className === 'string' && e.className)
+                            t += '.' + e.className.split(' ')[0];
+                        out.push(t);
+                    }
+                    if (kids.length > lim) out.push('+' + (kids.length - lim));
+                    return out.join(',');
+                }
+                try {
+                    window.__angpleBodySig = bodySig();
+                } catch (e) {
+                    /* 관측용 */
+                }
                 try {
                     var target = document.body.firstElementChild;
                     if (!target) return;
