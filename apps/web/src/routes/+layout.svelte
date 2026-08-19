@@ -716,6 +716,16 @@
     }
 
     onMount(() => {
+        // 읽음 표시 전환 재개 — app.html 이 첫 페인트 전에 건 .hydrating 을 뗀다.
+        // ⛔ 프레임을 두 번 넘긴 뒤에 뗀다. 하이드레이션이 클래스를 바꾸는 그 프레임에
+        //    전환이 살아 있으면 0.8초짜리 색 변화가 그대로 보인다 — 끄는 의미가 없어진다.
+        //    (두 번인 이유: 첫 rAF 는 아직 그 프레임, 두 번째가 페인트 이후다)
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                document.documentElement.classList.remove('hydrating');
+            });
+        });
+
         // 하이드레이션 앵커 판정 — 로그 없는 실패 경로 포착 (app.html 의 앵커 캡처와 한 쌍)
         //
         // Svelte 가 HYDRATION_START 주석을 못 찾으면 throw HYDRATION_ERROR 로 빠지는데,

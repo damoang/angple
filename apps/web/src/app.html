@@ -37,6 +37,17 @@
             }
         </script>
         <script>
+            // 읽음 표시 전환을 하이드레이션 동안만 끈다 (app.css 의 html.hydrating 규칙).
+            //
+            // 읽음 상태는 localStorage 라 SSR 이 모른다 → 하이드레이션 직후 이미 읽은
+            // 행들의 클래스가 한꺼번에 바뀌고, transition: color 0.8s 때문에 여러 행의
+            // 색이 동시에 천천히 변한다("다른 글도 같이 하이라이트", 다크모드에서 특히).
+            //
+            // ⛔ 첫 페인트 **전**에 붙어야 의미가 있다. 제거는 +layout.svelte 가 첫 페인트 뒤에 한다.
+            //    이 스크립트가 실패해도 전환이 살아날 뿐 화면은 깨지지 않는다.
+            document.documentElement.classList.add('hydrating');
+        </script>
+        <script>
             (function () {
                 if (typeof history === 'undefined') return;
                 var op = history.pushState;
