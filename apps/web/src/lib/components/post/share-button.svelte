@@ -115,8 +115,13 @@
     </button>
 
     {#if open}
+        <!-- bug/13644: 공유는 우측 액션 그룹(justify-end)의 최좌측 버튼이라, #2132 로
+             모바일 라벨이 복원돼 버튼 폭이 커지자 right-0(오른쪽 모서리 기준 왼쪽으로 176px
+             펼침)이 화면 좌측 밖으로 잘렸다. 모바일(<640px)에서만 left-0 으로 오른쪽 펼침
+             으로 바꾸고(우측엔 스크랩·신고 등 버튼이 있어 w-44 넘침 없음), 데스크톱은
+             sm:right-0 으로 종전 동작 그대로 유지한다. -->
         <div
-            class="bg-popover absolute bottom-full right-0 z-50 mb-1 w-44 rounded-md border p-1 shadow-md"
+            class="bg-popover absolute bottom-full left-0 z-50 mb-1 w-44 rounded-md border p-1 shadow-md sm:left-auto sm:right-0"
         >
             {#each platforms as platform}
                 <button
