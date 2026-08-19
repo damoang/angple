@@ -443,3 +443,29 @@ html {
         background-color: var(--accent);
     }
 }
+
+/* 하이드레이션 중에는 읽음 표시 전환을 끈다 — 2026-08-19.
+ *
+ * 읽음 상태는 localStorage(L1) 기반이라 SSR 이 알 수 없다. 그래서 서버는 전부
+ * "안 읽음" 으로 그리고, 하이드레이션 직후 readPostsStore 가 localStorage 를 읽으며
+ * **이미 읽은 모든 행의 클래스가 한꺼번에** post-title → post-title-read-* 로 바뀐다.
+ *
+ * 여기에 `transition: color 0.8s` 가 걸려 있어, 여러 행의 색이 0.8초에 걸쳐
+ * **동시에 천천히 변한다.** 제보(free/7060456, Jei_): "글 목록 누르면 해당 글 말고
+ * 다른 글도 같이 하이라이트 되는 증상 (보안키보드 누르는 느낌)".
+ * 다크모드에서 foreground ↔ muted-foreground 대비가 커 훨씬 눈에 띈다.
+ *
+ * ⛔ 전환 자체를 지우지 않는다. 보는 중에 글을 읽어 상태가 바뀔 때의 부드러운 전환은
+ *    의도된 것이다. **최초 적용 순간에만** 끈다.
+ * ⛔ 전역 transition 을 통째로 끄지 않는다 — 다른 UI 전환까지 죽는다. 읽음 표시만 짚는다.
+ *
+ * `.hydrating` 은 app.html 인라인 스크립트가 붙이고, +layout.svelte 가 첫 페인트 뒤
+ * 제거한다. 스크립트가 실패해도 전환이 살아날 뿐 화면은 깨지지 않는다(안전한 실패).
+ *
+ * 특이성: `html.hydrating [class^=...]`(0,2,1) > Svelte 스코프 `.post-title.svelte-x`(0,2,0).
+ * 컴포넌트 스타일이 스코프돼 있어도 이 전역 규칙이 이긴다.
+ */
+html.hydrating .post-title,
+html.hydrating [class^='post-title-read-'] {
+    transition: none;
+}
