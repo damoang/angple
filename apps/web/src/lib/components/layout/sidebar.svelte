@@ -312,7 +312,9 @@
                                     >
                                 </div>
                             </AccordionTrigger>
-                            <AccordionContent class="pb-1">
+                            <!-- animated={false}: SSR 이 열린 채로 나가므로 애니메이션을 끈다.
+                                 켜두면 높이 변수(0px→실측)가 늦게 확정되며 두 번 재생돼 CLS 가 커진다. -->
+                            <AccordionContent class="pb-1" animated={false}>
                                 <div class="relative ms-2 overflow-hidden rounded-lg p-[1px]">
                                     <div
                                         class="from-border absolute inset-0 rounded-lg bg-gradient-to-r to-transparent to-[4%]"
