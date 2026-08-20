@@ -204,6 +204,18 @@ const NOTO_ANIMOJI: EmoticonDef[] = [
         category: 'noto-animoji',
         renderType: 'image',
         url: `${NOTO_BASE}/1f631/512.webp`
+    },
+    {
+        reaction: 'noto-animoji:1f92c',
+        category: 'noto-animoji',
+        renderType: 'image',
+        url: `${NOTO_BASE}/1f92c/512.webp`
+    },
+    {
+        reaction: 'noto-animoji:1f621',
+        category: 'noto-animoji',
+        renderType: 'image',
+        url: `${NOTO_BASE}/1f621/512.webp`
     }
 ];
 
