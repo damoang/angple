@@ -1476,6 +1476,65 @@
     // `/api/boards/undefined/posts/{id}/comments` 로 요청이 나갔다(운영 실측 시간당 42건).
     // → 진입 시점에 boardId 를 **고정**하고, 무효하면 아예 요청하지 않는다.
     // `cancel` 은 라우트 이탈 시 후속 시도를 멈추기 위한 신호다.
+    /**
+     * 댓글 백필 실패를 **잡되 삼키지 않는다.**
+     *
+     * ⛔ 지금까지 `void refetchComments(...)` 로 던져서 실패가 **미처리 거부**가 됐다.
+     *    2026-08-20 실측: `TimeoutError: signal timed out` 이 6시간에 1,131건 / 516명,
+     *    하루로 치면 1,000~2,400명이 8일 넘게 겪고 있었다. 아무도 몰랐다.
+     *
+     * ⛔ 그렇다고 그냥 삼키면 안 된다 — 8일간 못 본 이유가 바로 "보이지 않아서" 였다.
+     *    ⭐ 그리고 **어느 요청이 왜 끊겼는지**가 안 담겨서 원인을 못 좁혔다.
+     *       미니파이된 스택만 남아 엔드포인트조차 알 수 없었다. 그래서 URL 을 싣는다.
+     *
+     * 참고 — 서버는 범인이 아니다. 같은 6시간 동안 web 의 GET 스팬 221,973건 중
+     * 8초를 넘긴 것은 **1건**이었고 백엔드 댓글 API 는 p99 292ms 였다.
+     * `AbortSignal.timeout` 은 벽시계라 **브라우저 메인 스레드가 막히면**
+     * 서버가 5ms 에 답해도 8초가 지나간다(광고·하이드레이션 경합 의심).
+     * 그 가설을 확인하려면 URL 과 경과시간이 필요하다.
+     */
+    const BACKFILL_REPORT_URL = 'https://aplog.damoang.net/api/v1/dantry';
+    let backfillReported = false;
+
+    function reportBackfillFailure(err: unknown, startedAt: number): void {
+        // 라우트 이탈로 인한 취소는 정상이다 — 보고하지 않는다.
+        const name = err instanceof Error ? err.name : '';
+        if (name === 'AbortError') return;
+        // 페이지당 1회만 — 재시도 루프가 오류 수집을 채우지 않게 한다.
+        if (backfillReported) return;
+        backfillReported = true;
+        try {
+            const payload = {
+                type: 'comment_backfill_failed',
+                reason: name || 'unknown',
+                channel: 'client',
+                message: `comment backfill failed: ${name || 'unknown'}`,
+                // ⛔ 수집기는 스키마에 없는 필드를 버린다(js_errors 컬럼 고정). stack 에 싣는다.
+                stack: [
+                    `name=${name}`,
+                    `elapsed=${Math.round(performance.now() - startedAt)}`,
+                    `board=${boardId}`,
+                    `post=${data.post?.id ?? '?'}`,
+                    `comments=${comments.length}`,
+                    `vw=${window.innerWidth}`,
+                    // 메인 스레드 경합 가설 확인용 — 광고가 떠 있는가
+                    `ads=${document.querySelectorAll('ins.adsbygoogle').length}`
+                ].join('\n'),
+                url: location.href,
+                userAgent: navigator.userAgent
+            };
+            const body = JSON.stringify(payload);
+            if (typeof navigator.sendBeacon === 'function') {
+                navigator.sendBeacon(
+                    BACKFILL_REPORT_URL,
+                    new Blob([body], { type: 'application/json' })
+                );
+            }
+        } catch {
+            // 관측 실패는 무시 — 화면을 방해하면 안 된다
+        }
+    }
+
     async function refetchComments(cancel?: AbortSignal): Promise<void> {
         // 댓글 작성 / 수정 / 삭제 직후 호출되는 경로라 항상 fresh 응답이 필요.
         // 브라우저 HTTP 캐시 / SvelteKit data 캐시가 옛 응답을 반환하면 optimistic
@@ -1630,7 +1689,8 @@
         if (hash.startsWith('#c_')) {
             const anchorId = hash.slice(3);
             if (anchorId && !comments.some((c) => String(c.id) === anchorId)) {
-                void refetchComments(controller.signal);
+                const t0 = performance.now();
+                void refetchComments(controller.signal).catch((e) => reportBackfillFailure(e, t0));
                 return cancel;
             }
         }
@@ -1647,7 +1707,8 @@
                     scheduleBackfill(3000);
                     return;
                 }
-                void refetchComments(controller.signal);
+                const t0 = performance.now();
+                void refetchComments(controller.signal).catch((e) => reportBackfillFailure(e, t0));
             }, delay);
         };
         scheduleBackfill(1500);
