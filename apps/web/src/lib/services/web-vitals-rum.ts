@@ -1,6 +1,6 @@
 /**
  * 실사용자(RUM) Core Web Vitals 계측.
- * 설계: CLS/LCP/INP 를 attribution 과 함께 GA4 로 보내 "무엇이 CWV 를 악화시키는가" 를
+ * 설계: CLS/LCP/INP/TTFB 를 attribution 과 함께 GA4 로 보내 "무엇이 CWV 를 악화시키는가" 를
  * 실사용자 기준으로 확정한다. cwv_daily(PSI lab, 4개 URL 샘플)의 한계를 넘어
  * 전 페이지 실측 + 범인 요소(largestShiftTarget/LCP element/INP target) 확보.
  *
@@ -90,7 +90,7 @@ export function initWebVitalsRum(): void {
     if (typeof window === 'undefined' || installed) return;
     installed = true;
 
-    void import('web-vitals/attribution').then(({ onCLS, onLCP, onINP }) => {
+    void import('web-vitals/attribution').then(({ onCLS, onLCP, onINP, onTTFB }) => {
         /**
          * @param name  메트릭명
          * @param value CLS 는 소수(×1000 정수화), LCP/INP 는 ms(반올림)
@@ -139,5 +139,38 @@ export function initWebVitalsRum(): void {
         onINP((m) =>
             send('INP', m.value, m.attribution.interactionTarget, m.attribution.interactionType)
         );
+        /**
+         * TTFB — **사용자 체감의 시작점**이자 SSR 지연이 드러나는 유일한 실사용자 지표.
+         *
+         * 2026-08-20 에 DB 쿼리 CPU 를 실측했더니 12%(0.97코어/8vCPU)로 여유가 있었다.
+         * 즉 다음 병목은 DB 가 아니라 **요청이 실제로 기다리는 곳**이고, 그걸 가르는 게
+         * TTFB 의 단계별 attribution 이다.
+         *
+         * ⛔ target 자리에 **지배적인 단계 이름**을 넣는다. 다른 지표는 "범인 요소" 를
+         *    넣는데, TTFB 는 요소가 없고 대신 "어느 구간이 제일 길었나" 가 범인이다.
+         *    그래야 기존 target= 기준 집계 쿼리가 그대로 쓰인다.
+         *   · request  = 오리진 처리(SSR·백엔드) — 우리가 고칠 수 있는 구간
+         *   · waiting  = 요청 시작 전 대기(리다이렉트·워커·큐) — CDN/엣지 계열
+         *   · dns/connection/cache = 연결 계열
+         *
+         * detail 에는 전 구간을 함께 실어 나중에 합산·분해가 되게 한다.
+         */
+        onTTFB((m) => {
+            const a = m.attribution;
+            const phases: ReadonlyArray<readonly [string, number]> = [
+                ['waiting', a.waitingDuration],
+                ['cache', a.cacheDuration],
+                ['dns', a.dnsDuration],
+                ['connection', a.connectionDuration],
+                ['request', a.requestDuration]
+            ];
+            const dominant = phases.reduce((x, y) => (y[1] > x[1] ? y : x));
+            send(
+                'TTFB',
+                m.value,
+                dominant[0],
+                phases.map(([k, v]) => `${k}=${Math.round(v)}`).join(',')
+            );
+        });
     });
 }
