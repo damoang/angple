@@ -62,7 +62,36 @@
                 </aside>
             {/if}
 
-            <div class="flex min-w-0 flex-1 flex-col">
+            <!--
+                ⛔ **본문 컬럼의 폭을 미리 확정한다.** `flex-1` 만 두면 브라우저가
+                   사이드바를 파싱하기 전에 본문을 **전체 폭으로 배치·페인트**하고,
+                   뒤늦게 사이드바를 만나 320px 좁힌다 — 그때 아래가 통째로 밀린다.
+
+                   2026-08-20 실측(CPU 4배 스로틀, 실사용자 조건):
+                     t= 731ms  aside 없음        main 1,162px
+                     t=1072ms  aside 320px 등장  main   842px   → CLS 0.107
+
+                   운영 HTML 에서 Panel 은 main 보다 **97KB 뒤**에 온다(main 165,382 /
+                   Panel 262,510). 그 간격이 느린 CPU 에서 밀림으로 드러난다.
+                   빠른 머신은 첫 페인트 전에 파싱이 끝나 안 보인다 — 프로브 0.0038 vs
+                   실사용자 p75 0.099 의 26배 간극이 이것이었다.
+
+                ⭐ 폭을 명시하면 사이드바가 아직 없어도 본문 폭이 안 바뀐다.
+                   DOM 순서·탭 순서·시각 배치는 그대로다(grid 리팩터나 order 뒤집기 불필요).
+                ⛔ fullWidth 페이지는 Panel 을 안 그리므로 폭을 빼면 안 된다 —
+                   조건을 Panel 렌더 조건과 **같은 식**으로 묶는다.
+                ⛔ `width` 가 아니라 **`max-width`** 다. 폭을 고정하면 사이드바 구성이
+                   다른 페이지에서 넘치거나 빈칸이 생긴다. 상한만 걸면 본문은 여전히
+                   줄어들 수 있고, **넓어지는 것만** 막는다 — 밀림의 원인은 그쪽이다.
+                   숫자: Panel 320px, 2xl 에서 Sidebar 230px 추가 → 550px.
+                   ⚠️ Sidebar 는 main **앞**에 있어 먼저 파싱되므로 밀림을 안 만든다.
+                      상한 계산에는 포함해야 넘치지 않는다.
+            -->
+            <div
+                class="flex min-w-0 flex-1 flex-col {fullWidth
+                    ? ''
+                    : 'lg:max-w-[calc(100%-320px)] 2xl:max-w-[calc(100%-550px)]'}"
+            >
                 {#if widgetLayoutStore.hasEnabledAds && $page.url.pathname !== '/'}
                     <div class="hidden w-full px-5 pt-4 md:px-0 lg:block">
                         <AdSlot position="header-after" height="90px" slotKey="header-after" />
