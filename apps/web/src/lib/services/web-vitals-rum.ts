@@ -98,7 +98,15 @@ export function initWebVitalsRum(): void {
          *               타입 안전 보장(느슨한 unknown 은 오필드를 숨겨 계측을 죽인다. LCP 는
          *               web-vitals v6 에서 `.element` 가 아니라 `.target` — 2026-07-31 Evaluator 정정)
          */
-        const send = (name: string, value: number, target: string | undefined, detail: string) => {
+        // ⛔ detail 을 `string` 으로 받으면 안 된다. web-vitals 의 loadState·
+        //    interactionType 은 `string | undefined` 라 svelte-check 가 막는다
+        //    (2026-08-20 CI 실패 2건). undefined 로 받아 전송 직전에 '?' 로 채운다.
+        const send = (
+            name: string,
+            value: number,
+            target: string | undefined,
+            detail: string | undefined
+        ) => {
             const v = name === 'CLS' ? Math.round(value * 1000) : Math.round(value);
             const t = (target ?? '').slice(0, 100);
             const g = pathGroup(location.pathname);
@@ -109,7 +117,7 @@ export function initWebVitalsRum(): void {
                 page_group: g
             });
             // GA4 와 **같은 값**을 dantry 로도 보낸다(표본만). 두 곳이 어긋나면 안 된다.
-            sendToDantry(name, v, t, g, detail);
+            sendToDantry(name, v, t, g, detail ?? '?');
         };
         // 각 메트릭은 페이지 생애 최종값을 pagehide/visibilitychange(hidden) 시 1회 보고한다.
         // gtag 는 sendBeacon 으로 hidden 시점 플러시 → 언로드 유실 없음.
