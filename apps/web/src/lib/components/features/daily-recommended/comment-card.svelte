@@ -54,7 +54,7 @@
                 </p>
                 <p
                     class="mt-0.5 line-clamp-2 text-sm leading-relaxed"
-                    style="font-size: var(--recommend-font-size, 0.9rem)"
+                    style="font-size: var(--recommend-font-size, 1rem)"
                 >
                     {stripHtml(comment.content)}
                 </p>

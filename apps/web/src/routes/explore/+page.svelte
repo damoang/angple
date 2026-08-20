@@ -411,7 +411,7 @@
                                             <!-- 댓글 내용 -->
                                             <p
                                                 class="mt-0.5 line-clamp-2 text-sm leading-relaxed"
-                                                style="font-size: var(--list-font-size, 0.9rem)"
+                                                style="font-size: var(--list-font-size, 1rem)"
                                             >
                                                 {stripHtml(comment.content)}
                                             </p>
