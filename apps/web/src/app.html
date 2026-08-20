@@ -3,6 +3,37 @@
     <head>
         <meta charset="utf-8" />
         <!--
+          구형 브라우저(예: 갤럭시 S8 / SamsungBrowser 9.2 = Chrome 67 기반)는
+          Array/String.prototype.at (ES2022) 미지원 → 의존성 코드의 .at() 호출이
+          하이드레이션 중 throw 하여 /free 목록 등의 인터랙션이 죽는다
+          ("this.i.at is not a function", "Failed to hydrate: r.at ..." 다수).
+          번들 로드 전 조건부 폴리필로 방어한다. 최신 브라우저에는 no-op(prototype에
+          이미 존재)이라 전체 번들 다운레벨(build.target 하향) 없이 구형만 커버한다.
+        -->
+        <script>
+            (function () {
+                function at(n) {
+                    n = Math.trunc(n) || 0;
+                    if (n < 0) n += this.length;
+                    return n < 0 || n >= this.length ? undefined : this[n];
+                }
+                if (!Array.prototype.at) {
+                    Object.defineProperty(Array.prototype, 'at', {
+                        value: at,
+                        writable: true,
+                        configurable: true
+                    });
+                }
+                if (!String.prototype.at) {
+                    Object.defineProperty(String.prototype, 'at', {
+                        value: at,
+                        writable: true,
+                        configurable: true
+                    });
+                }
+            })();
+        </script>
+        <!--
           #989 fix: iOS Safari는 짧은 시간 내 연속 history 쓰기(replaceState→pushState)를
           한 틱으로 병합해, list→detail pushState가 새 엔트리 대신 현재 엔트리를 덮어쓴다
           (빠른 탭→뒤로가기 시 목록을 건너뛰고 about:blank로 이탈).
