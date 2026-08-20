@@ -33,7 +33,13 @@ const RUM_SAMPLE_RATE = 0.1;
 /** 이 페이지 로드를 표본으로 삼을지 — 한 번 정하고 세 지표가 같은 결정을 공유한다 */
 const rumSampled = typeof window !== 'undefined' && Math.random() < RUM_SAMPLE_RATE;
 
-function sendToDantry(name: string, value: number, target: string, group: string): void {
+function sendToDantry(
+    name: string,
+    value: number,
+    target: string,
+    group: string,
+    detail: string
+): void {
     if (!rumSampled) return;
     try {
         const nav = (
@@ -50,7 +56,13 @@ function sendToDantry(name: string, value: number, target: string, group: string
                 `target=${target}`,
                 `page=${group}`,
                 `nav=${nav ?? '?'}`,
-                `vw=${window.innerWidth}`
+                `vw=${window.innerWidth}`,
+                // ⛔ 이 한 필드가 원인을 가른다:
+                //   loading         = 초기 로딩 중 밀림 → 이미지·폰트·SSR 콘텐츠 계열
+                //   dom-interactive = 파싱 후 밀림     → 하이드레이션·초기 스크립트 계열
+                //   complete        = 로드 완료 후 밀림 → 광고·지연 로드 계열
+                // 처방이 셋 다 다르다. 없으면 또 가설만 늘어난다(2026-08-20).
+                `detail=${detail}`
             ].join('\n'),
             url: location.href,
             userAgent: navigator.userAgent
@@ -86,7 +98,15 @@ export function initWebVitalsRum(): void {
          *               타입 안전 보장(느슨한 unknown 은 오필드를 숨겨 계측을 죽인다. LCP 는
          *               web-vitals v6 에서 `.element` 가 아니라 `.target` — 2026-07-31 Evaluator 정정)
          */
-        const send = (name: string, value: number, target: string | undefined) => {
+        // ⛔ detail 을 `string` 으로 받으면 안 된다. web-vitals 의 loadState·
+        //    interactionType 은 `string | undefined` 라 svelte-check 가 막는다
+        //    (2026-08-20 CI 실패 2건). undefined 로 받아 전송 직전에 '?' 로 채운다.
+        const send = (
+            name: string,
+            value: number,
+            target: string | undefined,
+            detail: string | undefined
+        ) => {
             const v = name === 'CLS' ? Math.round(value * 1000) : Math.round(value);
             const t = (target ?? '').slice(0, 100);
             const g = pathGroup(location.pathname);
@@ -97,14 +117,27 @@ export function initWebVitalsRum(): void {
                 page_group: g
             });
             // GA4 와 **같은 값**을 dantry 로도 보낸다(표본만). 두 곳이 어긋나면 안 된다.
-            sendToDantry(name, v, t, g);
+            sendToDantry(name, v, t, g, detail ?? '?');
         };
         // 각 메트릭은 페이지 생애 최종값을 pagehide/visibilitychange(hidden) 시 1회 보고한다.
         // gtag 는 sendBeacon 으로 hidden 시점 플러시 → 언로드 유실 없음.
         // ⚠️ SPA soft-nav 는 미수집(installed 가드+web-vitals v6 옵션 미활성): 랜딩→이탈만 정확.
         //    사내 네비게이션은 LCP 를 hide 시점 경로로 오태깅하므로 분석 시 랜딩 필터 전제.
-        onCLS((m) => send('CLS', m.value, m.attribution.largestShiftTarget));
-        onLCP((m) => send('LCP', m.value, m.attribution.target));
-        onINP((m) => send('INP', m.value, m.attribution.interactionTarget));
+        // ⛔ 메트릭마다 attribution 필드 이름이 다르다. 느슨한 unknown 으로 받으면
+        //    오필드를 조용히 숨겨 계측이 죽는다(2026-07-31 Evaluator 정정 이력).
+        onCLS((m) =>
+            send('CLS', m.value, m.attribution.largestShiftTarget, m.attribution.loadState)
+        );
+        onLCP((m) =>
+            send(
+                'LCP',
+                m.value,
+                m.attribution.target,
+                m.attribution.resourceLoadDelay > 0 ? 'resource' : 'render'
+            )
+        );
+        onINP((m) =>
+            send('INP', m.value, m.attribution.interactionTarget, m.attribution.interactionType)
+        );
     });
 }
