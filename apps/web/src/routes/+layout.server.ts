@@ -4,6 +4,7 @@ import { loadMenus } from '$lib/server/menu-loader';
 import { getCachedLogoData } from '$lib/server/logo';
 import { resolveLogoRequestLocale } from '$lib/utils/logo-schedule';
 import { getWidgetLayout, getSidebarWidgetLayout } from '$lib/server/settings/index';
+import { getCachedCelebrations } from '$lib/server/celebration';
 import { DEFAULT_WIDGETS, DEFAULT_SIDEBAR_WIDGETS } from '$lib/constants/default-widgets';
 
 import { hooks } from '@angple/hook-system';
@@ -87,14 +88,20 @@ export const load: LayoutServerLoad = async ({
         logoResult,
         pluginsResult,
         widgetLayoutResult,
-        sidebarWidgetLayoutResult
+        sidebarWidgetLayoutResult,
+        celebrationResult
     ] = await Promise.allSettled([
         getActiveTheme(),
         isDataRequest ? Promise.resolve([]) : loadMenus(),
         getCachedLogoData(requestLocale),
         getActivePlugins(),
         getWidgetLayout(),
-        getSidebarWidgetLayout()
+        getSidebarWidgetLayout(),
+        // ⛔ 마음메시지를 여기서 같이 내린다. 지금까지 홈(+page.server.ts)에만 있어서
+        //    다른 페이지에서는 위젯이 SSR 에 **아무것도 못 그리고**(높이 0) 하이드레이션
+        //    후 81px 이 생기며 아래 위젯과 footer 를 밀었다(2026-08-20 실측).
+        //    getCachedCelebrations 는 KST 날짜 키 서버 캐시라 페이지마다 재조회하지 않는다.
+        isDataRequest ? Promise.resolve([]) : getCachedCelebrations(false)
     ]);
 
     const activeTheme = themeResult.status === 'fulfilled' ? themeResult.value : null;
@@ -140,7 +147,8 @@ export const load: LayoutServerLoad = async ({
         ['Logo', logoResult],
         ['Plugins', pluginsResult],
         ['WidgetLayout', widgetLayoutResult],
-        ['SidebarWidgetLayout', sidebarWidgetLayoutResult]
+        ['SidebarWidgetLayout', sidebarWidgetLayoutResult],
+        ['Celebration', celebrationResult]
     ] as const) {
         if (r.status === 'rejected') {
             console.error(`[Layout] ${name} load failed:`, r.reason);
@@ -164,6 +172,8 @@ export const load: LayoutServerLoad = async ({
         themeSettings: resolvedThemeSettings,
         activePlugins,
         menus,
+        // 마음메시지 위젯의 SSR 렌더용. 실패해도 빈 배열로 사이트는 정상 동작한다.
+        celebration: celebrationResult.status === 'fulfilled' ? celebrationResult.value : [],
         // SSR_STRIP_USER=true 시 user 제거 → SSR 캐시 가능 (클라이언트 /api/auth/me로 로드)
         // 단, CSRF 필요 경로(/member, /admin, /my)는 stripUser=false로 토큰 유지
         user: stripUser ? null : (locals.user ?? null),

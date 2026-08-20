@@ -527,7 +527,20 @@
         }
     });
 
-    // SSR 데이터로 celebration + banners 캐시 초기화 (CDN 요청 제거)
+    // ⛔ **초기 1회는 여기서 — $effect 는 서버에서 실행되지 않는다.**
+    //    이 시드가 $effect 안에만 있어서 SSR 시점의 스토어가 항상 비어 있었고,
+    //    마음메시지 위젯이 서버 HTML 에 아무것도 못 그렸다(높이 0). 하이드레이션 직후
+    //    81px 이 생기며 아래 위젯과 footer 를 밀었다 — 2026-08-20 실측.
+    //    같은 계열의 선례: 사이드바 아코디언(#2151)·메뉴 데이터(2026-08-12).
+    // ⚠️ 컴파일러가 state_referenced_locally 경고를 낸다 — **의도한 것이다.**
+    //    초기값만 읽고, 이후 변경은 아래 $effect 가 맡는다. (CI 는 --threshold error)
+    untrack(() => {
+        initAppData({ celebration: data.celebration || [], banners: data.banners || {} });
+        initCelebrationFromData(data.celebration || []);
+    });
+
+    // 이후 네비게이션에서 데이터가 바뀌면 갱신한다.
+    // 첫 렌더분은 위에서 이미 처리했으므로 여기서는 값이 바뀌지 않는다.
     $effect(() => {
         const celebration = data.celebration;
         const banners = data.banners;

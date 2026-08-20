@@ -108,7 +108,18 @@
             아직 공지사항이 없어요
         </div>
     {:else}
-        <ul class="text-muted-foreground space-y-2 text-xs">
+        <!--
+            ⛔ 실제 목록에도 스켈레톤과 **같은 최소 높이**를 준다.
+            스켈레톤은 항상 NOTICE_WIDGET_LIMIT개인데 실제 데이터는 그보다 적을 수 있다.
+            2026-08-20 실측: 공지 스켈레톤 5개(112px) → 실제 4개(97px) 로 15px 줄며
+            아래 위젯과 footer 가 통째로 밀렸다. 빈 상태에는 이미 이 방어가 있었는데
+            **정작 목록에만 없었다.**
+        -->
+        <ul
+            class="text-muted-foreground space-y-2 text-xs"
+            style="min-height: calc({NOTICE_WIDGET_LIMIT} * 1rem + {NOTICE_WIDGET_LIMIT -
+                1} * 0.5rem)"
+        >
             {#each notices as notice (notice.id)}
                 <li class="flex items-center gap-1">
                     <a
