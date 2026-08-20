@@ -86,11 +86,15 @@
                    숫자: Panel 320px, 2xl 에서 Sidebar 230px 추가 → 550px.
                    ⚠️ Sidebar 는 main **앞**에 있어 먼저 파싱되므로 밀림을 안 만든다.
                       상한 계산에는 포함해야 넘치지 않는다.
+                ⛔ **`2xl:` 의 `!` 를 지우지 마라 — cascade 순서에서 진다.**
+                   번들 CSS 에서 `lg` 규칙이 `2xl` 규칙보다 **뒤에** 놓인다(151,000 vs 143,350).
+                   특이도가 같으면 나중이 이기므로, `!` 없이는 1440px 이상에서도
+                   320px 상한이 걸려 밀림이 남는다. (2026-08-20 실측: -21% 에서 멈춤 → `!` 후 -89%)
             -->
             <div
                 class="flex min-w-0 flex-1 flex-col {fullWidth
                     ? ''
-                    : 'lg:max-w-[calc(100%-320px)] 2xl:max-w-[calc(100%-550px)]'}"
+                    : 'lg:max-w-[calc(100%-320px)] 2xl:!max-w-[calc(100%-550px)]'}"
             >
                 {#if widgetLayoutStore.hasEnabledAds && $page.url.pathname !== '/'}
                     <div class="hidden w-full px-5 pt-4 md:px-0 lg:block">
