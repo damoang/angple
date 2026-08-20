@@ -33,6 +33,35 @@ const RUM_SAMPLE_RATE = 0.1;
 /** 이 페이지 로드를 표본으로 삼을지 — 한 번 정하고 세 지표가 같은 결정을 공유한다 */
 const rumSampled = typeof window !== 'undefined' && Math.random() < RUM_SAMPLE_RATE;
 
+/**
+ * 이 페이지에서 광고가 **실제로 채워졌는가**.
+ *
+ * ⛔ 2026-08-20, 남은 데스크톱 CLS(실사용자 p75 0.093)의 원인을 "아마 광고" 라고
+ *    추측만 하고 있었다. 데이터센터 IP 의 헤드리스 브라우저에서는 AdSense 가 항상
+ *    `unfilled` 이라 재현이 안 된다 — 우리 코드 몫(프로브 0.0017~0.0038)만 확인될 뿐이다.
+ *    그래서 **실사용자 쪽에서 광고 충전 여부를 같이 받아** 갈라낸다.
+ *    이 한 필드가 "광고를 줄일지" 라는 제품 판단에 숫자를 준다.
+ *
+ * ⛔ 비용은 pagehide 시점 querySelectorAll 두 번뿐이다. 렌더 경로에 아무것도 안 넣는다.
+ * ⛔ 개수만 센다. 광고 내용·식별자는 담지 않는다.
+ */
+function adFillSignature(): string {
+    try {
+        const ins = document.querySelectorAll('ins.adsbygoogle');
+        let filled = 0;
+        // ⛔ NodeList 를 for..of 로 돌면 tsconfig(downlevelIteration)에 따라 CI 에서 막힌다.
+        for (let i = 0; i < ins.length; i++) {
+            if (ins[i].getAttribute('data-ad-status') === 'filled') filled++;
+        }
+        // google-auto-placed = AdSense 자동광고가 **우리 슬롯을 안 거치고** 꽂은 컨테이너.
+        // 우리 예약 로직 밖이라 따로 센다.
+        const auto = document.querySelectorAll('.google-auto-placed').length;
+        return `ads=${ins.length}/${filled}/${auto}`;
+    } catch {
+        return 'ads=?';
+    }
+}
+
 function sendToDantry(
     name: string,
     value: number,
@@ -57,6 +86,8 @@ function sendToDantry(
                 `page=${group}`,
                 `nav=${nav ?? '?'}`,
                 `vw=${window.innerWidth}`,
+                // 광고 충전 신호: ads=<슬롯수>/<채워진수>/<자동광고 컨테이너수>
+                adFillSignature(),
                 // ⛔ 이 한 필드가 원인을 가른다:
                 //   loading         = 초기 로딩 중 밀림 → 이미지·폰트·SSR 콘텐츠 계열
                 //   dom-interactive = 파싱 후 밀림     → 하이드레이션·초기 스크립트 계열
