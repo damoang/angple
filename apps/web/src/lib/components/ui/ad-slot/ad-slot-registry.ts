@@ -26,6 +26,8 @@ type SlotState = {
     visible: boolean;
     viewable: boolean;
     fallbackTriggered: boolean;
+    /** bug/13656: 편집 포커스 때문에 연속으로 미룬 refresh 횟수 (상한 도달 시 강제 refresh) */
+    focusDeferCount: number;
 };
 
 type SlotAttachOptions = {
@@ -438,6 +440,33 @@ async function ensureGPTReady(): Promise<boolean> {
     return await registry.gptReadyPromise;
 }
 
+/**
+ * bug/13656: 모바일에서 댓글 에디터(Tiptap contenteditable) 포커스 중, 인접 댓글 광고
+ * 슬롯의 주기적 refresh 가 GAM iframe 을 교체하며 포커스된 편집 요소를 blur → Android
+ * 소프트키보드가 하강한다. 기존 rAF 포커스 복원(아래)은 프로그램적 focus 라 모바일에서
+ * 키보드를 다시 띄우지 못해 무력하다. 따라서 blur 를 원천 차단한다:
+ * 편집 요소에 포커스가 있으면 댓글 영역 슬롯의 refresh 를 다음 주기로 미룬다.
+ *
+ * - 댓글 영역 슬롯(comment-infeed / board-after-comments)에만 적용 → 사이드바 등 무관
+ *   슬롯은 기존대로 refresh(회귀 없음).
+ * - 편집 요소에 포커스가 없으면 미루지 않음 → 일반 열람 중에는 정상 refresh.
+ * - 연속 미룸 상한(MAX_FOCUS_DEFERS)에 도달하면 포커스와 무관하게 1회 refresh 를
+ *   허용해 광고가 영구 미노출되지 않게 한다.
+ */
+const COMMENT_AREA_POSITIONS = new Set(['comment-infeed', 'board-after-comments']);
+/** 연속으로 미룰 수 있는 최대 횟수 (interval 40~45s × 4 ≈ 최대 3분 억제 후 강제 refresh) */
+const MAX_FOCUS_DEFERS = 4;
+
+/** 현재 포커스가 편집 입력 요소(contenteditable / textarea / input)에 있는지 */
+function isEditableElementFocused(): boolean {
+    if (!browser) return false;
+    const el = document.activeElement as HTMLElement | null;
+    if (!el || el === document.body) return false;
+    if (el.isContentEditable) return true;
+    const tag = el.tagName;
+    return tag === 'TEXTAREA' || tag === 'INPUT';
+}
+
 function scheduleViewableRefresh(state: SlotState, intervalMs = 0) {
     if (state.refreshTimer || intervalMs <= 0) return;
     if (!state.slot || state.empty || state.mountCount <= 0 || !state.visible || !state.viewable)
@@ -455,6 +484,19 @@ function scheduleViewableRefresh(state: SlotState, intervalMs = 0) {
                 !state.viewable
             )
                 return;
+
+            // bug/13656: 댓글 영역 슬롯이고 편집 요소에 포커스가 있으면 refresh 를 미뤄
+            // 소프트키보드 하강을 막는다. 연속 상한에 도달하면 강제 refresh 로 폴백.
+            if (COMMENT_AREA_POSITIONS.has(state.position) && isEditableElementFocused()) {
+                if (state.focusDeferCount < MAX_FOCUS_DEFERS) {
+                    state.focusDeferCount += 1;
+                    // viewable 은 아직 true → 다음 주기로 재예약
+                    scheduleViewableRefresh(state, intervalMs);
+                    return;
+                }
+                // 상한 도달 → 이번엔 포커스와 무관하게 refresh 진행(광고 영구 미노출 방지)
+            }
+            state.focusDeferCount = 0;
 
             const container = document.getElementById(state.slotId)?.parentElement;
             if (container) {
@@ -558,7 +600,8 @@ export async function attachSlot(options: SlotAttachOptions) {
             destroyTimer: null,
             visible: false,
             viewable: false,
-            fallbackTriggered: false
+            fallbackTriggered: false,
+            focusDeferCount: 0
         };
         registry.slots.set(slotId, state);
     }
