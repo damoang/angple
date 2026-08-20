@@ -9,7 +9,10 @@
  * - 푸시 알림 수신/클릭 처리
  */
 
-const CACHE_NAME = 'angple-v8';
+// ⭐ 버전을 올리면 activate 핸들러가 **기존 캐시를 전량 삭제**한다.
+// v9 = API 캐싱 제거. 이미 비대해진 사용자 캐시가 이 배포로 자동 정리된다
+// (사용자가 아무것도 안 해도 됨).
+const CACHE_NAME = 'angple-v9';
 
 // 앱 셸 프리캐시 목록 (빈 배열 — 오프라인 페이지 없으므로 프리캐시 불필요)
 const PRECACHE_URLS = [];
@@ -47,10 +50,25 @@ self.addEventListener('fetch', (event) => {
     // 같은 출처의 요청만 처리
     if (url.origin !== self.location.origin) return;
 
-    // API 요청: Network First (GET만 캐시, POST 등은 패스스루)
+    // API 요청 → SW 개입 안 함 (브라우저가 직접 처리)
+    //
+    // ⛔ 예전에는 GET 을 networkFirst 로 캐시했다. **그게 사고였다.**
+    //    2026-08-20 실측: `TimeoutError: signal timed out` 이 하루 1,000~2,400명.
+    //    서버는 멀쩡했다 — web GET 스팬 221,973건 중 8초 초과 1건, 백엔드 p99 292ms.
+    //
+    //    원인은 이 캐시다. 댓글 백필은 `_t=<타임스탬프>` 캐시버스터를 붙여 부르므로
+    //    **URL 이 매번 다르다.** 50KB 응답이 페이지를 볼 때마다 새 항목으로 쌓이고
+    //    다시는 히트되지 않는다. 많이 보는 사람일수록 Cache Storage 가 무한히 커지고,
+    //    커질수록 `caches.open`/`cache.put` 이 느려져 모든 API 요청이 지연된다.
+    //    실측이 그 모양이었다 — 상위 3명이 전체 타임아웃의 63%, 각각 305·108·86개
+    //    페이지에서. **많이 볼수록 심해지는** 분포다.
+    //
+    // ⛔ 게다가 /api/ 응답은 **개인화 데이터**다(알림·회원정보). 디스크 캐시에
+    //    남기는 것 자체가 바람직하지 않고, 오프라인 폴백도 `{"error":"Offline"}` 503 이라
+    //    가치가 없다.
+    //
+    // 선례: `/_app/immutable/` 도 같은 이유로 SW 캐싱에서 뺐다(#366 무한 새로고침).
     if (url.pathname.startsWith('/api/')) {
-        if (request.method !== 'GET') return;
-        event.respondWith(networkFirst(request));
         return;
     }
 
