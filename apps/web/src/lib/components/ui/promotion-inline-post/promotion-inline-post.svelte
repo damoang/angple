@@ -66,7 +66,7 @@
                     >
                     <span
                         class="text-foreground truncate font-medium"
-                        style="font-size: var(--list-font-size, 0.9375rem);"
+                        style="font-size: var(--list-font-size, 1rem);"
                     >
                         {post.subject}
                     </span>

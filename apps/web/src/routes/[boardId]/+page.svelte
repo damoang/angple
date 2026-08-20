@@ -1588,7 +1588,7 @@
                                             >
                                             <h3
                                                 class="text-foreground truncate font-medium"
-                                                style="font-size: var(--list-font-size, 0.9375rem);"
+                                                style="font-size: var(--list-font-size, 1rem);"
                                             >
                                                 {notice.title}
                                             </h3>
@@ -1627,7 +1627,7 @@
                                             >
                                             <h3
                                                 class="text-foreground truncate font-medium"
-                                                style="font-size: var(--list-font-size, 0.9375rem);"
+                                                style="font-size: var(--list-font-size, 1rem);"
                                             >
                                                 {notice.title}
                                             </h3>
