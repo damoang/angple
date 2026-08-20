@@ -60,19 +60,64 @@
     // Current path tracking for active menu highlighting
     const currentPath = $derived($page.url.pathname);
 
-    function isActive(url: string): boolean {
+    // 경로를 인자로 받는 순수 판정 — 아래 computeAutoExpand 가 SSR(반응성 밖)에서도
+    // 같은 규칙을 쓸 수 있어야 하므로 currentPath 를 캡처하지 않는다.
+    function isActiveFor(url: string, path: string): boolean {
         // url='/' 는 그룹/부모 메뉴(더보기·안내 등)의 placeholder 라 실제 목적지가 아니다.
-        // 홈(currentPath='/')에서 url='/' 메뉴가 전부 active 로 잡혀 "더보기"가 활성으로
+        // 홈(path='/')에서 url='/' 메뉴가 전부 active 로 잡혀 "더보기"가 활성으로
         // 보이던 문제 방지 — 홈에서는 어떤 메뉴도 활성으로 표시하지 않는다.
         if (!url || url === '/') return false;
-        return currentPath === url || currentPath.startsWith(url + '/');
+        return path === url || path.startsWith(url + '/');
     }
 
+    function isActive(url: string): boolean {
+        return isActiveFor(url, currentPath);
+    }
+
+    /**
+     * 현재 경로에 해당하는 1depth 아코디언 값과 2/3depth 펼침 그룹을 계산한다.
+     *
+     * ⛔ **이 계산이 $effect 안에만 있으면 안 된다.** $effect 는 서버에서 실행되지 않아
+     *    서버 HTML 이 전부 닫힌 채로 나간다(2026-08-20 실측: `data-state="open"` 0개 /
+     *    `closed` 49개). 하이드레이션 직후 활성 그룹이 열리며 사이드바 nav 가
+     *    **312 → 624px** 로 뛰고, 그 +312px 이 아래 전부와 footer 를 밀어낸다.
+     *    로컬 재현 데스크톱 CLS 0.0462(실사용자 p50 0.052)의 최대 단일 기여분이었다.
+     *    ⚠️ 모바일 p75 0.057 은 이미 통과 — 이 밀림은 사이드바가 있는 데스크톱/태블릿 전용이다.
+     *    같은 계열의 선례가 이 파일 위쪽 주석(메뉴 데이터 SSR 공백, 2026-08-12)에 있다.
+     */
+    function computeAutoExpand(
+        items: MenuItem[],
+        path: string
+    ): { value: string | undefined; groups: Set<number> } {
+        let value: string | undefined = undefined;
+        const groups = new Set<number>();
+        const traverse = (list: MenuItem[], depth: number) => {
+            for (const item of list) {
+                if (!item.children?.length) continue;
+                const childActive = item.children.some(
+                    (c) =>
+                        isActiveFor(c.url, path) ||
+                        c.children?.some((gc) => isActiveFor(gc.url, path))
+                );
+                if (depth === 0 && childActive) value = `item-${item.id}`;
+                if (depth >= 1 && childActive) groups.add(item.id);
+                traverse(item.children, depth + 1);
+            }
+        };
+        traverse(items, 0);
+        return { value, groups };
+    }
+
+    // ⛔ 초기값을 **여기서** 정해야 SSR HTML 이 이미 펼쳐진 채로 나간다.
+    //    아래 $effect 로 미루면 그 시점은 하이드레이션 이후라 이미 늦다.
+    //    untrack: 초기화용 1회 계산이라 의존성으로 잡히면 안 된다.
+    const initialExpand = untrack(() => computeAutoExpand(menuData, currentPath));
+
     // Writable state for accordion — allows both auto-open and manual interaction
-    let accordionValue = $state<string | undefined>(undefined);
+    let accordionValue = $state<string | undefined>(initialExpand.value);
 
     // 2/3depth 그룹 접기/펼치기 상태
-    let expandedGroups = $state<Set<number>>(new Set());
+    let expandedGroups = $state<Set<number>>(initialExpand.groups);
 
     function toggleSubGroup(id: number) {
         const next = new Set(expandedGroups);
@@ -81,29 +126,14 @@
         expandedGroups = next;
     }
 
-    // 단일 트리 순회로 1depth 아코디언 + 2/3depth 서브그룹 동시 처리
+    // 이후 네비게이션(게시판 이동)에서 자동 펼침을 갱신한다.
+    // 첫 렌더분은 위 initialExpand 가 이미 처리했으므로 여기서는 값이 바뀌지 않는다
+    // — 그래서 하이드레이션 시점에 레이아웃이 움직이지 않는다.
     $effect(() => {
-        let newAccordionValue: string | undefined = undefined;
-        const autoExpand = new Set<number>();
-
-        const traverse = (items: typeof menuData, depth: number) => {
-            for (const item of items) {
-                if (item.children?.length) {
-                    const childActive = item.children.some(
-                        (c) => isActive(c.url) || c.children?.some((gc) => isActive(gc.url))
-                    );
-                    if (depth === 0 && childActive) {
-                        newAccordionValue = `item-${item.id}`;
-                    }
-                    if (depth >= 1 && childActive) {
-                        autoExpand.add(item.id);
-                    }
-                    traverse(item.children, depth + 1);
-                }
-            }
-        };
-
-        traverse(menuData, 0);
+        const { value: newAccordionValue, groups: autoExpand } = computeAutoExpand(
+            menuData,
+            currentPath
+        );
         // accordionValue / expandedGroups 의 읽기·쓰기는 untrack 으로 격리한다.
         // 이 effect 의 의존성은 menuData + currentPath(isActive) 뿐이어야 한다.
         // 비교를 위해 accordionValue 를 그냥 읽으면 그것이 의존성이 되어, 사용자가
