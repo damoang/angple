@@ -94,6 +94,11 @@ jobs:
       - name: Check history state destruction
         run: node scripts/check-history-state.mjs
 
+      # 끊긴 옵셔널 체이닝(`a?.b.c`) 신규 유입 차단.
+      # 기존분은 scripts/optional-chain-baseline.json 에 동결돼 있다 — 늘리지 말 것.
+      - name: Check optional chain propagation
+        run: node scripts/check-optional-chain-propagation.mjs
+
   # 전체 lint는 수동 실행만 허용한다.
   # PR에서는 eslint-review/prettier-suggester가 이미 같은 역할을 맡고,
   # main push에서는 빌드/테스트/배포 경로를 막지 않도록 분리한다.
