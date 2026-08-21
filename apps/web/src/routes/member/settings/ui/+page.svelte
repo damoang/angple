@@ -1515,8 +1515,8 @@
                             </p>
                         </div>
                         <Switch
-                            checked={uiSettingsStore.memoDeny}
-                            onCheckedChange={(v) => uiSettingsStore.setMemoDeny(v)}
+                            checked={uiSettingsStore.messageDeny}
+                            onCheckedChange={(v) => uiSettingsStore.setMessageDeny(v)}
                         />
                     </div>
                 </CardContent>

@@ -49,7 +49,7 @@ const ALLOWED_KEYS = new Set<string>([
     'blurMemo',
     'expandMemoInList',
     'memoColorLabels',
-    'memoDeny'
+    'messageDeny'
 ]);
 
 /** 남용 방어 상한 */

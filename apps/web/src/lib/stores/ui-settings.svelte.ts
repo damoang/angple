@@ -78,7 +78,7 @@ export interface UiSettings {
      * ⛔ 발송 게이트는 백엔드가 별도로 구현한다. 여기서는 설정값만 서버(L2)에 저장한다.
      * 운영 안내·이용제한 통보 등 시스템 쪽지는 이 설정과 무관하게 예외로 발송된다.
      */
-    memoDeny: boolean;
+    messageDeny: boolean;
 }
 
 const DEFAULTS: UiSettings = {
@@ -114,7 +114,7 @@ const DEFAULTS: UiSettings = {
     blurMemo: false,
     expandMemoInList: true,
     memoColorLabels: {},
-    memoDeny: false
+    messageDeny: false
 };
 
 // ⛔ normal 은 현재 라이브 하드코딩(markdown .prose p / tiptap p = 1.8)과 **같은 값**이어야 한다.
@@ -482,8 +482,8 @@ function createUiSettingsStore() {
             return settings.memoColorLabels;
         },
         // 쪽지(DM)
-        get memoDeny() {
-            return settings.memoDeny;
+        get messageDeny() {
+            return settings.messageDeny;
         },
 
         setTitleBold(v: boolean) {
@@ -556,8 +556,8 @@ function createUiSettingsStore() {
             settings.memoColorLabels = next;
             save();
         },
-        setMemoDeny(v: boolean) {
-            settings.memoDeny = v;
+        setMessageDeny(v: boolean) {
+            settings.messageDeny = v;
             save();
         },
 
