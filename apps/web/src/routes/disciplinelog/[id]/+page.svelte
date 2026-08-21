@@ -131,6 +131,31 @@
                 <Button variant="outline" class="mt-4" href="/disciplinelog">목록으로</Button>
             </Card.Content>
         </Card.Root>
+    {:else if log.is_legacy}
+        <!--
+            초기 형식 기록(2024-05~08 등 25건). 본문이 구조화 JSON 이 아니라 운영자 자유 서술이라
+            구조화 카드를 못 그린다. 원문을 그대로 보여준다.
+            ⛔ 예전엔 이 글들이 500 이라 「불러오는데 실패했습니다」로 보였다. 기록은 멀쩡히 있는데
+               화면만 없다고 말하는 상태였고, 실제로 이력 조회 오판을 낳았다(2026-08-21).
+            ⛔ 본문은 백엔드에서 게시글 본문과 같은 정책으로 sanitize 된 값이다.
+        -->
+        <Card.Root class="mb-4">
+            <Card.Header>
+                <Card.Title class="flex items-center gap-2 text-base">
+                    <FileText class="h-5 w-5" />
+                    {log.member_nickname || '이용제한 기록'}
+                </Card.Title>
+                <p class="text-muted-foreground text-xs">
+                    {log.created_at} · 초기 형식으로 작성된 기록이라 원문 그대로 표시합니다
+                </p>
+            </Card.Header>
+            <Card.Content>
+                <div class="prose prose-sm dark:prose-invert max-w-none break-words">
+                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                    {@html log.legacy_content}
+                </div>
+            </Card.Content>
+        </Card.Root>
     {:else}
         {@const penalty = getPenaltyDisplay(log.penalty_period, log.penalty_date_to)}
         {@const severity = penaltySeverity(log.penalty_period, penalty.released, !!log.revoked_at)}
