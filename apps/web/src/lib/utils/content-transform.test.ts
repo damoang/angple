@@ -417,6 +417,31 @@ describe('transformInlineMarkdown', () => {
         expect(transformInlineMarkdown('~~취소선~~ 텍스트')).toBe('<del>취소선</del> 텍스트');
     });
 
+    // GFM flanking 규칙: 틸드 안쪽에 공백이 있으면 취소선이 아니라 리터럴
+    it('~~ 안쪽 공백 ~~ 은 취소선이 아니다 (부드러운 말투)', () => {
+        expect(transformInlineMarkdown('~~ 부드러운 ~~')).toBe('~~ 부드러운 ~~');
+    });
+
+    it('~~ 안쪽 공백 ~~ 은 취소선이 아니다 (꼬리)', () => {
+        expect(transformInlineMarkdown('~~ 꼬리 ~~')).toBe('~~ 꼬리 ~~');
+    });
+
+    it('딱 붙은 ~~꼬리~~ 는 취소선이다', () => {
+        expect(transformInlineMarkdown('~~꼬리~~')).toBe('<del>꼬리</del>');
+    });
+
+    it('닫는 틸드가 없으면 취소선이 아니다', () => {
+        expect(transformInlineMarkdown('그래요~~')).toBe('그래요~~');
+    });
+
+    it('단일 틸드는 취소선이 아니다', () => {
+        expect(transformInlineMarkdown('꼬리~')).toBe('꼬리~');
+    });
+
+    it('문장 중간 딱 붙은 ~~강조~~ 는 취소선이다', () => {
+        expect(transformInlineMarkdown('앞~~강조~~뒤')).toBe('앞<del>강조</del>뒤');
+    });
+
     it('혼합 사용', () => {
         const input = '**볼드** *이탤릭* ~~취소~~';
         const result = transformInlineMarkdown(input);

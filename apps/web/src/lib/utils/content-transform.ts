@@ -321,8 +321,12 @@ export function transformInlineMarkdown(text: string): string {
     if (!text || (!text.includes('*') && !text.includes('~~'))) return text;
 
     // <pre>...</pre>, <code>...</code> 블록을 보호하면서 나머지만 변환
+    // 취소선(~~)은 GFM flanking 규칙 적용: 여는 ~~ 뒤·닫는 ~~ 앞이 모두 비공백일 때만 <del>.
+    // (예: "~~ 부드러운 ~~"처럼 안쪽에 공백이 있으면 취소선이 아닌 리터럴로 둔다)
+    // lookbehind 미사용 — 경계 문자를 캡처 그룹으로 강제해 구형 브라우저 호환.
+    // 개행/틸드를 넘지 않도록 . 대신 [^~\n] 사용(catastrophic backtracking 회피).
     return text.replace(
-        /(<pre[\s>][\s\S]*?<\/pre>|<code[\s>][\s\S]*?<\/code>)|(\*\*(.+?)\*\*|\*(.+?)\*|~~(.+?)~~)/g,
+        /(<pre[\s>][\s\S]*?<\/pre>|<code[\s>][\s\S]*?<\/code>)|(\*\*(.+?)\*\*|\*(.+?)\*|~~([^~\s](?:[^~\n]*[^~\s])?)~~)/g,
         (match, codeBlock, _md, bold, italic, strike) => {
             if (codeBlock) return codeBlock;
             if (bold) return `<strong>${bold}</strong>`;
