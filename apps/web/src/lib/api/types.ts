@@ -97,6 +97,14 @@ export interface FreePost {
     } | null;
     is_left?: boolean; // 작성자 탈퇴 여부 (SSR enrichment)
     report_count?: number | string; // wr_7 값: 숫자(신고수) 또는 "lock"(잠김)
+    /** 신고잠금 글 (wr_7='lock'). be(#693)가 익명에게만 content='' 와 함께 내려준다. */
+    is_restricted?: boolean;
+    /**
+     * 게이트 종류(신고잠금/이용제한) — SSR load 가 서버 인증(locals.user)으로만 판정해 세팅한다.
+     * 비로그인 게이트 대상일 때만 'reportlock'|'discipline', 그 외(로그인·비게이트)엔 null.
+     * ⛔ 클라이언트에서 is_restricted 로 재계산 금지 — 로그인 사용자는 원문+is_restricted=true 라 오탐.
+     */
+    gated_kind?: 'reportlock' | 'discipline' | null;
     // 별점 집계 (features.rating 보드에서만 백엔드가 동봉 — 없으면 위젯 미표시)
     rating?: PostRating;
     // 레거시 평점 아카이브 (앙지도 전용, SSR enrichment, 읽기전용 — 신규 rating 과 별개로 나란히 표시)

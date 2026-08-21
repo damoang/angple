@@ -204,6 +204,16 @@ export const load: PageServerLoad = async ({
         const isGatedPost =
             !post.deleted_at &&
             (post.is_restricted === true || post.title?.trim() === '[이용제한 근거 글]');
+        // 게이트 화면 플래그 — be 는 "익명에게만" content 를 비우고 로그인엔 원문을 주므로,
+        // 인증의 유일 권위인 locals.user 로만 판정한다. content-빈 추론·is_restricted 단독 판정 금지
+        // (로그인 사용자는 원문+is_restricted=true 라 클라에서 재계산하면 원문을 안내로 덮어버린다).
+        // ⭐ 이미지 전용 제한글(원래 content 빈)도 로그인 사용자는 !locals.user 가 false 라 안 게이트된다.
+        post.gated_kind =
+            !locals.user && isGatedPost
+                ? post.title?.trim() === '[이용제한 근거 글]'
+                    ? 'discipline'
+                    : 'reportlock'
+                : null;
         if (isGatedPost) {
             // (3) SEO — free 한정 색인 차단(§6 ①안). 게이트 글은 색인돼도 비로그인이 못 보므로
             //     noindex + noarchive 로 검색 노출을 막는다. 다른 보드는 기존 정책 유지(free 만).

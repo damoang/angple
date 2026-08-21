@@ -265,20 +265,17 @@
     // ── 신고잠금·이용제한 게이트 안내 문구 (비로그인 유도) ─────────────────────────
     // ⛔ A형(신고 자동잠금·미제재)과 이용제한 근거글은 상태가 달라 문구를 분리한다(묶지 말 것).
     //    묶으면 미제재 회원 글에 제재 뉘앙스가 붙는다. 나중에 쉽게 바꾸도록 상수로 분리.
-    const DISCIPLINE_POST_TITLE = '[이용제한 근거 글]';
     const GATE_NOTICE_REPORT_LOCK =
         '이 글은 신고가 접수되어 확인 전까지 잠겨 있습니다. 로그인 후 확인하실 수 있습니다.';
     const GATE_NOTICE_DISCIPLINE =
         '이용제한 근거로 인용된 글입니다. 로그인 후 확인하실 수 있습니다.';
 
-    // 게이트 종류 판정 — 우선순위 deleted_at → 이용제한 근거글(title) → 신고잠금(is_restricted).
-    // ⛔ 삭제글은 별도 처리(빈 본문)라 여기서 제외. is_restricted 도 없고 근거글 제목도 아니면
-    //    게이트가 아니다 — 본문이 비어도(이미지/빈 글) 낙인 라벨을 붙이지 않는다(허위 낙인 금지).
+    // 게이트 종류 — 서버(+page.server.ts)가 인증(locals.user)으로만 판정해 내려준 플래그를 읽는다.
+    // ⛔ is_restricted 로 재계산 금지: 로그인 사용자는 원문+is_restricted=true 라 안내로 덮어버린다.
+    //    삭제글은 별도 처리(빈 본문)라 여기서 제외한다.
     function computePostGateKind(p: FreePost): 'reportlock' | 'discipline' | null {
         if (p.deleted_at) return null;
-        if (p.title?.trim() === DISCIPLINE_POST_TITLE) return 'discipline';
-        if (p.is_restricted === true) return 'reportlock';
-        return null;
+        return p.gated_kind ?? null;
     }
     const postGateKind = $derived(computePostGateKind(data.post));
 
