@@ -48,7 +48,8 @@ const ALLOWED_KEYS = new Set<string>([
     'hideMemoInList',
     'blurMemo',
     'expandMemoInList',
-    'memoColorLabels'
+    'memoColorLabels',
+    'memoDeny'
 ]);
 
 /** 남용 방어 상한 */

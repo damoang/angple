@@ -25,6 +25,7 @@
     import LayoutList from '@lucide/svelte/icons/layout-list';
     import EyeOff from '@lucide/svelte/icons/eye-off';
     import MessageSquare from '@lucide/svelte/icons/message-square';
+    import Mail from '@lucide/svelte/icons/mail';
     import XIcon from '@lucide/svelte/icons/x';
     import Plus from '@lucide/svelte/icons/plus';
     import Search from '@lucide/svelte/icons/search';
@@ -1492,6 +1493,31 @@
                                 </div>
                             {/each}
                         </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <Mail class="h-5 w-5" />
+                        쪽지 설정
+                    </CardTitle>
+                    <CardDescription>다른 회원의 쪽지 수신 여부를 설정합니다.</CardDescription>
+                </CardHeader>
+                <CardContent class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <Label>쪽지 수신 거부</Label>
+                            <p class="text-muted-foreground text-xs">
+                                켜면 다른 회원이 나에게 쪽지를 보낼 수 없습니다. (운영 안내·이용제한
+                                통보 쪽지는 예외)
+                            </p>
+                        </div>
+                        <Switch
+                            checked={uiSettingsStore.memoDeny}
+                            onCheckedChange={(v) => uiSettingsStore.setMemoDeny(v)}
+                        />
                     </div>
                 </CardContent>
             </Card>

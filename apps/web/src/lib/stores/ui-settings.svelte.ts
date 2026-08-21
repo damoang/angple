@@ -72,6 +72,13 @@ export interface UiSettings {
     expandMemoInList: boolean;
     /** 메모 색상별 사용자 지정 이름표 (color→label). 빈 값은 기본 이름 사용 (#13013) */
     memoColorLabels: Record<string, string>;
+    // 쪽지(DM)
+    /**
+     * 쪽지 수신 전면 거부 (#13664). 켜면 다른 회원이 나에게 쪽지를 보낼 수 없다.
+     * ⛔ 발송 게이트는 백엔드가 별도로 구현한다. 여기서는 설정값만 서버(L2)에 저장한다.
+     * 운영 안내·이용제한 통보 등 시스템 쪽지는 이 설정과 무관하게 예외로 발송된다.
+     */
+    memoDeny: boolean;
 }
 
 const DEFAULTS: UiSettings = {
@@ -106,7 +113,8 @@ const DEFAULTS: UiSettings = {
     hideMemoInList: false,
     blurMemo: false,
     expandMemoInList: true,
-    memoColorLabels: {}
+    memoColorLabels: {},
+    memoDeny: false
 };
 
 // ⛔ normal 은 현재 라이브 하드코딩(markdown .prose p / tiptap p = 1.8)과 **같은 값**이어야 한다.
@@ -473,6 +481,10 @@ function createUiSettingsStore() {
         get memoColorLabels() {
             return settings.memoColorLabels;
         },
+        // 쪽지(DM)
+        get memoDeny() {
+            return settings.memoDeny;
+        },
 
         setTitleBold(v: boolean) {
             settings.titleBold = v;
@@ -542,6 +554,10 @@ function createUiSettingsStore() {
             if (trimmed) next[color] = trimmed;
             else delete next[color];
             settings.memoColorLabels = next;
+            save();
+        },
+        setMemoDeny(v: boolean) {
+            settings.memoDeny = v;
             save();
         },
 
