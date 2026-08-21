@@ -24,6 +24,7 @@
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import { dompurify as DOMPurify } from '$lib/utils/dompurify.js';
     import { normalizeHtmlMediaUrls } from '$lib/utils/media-url';
+    import { transformEmoticons } from '$lib/utils/content-transform';
     import { applyFilter } from '$lib/hooks/registry';
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';
     import { onMount, tick } from 'svelte';
@@ -851,7 +852,12 @@
                 map.set(comment.id, '');
                 continue;
             }
-            const withBr = comment.content.replace(/\n/g, '<br>');
+            // 이모티콘 {emo:...} → <img> 를 SSR 에서도 변환한다 (bug/13671).
+            // 종전엔 클라이언트 $effect(applyFilter 'comment_content')에서만 돌아,
+            // JS 하이드레이션 전(앱 웹뷰 등)에는 원문 코드가 그대로 노출됐다.
+            // 순수 함수라 SSR-safe. 멱등: 아래 processedComments $effect 는 원본
+            // comment.content 를 다시 필터하므로 이 SSR 결과를 재처리하지 않는다.
+            const withBr = transformEmoticons(comment.content.replace(/\n/g, '<br>'));
             map.set(
                 comment.id,
                 normalizeHtmlMediaUrls(

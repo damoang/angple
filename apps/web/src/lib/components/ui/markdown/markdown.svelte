@@ -6,7 +6,7 @@
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';
     import { browser } from '$app/environment';
     import { highlightAllCodeBlocks } from '$lib/utils/code-highlight';
-    import { transformEscapedMedia } from '$lib/utils/content-transform';
+    import { transformEscapedMedia, transformEmoticons } from '$lib/utils/content-transform';
     import { normalizeHtmlMediaUrls } from '$lib/utils/media-url';
     import { processContent as processEmbeds } from '$lib/plugins/auto-embed/embedder.js';
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
@@ -301,6 +301,13 @@
         if (!content) return '';
         let rawHtml = marked.parse(content) as string;
         rawHtml = transformEscapedMedia(rawHtml);
+        // 이모티콘 {emo:...} → <img> 를 SSR 에서도 변환한다 (bug/13671).
+        // 종전엔 이 변환이 클라이언트 $effect(applyFilter 'post_content')에서만 돌아,
+        // JS 하이드레이션 전(앱 웹뷰 등)에는 원문 코드가 그대로 노출됐다.
+        // - transformEmoticons 는 순수 함수라 SSR-safe(DOM/window 미의존).
+        // - 멱등: 아래 클라 $effect 는 원본 content 를 다시 파싱하므로 이 SSR 결과를
+        //   재처리하지 않는다(이중 변환 없음). 라이브 렌더는 premium 파서가 최종 확정한다.
+        rawHtml = transformEmoticons(rawHtml);
         // processEmbeds는 클라이언트 $effect에서만 실행 (SSR 부하 방지)
         // 본문 이미지 src 더블슬래시 collapse + CDN 호스트 정규화 (#12697)
         return injectImageLoadingHints(
