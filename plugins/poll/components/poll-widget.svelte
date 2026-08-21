@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
@@ -85,11 +84,16 @@
         return `${Math.max(1, Math.floor(diff / 60000))}분 남음`;
     }
 
-    async function load() {
+    // 요청 시점의 board/post 를 인자로 받아 조회한다. SPA 네비게이션에서 늦게 온 응답이
+    // 새 글에 잘못 적용되지 않도록, 응답 도착 시 현재 postId 와 캡처값을 대조해 stale 응답은 폐기.
+    async function load(reqBoardId: string, reqPostId: number) {
         try {
-            const res = await fetch(`/api/plugins/poll/by-post/${boardId}/${postId}`);
+            const res = await fetch(`/api/plugins/poll/by-post/${reqBoardId}/${reqPostId}`);
+            // SPA 경합 가드: 응답 도착 시점에 다른 글로 이동했으면 폐기 (bug/13673 2차 방지)
+            if (reqPostId !== postId) return;
             if (!res.ok) return;
             const body = await res.json();
+            if (reqPostId !== postId) return;
             if (body?.success) {
                 poll = body.data as PollData;
                 multiPicks = new Set(poll?.my_choices ?? []);
@@ -99,7 +103,19 @@
         }
     }
 
-    onMount(load);
+    // onMount 대신 $effect: SPA 네비게이션(글→글) 시 postId 변경에 반응해 재조회한다 (bug/13673).
+    // boardId/postId 를 읽어 의존성으로 추적하고, 값이 바뀌면 이전 글의 stale 상태를 즉시 리셋 후
+    // 재조회. 리셋 대상(poll·multiPicks 등)은 effect 안에서 읽지 않으므로 자기참조 재트리거 없음.
+    $effect(() => {
+        const reqBoardId = boardId;
+        const reqPostId = postId;
+        // 이전 글의 투표 상태가 새 글에 그대로 남지 않도록 즉시 초기화
+        poll = null;
+        multiPicks = new Set();
+        errorMsg = '';
+        showCreateForm = false;
+        load(reqBoardId, reqPostId);
+    });
 
     async function api(path: string, method: string, body?: unknown): Promise<boolean> {
         isSubmitting = true;
