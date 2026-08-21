@@ -44,6 +44,42 @@
     let isItalic = $state(false);
     let isSpoiler = $state(false);
 
+    // #13669 — 앱(웹뷰)에서 지연로딩된 에디터에 프로그래밍 방식으로 focus 가 넘어오면,
+    // 브라우저의 "포커스된 입력을 키보드 위로 스크롤" 휴리스틱이 발동하지 않아 입력창이
+    // 소프트 키보드 뒤에 잔류한다. focus 시 입력창을 키보드 위로 직접 스크롤해 보정한다.
+    // - browser(클라이언트)에서만 실행(onFocus 는 DOM 이벤트라 항상 클라이언트).
+    // - visualViewport 가 있으면(모바일/웹뷰) 가시영역 기준으로 판단, 없으면 innerHeight 폴백.
+    // - 이미 가시영역 안이면 스크롤하지 않는다 → 데스크톱·비키보드 환경에서 무해(불필요한 점프 없음).
+    // - 키보드가 뒤늦게 올라와 뷰포트가 줄어드는 웹뷰를 위해 resize 1회만 추가 보정(자기해제).
+    function scrollEditorAboveKeyboard(): void {
+        if (typeof window === 'undefined' || !editorElement) return;
+        const el = editorElement;
+        const vv = window.visualViewport;
+
+        const doScroll = () => {
+            const rect = el.getBoundingClientRect();
+            const visibleBottom = vv ? vv.height : window.innerHeight;
+            // 입력창 하단이 가시영역 안이고 상단이 위로 잘리지 않았으면 이미 보이는 것 → 스크롤 안 함.
+            if (rect.bottom <= visibleBottom && rect.top >= 0) return;
+            el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        };
+
+        // 포커스 직후 레이아웃 안정 후 1회 보정.
+        requestAnimationFrame(doScroll);
+
+        // 키보드가 늦게 올라와 visualViewport 가 줄어드는 순간 한 번 더 보정한다.
+        // 첫 resize 에서 스스로 해제하고, 키보드가 안 올라오는 환경(데스크톱)에서도
+        // 1초 뒤 반드시 해제해 리스너가 누적되지 않게 한다.
+        if (vv) {
+            const onResize = () => {
+                vv.removeEventListener('resize', onResize);
+                doScroll();
+            };
+            vv.addEventListener('resize', onResize);
+            setTimeout(() => vv.removeEventListener('resize', onResize), 1000);
+        }
+    }
+
     onMount(() => {
         if (!editorElement) return;
 
@@ -135,6 +171,8 @@
                 // #12939/#13045 — 작성 중 키보드가 내려가는 현상 진단.
                 // 포커스 중에만 관측하고, 이상 이탈일 때만 1회 전송한다(평상시 비용 0).
                 if (editorElement) watchCommentInput(editorElement);
+                // #13669 — 프로그래밍 focus 시 입력창을 소프트 키보드 위로 스크롤(작성·수정 폼 공통).
+                scrollEditorAboveKeyboard();
             },
             onTransaction: ({ editor: e }) => {
                 // ProseMirror 트랜잭션은 Svelte 렌더/effect 중 동기 호출될 수 있어, 여기서
