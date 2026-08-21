@@ -90,10 +90,11 @@
         try {
             const res = await fetch(`/api/plugins/poll/by-post/${reqBoardId}/${reqPostId}`);
             // SPA 경합 가드: 응답 도착 시점에 다른 글로 이동했으면 폐기 (bug/13673 2차 방지)
-            if (reqPostId !== postId) return;
+            // wr_id 는 gnuboard 에서 보드별 시퀀스라 크로스보드 동일 wr_id 레이스가 가능 → board 도 대조
+            if (reqPostId !== postId || reqBoardId !== boardId) return;
             if (!res.ok) return;
             const body = await res.json();
-            if (reqPostId !== postId) return;
+            if (reqPostId !== postId || reqBoardId !== boardId) return;
             if (body?.success) {
                 poll = body.data as PollData;
                 multiPicks = new Set(poll?.my_choices ?? []);
