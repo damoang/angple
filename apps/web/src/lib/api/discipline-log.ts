@@ -121,6 +121,14 @@ export interface DisciplineLogDetail {
      *    한 글에만 적용한 사유가 전건에 적용된 것처럼 읽힌다.
      */
     reasons_differ_by_item?: boolean;
+    /**
+     * 초기 형식(2024-05~08 등) 기록. 본문이 구조화 JSON 이 아니라 운영자 자유 서술이라
+     * 위 구조화 필드가 비어 있다. 이때는 legacy_content 를 그대로 보여준다.
+     * ⛔ 「기록 없음」이 아니다 — 실제 처분이다. 예전엔 이 글들이 500 이라
+     *    「불러오는데 실패했습니다」로 보였고, 이력 조회가 통째로 틀렸다.
+     */
+    is_legacy?: boolean;
+    legacy_content?: string;
 }
 
 export interface DisciplineLogListResponse {
