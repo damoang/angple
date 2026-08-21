@@ -37,7 +37,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
                 //    인덱스가 없는 테이블(165개 중 4개)은 catch 에서 힌트 없이 재시도한다.
                 const sitemapQuery = (forceIndex: boolean) =>
                     pool.query<RowDataPacket[]>(
-                        `SELECT wr_id, wr_datetime, wr_last, LEFT(wr_content, 1000) AS content_head
+                        `SELECT wr_id, wr_datetime, wr_last, wr_7, LEFT(wr_content, 1000) AS content_head
                          FROM g5_write_${seg.board}${forceIndex ? ' FORCE INDEX (wr_is_comment)' : ''}
 					     WHERE wr_is_comment = 0
 					     ORDER BY wr_id DESC
@@ -59,8 +59,13 @@ export const GET: RequestHandler = async ({ params, url }) => {
                     wr_id: number;
                     wr_datetime: string;
                     wr_last: string;
+                    wr_7: string | null;
                     content_head: string;
                 }>) {
+                    // 신고잠금(A형) free 글은 sitemap 에서 제외한다 — 비로그인이 볼 수 없어
+                    // 색인 가치가 없다. 근거글·B형까지 포괄하는 최종 방어는 상세의 noindex 헤더이고
+                    // (+page.server.ts), 여기선 인덱스 스캔에 영향 없는 값싼 A형만 걸러낸다.
+                    if (seg.board === 'free' && post.wr_7 === 'lock') continue;
                     const lastmod = post.wr_last || post.wr_datetime;
                     const lastmodDate = new Date(lastmod).toISOString().split('T')[0];
                     const imageUrl = extractFirstImage(post.content_head);

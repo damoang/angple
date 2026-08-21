@@ -197,6 +197,38 @@ export const load: PageServerLoad = async ({
             setHeaders({ 'X-Robots-Tag': 'noindex, noarchive' });
         }
 
+        // 신고잠금·이용제한 게이트 글 (비삭제) — be(#693)가 익명에게 content=''·is_restricted=true,
+        // 이용제한 근거글은 title='[이용제한 근거 글]' 로 내려준다. 게이트 판정은 그 두 신호로만 한다
+        // (허위 낙인 방지: 조회 실패 시 be 는 is_restricted 를 세우지 않으므로 여기서도 게이트로 보지 않음).
+        // ⛔ deleted 는 위에서 이미 처리·return 없이 이어지므로 !post.deleted_at 로 배타 처리한다.
+        const isGatedPost =
+            !post.deleted_at &&
+            (post.is_restricted === true || post.title?.trim() === '[이용제한 근거 글]');
+        // 게이트 화면 플래그 — be 는 "익명에게만" content 를 비우고 로그인엔 원문을 주므로,
+        // 인증의 유일 권위인 locals.user 로만 판정한다. content-빈 추론·is_restricted 단독 판정 금지
+        // (로그인 사용자는 원문+is_restricted=true 라 클라에서 재계산하면 원문을 안내로 덮어버린다).
+        // ⭐ 이미지 전용 제한글(원래 content 빈)도 로그인 사용자는 !locals.user 가 false 라 안 게이트된다.
+        post.gated_kind =
+            !locals.user && isGatedPost
+                ? post.title?.trim() === '[이용제한 근거 글]'
+                    ? 'discipline'
+                    : 'reportlock'
+                : null;
+        if (isGatedPost) {
+            // (3) SEO — free 한정 색인 차단(§6 ①안). 게이트 글은 색인돼도 비로그인이 못 보므로
+            //     noindex + noarchive 로 검색 노출을 막는다. 다른 보드는 기존 정책 유지(free 만).
+            if (boardId === 'free') {
+                setHeaders({ 'X-Robots-Tag': 'noindex, noarchive' });
+            }
+            // (4) private 2차 자물쇠 — 로그인 사용자에겐 be 가 실본문을 내려주므로, 그 응답이
+            //     공유/엣지 캐시에 얹히지 않게 한다. CF 는 인증쿠키로 이미 익명과 분리하지만,
+            //     오리진이 다른 쿠키집합을 봐 우연히 캐시되는 것을 막는 두 번째 자물쇠다.
+            //     익명(마스킹) 응답은 캐시 가능하게 그대로 둔다.
+            if (locals.user) {
+                setHeaders({ 'Cache-Control': 'private, no-store' });
+            }
+        }
+
         // 앙지도 레거시 평점(아카이브): gnuboard 10점 시절 동결 집계를 읽기전용으로 별도 표시.
         // 신규 5점(post.rating)과 합치지 않는다 — 개인식별 매핑이 없어 합치면 날조가 된다.
         // 조회 실패는 헬퍼가 undefined 로 흡수 → 페이지 렌더에 영향 0.
