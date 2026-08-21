@@ -4,6 +4,7 @@
     import { DisciplinedContent } from '$lib/components/ui/discipline-related/index.js';
     import type { FreeComment, BoardPermissions } from '$lib/api/types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import { disciplineRevealStore } from '$lib/stores/discipline-reveal.svelte.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
@@ -472,6 +473,26 @@
             expandedLockedComments.add(commentId);
         }
     }
+
+    // bug/13548(구현2): 신고 누적으로 잠긴 댓글을 [보기]로 펼쳤을 때 그 댓글 블록에만
+    // 겹치는 좁은 영역 캡처방지 워터마크 텍스트. #12920 disciplined-content.svelte 와 동일
+    // 방식(leading-4 로 한 줄 캡처에도 식별 텍스트가 교차)이되, 전체화면 오버레이
+    // (data.watermark)는 글 자체 잠금에서만 켜지므로 여기서는 disciplineRevealStore 를
+    // 건드리지 않는다(등록 시 #12920 전체화면 워터마크가 재발동해 정상 글이 통째로 덮인다).
+    // 열람자 식별정보(SSR viewer 우선, authStore 폴백)에 시각(타임스탬프)을 포함해 추적성 확보.
+    // 비로그인/미확정 열람자는 빈 문자열 → 오버레이 미렌더(익명 SSR 에 IP·식별정보 미노출).
+    const lockedCommentWatermark = $derived.by(() => {
+        const v = disciplineRevealStore.viewer;
+        const nickname = v?.nickname || authStore.user?.mb_name || '';
+        const userId = v?.userId || authStore.user?.mb_id || '';
+        const clientIp = v?.clientIp || '';
+        if (!nickname && !userId) return '';
+        const ts = new Date().toLocaleString('ko-KR', {
+            timeZone: 'Asia/Seoul',
+            hour12: false
+        });
+        return `@${nickname}(${userId}) ${clientIp} ${ts} `.repeat(120);
+    });
 
     // 작성자 확인
     function isCommentAuthor(comment: FreeComment): boolean {
@@ -1849,20 +1870,36 @@
                                 </div>
                             </DisciplinedContent>
                         {:else}
-                            <div
-                                class="comment-body text-foreground overflow-hidden whitespace-pre-wrap break-words {isFeed
-                                    ? 'leading-snug'
-                                    : commentLayout === 'bordered'
-                                      ? 'leading-snug'
-                                      : 'leading-normal'}"
-                                style="font-size: var(--comment-font-size, 1rem);"
-                            >
-                                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                                {@html processedComments.get(comment.id) ??
-                                    ssrCommentHtml.get(comment.id) ??
-                                    ''}
-                                {#if comment.is_restricted}
-                                    <RestrictedBadge class="ml-1" />
+                            <!-- bug/13548(구현2): 잠긴 댓글(report_count==='lock')이면 이 댓글
+                                 블록에만 겹치는 좁은 영역 워터마크를 덮는다. 정상 댓글은 isLocked
+                                 =false 라 relative 래퍼만 남고 오버레이는 미렌더(회귀 없음). -->
+                            <div class="relative">
+                                <div
+                                    class="comment-body text-foreground overflow-hidden whitespace-pre-wrap break-words {isFeed
+                                        ? 'leading-snug'
+                                        : commentLayout === 'bordered'
+                                          ? 'leading-snug'
+                                          : 'leading-normal'}"
+                                    style="font-size: var(--comment-font-size, 1rem);"
+                                >
+                                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                                    {@html processedComments.get(comment.id) ??
+                                        ssrCommentHtml.get(comment.id) ??
+                                        ''}
+                                    {#if comment.is_restricted}
+                                        <RestrictedBadge class="ml-1" />
+                                    {/if}
+                                </div>
+                                {#if isLocked && lockedCommentWatermark}
+                                    <!-- #12920 방식 좁은 영역 캡처방지 워터마크. leading-4(1rem)가
+                                         댓글 한 줄 line-height 보다 작아 어떤 한 줄 캡처에도 식별
+                                         텍스트가 교차한다. 무회전(모서리 공백 방지). -->
+                                    <div
+                                        class="pointer-events-none absolute inset-0 select-none overflow-hidden break-all text-[10px] leading-4 text-red-500/10"
+                                        aria-hidden="true"
+                                    >
+                                        {lockedCommentWatermark}
+                                    </div>
                                 {/if}
                             </div>
                             {#if comment.link1 || comment.link2}
