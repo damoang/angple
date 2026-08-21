@@ -743,18 +743,15 @@ export const load: PageServerLoad = async ({
         })();
 
         // 워터마크 대상: 열람자 정보 전달
-        // bug/13548: 진실의방 외에도 신고잠금(report-lock) 글/댓글을 [보기]로 열람할 때 캡처방지
+        // bug/13548: 진실의방 외에도 신고잠금(report-lock) "글"을 [보기]로 열람할 때 캡처방지
         // (Watermark 전체화면 오버레이)를 진실의방과 동일하게 적용한다. 기존엔 truthroom 만 채워
         // 일반 보드(free 등)의 신고잠금 글은 ContentBlur 로 열려도 캡처방지가 없었다.
         // - 글 잠금 신호: post.extra_7 === 'lock' (= wr_7. fetchPostReportCount 와 동일 컬럼이라
-        //   postReportCount === 'lock' 과 동치이며, 기존 line 749 도 이 신호를 신뢰한다)
-        // - 댓글 잠금 신호: SSR 스레드 댓글 중 report_count === 'lock' 존재 (line 635 필터와 동일 소스)
-        // 페이지의 단일 {#if data.watermark} 가 그대로 발동해 글·댓글을 한 오버레이로 커버하고,
-        // clientIp 는 SSR(getClientAddress)에서만 확정된다. always-on-when-locked.
-        const hasLockedComment =
-            commentsData?.comments?.items?.some(
-                (c: { report_count?: string | number }) => c.report_count === 'lock'
-            ) ?? false;
+        //   postReportCount === 'lock' 과 동치) 또는 postReportLock(신고 횟수 조회 결과).
+        // ⛔ bug/13548 후속(사장님 지시): 댓글만 잠긴 경우(글은 정상)는 더 이상 전체 오버레이를
+        //   켜지 않는다. 정상 인기글이 댓글 하나 때문에 통째로 덮이던 문제 → 잠긴 댓글만
+        //   좁게 처리한다(comment-list.svelte 가 자체 오버레이로 방어). clientIp 는
+        //   SSR(getClientAddress)에서만 확정된다.
         // 신고잠금(wr_7='lock') 동기 신호 — post.extra_7 은 백엔드 상세 응답에 없어 항상
         // undefined 이므로, 확실한 lock 신호인 신고 횟수 조회 결과를 워터마크 판정에 사용한다.
         const postReportLock = (await postReportCountPromise) === 'lock';
@@ -780,13 +777,7 @@ export const load: PageServerLoad = async ({
         let watermark: { nickname: string; userId: string; clientIp: string } | null = null;
         // ⛔ locals.user 가드 필수 — 익명 SSR 응답은 CDN 캐시라 워터마크에 요청자 IP 가
         //    박히면 첫 익명 방문자 IP 가 이후 모두에게 노출된다(#12920, 아래 disciplineViewer 와 동일 이유).
-        if (
-            (boardId === 'truthroom' ||
-                post.extra_7 === 'lock' ||
-                postReportLock ||
-                hasLockedComment) &&
-            locals.user
-        ) {
+        if ((boardId === 'truthroom' || post.extra_7 === 'lock' || postReportLock) && locals.user) {
             let clientIp = resolveClientIp(getClientAddress, request) ?? '';
             watermark = {
                 nickname: locals.user?.nickname || '',
