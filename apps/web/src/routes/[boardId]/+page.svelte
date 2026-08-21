@@ -853,7 +853,32 @@
     const visibleBackfilled = $derived(
         backfilledPosts.filter((p) => !uiSettingsStore.isMuted(p.title))
     );
-    const displayPosts = $derived([...filteredPosts, ...visibleBackfilled]);
+    // ⛔ 여기서 id 중복을 반드시 걷어낸다. 아래 `{#each displayPosts as post (post.id)}` 가
+    //    키를 쓰므로 중복이 하나만 있어도 each_key_duplicate 로 렌더가 죽는다.
+    //
+    // 왜 중복이 생기나 — **$derived(동기)와 $effect(비동기)의 시차다.**
+    //    2 → 3 페이지 이동 시
+    //      ① posts 가 3페이지 것으로 바뀐다
+    //      ② displayPosts 는 $derived 라 **즉시** 재계산된다
+    //         = [새 filteredPosts, **아직 안 지워진 옛 backfill**]
+    //         옛 backfill 은 2페이지에서 3페이지를 당겨온 것이라 새 posts 와 겹친다
+    //      ③ $effect 가 나중에 backfilledPosts=[] 로 지우지만 그때는 이미 렌더가 죽었다
+    //
+    //    ⭐ 1페이지에는 이전 backfill 이 없어 **2페이지부터만** 났다.
+    //       2026-08-21 실측: 3일간 46명 (/free?page=2 가 20명으로 최다).
+    //
+    // ⛔ backfill 수집 루프의 `seen` 만으로는 못 막는다. 그건 **수집 시점**의 방어이고
+    //    여기 문제는 **렌더 시점**의 조합이다. 방어는 조합하는 자리에 있어야 한다.
+    const displayPosts = $derived.by(() => {
+        const seen = new Set(filteredPosts.map((p) => p.id));
+        const extra = [];
+        for (const p of visibleBackfilled) {
+            if (seen.has(p.id)) continue;
+            seen.add(p.id);
+            extra.push(p);
+        }
+        return [...filteredPosts, ...extra];
+    });
 
     // 다음 페이지 한 장을 현재 목록과 동일한 쿼리(카테고리·태그 포함)로 당겨온다.
     // SSR(+page.server.ts)이 쓰는 것과 같은 엔드포인트이며, 같은 오리진 fetch 라
