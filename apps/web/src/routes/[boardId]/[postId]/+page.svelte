@@ -262,9 +262,57 @@
         link2_affiliate?: boolean;
     }>({});
 
+    // ── 신고잠금·이용제한 게이트 안내 문구 (비로그인 유도) ─────────────────────────
+    // ⛔ A형(신고 자동잠금·미제재)과 이용제한 근거글은 상태가 달라 문구를 분리한다(묶지 말 것).
+    //    묶으면 미제재 회원 글에 제재 뉘앙스가 붙는다. 나중에 쉽게 바꾸도록 상수로 분리.
+    const DISCIPLINE_POST_TITLE = '[이용제한 근거 글]';
+    const GATE_NOTICE_REPORT_LOCK =
+        '이 글은 신고가 접수되어 확인 전까지 잠겨 있습니다. 로그인 후 확인하실 수 있습니다.';
+    const GATE_NOTICE_DISCIPLINE =
+        '이용제한 근거로 인용된 글입니다. 로그인 후 확인하실 수 있습니다.';
+
+    // 게이트 종류 판정 — 우선순위 deleted_at → 이용제한 근거글(title) → 신고잠금(is_restricted).
+    // ⛔ 삭제글은 별도 처리(빈 본문)라 여기서 제외. is_restricted 도 없고 근거글 제목도 아니면
+    //    게이트가 아니다 — 본문이 비어도(이미지/빈 글) 낙인 라벨을 붙이지 않는다(허위 낙인 금지).
+    function computePostGateKind(p: FreePost): 'reportlock' | 'discipline' | null {
+        if (p.deleted_at) return null;
+        if (p.title?.trim() === DISCIPLINE_POST_TITLE) return 'discipline';
+        if (p.is_restricted === true) return 'reportlock';
+        return null;
+    }
+    const postGateKind = $derived(computePostGateKind(data.post));
+
+    // 게이트 안내 본문 HTML — 본문 자리({@html postContent})에 렌더. 정적 문자열만 사용하고
+    // 로그인 링크의 redirect 만 encodeURIComponent 로 감싼다(외부 입력 없음).
+    function buildGateNoticeHtml(kind: 'reportlock' | 'discipline'): string {
+        const message = kind === 'discipline' ? GATE_NOTICE_DISCIPLINE : GATE_NOTICE_REPORT_LOCK;
+        const redirect = encodeURIComponent(`/${data.boardId}/${data.post.id}`);
+        const accent =
+            kind === 'discipline'
+                ? 'border-amber-500/40 bg-amber-500/5'
+                : 'border-border bg-muted/40';
+        return `<div class="report-lock-gate not-prose my-4 flex flex-col items-center gap-3 rounded-lg border ${accent} px-4 py-8 text-center">
+  <p class="text-muted-foreground text-sm">${message}</p>
+  <a href="/login?redirect=${redirect}" class="inline-flex items-center gap-1 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:opacity-90">로그인</a>
+</div>`;
+    }
+
     // 제휴 변환 결과를 data.post 위에 덮은 derived — streamed linkAffiliate 가 도착하면 반영.
     // ViewComponent 와 link1Original 모두 이 값을 사용해 제휴 변환 후 링크 버튼 href 가 올바르게 갱신됨.
-    const displayPost = $derived({ ...data.post, ...linkAffiliate });
+    // 게이트 글이면 미디어/링크도 비워 안내 문구만 남긴다(이미지/첨부가 안내 옆에 뜨는 것 방지).
+    const displayPost = $derived.by(() => {
+        const merged = { ...data.post, ...linkAffiliate };
+        if (postGateKind) {
+            merged.images = [];
+            merged.videos = [];
+            merged.files = [];
+            merged.downloads = [];
+            merged.tags = [];
+            merged.link1 = '';
+            merged.link2 = '';
+        }
+        return merged;
+    });
 
     // link1이 동영상 URL이면 본문 앞에 삽입 (그누보드 wr_link1 호환)
     // link1_display: 제휴 변환 전 원본 URL (변환된 경우), 없으면 link1 자체가 원본
@@ -279,11 +327,14 @@
     const postContent = $derived(
         data.post.deleted_at
             ? ''
-            : link1Original && isEmbeddable(link1Original)
-              ? // YouTube 는 TipTap 형식으로 통일해 에디터 직접 삽입과 레이아웃 일치 (#12111).
-                // 그 외 플랫폼 (vimeo 등) 은 기존 auto-embed 경로 (plain URL → embed-container) 유지.
-                `${embedAsTiptapYoutube(link1Original) ?? link1Original}\n${renderedPostContent}`
-              : renderedPostContent
+            : postGateKind
+              ? // 신고잠금/이용제한 게이트: 본문 자리에 안내 문구 + 로그인 유도(be 가 익명엔 content='').
+                buildGateNoticeHtml(postGateKind)
+              : link1Original && isEmbeddable(link1Original)
+                ? // YouTube 는 TipTap 형식으로 통일해 에디터 직접 삽입과 레이아웃 일치 (#12111).
+                  // 그 외 플랫폼 (vimeo 등) 은 기존 auto-embed 경로 (plain URL → embed-container) 유지.
+                  `${embedAsTiptapYoutube(link1Original) ?? link1Original}\n${renderedPostContent}`
+                : renderedPostContent
     );
 
     // 소명글 ↔ 이용제한 연동: link1에서 disciplinelog ID 추출

@@ -377,6 +377,15 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
             const rowIsSecret = row.wr_option?.includes('secret') || false;
             const secretHidden = rowIsSecret && !canViewSecret(String(row.mb_id ?? ''));
 
+            // 비로그인 게이트(신고잠금·이용제한 근거 댓글): 삭제가 아닌 "잠긴(wr_7='lock')"
+            // 또는 "이용제한 근거(disciplineSet)" 댓글은 익명 요청에 한해 본문·링크를 중립화한다.
+            // ⛔ 행은 반드시 유지(빈 배열 금지) — 개수를 보존해 +page.svelte 의 count 불일치
+            //    자동복구 재당김 함정을 피한다. 로그인 사용자(isMember)는 원문 유지
+            //    (be #693 과 동일: "익명만 마스킹"). 삭제·비밀 마스킹이 우선한다.
+            const isLockRow = row.wr_7 === 'lock';
+            const gatedForAnon =
+                !isMember && !row.wr_deleted_at && (disciplineSet.has(row.wr_id) || isLockRow);
+
             return {
                 id: row.wr_id,
                 content: secretHidden
@@ -385,21 +394,27 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
                       ? isAdmin
                           ? row.wr_content
                           : ''
-                      : row.wr_content,
+                      : gatedForAnon
+                        ? ''
+                        : row.wr_content,
                 link1: secretHidden
                     ? ''
                     : row.wr_deleted_at
                       ? isAdmin
                           ? row.wr_link1 || ''
                           : ''
-                      : row.wr_link1 || '',
+                      : gatedForAnon
+                        ? ''
+                        : row.wr_link1 || '',
                 link2: secretHidden
                     ? ''
                     : row.wr_deleted_at
                       ? isAdmin
                           ? row.wr_link2 || ''
                           : ''
-                      : row.wr_link2 || '',
+                      : gatedForAnon
+                        ? ''
+                        : row.wr_link2 || '',
                 author: row.wr_deleted_at
                     ? isAdmin
                         ? nickMap.get(row.mb_id) || row.wr_name || row.mb_id
@@ -447,12 +462,17 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
                 ...(reviewRatingMap.has(row.wr_id)
                     ? { review_rating: reviewRatingMap.get(row.wr_id) }
                     : {}),
+                // admin 은 기존대로 신고수/lock 노출. 비로그인 잠긴 댓글은 'lock' 만 내려
+                // comment-list 가 "가려진 댓글" 접힘 플레이스홀더를 렌더하게 한다(본문은 위에서
+                // 이미 중립화됨). 로그인 일반 사용자는 기존 동작 유지(be 계약과 일관).
                 ...(isAdmin && row.wr_7
                     ? {
                           report_count:
                               row.wr_7 === 'lock' ? 'lock' : parseInt(row.wr_7, 10) || undefined
                       }
-                    : {})
+                    : gatedForAnon && isLockRow
+                      ? { report_count: 'lock' as const }
+                      : {})
             };
         });
 
