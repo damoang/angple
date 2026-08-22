@@ -80,9 +80,18 @@
     });
 
     // /messages 를 방문하고 나오면(쪽지를 읽었을 가능성) 즉시 카운트 갱신.
+    //
+    // ⛔ `nav.from?.url?.pathname` — 옵셔널 체이닝을 **url 까지** 이어야 한다.
+    //    `nav.from?.url?.pathname` 로 두면 from 이 있어도 from.url 이 null 일 때 터진다.
+    //    타입상 NavigationTarget.url 은 non-nullable 이지만 **런타임은 다르다** —
+    //    2026-08-21 실측: 3일간 111명(/free/write 96 · /hello/write 15).
+    //    브라우저별 문구가 달라 별개 오류로 보였다:
+    //      Chrome  "Cannot read properties of null (reading 'pathname')"
+    //      Safari  "null is not an object (evaluating 'm.from?.url.pathname')"
+    //    스택은 미니파이된 번들의 Set.forEach 안이라 afterNavigate 콜백임만 보였다.
     afterNavigate((nav) => {
-        const from = nav.from?.url.pathname;
-        const to = nav.to?.url.pathname;
+        const from = nav.from?.url?.pathname;
+        const to = nav.to?.url?.pathname;
         if (from?.startsWith('/messages') || to?.startsWith('/messages')) {
             void loadUnreadCount();
         }
