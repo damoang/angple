@@ -188,7 +188,7 @@
             <div class="space-y-3 py-3">
                 <!-- 신고 처리 안내 (info 박스) — 수치 미노출, 기대치 안내만 -->
                 <div
-                    class="bg-muted/50 text-muted-foreground flex items-start gap-2 rounded-md border p-3 text-xs leading-relaxed break-keep"
+                    class="bg-muted/50 text-muted-foreground flex items-start gap-2 break-keep rounded-md border p-3 text-xs leading-relaxed"
                 >
                     <Info class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                     <p>{REPORT_NOTICE}</p>
