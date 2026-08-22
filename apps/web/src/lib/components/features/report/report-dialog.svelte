@@ -17,6 +17,7 @@
     import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import CheckCircle from '@lucide/svelte/icons/check-circle';
+    import Info from '@lucide/svelte/icons/info';
 
     interface Props {
         open?: boolean;
@@ -39,6 +40,11 @@
         onClose,
         onSuccess
     }: Props = $props();
+
+    // 신고 처리 안내 문구 — 처리 지연 여론에 선제적으로 기대치를 맞추기 위한 안내.
+    // 문구는 여기서만 수정하면 반영됨(상수). ⛔신고건수 등 수치는 노출하지 않는다.
+    const REPORT_NOTICE =
+        '다모앙은 접수된 모든 신고를 신고 담당자와 모니터링 담당자가 순차적으로 신중하게 검토합니다. 신고량이 많아 처리까지 수일이 소요됩니다. 개별 처리 결과는 별도로 안내되지 않는 점 양해 부탁드립니다.';
 
     // 신고 사유 목록 (nariya 플러그인 g5_na_singo sg_type 코드 21~40)
     const reportReasons: ReportReasonInfo[] = [
@@ -180,6 +186,14 @@
         {:else}
             <!-- 신고 사유 선택 -->
             <div class="space-y-3 py-3">
+                <!-- 신고 처리 안내 (info 박스) — 수치 미노출, 기대치 안내만 -->
+                <div
+                    class="bg-muted/50 text-muted-foreground flex items-start gap-2 break-keep rounded-md border p-3 text-xs leading-relaxed"
+                >
+                    <Info class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    <p>{REPORT_NOTICE}</p>
+                </div>
+
                 <div class="space-y-2">
                     <Label
                         >신고 사유를 선택해주세요 <span class="text-muted-foreground font-normal"
