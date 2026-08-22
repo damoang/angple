@@ -19,6 +19,20 @@
     <!-- 마음메시지 카드 위젯 (공지 아래, 사이드바 배너 위) -->
     <WidgetRenderer zone="sidebar" onlyIds={['celebration']} />
 
+    <!-- 이용가이드 미니 카드 (마음메시지 아래) -->
+    <a
+        href="/content/guide"
+        class="block rounded-xl border bg-teal-50 p-3.5 text-center no-underline transition-colors hover:border-teal-300 dark:bg-teal-950/30"
+    >
+        <div class="text-2xl">🙌</div>
+        <div class="text-foreground mt-0.5 text-sm font-bold">다모앙 이용가이드</div>
+        <div class="text-muted-foreground text-xs">처음이신가요? 3분이면 충분해요</div>
+        <span
+            class="mt-2 inline-block rounded-full bg-teal-500 px-3.5 py-1 text-xs font-bold text-white"
+            >가이드 보기 →</span
+        >
+    </a>
+
     <!-- 사이드바 배너 (슬롯 기반) -->
     <PluginSlot name="sidebar-banner" />
 
