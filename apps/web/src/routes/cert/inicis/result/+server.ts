@@ -153,7 +153,8 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
         return certResultPage(
             false,
             '이전에 가입하신 계정이 있어 본인인증이 제한되었습니다. ' +
-                '기존 계정으로 로그인하시거나, 계정 복구가 필요하시면 고객센터로 문의해 주세요.'
+                '기존 계정으로 로그인해 주시고, 그 계정을 되살리고 싶으시면 ' +
+                'contact@damoang.net 으로 복원 요청 메일을 보내주세요.'
         );
     }
 
@@ -167,7 +168,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
         return certResultPage(
             false,
             '기존에 본인인증하신 명의와 일치하지 않습니다. 본인 명의로 진행해 주세요. ' +
-                '변경이 필요하시면 고객센터로 문의해 주세요.'
+                '변경이 필요하시면 contact@damoang.net 으로 메일을 보내주세요.'
         );
     }
 
@@ -183,14 +184,15 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
             return certResultPage(
                 false,
                 '기존에 본인인증하신 명의와 일치하지 않습니다. 본인 명의로 진행해 주세요. ' +
-                    '변경이 필요하시면 고객센터로 문의해 주세요.'
+                    '변경이 필요하시면 contact@damoang.net 으로 메일을 보내주세요.'
             );
         }
         if (reason === 'DI_COLLISION_BLOCKED') {
             return certResultPage(
                 false,
                 '이전에 가입하신 계정이 있어 본인인증이 제한되었습니다. ' +
-                    '기존 계정으로 로그인하시거나, 계정 복구가 필요하시면 고객센터로 문의해 주세요.'
+                    '기존 계정으로 로그인해 주시고, 그 계정을 되살리고 싶으시면 ' +
+                    'contact@damoang.net 으로 복원 요청 메일을 보내주세요.'
             );
         }
         return certResultPage(false, '인증 정보 저장에 실패했습니다.');
