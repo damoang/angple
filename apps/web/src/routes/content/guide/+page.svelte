@@ -118,9 +118,7 @@
 
 <div class="mx-auto max-w-3xl break-keep px-4 py-8">
     <!-- 히어로 -->
-    <div
-        class="mb-6 rounded-3xl border bg-teal-50 p-8 text-center dark:bg-teal-950/30"
-    >
+    <div class="mb-6 rounded-3xl border bg-teal-50 p-8 text-center dark:bg-teal-950/30">
         <div class="text-5xl">🙌</div>
         <h1 class="text-foreground mt-2 text-2xl font-bold">다모앙 이용가이드</h1>
         <p class="text-muted-foreground mt-1 text-sm">
