@@ -347,15 +347,12 @@
                             <ul class="divide-border divide-y">
                                 {#each result.posts.items as post (post.id)}
                                     <li class="py-3 first:pt-0 last:pb-0">
-                                        <!-- 삭제한 글은 본문이 없어 열리지 않는다 — 링크 대신 기록만 -->
-                                        <svelte:element
-                                            this={post.deleted_at ? 'div' : 'a'}
-                                            href={post.deleted_at
-                                                ? undefined
-                                                : `/${post.board_id || 'free'}/${post.id}`}
+                                        <!-- 삭제한 글도 상세(tombstone)로 열린다(본인 삭제글 열람) — 링크 유지, 삭제는 opacity로만 표시 -->
+                                        <a
+                                            href={`/${post.board_id || 'free'}/${post.id}`}
                                             class="{post.deleted_at
                                                 ? 'opacity-70'
-                                                : 'hover:bg-accent'} -m-2 block w-full rounded-md p-2 no-underline transition-colors"
+                                                : ''} hover:bg-accent -m-2 block w-full rounded-md p-2 no-underline transition-colors"
                                         >
                                             <h3
                                                 class="text-foreground mb-1 line-clamp-1 font-medium"
@@ -379,7 +376,7 @@
                                                     >
                                                 {/if}
                                             </div>
-                                        </svelte:element>
+                                        </a>
                                     </li>
                                 {/each}
                             </ul>
