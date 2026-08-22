@@ -1206,9 +1206,7 @@
     // 본문·사유는 canViewSecret 로 계속 가리고, 여기서는 댓글 목록 읽기만 연다.
     // 봇의 대량 추출을 막기 위해 로그인 사용자에게만 노출한다(비로그인은 기존대로 게이트).
     // 개별 제재 댓글(삭제·비밀·이용제한 근거)은 comment-list 가 각각 자동으로 계속 가린다.
-    const canViewComments = $derived(
-        canViewSecret || (!promotionExpired && !!authStore.user)
-    );
+    const canViewComments = $derived(canViewSecret || (!promotionExpired && !!authStore.user));
 
     // 댓글 레이아웃 (관리자 변경 시 즉시 반영용)
     // eslint-disable-next-line svelte/prefer-writable-derived -- layout must refresh from route data while remaining locally writable
