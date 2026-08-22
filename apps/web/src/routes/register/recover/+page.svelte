@@ -62,7 +62,7 @@
                         </p>
                     </div>
                     <p class="text-muted-foreground text-sm leading-6">
-                        문의가 필요하시면 고객센터로 연락해 주세요.
+                        문의가 필요하시면 contact@damoang.net 으로 메일을 보내주세요.
                     </p>
                     <Button href="/" variant="outline" class="w-full">돌아가기</Button>
                 </div>
