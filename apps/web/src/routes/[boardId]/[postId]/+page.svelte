@@ -629,7 +629,7 @@
     }
 
     $effect(() => {
-        if (!browser || !canViewSecret) return;
+        if (!browser || !canViewComments) return;
         if (commentsLoaded || commentsError || commentsAutoRecoveryTriggered) return;
 
         const timer = window.setTimeout(() => {
@@ -1202,6 +1202,12 @@
         (!data.post.is_secret || isAuthor || isAdmin) && !promotionExpired
     );
 
+    // 이용제한/비밀글이라도 제3자가 쓴 댓글은 열람 노출한다(작성자 이용제한과 무관).
+    // 본문·사유는 canViewSecret 로 계속 가리고, 여기서는 댓글 목록 읽기만 연다.
+    // 봇의 대량 추출을 막기 위해 로그인 사용자에게만 노출한다(비로그인은 기존대로 게이트).
+    // 개별 제재 댓글(삭제·비밀·이용제한 근거)은 comment-list 가 각각 자동으로 계속 가린다.
+    const canViewComments = $derived(canViewSecret || (!promotionExpired && !!authStore.user));
+
     // 댓글 레이아웃 (관리자 변경 시 즉시 반영용)
     // eslint-disable-next-line svelte/prefer-writable-derived -- layout must refresh from route data while remaining locally writable
     const commentLayout = $derived(data.board?.display_settings?.comment_layout || 'flat');
@@ -1712,7 +1718,7 @@
     // 댓글 backfill: SSR에서 일부만 로드된 경우 전체 댓글 가져오기
     // onMount 대신 $effect로 SPA 네비게이션에서도 동작하도록
     $effect(() => {
-        if (!browser || !canViewSecret) return;
+        if (!browser || !canViewComments) return;
         // loadState 신호 기반(총<=로드 산술의 0/0 함정 제거, #12663·#12668):
         // - complete: SSR 전량 로드(정상 0개 포함) → backfill 불필요.
         // - failed 또는 목록 0개: 즉시 재시도(backfillWithRetry, 백오프 3회).
@@ -2624,7 +2630,7 @@
         <div data-scroll-depth="75" aria-hidden="true"></div>
 
         <!-- 댓글 섹션 -->
-        {#if canViewSecret && commentsError}
+        {#if canViewComments && commentsError}
             <Card class="bg-background px-3 md:px-3">
                 <CardContent class="space-y-4 py-8 text-center">
                     <p class="text-destructive text-sm">댓글을 불러오지 못했습니다.</p>
@@ -2654,7 +2660,7 @@
                     {/if}
                 </CardContent>
             </Card>
-        {:else if canViewSecret}
+        {:else if canViewComments}
             <Card id="comments" class="bg-background rounded-xl px-3 md:px-3">
                 <CardHeader class="flex flex-row items-center justify-between">
                     <div class="flex items-center gap-2">
@@ -2780,6 +2786,10 @@
                         {:else if boardId === 'claim' && authStore.user?.mb_id !== data.post.author_id && (authStore.user?.mb_level ?? 0) < 10}
                             <p class="text-muted-foreground py-4 text-center text-sm">
                                 소명 게시판에서는 관리자와 글 작성자만 댓글을 작성할 수 있습니다.
+                            </p>
+                        {:else if !canViewSecret}
+                            <p class="text-muted-foreground py-4 text-center text-sm">
+                                비밀글에는 댓글을 작성할 수 없습니다.
                             </p>
                         {:else}
                             {#key data.post.id}
