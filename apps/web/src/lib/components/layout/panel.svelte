@@ -33,11 +33,14 @@
         >
     </a>
 
+    <!-- 온라인 대전 현황 위젯 (이용가이드 아래) -->
+    <WidgetRenderer zone="sidebar" onlyIds={['game-lobby']} />
+
     <!-- 사이드바 배너 (슬롯 기반) -->
     <PluginSlot name="sidebar-banner" />
 
     <!-- 나머지 사이드바 위젯 -->
-    <WidgetRenderer zone="sidebar" excludeIds={['notice', 'celebration']} />
+    <WidgetRenderer zone="sidebar" excludeIds={['notice', 'celebration', 'game-lobby']} />
 
     <!-- Slot: sidebar-right-bottom -->
     {#each getComponentsForSlot('sidebar-right-bottom') as slotComp (slotComp.id)}

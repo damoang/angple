@@ -27,6 +27,7 @@
     import ExploreWidget from '../../../../../../widgets/explore/index.svelte';
     import GivingWidget from '../../../../../../widgets/giving/index.svelte';
     import TrendingGroupsWidget from '../../../../../../widgets/trending-groups/index.svelte';
+    import GameLobbyWidget from '../../../../../../widgets/game-lobby/index.svelte';
 
     interface Props {
         /** 렌더링할 위젯 존 */
@@ -56,7 +57,8 @@
         recommended: RecommendedWidget,
         explore: ExploreWidget,
         giving: GivingWidget,
-        'trending-groups': TrendingGroupsWidget
+        'trending-groups': TrendingGroupsWidget,
+        'game-lobby': GameLobbyWidget
     };
 
     // 존별 위젯 목록
