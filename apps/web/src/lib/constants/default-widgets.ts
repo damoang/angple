@@ -88,6 +88,7 @@ export const DEFAULT_SIDEBAR_WIDGETS: WidgetConfig[] = [
     // 발견 엔진 — 롱테일 소모임 노출 레버(자체 fetch, 활동 0이면 미표시).
     { id: 'trending-groups', type: 'trending-groups', position: 3, enabled: true },
     { id: 'celebration', type: 'celebration', position: 4, enabled: true },
+    { id: 'game-lobby', type: 'game-lobby', position: 5, enabled: true },
     {
         id: 'sidebar-ad-2',
         type: 'ad-slot',
