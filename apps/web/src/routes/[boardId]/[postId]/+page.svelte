@@ -1187,10 +1187,11 @@
     );
 
     // 수정/삭제 권한 (작성자 또는 관리자)
-    // #12420: 신고 누적으로 잠긴 글은 작성자 수정 차단. admin 만 운영 도구로 수정 가능.
+    // 2026-08-23 사장님 결정: 신고 누적으로 잠긴 글도 작성자가 수정·삭제할 수 있게 허용(기존 #12420 차단 해제).
+    // 수정 이력은 g5_da_content_history 에 남아 추적 가능. isLockedPost 자체는 본문 blur 등에 계속 쓰이므로 유지하고, canModify 에서만 조건을 뺀다.
     const isAdmin = $derived((authStore.user?.mb_level ?? 0) >= 10);
     const isLockedPost = $derived(data.post.extra_7 === 'lock' || postReportCount === 'lock');
-    const canModify = $derived((isAuthor && !isLockedPost) || isAdmin);
+    const canModify = $derived(isAuthor || isAdmin);
 
     // 직접홍보 게시판 만료 여부
     const promotionExpired = $derived(data.promotionExpired === true && !isAuthor);
