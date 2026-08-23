@@ -1188,9 +1188,8 @@
 
     // 수정/삭제 권한 (작성자 또는 관리자)
     // 2026-08-23 사장님 결정: 신고 누적으로 잠긴 글도 작성자가 수정·삭제할 수 있게 허용(기존 #12420 차단 해제).
-    // 수정 이력은 g5_da_content_history 에 남아 추적 가능. isLockedPost 자체는 본문 blur 등에 계속 쓰이므로 유지하고, canModify 에서만 조건을 뺀다.
+    // 수정 이력은 g5_da_content_history 에 남아 추적 가능. (본문 blur 는 postReportCount·isSanctioned 로 별도 구동돼 이 변경과 무관)
     const isAdmin = $derived((authStore.user?.mb_level ?? 0) >= 10);
-    const isLockedPost = $derived(data.post.extra_7 === 'lock' || postReportCount === 'lock');
     const canModify = $derived(isAuthor || isAdmin);
 
     // 직접홍보 게시판 만료 여부
