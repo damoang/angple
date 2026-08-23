@@ -347,15 +347,12 @@
                             <ul class="divide-border divide-y">
                                 {#each result.posts.items as post (post.id)}
                                     <li class="py-3 first:pt-0 last:pb-0">
-                                        <!-- 삭제한 글은 열람 링크를 제공하지 않는다(정책 #2090: 대량삭제 유도 방지·삭제글 접근 링크 원복) — 기록으로만 표시하고 클릭 불가를 명확히(cursor-default) -->
-                                        <svelte:element
-                                            this={post.deleted_at ? 'div' : 'a'}
-                                            href={post.deleted_at
-                                                ? undefined
-                                                : `/${post.board_id || 'free'}/${post.id}`}
-                                            class="{post.deleted_at
-                                                ? 'cursor-default opacity-70'
-                                                : 'hover:bg-accent'} -m-2 block w-full rounded-md p-2 no-underline transition-colors"
+                                        <!-- 삭제한 글도 상세로 이동한다. 글 상세 서버 load 가 삭제글 본문·메타를 숨기고 '삭제된 글'로 안전 표시하므로(내용 노출 없음) 마이페이지에선 열람 링크만 제공. 대량삭제는 마이페이지에 삭제 버튼 자체가 없어(조회 전용) 이 링크로 유발되지 않는다. 삭제글은 흐리게(opacity) 구분. -->
+                                        <a
+                                            href={`/${post.board_id || 'free'}/${post.id}`}
+                                            class="hover:bg-accent {post.deleted_at
+                                                ? 'opacity-70'
+                                                : ''} -m-2 block w-full rounded-md p-2 no-underline transition-colors"
                                         >
                                             <h3
                                                 class="text-foreground mb-1 line-clamp-1 font-medium"
@@ -379,7 +376,7 @@
                                                     >
                                                 {/if}
                                             </div>
-                                        </svelte:element>
+                                        </a>
                                     </li>
                                 {/each}
                             </ul>
