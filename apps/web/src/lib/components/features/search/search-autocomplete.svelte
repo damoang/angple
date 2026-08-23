@@ -9,6 +9,8 @@
         placeholder?: string;
         initialQuery?: string;
         onSearch?: (query: string) => void;
+        /** 타이핑마다 부모에 값 전파(버튼 클릭 제출이 최신 값을 읽게, bug/13696) */
+        onQueryChange?: (query: string) => void;
         /** 네이티브 폼 제출용 input name (JS 죽어도 검색되게, bug/13503) */
         name?: string;
     }
@@ -17,6 +19,7 @@
         placeholder = '검색어를 입력하세요',
         initialQuery = '',
         onSearch,
+        onQueryChange,
         name
     }: Props = $props();
 
@@ -69,6 +72,9 @@
     function handleInput(e: Event): void {
         const target = e.target as HTMLInputElement;
         query = target.value;
+        // bug/13696: 검색 버튼(type=submit) 클릭 제출은 부모 상태를 읽으므로,
+        // 타이핑값을 부모에 전파해야 버튼 클릭도 최신 값으로 검색된다(엔터는 onSearch로 이미 전달됨).
+        onQueryChange?.(query);
     }
 
     // TEMP: 검색 서버 전용 인스턴스 생기면 드롭다운 네비게이션 복원

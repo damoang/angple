@@ -219,6 +219,7 @@
                     name="q"
                     initialQuery={searchQuery}
                     placeholder="검색어를 입력하세요"
+                    onQueryChange={(q) => (searchQuery = q)}
                     onSearch={(q) => {
                         searchQuery = q;
                         handleSearch(new Event('submit'));
