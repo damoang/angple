@@ -138,12 +138,17 @@ export const POST: RequestHandler = async ({ params, cookies, request }) => {
         // g5_noti_preference.noti_board_subscribe 가 0 이면 구독해도 모든 구독 알림이 막힌다
         // (write_after_worker 의 게이트). 과거 이 플래그가 0 인 채 구독만 한 스트랜딩 사례가
         // 다수 있어(bug/13715), 구독 시 이 플래그를 1 로 보장한다. 행이 없으면 기본값으로 생성.
-        await pool.query<ResultSetHeader>(
-            `INSERT INTO g5_noti_preference (mb_id, noti_board_subscribe)
-             VALUES (?, 1)
-             ON DUPLICATE KEY UPDATE noti_board_subscribe = 1`,
-            [user.mb_id]
-        );
+        // best-effort: 이 보장이 실패해도 이미 성공한 구독을 500 으로 되돌리지 않는다.
+        try {
+            await pool.query<ResultSetHeader>(
+                `INSERT INTO g5_noti_preference (mb_id, noti_board_subscribe)
+                 VALUES (?, 1)
+                 ON DUPLICATE KEY UPDATE noti_board_subscribe = 1`,
+                [user.mb_id]
+            );
+        } catch (prefErr) {
+            console.error('구독 알림 플래그 보장 실패(구독은 성공):', prefErr);
+        }
 
         const [countRows] = await pool.query<CountRow[]>(
             'SELECT COUNT(*) AS count FROM g5_board_subscribe WHERE bo_table = ?',
