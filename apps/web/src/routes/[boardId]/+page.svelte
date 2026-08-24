@@ -76,6 +76,8 @@
         DropdownMenuCheckboxItem
     } from '$lib/components/ui/dropdown-menu/index.js';
     import Settings2 from '@lucide/svelte/icons/settings-2';
+    import Newspaper from '@lucide/svelte/icons/newspaper';
+    import FeedListView from '$lib/components/features/feed/feed-list-view.svelte';
 
     // 특수 게시판 컴포넌트 (플러그인 레지스트리 기반)
     import { boardTypeRegistry } from '$lib/components/features/board/board-type-registry.js';
@@ -164,6 +166,58 @@
 
     // 현재 페이지 번호 (글 링크에 전달용)
     const listPage = $derived(Number($page.url.searchParams.get('page')) || 1);
+
+    // 재설계 3단계(B): 자유게시판에서 "전체 새글(피드)"로 제자리 토글. boardId==='free' + ?all=1.
+    // ⛔ authStore 로 가르지 않는다(SSR null 지뢰). URL 파라미터로만 판정 → SSR·클라 일치.
+    // 자유 포함 전체·글만(view=w). 기존 게시판 목록 파이프라인은 안 건드리고 렌더만 분기한다.
+    const allView = $derived(boardId === 'free' && $page.url.searchParams.get('all') === '1');
+    let feedItems = $state<
+        {
+            bn_id: number;
+            wr_id: number;
+            wr_parent: number;
+            wr_subject: string;
+            wr_content: string;
+            wr_name: string;
+            mb_id: string;
+            wr_hit: number;
+            wr_comment: number;
+            bn_datetime: string;
+            bo_table: string;
+            bo_subject: string;
+        }[]
+    >([]);
+    let feedLoading = $state(false);
+    let feedTotal = $state(0);
+    // $effect 는 SSR 미실행(클라 전용). all=1 일 때만 /api/feed 로 전체 새글을 불러온다.
+    // listPage 를 함께 읽어 페이지 이동(?page=) 시 재조회한다. feed* 는 읽지 않아 자기재발화 없음.
+    $effect(() => {
+        if (!allView) return;
+        const p = listPage;
+        feedLoading = true;
+        fetch(`/api/feed?view=w&page=${p}`)
+            .then((r) => (r.ok ? r.json() : { items: [], total: 0 }))
+            .then((d) => {
+                feedItems = d.items ?? [];
+                feedTotal = d.total ?? 0;
+            })
+            .catch(() => {
+                feedItems = [];
+                feedTotal = 0;
+            })
+            .finally(() => {
+                feedLoading = false;
+            });
+    });
+    // 자유게시판처럼 페이지 번호 페이징(피드 total 기반). perPage=30(=/api/feed).
+    const feedTotalPages = $derived(feedTotal > 0 ? Math.ceil(feedTotal / 30) : 0);
+    const feedVisiblePages = $derived.by(() => {
+        if (feedTotalPages <= 0) return [] as number[];
+        const start = Math.max(1, listPage - 2);
+        const end = Math.min(feedTotalPages, start + 4);
+        const s = Math.max(1, end - 4);
+        return Array.from({ length: end - s + 1 }, (_, i) => s + i);
+    });
 
     // 목록 → 상세 재사용: 순수 목록 화면(쿼리가 page 뿐)일 때 현재 목록을 기억해 두면
     // 글 상세 하단 목록이 요청 없이 즉시 그려진다($effect 는 SSR 미실행 — 클라 전용).
@@ -1050,6 +1104,18 @@
                 </div>
 
                 <div class="flex items-center gap-2">
+                    <!-- 재설계 3단계(B): 자유게시판에서 전체 새글(피드) 제자리 토글. 톱니 왼쪽. -->
+                    {#if boardId === 'free'}
+                        <Button
+                            variant={allView ? 'default' : 'outline'}
+                            size="icon"
+                            class="relative h-9 w-9 shrink-0"
+                            title={allView ? '이 게시판만 보기' : '전체 새글 보기'}
+                            onclick={() => goto(allView ? '/free' : '/free?all=1')}
+                        >
+                            <Newspaper class="h-4 w-4" />
+                        </Button>
+                    {/if}
                     {#if listLayoutId === 'classic'}
                         <DropdownMenu>
                             <DropdownMenuTrigger>
@@ -1710,7 +1776,20 @@
                         {/each}
                     {/if}
                 {/if}
-                {#if !postsResult.error && displayPosts.length === 0 && !backfilling}
+                {#if allView}
+                    <!-- 재설계 3단계(B): 전체 새글(피드)를 게시판 자리에 렌더. 기존 목록 파이프라인 미사용. -->
+                    {#if feedLoading && feedItems.length === 0}
+                        <div class="text-muted-foreground py-10 text-center text-sm">
+                            전체 새글을 불러오는 중…
+                        </div>
+                    {:else if feedItems.length === 0}
+                        <div class="text-muted-foreground py-10 text-center text-sm">
+                            최근 7일 새 글이 없습니다.
+                        </div>
+                    {:else}
+                        <FeedListView items={feedItems} />
+                    {/if}
+                {:else if !postsResult.error && displayPosts.length === 0 && !backfilling}
                     <Card class="bg-background {listLayoutId === 'gallery' ? 'col-span-full' : ''}">
                         <CardContent class="py-12 text-center">
                             {#if isSearching}
@@ -1794,7 +1873,49 @@
             </div>
 
             <!-- 페이지네이션 -->
-            {#if shouldShowPagination && !dateMode}
+            {#if allView && feedTotalPages > 1}
+                <!-- 재설계 3단계: 전체 새글(피드) 페이징 — 자유게시판처럼 페이지 번호. goToPage 가 all=1 보존. -->
+                <div class="mt-8 flex items-center justify-center gap-1 sm:gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        title="처음으로"
+                        aria-label="첫 페이지"
+                        disabled={listPage === 1}
+                        onclick={() => goToPage(1)}>&laquo;</Button
+                    >
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={listPage === 1}
+                        onclick={() => goToPage(listPage - 1)}>이전</Button
+                    >
+                    {#each feedVisiblePages as pageNum (pageNum)}
+                        <Button
+                            variant={pageNum === listPage ? 'default' : 'outline'}
+                            size="sm"
+                            aria-current={pageNum === listPage ? 'page' : undefined}
+                            class={pageNum === listPage ? 'pointer-events-none' : undefined}
+                            onclick={() => goToPage(pageNum)}>{pageNum}</Button
+                        >
+                    {/each}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={listPage >= feedTotalPages}
+                        onclick={() => goToPage(listPage + 1)}>다음</Button
+                    >
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        title="마지막으로"
+                        aria-label="마지막 페이지"
+                        disabled={listPage === feedTotalPages}
+                        onclick={() => goToPage(feedTotalPages)}>&raquo;</Button
+                    >
+                </div>
+            {/if}
+            {#if shouldShowPagination && !dateMode && !allView}
                 <div class="mt-8 flex items-center justify-center gap-1 sm:gap-2">
                     <!-- #11941: 첫페이지 단축 — 항상 노출 (1페이지일 때만 비활성) -->
                     <Button

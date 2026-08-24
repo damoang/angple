@@ -7,10 +7,8 @@
     import { browser } from '$app/environment';
     import Newspaper from '@lucide/svelte/icons/newspaper';
     import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
-    import MessageSquare from '@lucide/svelte/icons/message-square';
-    import Eye from '@lucide/svelte/icons/eye';
     import FeedSkeleton from '$lib/components/features/feed/feed-skeleton.svelte';
-    import { formatCommentCountBadge } from '$lib/utils/comment-count.js';
+    import FeedListView from '$lib/components/features/feed/feed-list-view.svelte';
     import type { PageData } from './$types.js';
 
     let { data }: { data: PageData } = $props();
@@ -135,30 +133,6 @@
             url.searchParams.delete('cursor');
         }
         goto(url.pathname + url.search);
-    }
-
-    // 시간 포맷
-    function formatTime(dateString: string): string {
-        const date = new Date(dateString);
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
-        if (targetDate.getTime() === today.getTime()) {
-            return date.toLocaleTimeString('ko-KR', {
-                timeZone: 'Asia/Seoul',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            });
-        } else {
-            return date.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' });
-        }
-    }
-
-    // 댓글인지 여부
-    function isComment(item: { wr_id: number; wr_parent: number }): boolean {
-        return item.wr_id !== item.wr_parent;
     }
 </script>
 
@@ -331,103 +305,7 @@
                         {/if}
                     </div>
                 {:else}
-                    <div class="divide-border divide-y">
-                        {#each result.items as item (item.bn_id)}
-                            <a
-                                href={isComment(item)
-                                    ? `/${item.bo_table}/${item.wr_parent}#c_${item.wr_id}`
-                                    : `/${item.bo_table}/${item.wr_id}`}
-                                class="hover:bg-muted/50 block px-4 py-2.5 no-underline transition-all duration-200"
-                            >
-                                <div class="flex items-center gap-2 md:gap-3">
-                                    <div class="hidden shrink-0 md:block">
-                                        <span
-                                            class="bg-muted text-muted-foreground inline-flex h-7 w-16 items-center justify-center rounded-lg text-xs font-medium"
-                                        >
-                                            {item.bo_subject}
-                                        </span>
-                                    </div>
-
-                                    <div class="min-w-0 flex-1">
-                                        <div
-                                            class="flex flex-col gap-1 md:flex-row md:items-center md:gap-3"
-                                        >
-                                            <div class="flex min-w-0 flex-1 items-center gap-1.5">
-                                                {#if isComment(item)}
-                                                    <span
-                                                        class="bg-muted flex h-5 w-5 shrink-0 items-center justify-center rounded"
-                                                    >
-                                                        <MessageSquare
-                                                            class="text-muted-foreground h-3 w-3"
-                                                        />
-                                                    </span>
-                                                    <span
-                                                        class="text-muted-foreground truncate text-[15px] leading-relaxed"
-                                                    >
-                                                        {item.wr_content || item.wr_subject}
-                                                    </span>
-                                                {:else}
-                                                    <span
-                                                        class="text-foreground truncate text-[15px] font-medium leading-relaxed"
-                                                    >
-                                                        {item.wr_subject}
-                                                    </span>
-                                                    {#if item.wr_comment > 0}
-                                                        <span
-                                                            class="shrink-0 rounded-full bg-blue-100 px-1.5 py-0.5 text-[11px] font-semibold text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-                                                        >
-                                                            {formatCommentCountBadge(
-                                                                item.wr_comment
-                                                            )}
-                                                        </span>
-                                                    {/if}
-                                                {/if}
-                                            </div>
-
-                                            <div class="hidden shrink-0 items-center gap-2 md:flex">
-                                                <span
-                                                    class="text-muted-foreground w-[100px] truncate text-sm"
-                                                >
-                                                    {item.wr_name}
-                                                </span>
-                                                <span
-                                                    class="text-muted-foreground w-[65px] text-center text-sm"
-                                                >
-                                                    {formatTime(item.bn_datetime)}
-                                                </span>
-                                                <span
-                                                    class="text-muted-foreground flex w-[50px] items-center justify-end gap-1 text-sm"
-                                                >
-                                                    <Eye class="h-3.5 w-3.5" />
-                                                    {item.wr_hit.toLocaleString()}
-                                                </span>
-                                            </div>
-
-                                            <div
-                                                class="text-muted-foreground flex flex-wrap items-center gap-1.5 text-sm md:hidden"
-                                            >
-                                                <span
-                                                    class="bg-muted rounded px-1.5 py-0.5 text-xs font-medium"
-                                                >
-                                                    {item.bo_subject}
-                                                </span>
-                                                <span>{item.wr_name}</span>
-                                                <span class="text-border">·</span>
-                                                <span>{formatTime(item.bn_datetime)}</span>
-                                                {#if !isComment(item) && item.wr_hit > 0}
-                                                    <span class="text-border">·</span>
-                                                    <span class="flex items-center gap-0.5">
-                                                        <Eye class="h-3 w-3" />
-                                                        {item.wr_hit.toLocaleString()}
-                                                    </span>
-                                                {/if}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </a>
-                        {/each}
-                    </div>
+                    <FeedListView items={result.items} />
                 {/if}
             </CardContent>
         </Card>

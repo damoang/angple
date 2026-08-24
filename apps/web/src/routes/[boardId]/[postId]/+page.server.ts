@@ -28,6 +28,7 @@ import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
 
 import { fetchPostLikeStatus } from '$lib/server/post-like-status.js';
+import { getAuthUser } from '$lib/server/auth';
 import { fetchMemberActivity, type MemberActivity } from '$lib/server/member-activity.js';
 import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
 import { fetchTruthroomPostId, fetchTruthroomCommentMap } from '$lib/server/truthroom.js';
@@ -622,6 +623,13 @@ export const load: PageServerLoad = async ({
                 }
             }
 
+            // #13688: SSR 좋아요 상태 인증을 좋아요 API(getAuthUser)와 일치시킨다.
+            // authenticateSSR 은 angple_sid 세션만 보므로, 세션이 만료됐지만 JWT(damoang_jwt 등)가
+            // 살아 있는 사용자(Safari ITP 로 세션 쿠키가 먼저 evict 된 경우)는 SSR 엔 익명이 되어
+            // 하트가 빈 상태로 렌더됐다(클릭은 API 로 인증돼 이미 누른 좋아요를 취소시킴).
+            // 세션이 있으면 locals.user.id 를 그대로 쓰고, 없을 때만 getAuthUser 로 폴백한다(둘 다 mb_id).
+            const likeUserId = locals.user?.id ?? (await getAuthUser(cookies))?.mb_id ?? null;
+
             const [
                 promotionResult,
                 reactionsResult,
@@ -660,8 +668,8 @@ export const load: PageServerLoad = async ({
                 // outer scope 에서 미리 시작한 공유 promise 재사용(워터마크 판정과 동일 조회).
                 postReportCountPromise,
                 // 게시글 추천/비추천 상태 (로그인 시만, DB 직접 조회)
-                locals.user?.id
-                    ? fetchPostLikeStatus(boardId, Number(postId), locals.user.id).catch(() => ({
+                likeUserId
+                    ? fetchPostLikeStatus(boardId, Number(postId), likeUserId).catch(() => ({
                           userLiked: false,
                           userDisliked: false
                       }))
@@ -678,13 +686,13 @@ export const load: PageServerLoad = async ({
                         : null
                 ),
                 (() => {
-                    if (!locals.user?.id) {
+                    if (!likeUserId) {
                         return Promise.resolve({ likedIds: [], dislikedIds: [] });
                     }
                     // 글 단위 조회 — SSR 1페이지(10개) 밖 backfill 댓글의 하트 토글 상태
                     // 누락 방지 (economy/77128 제보: 정렬 동률로 1페이지에서 밀린 댓글의
                     // 좋아요가 새로고침 후 미표시되던 문제)
-                    return fetchCommentLikeStatuses(boardId, Number(postId), locals.user.id).catch(
+                    return fetchCommentLikeStatuses(boardId, Number(postId), likeUserId).catch(
                         () => ({
                             likedIds: [],
                             dislikedIds: []

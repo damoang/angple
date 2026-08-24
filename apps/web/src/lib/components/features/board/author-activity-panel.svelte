@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    import { onMount, tick } from 'svelte';
     import { browser } from '$app/environment';
     import type { FreePost } from '$lib/api/types.js';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card/index.js';
@@ -58,6 +58,25 @@
     let loading = $state(!hasInitial);
     let recentPosts = $state<RecentPost[]>(hasInitial ? initialActivity!.recentPosts : []);
     let recentComments = $state<RecentComment[]>(hasInitial ? initialActivity!.recentComments : []);
+    /**
+     * ⛔ **AdSense `<ins>` 를 SSR HTML 에 내보내면 안 된다.**
+     *
+     * `adsbygoogle.js` 는 app.html 에서 `async` 로 먼저 로드되고, 문서에서 `ins.adsbygoogle` 를
+     * 찾아 **하이드레이션보다 먼저 채울 수 있다.** 그러면 Svelte 가 기대한 DOM 과 달라져
+     * 하이드레이션이 통째로 폐기된다(글쓰기 버튼 안 먹힘·깜빡임·로그인 오표시).
+     *
+     * 실측(2026-08-24, 봇 제외 12시간):
+     *   글 상세 4.08%  ·  홈 0.27%  ·  목록 0.06%    ← 글 상세만 68배
+     *   브라우저: 파이어폭스 22% · 엣지 6.6% · 데스크톱크롬 3.8% · 모바일 0.4~0.7%
+     *   실패는 888개 글에 **고르게** 퍼져 있다 — 특정 글의 콘텐츠 문제가 아니라 페이지 구조다.
+     *   이 패널은 **글 상세에만** 있고, 저장소에서 `<ins>` 를 SSR 로 내보내는 유일한 곳이다.
+     *
+     * 우리 `AdfitSlot` 은 이미 `{#if ready}` 로 마운트 후에만 그린다. 그 패턴에 맞춘다.
+     *
+     * ⛔ 레이아웃은 안 변한다 — `.dm-clip-wrapper` 가 CSS 로 높이를 고정(모바일 110px /
+     *    데스크톱 214px)하므로 `<ins>` 유무가 자리를 바꾸지 않는다. CLS 회귀 없음.
+     */
+    let adReady = $state(false);
     let adContainer = $state<HTMLElement | null>(null);
     let clipWrapper = $state<HTMLElement | null>(null);
     let panelEl = $state<HTMLElement | null>(null);
@@ -235,7 +254,10 @@
             // 프라이빗 모드 등 — 기본값(접힘) 유지
         }
 
-        loadAdSense();
+        // ⛔ 순서가 중요하다. `<ins>` 가 DOM 에 들어간 **뒤에** push 해야 AdSense 가 찾는다.
+        //    SSR 로 내보내지 않으므로 여기서 그리고, tick 으로 DOM 반영을 기다린다.
+        adReady = true;
+        void tick().then(() => loadAdSense());
 
         requestAnimationFrame(() => {
             if (!clipWrapper) return;
@@ -324,7 +346,7 @@
             >
                 <!-- AdSense가 이 div의 height를 !important로 바꿔도 외부 래퍼가 잘라냄 -->
                 <div bind:this={adContainer}>
-                    {#if ADSENSE_ACTIVITY_CLIENT && ADSENSE_ACTIVITY_SLOT}
+                    {#if adReady && ADSENSE_ACTIVITY_CLIENT && ADSENSE_ACTIVITY_SLOT}
                         <ins
                             class="adsbygoogle"
                             style="display:block;"
