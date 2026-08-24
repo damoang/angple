@@ -128,15 +128,20 @@ async function scanEmoticons(): Promise<{ packs: EmoticonPack[] }> {
         }
     }
 
-    // 팩별 그룹핑
-    const packMap = new Map<string, EmoticonItem[]>();
+    // 같은 이모티콘이 여러 확장자로 존재하면(예: X.gif + 변환본 X.webp) baseName 당 하나만 남긴다.
+    // #13683: 확장자 중복이 걸러지지 않아 선택창에 같은 이모티콘이 2~3개씩 늘어섰다(실측 48쌍).
+    // 우선순위: 애니 webp(변환본·원본 대비 3~5배 작음) > gif(원본) > png > jpg.
+    // webp 가 없는 쌍(gif+jpg 등)은 gif 를 남겨 애니메이션을 보존한다.
+    const EXT_PRIORITY: Record<string, number> = { webp: 0, gif: 1, png: 2, jpeg: 3, jpg: 4 };
+    const extOf = (f: string) => f.split('.').pop()?.toLowerCase() || '';
+    const bestByBase = new Map<string, { file: string; prefix: string }>();
 
     for (const file of files) {
         // ⛔ _thumb 과 _still 은 이모티콘 자체가 아니라 부속 파일이다.
         //    거르지 않으면 선택창에 같은 이모티콘이 두세 개씩 늘어선다.
         if (file.includes('_thumb') || file.includes('_still') || SKIP_FILES.has(file)) continue;
 
-        const ext = file.split('.').pop()?.toLowerCase() || '';
+        const ext = extOf(file);
         if (!ALLOWED_EXTENSIONS.has(ext)) continue;
 
         // 로고 등 비이모티콘 제외
@@ -146,16 +151,22 @@ async function scanEmoticons(): Promise<{ packs: EmoticonPack[] }> {
         if (!prefix) continue;
         if (HIDDEN_PACKS.has(prefix)) continue;
 
-        if (!packMap.has(prefix)) {
-            packMap.set(prefix, []);
-        }
-
-        // thumb 찾기: "damoang-emo-001.gif" → baseName "damoang-emo-001"
+        // "damoang-emo-001.gif" → baseName "damoang-emo-001"
         const dotIdx = file.lastIndexOf('.');
         const baseName = dotIdx > 0 ? file.substring(0, dotIdx) : file;
+
+        const existing = bestByBase.get(baseName);
+        if (!existing || (EXT_PRIORITY[ext] ?? 99) < (EXT_PRIORITY[extOf(existing.file)] ?? 99)) {
+            bestByBase.set(baseName, { file, prefix });
+        }
+    }
+
+    // 팩별 그룹핑 (baseName 기준으로 중복 제거된 파일만)
+    const packMap = new Map<string, EmoticonItem[]>();
+    for (const [baseName, { file, prefix }] of bestByBase) {
+        if (!packMap.has(prefix)) packMap.set(prefix, []);
         const thumb = thumbMap.get(baseName) || null;
         const still = stillMap.get(baseName) || null;
-
         packMap.get(prefix)!.push({ file, thumb, still });
     }
 
