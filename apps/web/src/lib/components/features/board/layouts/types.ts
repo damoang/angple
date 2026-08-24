@@ -24,6 +24,10 @@ export interface ListLayoutProps {
     post: FreePost;
     displaySettings?: BoardDisplaySettings;
     href: string;
+    /** 여러 게시판을 합친 목록(새글 피드 등)에서 각 줄에 출처 게시판명을 표시할지. 단일 게시판은 미지정(false). */
+    showBoardName?: boolean;
+    /** showBoardName 이 true 일 때 표시할 게시판 이름. */
+    boardName?: string;
 }
 
 /**

@@ -30,7 +30,9 @@
         href,
         isRead = false,
         memo = null,
-        searchQuery = ''
+        searchQuery = '',
+        showBoardName = false,
+        boardName = ''
     }: {
         post: FreePost;
         displaySettings?: BoardDisplaySettings;
@@ -38,6 +40,10 @@
         isRead?: boolean;
         memo?: { content: string; color: string } | null;
         searchQuery?: string;
+        // 여러 게시판을 합친 목록(예: 새글 피드)에서 각 줄이 어느 게시판 글인지 표시.
+        // 단일 게시판 목록은 넘기지 않아 default false → 기존과 동일 렌더(회귀 없음).
+        showBoardName?: boolean;
+        boardName?: string;
     } = $props();
 
     function highlightText(text: string): string {
@@ -192,6 +198,14 @@
             >
                 <!-- 제목 줄 (col 2) -->
                 <div class="flex min-w-0 items-center gap-1 md:flex-1">
+                    <!-- 합친 목록(피드)에서 출처 게시판 표시. 행 전체가 <a> 라 nested anchor 금지 → span. -->
+                    {#if showBoardName && boardName}
+                        <span
+                            class="bg-muted text-muted-foreground shrink-0 rounded px-1.5 py-0 text-xs font-medium"
+                        >
+                            {boardName}
+                        </span>
+                    {/if}
                     {#if post.is_notice}
                         <span class="mobile-only" class:modern-view={isMobileView}
                             ><Pin class="text-liked h-3.5 w-3.5 shrink-0" /></span
