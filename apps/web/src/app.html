@@ -418,30 +418,7 @@
             })();
         </script>
     </head>
-    <!--
-        SvelteKit 링크 프리로드.
-
-        ⛔ **속성이 없으면 기본값이 `off` 다** — 켠 적이 없으면 프리로드가 아예 안 돈다.
-           `@sveltejs/kit` 소스 `runtime/client/utils.js`:
-               preload_data: levels[preload_data ?? 'off']
-               preload_code: levels[preload_code ?? 'off']
-           "SvelteKit 이 알아서 해 주겠지" 는 사실이 아니다(2026-08-24 확인).
-
-        왜 켜는가 — 실측(2026-08-24, 봇 제외):
-          · 모바일 INP p75 : 목록 224ms · 홈 200ms · 글상세 120ms
-            (목록·홈에서 상호작용의 25.9% / 25.1% 가 200ms 를 넘는다)
-          · 목록에서 글을 누르면 SPA 이동이 일어나고, 그때 받는 `__data.json` 이
-            **25~29KB · 중앙값 201ms** 다. INP 는 다음 페인트까지를 재므로 이게 그대로 잡힌다.
-          → `tap` 은 `touchstart`(=클릭보다 먼저)에 미리 시작한다. 그 시간만큼 앞당겨진다.
-
-        ⚠️ 대가: `tap` 은 **스크롤하려고 글을 짚기만 해도** 발동한다. 헛되이 받는 요청이 생긴다.
-           카나리/운영에서 원본 요청량을 반드시 대조할 것. 과하면 `preload-code` 만 남기고
-           `preload-data` 를 빼면 된다(데이터 요청 없이 JS 청크만 미리 받는다).
-
-        ⛔ `hover` 는 모바일에서 발동하지 않는다 — 데스크톱 INP 는 이미 64ms 로 문제없으므로
-           모바일을 겨냥한 이 변경에는 `tap` 이 맞다.
-    -->
-    <body data-sveltekit-preload-data="tap" data-sveltekit-preload-code="viewport">
+    <body>
         <!-- ⛔ id 를 지우지 말 것. 하이드레이션 앵커 탐지가 이 id 로 앱 루트를 찾는다.
              예전엔 document.body.firstElementChild 로 찾았는데, AdSense 가 body 첫 요소로
              div#aswift_0_host 를 끼워 넣으면 광고 컨테이너를 앱 루트로 오인했다.
