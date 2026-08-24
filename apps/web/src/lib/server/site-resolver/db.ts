@@ -36,7 +36,6 @@ function isMissingTableError(err: unknown): boolean {
     const dbErr = err as ResolverDbError;
     return dbErr?.code === 'ER_NO_SUCH_TABLE' || dbErr?.errno === 1146;
 }
-<<<<<<< Updated upstream
 
 // JSON 컬럼(keywords/business)은 드라이버/설정에 따라 직렬화된 문자열로 오거나
 // 이미 파싱된 객체/배열로 올 수 있다(mysql2 는 JSON 타입을 자동 파싱). 문자열이면
@@ -53,8 +52,6 @@ function parseJsonColumn(val: unknown): unknown {
     if (typeof val === 'object') return val;
     return undefined;
 }
-=======
->>>>>>> Stashed changes
 
 function rowToContext(row: SiteRow): SiteContext {
     let keywords: string[] | undefined;
