@@ -42,6 +42,7 @@
         uiSettingsStore,
         BLUR_KEYWORDS,
         BLUR_SPOILER_KEYWORDS,
+        MAX_MUTE_KEYWORDS,
         type FontFamily,
         type LineHeight,
         type ContentFontSize,
@@ -49,6 +50,7 @@
         type ShortcutButtonSize
     } from '$lib/stores/ui-settings.svelte.js';
     import { densityStore } from '$lib/stores/density.svelte.js';
+    import { toast } from 'svelte-sonner';
     import {
         boardFavoritesStore,
         slotLabel,
@@ -205,10 +207,18 @@
 
     function addMuteKeyword() {
         const trimmed = muteInput.trim();
-        if (trimmed) {
-            uiSettingsStore.addMuteKeyword(trimmed);
-            muteInput = '';
+        if (!trimmed) return;
+        const result = uiSettingsStore.addMuteKeyword(trimmed);
+        if (result === 'full') {
+            // 최대 개수 초과 시 조용히 삼키지 않고 경고를 띄운다(bug/13694).
+            toast.warning(`뮤트 키워드는 최대 ${MAX_MUTE_KEYWORDS}개까지 등록할 수 있습니다.`);
+            return;
         }
+        if (result === 'duplicate') {
+            toast.info('이미 등록된 키워드입니다.');
+            return;
+        }
+        muteInput = '';
     }
 
     function handleMuteKeydown(e: KeyboardEvent) {
@@ -791,8 +801,15 @@
                         <Ban class="h-5 w-5" />
                         제목 필터링 (뮤트)
                     </CardTitle>
-                    <CardDescription>특정 단어가 포함된 게시글을 목록에서 숨깁니다.</CardDescription
-                    >
+                    <CardDescription>
+                        특정 단어가 포함된 게시글을 목록에서 숨깁니다.{#if hydrated}
+                            <span
+                                class:text-destructive={uiSettingsStore.muteKeywords.length >=
+                                    MAX_MUTE_KEYWORDS}
+                                >(현재 {uiSettingsStore.muteKeywords
+                                    .length}/{MAX_MUTE_KEYWORDS})</span
+                            >{/if}
+                    </CardDescription>
                 </CardHeader>
                 <CardContent class="space-y-3">
                     <div class="flex gap-2">
@@ -802,7 +819,13 @@
                             onkeydown={handleMuteKeydown}
                             class="flex-1"
                         />
-                        <Button variant="outline" size="sm" onclick={addMuteKeyword}>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={hydrated &&
+                                uiSettingsStore.muteKeywords.length >= MAX_MUTE_KEYWORDS}
+                            onclick={addMuteKeyword}
+                        >
                             <Plus class="mr-1 h-4 w-4" />
                             추가
                         </Button>

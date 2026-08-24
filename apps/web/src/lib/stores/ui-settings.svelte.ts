@@ -159,6 +159,10 @@ export const LIST_FONT_SIZES: Record<ListFontSize, string> = {
  * '혐오'는 담론성 표현('혐오 문화/표현/범죄' 등) 오탐이 심해 bare 매칭을 제거하고,
  * 이미지 지시 변형('혐짤/혐오짤/혐오 짤/혐오사진/혐오 사진/혐오 이미지')만 대상으로 한다.
  */
+/** 제목 필터링(뮤트) 키워드 최대 개수. isMuted 가 목록 항목마다 some(includes) 를
+ *  돌리므로 무한정 늘면 렌더 성능이 나빠진다. 초과 시 UI 가 경고를 띄운다(bug/13694). */
+export const MAX_MUTE_KEYWORDS = 200;
+
 export const BLUR_KEYWORDS = [
     '후방',
     '혐짤',
@@ -516,12 +520,15 @@ function createUiSettingsStore() {
             settings.muteKeywords = v;
             save();
         },
-        addMuteKeyword(keyword: string) {
+        // 추가 결과를 반환해 UI 가 상황별 피드백(중복/최대개수 초과)을 줄 수 있게 한다(bug/13694).
+        addMuteKeyword(keyword: string): 'added' | 'empty' | 'duplicate' | 'full' {
             const trimmed = keyword.trim();
-            if (trimmed && !settings.muteKeywords.includes(trimmed)) {
-                settings.muteKeywords = [...settings.muteKeywords, trimmed];
-                save();
-            }
+            if (!trimmed) return 'empty';
+            if (settings.muteKeywords.includes(trimmed)) return 'duplicate';
+            if (settings.muteKeywords.length >= MAX_MUTE_KEYWORDS) return 'full';
+            settings.muteKeywords = [...settings.muteKeywords, trimmed];
+            save();
+            return 'added';
         },
         removeMuteKeyword(keyword: string) {
             settings.muteKeywords = settings.muteKeywords.filter((k) => k !== keyword);
