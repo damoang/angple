@@ -425,15 +425,37 @@
         '/login' // 로그인(비밀번호 입력)
     ];
 
+    function isClarityExcluded(pathname: string) {
+        return CLARITY_EXCLUDED_PREFIXES.some(
+            (p) => pathname === p || pathname.startsWith(p + '/')
+        );
+    }
+
+    /**
+     * ⛔ **이미 돌고 있는데 또 `start` 하면 Clarity 가 태그를 다시 붙인다.**
+     *    콘솔에 `Error CL001: Multiple Clarity tags detected` 가 페이지 이동마다 찍혔다
+     *    (2026-08-24 실사용자 콘솔 로그에서 확인). 이전 코드는 afterNavigate 마다
+     *    조건 없이 `clarity('start')` 를 불렀다.
+     *    → **상태가 바뀔 때만** 부른다.
+     *
+     * ⛔ 초기값은 app.html 인라인 스크립트와 **정확히 같은 규칙**으로 정해야 한다.
+     *    거기서는 최초 경로가 제외 목록에 있으면 `clarity('stop')` 을 부른다.
+     *    초기값을 틀리면 두 방향 다 사고다 —
+     *      · 켜야 할 곳에서 꺼진 채 남으면 데이터 유실
+     *      · **꺼야 할 곳에서 켜진 채 남으면 PIPA 위반**(쪽지·결제 화면 녹화)
+     *    그래서 "모른다" 가 아니라 최초 경로로 계산해서 맞춘다.
+     */
+    let clarityStopped = browser ? isClarityExcluded(location.pathname) : false;
+
     function applyClarityPrivacyGuard(pathname: string) {
         if (!browser) return;
         const clarity = (window as unknown as { clarity?: (...args: unknown[]) => void }).clarity;
         if (typeof clarity !== 'function') return;
-        const excluded = CLARITY_EXCLUDED_PREFIXES.some(
-            (p) => pathname === p || pathname.startsWith(p + '/')
-        );
+        const excluded = isClarityExcluded(pathname);
+        if (excluded === clarityStopped) return; // 이미 그 상태다 — 중복 호출 금지
         // 스니펫 stub 이 큐잉하므로 실제 스크립트 로드 전 호출도 순서대로 반영된다.
         clarity(excluded ? 'stop' : 'start');
+        clarityStopped = excluded;
     }
 
     // afterNavigate 통합: GA4 페이지뷰 + 광고 observer 재설정
