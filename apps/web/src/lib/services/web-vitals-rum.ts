@@ -86,6 +86,10 @@ function sendToDantry(
                 `page=${group}`,
                 `nav=${nav ?? '?'}`,
                 `vw=${window.innerWidth}`,
+                // ⛔ 이 필드 없이 page= 로 페이지별 비교를 하면 다른 페이지의 밀림을
+                //    이 페이지 탓으로 읽는다(위 landingPath 주석 참조).
+                //    분석은 `landing == page` 인 표본만 쓴다.
+                `landing=${landingPath}`,
                 // 광고 충전 신호: ads=<슬롯수>/<채워진수>/<자동광고 컨테이너수>
                 adFillSignature(),
                 // ⛔ 이 한 필드가 원인을 가른다:
@@ -114,6 +118,25 @@ function pathGroup(pathname: string): string {
         .replace(/\/\d+/g, '/:n')
         .slice(0, 60);
 }
+
+/**
+ * ⛔ **`page=` 는 이탈 시점 경로다 — 페이지별 비교의 기준이 될 수 없다.**
+ *
+ * CWV 는 `pagehide`/`visibilitychange(hidden)` 에서 **생애 최종값 1회**로 보고된다.
+ * 그때의 `location.pathname` 은 SPA 이동을 거친 뒤라면 **마지막에 있던 경로**다.
+ * 목록→글→뒤로 이동한 세션은 값이 세션 전체에 누적됐는데도 목록으로 태깅된다.
+ *
+ * 2026-08-24 실측: "모바일 `/free`(목록) CLS" 상위 타깃이 `#comments` ·
+ * `#economy-post-content` · `footer` — **전부 글 상세 요소**였다.
+ * 목록만 따로 열어 재면 CLS 0.0001 로 깨끗하다.
+ *
+ * → **랜딩 경로를 함께 싣는다.** 분석에서 `landing == page` 인 표본만 걸러야
+ *   페이지별 비교가 성립한다. 그 전에는 페이지별 개선의 효과를 판정할 수 없다.
+ *
+ * ⛔ 모듈 로드 시점에 한 번만 읽는다. 나중에 읽으면 이미 이동한 뒤라 의미가 없다.
+ * 비용: 초기화 시 `location.pathname` 읽기 1회 — 렌더 경로에 아무것도 추가하지 않는다.
+ */
+const landingPath = typeof window !== 'undefined' ? pathGroup(location.pathname) : '';
 
 let installed = false;
 
