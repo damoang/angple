@@ -18,7 +18,11 @@ export const GET: RequestHandler = async ({ url }) => {
     const scope = SCOPES.has(rawScope) ? rawScope : '';
     const rawSort = url.searchParams.get('sort') || 'latest';
     const sort = (SORTS.has(rawSort) ? rawSort : 'latest') as FeedSort;
-    const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
+    // 7일 창 피드라 페이지 수는 많아야 수천. 비정상적으로 큰 offset(정수/DB 부하) 방어로 상한.
+    const page = Math.min(
+        100000,
+        Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1)
+    );
     const grId = url.searchParams.get('gr_id') || '';
     const cursor = parseInt(url.searchParams.get('cursor') || '0', 10) || undefined;
     const perPage = 30;
