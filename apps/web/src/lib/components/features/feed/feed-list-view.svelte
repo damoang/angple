@@ -3,7 +3,15 @@
     // /feed(독립 페이지)와 /free?all=1(제자리 토글)이 함께 쓴다.
     // ⛔ authStore 로 렌더를 가르지 않는다(SSR null → 하이드레이션 미스매치). classic 도 authStore 무관.
     import Classic from '$lib/components/features/board/layouts/list/classic.svelte';
+    import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
     import type { FreePost } from '$lib/api/types.js';
+
+    // 읽음-딤은 SSR(=false)로 그린 뒤 하이드레이션에서 곧바로 true 로 바꾸면 대량 재스타일이 번쩍인다.
+    // 마운트 완료 후에만 켜서 초기 페인트를 SSR 과 일치시킨다($effect 는 SSR 미실행).
+    let readReady = $state(false);
+    $effect(() => {
+        readReady = true;
+    });
 
     interface FeedRow {
         bn_id: number;
@@ -56,6 +64,7 @@
                 : `/${item.bo_table}/${item.wr_id}`}
             {showBoardName}
             boardName={item.bo_subject}
+            isRead={readReady && readPostsStore.isRead(item.bo_table, item.wr_id)}
         />
     {/each}
 </div>

@@ -188,32 +188,43 @@
         }[]
     >([]);
     let feedLoading = $state(false);
+    let feedLoaded = $state(false); // 첫 조회 완료 여부 — "새 글 없음"을 첫 페인트에 잘못 띄우지 않게.
     let feedTotal = $state(0);
+    // 페이지는 1 이상으로 클램프(음수/0/문자 방어). listPage 는 상세 링크용이라 그대로 둔다.
+    const feedPage = $derived(Math.max(1, listPage));
+    // fetch 순서 가드(비반응성 카운터). 페이지를 빠르게 넘길 때 늦게 온 이전 응답이
+    // 최신 화면을 덮어쓰지 않게 한다(이 파일의 promotion/backfill effect 와 동일 패턴).
+    let feedRunId = 0;
     // $effect 는 SSR 미실행(클라 전용). all=1 일 때만 /api/feed 로 전체 새글을 불러온다.
-    // listPage 를 함께 읽어 페이지 이동(?page=) 시 재조회한다. feed* 는 읽지 않아 자기재발화 없음.
+    // feedPage 를 함께 읽어 페이지 이동 시 재조회한다. feed* 는 읽지 않아 자기재발화 없음.
     $effect(() => {
         if (!allView) return;
-        const p = listPage;
+        const p = feedPage;
+        const myRun = ++feedRunId;
         feedLoading = true;
         fetch(`/api/feed?view=w&page=${p}`)
             .then((r) => (r.ok ? r.json() : { items: [], total: 0 }))
             .then((d) => {
+                if (myRun !== feedRunId) return; // 더 새 요청이 떴으면 이 응답은 버린다
                 feedItems = d.items ?? [];
                 feedTotal = d.total ?? 0;
             })
             .catch(() => {
+                if (myRun !== feedRunId) return;
                 feedItems = [];
                 feedTotal = 0;
             })
             .finally(() => {
+                if (myRun !== feedRunId) return;
                 feedLoading = false;
+                feedLoaded = true;
             });
     });
     // 자유게시판처럼 페이지 번호 페이징(피드 total 기반). perPage=30(=/api/feed).
     const feedTotalPages = $derived(feedTotal > 0 ? Math.ceil(feedTotal / 30) : 0);
     const feedVisiblePages = $derived.by(() => {
         if (feedTotalPages <= 0) return [] as number[];
-        const start = Math.max(1, listPage - 2);
+        const start = Math.max(1, feedPage - 2);
         const end = Math.min(feedTotalPages, start + 4);
         const s = Math.max(1, end - 4);
         return Array.from({ length: end - s + 1 }, (_, i) => s + i);
@@ -833,7 +844,7 @@
     const dateMode = $derived(pagination.dateMode ?? false);
     const archiveNextCursor = $derived(pagination.nextCursor ?? null);
     const archiveDateNavEnabled = $derived(
-        !isSearching && (boardId === 'free' || boardId === 'hello')
+        !isSearching && (boardId === 'free' || boardId === 'hello') && !allView
     );
     // 연/월 옵션(개설연도 근사 2024 ~ 올해).
     const archiveMonthOptions = $derived.by(() => {
@@ -1778,7 +1789,8 @@
                 {/if}
                 {#if allView}
                     <!-- 재설계 3단계(B): 전체 새글(피드)를 게시판 자리에 렌더. 기존 목록 파이프라인 미사용. -->
-                    {#if feedLoading && feedItems.length === 0}
+                    {#if !feedLoaded || (feedLoading && feedItems.length === 0)}
+                        <!-- 첫 조회 완료 전엔 '새 글 없음'을 띄우지 않는다(직접접속 가짜 빈화면 방지). -->
                         <div class="text-muted-foreground py-10 text-center text-sm">
                             전체 새글을 불러오는 중…
                         </div>
@@ -1881,36 +1893,36 @@
                         size="sm"
                         title="처음으로"
                         aria-label="첫 페이지"
-                        disabled={listPage === 1}
+                        disabled={feedPage === 1}
                         onclick={() => goToPage(1)}>&laquo;</Button
                     >
                     <Button
                         variant="outline"
                         size="sm"
-                        disabled={listPage === 1}
-                        onclick={() => goToPage(listPage - 1)}>이전</Button
+                        disabled={feedPage === 1}
+                        onclick={() => goToPage(feedPage - 1)}>이전</Button
                     >
                     {#each feedVisiblePages as pageNum (pageNum)}
                         <Button
-                            variant={pageNum === listPage ? 'default' : 'outline'}
+                            variant={pageNum === feedPage ? 'default' : 'outline'}
                             size="sm"
-                            aria-current={pageNum === listPage ? 'page' : undefined}
-                            class={pageNum === listPage ? 'pointer-events-none' : undefined}
+                            aria-current={pageNum === feedPage ? 'page' : undefined}
+                            class={pageNum === feedPage ? 'pointer-events-none' : undefined}
                             onclick={() => goToPage(pageNum)}>{pageNum}</Button
                         >
                     {/each}
                     <Button
                         variant="outline"
                         size="sm"
-                        disabled={listPage >= feedTotalPages}
-                        onclick={() => goToPage(listPage + 1)}>다음</Button
+                        disabled={feedPage >= feedTotalPages}
+                        onclick={() => goToPage(feedPage + 1)}>다음</Button
                     >
                     <Button
                         variant="outline"
                         size="sm"
                         title="마지막으로"
                         aria-label="마지막 페이지"
-                        disabled={listPage === feedTotalPages}
+                        disabled={feedPage === feedTotalPages}
                         onclick={() => goToPage(feedTotalPages)}>&raquo;</Button
                     >
                 </div>
@@ -1971,7 +1983,7 @@
                     </div>
                 {/if}
             {/if}
-            {#if dateMode}
+            {#if dateMode && !allView}
                 <!-- #12975 날짜 아카이브: 커서 기반 과거 이동 (페이지 번호 무관·고속) -->
                 <div class="mt-8 flex flex-wrap items-center justify-center gap-2">
                     <Button variant="outline" size="sm" onclick={exitArchive}
