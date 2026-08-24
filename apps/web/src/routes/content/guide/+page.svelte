@@ -71,7 +71,7 @@
             emoji: '🖼️',
             tone: 'mint',
             title: '저작권·개인정보 유의',
-            desc: '타인의 사진·개인정보가 담긴 자료는 조심해서 올려주세요. 반대로 다모앙 글을 밖으로 퍼가실 때도 작성자의 허락이 필요합니다.'
+            desc: '타인의 사진·개인정보가 담긴 자료는 조심해서 올려주세요.'
         }
     ];
 
@@ -269,7 +269,7 @@
         </div>
     </section>
 
-        <!-- 박제·공유 -->
+    <!-- 박제·공유 -->
     <section class="bg-card mb-4 rounded-2xl border p-5 shadow-sm">
         <h2 class="text-foreground text-lg font-bold">📌 박제와 공유</h2>
         <p class="text-muted-foreground mb-3 text-xs">
@@ -292,7 +292,7 @@
         </div>
     </section>
 
-<!-- 이용제한 소명 -->
+    <!-- 이용제한 소명 -->
     <section class="bg-card mb-4 rounded-2xl border p-5 shadow-sm">
         <h2 class="text-foreground text-lg font-bold">🛟 이용제한을 받았다면 — 소명하는 법</h2>
         <p class="text-muted-foreground mb-3 text-xs">
