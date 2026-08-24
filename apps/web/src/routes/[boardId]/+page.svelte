@@ -1117,14 +1117,18 @@
                 <div class="flex items-center gap-2">
                     <!-- 재설계 3단계(B): 자유게시판에서 전체 새글(피드) 제자리 토글. 톱니 왼쪽. -->
                     {#if boardId === 'free'}
+                        <!-- 전체 새글(피드) 진입 유도: 안 눌러 보는 분이 많아, 비활성 상태에선
+                             그라데이션이 연속으로 흐르게 해 눈에 띄게 한다(prefers-reduced-motion 존중). -->
                         <Button
                             variant={allView ? 'default' : 'outline'}
                             size="icon"
-                            class="relative h-9 w-9 shrink-0"
+                            class="relative h-9 w-9 shrink-0 {allView
+                                ? ''
+                                : 'feed-toggle-anim border-transparent text-white hover:text-white'}"
                             title={allView ? '이 게시판만 보기' : '전체 새글 보기'}
                             onclick={() => goto(allView ? '/free' : '/free?all=1')}
                         >
-                            <Newspaper class="h-4 w-4" />
+                            <Newspaper class="relative z-10 h-4 w-4" />
                         </Button>
                     {/if}
                     {#if listLayoutId === 'classic'}
@@ -2040,3 +2044,43 @@
         </button>
     </div>
 {/if}
+
+<style>
+    /* 전체 새글 토글 버튼 주목 효과: 무지개 그라데이션을 좌우로 천천히 흘려
+       색이 연속으로 변하는 것처럼 보이게 한다. shadcn Button 이 class 를 자기
+       루트 요소로 넘기므로 :global 로 지정해야 적용된다. */
+    :global(.feed-toggle-anim) {
+        background-image: linear-gradient(
+            120deg,
+            #6366f1,
+            #8b5cf6,
+            #ec4899,
+            #f59e0b,
+            #10b981,
+            #6366f1
+        );
+        background-size: 250% 250%;
+        animation: feed-toggle-shift 5s ease-in-out infinite;
+    }
+    :global(.feed-toggle-anim:hover) {
+        filter: brightness(1.08);
+    }
+    @keyframes feed-toggle-shift {
+        0% {
+            background-position: 0% 50%;
+        }
+        50% {
+            background-position: 100% 50%;
+        }
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+    /* 모션 최소화 설정 시 애니메이션은 끄되, 그라데이션 자체는 남겨 여전히 눈에 띄게 한다. */
+    @media (prefers-reduced-motion: reduce) {
+        :global(.feed-toggle-anim) {
+            animation: none;
+            background-position: 25% 50%;
+        }
+    }
+</style>
