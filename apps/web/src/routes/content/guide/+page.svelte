@@ -43,14 +43,35 @@
         {
             emoji: '📌',
             tone: 'violet',
-            title: '박제는 원칙적으로 괜찮습니다',
-            desc: '다른 분의 글·댓글을 옮겨오는 것 자체는 제한하지 않습니다. 다만 비속어를 붙이거나 사실과 다른 내용을 덧붙이면 별개로 봅니다.'
+            title: '사적 제재의 수단이 되면 안 됩니다',
+            desc: '박제는 허용되는 기능이지만, 특정 회원을 벌주려는 목적으로 쓰이면 이용제한 대상이 됩니다.'
+        },
+        {
+            emoji: '📐',
+            tone: 'violet',
+            title: '박제는 허용되지만 범위가 있어요',
+            desc: '제목에는 대상 회원의 닉네임 또는 아이디만, 본문에는 스크린샷과 링크만 넣어주세요. 텍스트 인용·요약·개인 의견·스크린샷 안의 메모는 허용되지 않습니다.'
         },
         {
             emoji: '🔂',
             tone: 'amber',
-            title: '다만 반복되면 다릅니다',
-            desc: '한 분을 겨냥해 이유 없이 되풀이하면 이용방해가 될 수 있어요.'
+            title: '왜 범위를 두나요',
+            desc: '있는 그대로 공유해야 다른 분들이 스스로 판단할 수 있기 때문이에요. 작성자의 해석이나 강조가 들어가면 분쟁의 소지가 되고, 박제글을 쓰신 분이 법적 분쟁에 휘말릴 수 있습니다. 한 분을 겨냥해 이유 없이 되풀이하는 것도 이용방해가 될 수 있어요.'
+        }
+    ];
+
+    const report = [
+        {
+            emoji: '🚨',
+            tone: 'mint',
+            title: '신고는 규칙 위반이라고 판단될 때',
+            desc: '신고는 커뮤니티를 함께 지키는 기능이에요. 사적인 감정보다 공익을 먼저 생각해 주세요.'
+        },
+        {
+            emoji: '⚠️',
+            tone: 'rose',
+            title: '이런 신고는 제한될 수 있어요',
+            desc: '근거 없이 「다중이」로 신고, 본인 기준에 맞지 않는다는 이유의 신고, 상황을 자의적으로 유추한 신고, 운영 방해를 목적으로 한 다량의 신고. 허위·악의적 신고는 회원기만·이용방해·운영정책부정에 해당할 수 있습니다.'
         }
     ];
 
@@ -254,6 +275,29 @@
         <p class="text-muted-foreground mb-3 text-xs">펌글·인용은 이렇게 해주세요.</p>
         <div class="divide-y">
             {#each writing as item (item.title)}
+                <div class="flex items-start gap-3 py-3">
+                    <span
+                        class="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-base {toneBg[
+                            item.tone
+                        ]}">{item.emoji}</span
+                    >
+                    <div>
+                        <p class="text-foreground text-sm font-semibold">{item.title}</p>
+                        <p class="text-muted-foreground mt-0.5 text-sm">{item.desc}</p>
+                    </div>
+                </div>
+            {/each}
+        </div>
+    </section>
+
+    <!-- 신고 -->
+    <section class="bg-card mb-4 rounded-2xl border p-5 shadow-sm">
+        <h2 class="text-foreground text-lg font-bold">🚨 신고할 때</h2>
+        <p class="text-muted-foreground mb-3 text-xs">
+            운영정책의 적용은 회원님들의 신고와 제보에 기초합니다.
+        </p>
+        <div class="divide-y">
+            {#each report as item (item.title)}
                 <div class="flex items-start gap-3 py-3">
                     <span
                         class="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-base {toneBg[
