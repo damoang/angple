@@ -188,21 +188,35 @@
         }[]
     >([]);
     let feedLoading = $state(false);
+    let feedTotal = $state(0);
     // $effect 는 SSR 미실행(클라 전용). all=1 일 때만 /api/feed 로 전체 새글을 불러온다.
+    // listPage 를 함께 읽어 페이지 이동(?page=) 시 재조회한다. feed* 는 읽지 않아 자기재발화 없음.
     $effect(() => {
         if (!allView) return;
+        const p = listPage;
         feedLoading = true;
-        fetch('/api/feed?view=w')
-            .then((r) => (r.ok ? r.json() : { items: [] }))
+        fetch(`/api/feed?view=w&page=${p}`)
+            .then((r) => (r.ok ? r.json() : { items: [], total: 0 }))
             .then((d) => {
                 feedItems = d.items ?? [];
+                feedTotal = d.total ?? 0;
             })
             .catch(() => {
                 feedItems = [];
+                feedTotal = 0;
             })
             .finally(() => {
                 feedLoading = false;
             });
+    });
+    // 자유게시판처럼 페이지 번호 페이징(피드 total 기반). perPage=30(=/api/feed).
+    const feedTotalPages = $derived(feedTotal > 0 ? Math.ceil(feedTotal / 30) : 0);
+    const feedVisiblePages = $derived.by(() => {
+        if (feedTotalPages <= 0) return [] as number[];
+        const start = Math.max(1, listPage - 2);
+        const end = Math.min(feedTotalPages, start + 4);
+        const s = Math.max(1, end - 4);
+        return Array.from({ length: end - s + 1 }, (_, i) => s + i);
     });
 
     // 목록 → 상세 재사용: 순수 목록 화면(쿼리가 page 뿐)일 때 현재 목록을 기억해 두면
@@ -1859,6 +1873,48 @@
             </div>
 
             <!-- 페이지네이션 -->
+            {#if allView && feedTotalPages > 1}
+                <!-- 재설계 3단계: 전체 새글(피드) 페이징 — 자유게시판처럼 페이지 번호. goToPage 가 all=1 보존. -->
+                <div class="mt-8 flex items-center justify-center gap-1 sm:gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        title="처음으로"
+                        aria-label="첫 페이지"
+                        disabled={listPage === 1}
+                        onclick={() => goToPage(1)}>&laquo;</Button
+                    >
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={listPage === 1}
+                        onclick={() => goToPage(listPage - 1)}>이전</Button
+                    >
+                    {#each feedVisiblePages as pageNum (pageNum)}
+                        <Button
+                            variant={pageNum === listPage ? 'default' : 'outline'}
+                            size="sm"
+                            aria-current={pageNum === listPage ? 'page' : undefined}
+                            class={pageNum === listPage ? 'pointer-events-none' : undefined}
+                            onclick={() => goToPage(pageNum)}>{pageNum}</Button
+                        >
+                    {/each}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={listPage >= feedTotalPages}
+                        onclick={() => goToPage(listPage + 1)}>다음</Button
+                    >
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        title="마지막으로"
+                        aria-label="마지막 페이지"
+                        disabled={listPage === feedTotalPages}
+                        onclick={() => goToPage(feedTotalPages)}>&raquo;</Button
+                    >
+                </div>
+            {/if}
             {#if shouldShowPagination && !dateMode && !allView}
                 <div class="mt-8 flex items-center justify-center gap-1 sm:gap-2">
                     <!-- #11941: 첫페이지 단축 — 항상 노출 (1페이지일 때만 비활성) -->
