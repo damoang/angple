@@ -8,8 +8,7 @@
     import Newspaper from '@lucide/svelte/icons/newspaper';
     import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
     import FeedSkeleton from '$lib/components/features/feed/feed-skeleton.svelte';
-    import Classic from '$lib/components/features/board/layouts/list/classic.svelte';
-    import type { FreePost } from '$lib/api/types.js';
+    import FeedListView from '$lib/components/features/feed/feed-list-view.svelte';
     import type { PageData } from './$types.js';
 
     let { data }: { data: PageData } = $props();
@@ -134,41 +133,6 @@
             url.searchParams.delete('cursor');
         }
         goto(url.pathname + url.search);
-    }
-
-    // 댓글인지 여부
-    function isComment(item: { wr_id: number; wr_parent: number }): boolean {
-        return item.wr_id !== item.wr_parent;
-    }
-
-    // 피드행(NewPostItem)을 게시판 리스트 레이아웃(classic)이 받는 FreePost 형태로 변환.
-    // ⛔ $lib/server 는 클라에서 import 못 하므로 param 은 구조적 타입으로 명시.
-    // 피드엔 없는 값(좋아요·카테고리·썸네일·아바타)은 비움 → classic 이 우아하게 degrade.
-    function mapFeedRowToPost(item: {
-        wr_id: number;
-        wr_parent: number;
-        wr_subject: string;
-        wr_content: string;
-        wr_name: string;
-        mb_id: string;
-        wr_hit: number;
-        wr_comment: number;
-        bn_datetime: string;
-        bo_table: string;
-    }): FreePost {
-        const comment = item.wr_id !== item.wr_parent;
-        return {
-            id: item.wr_id,
-            title: comment ? item.wr_content || item.wr_subject : item.wr_subject,
-            content: '',
-            author: item.wr_name,
-            author_id: item.mb_id,
-            views: item.wr_hit,
-            likes: 0,
-            comments_count: comment ? 0 : item.wr_comment,
-            created_at: item.bn_datetime,
-            board_id: item.bo_table
-        };
     }
 </script>
 
@@ -341,21 +305,7 @@
                         {/if}
                     </div>
                 {:else}
-                    <div class="divide-border divide-y">
-                        {#each result.items as item (item.bn_id)}
-                            <!-- 재설계 2단계: 게시판 리스트 레이아웃(classic) 재사용 + 출처 게시판명 칩.
-                                 Classic 은 자체 <a> 를 렌더하므로 바깥 <a> 로 감싸지 않는다.
-                                 key 는 bn_id(전역 유일)로 유지 → 크로스보드 id 충돌 회피. -->
-                            <Classic
-                                post={mapFeedRowToPost(item)}
-                                href={isComment(item)
-                                    ? `/${item.bo_table}/${item.wr_parent}#c_${item.wr_id}`
-                                    : `/${item.bo_table}/${item.wr_id}`}
-                                showBoardName
-                                boardName={item.bo_subject}
-                            />
-                        {/each}
-                    </div>
+                    <FeedListView items={result.items} />
                 {/if}
             </CardContent>
         </Card>
