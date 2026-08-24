@@ -300,7 +300,9 @@
             aria-label="글자 작게"
         >
             <span class="text-[11px] md:hidden">가</span>
-            <span class="hidden text-xs md:inline">작게</span>
+            <!-- 라벨 자체를 계단식 크기로: 작게(11)<보통(12=기존)<크게(14). 버튼은 h-[26px] 고정이라
+                 안쪽 글자가 커져도 작성자 줄 높이는 그대로다(모바일 '가' 15px 도 이 박스에 든다). -->
+            <span class="hidden text-[11px] md:inline">작게</span>
         </button>
         <!-- 기본값 복귀는 md 이상에서만. 모바일은 폭이 없어 작은가/큰가 로 오갈 수 있게만 둔다. -->
         <button
@@ -317,7 +319,7 @@
             aria-label="글자 크게"
         >
             <span class="text-[15px] md:hidden">가</span>
-            <span class="hidden text-xs md:inline">크게</span>
+            <span class="hidden text-[14px] md:inline">크게</span>
         </button>
     </span>
 {/snippet}
