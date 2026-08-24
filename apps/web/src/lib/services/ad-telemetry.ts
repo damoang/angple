@@ -31,7 +31,14 @@ export type AdTelemetryEventName =
     | 'ad_fallback_failed'
     | 'ad_fallback_timeout'
     | 'ad_sdk_blocked'
-    | 'ad_blocked';
+    | 'ad_blocked'
+    /**
+     * 애드핏 폴백 유닛이 한 페이지에 중복돼 렌더를 건너뛴 경우.
+     * ⛔ 이건 "광고가 안 나갔다" 는 뜻이다 — ADFIT_FALLBACK_MAP 이 12개 포지션을
+     *    6개 유닛에 매핑하는데 infeed 계열은 한 페이지에 여러 번 반복되기 때문이다.
+     *    어느 포지션에서 얼마나 겹치는지 봐야 유닛을 추가 발급할 근거가 된다.
+     */
+    | 'ad_fallback_duplicate_unit';
 
 export interface AdTelemetryPayload {
     ad_unit?: string;
@@ -52,7 +59,11 @@ const sentKeys = new Set<string>();
  * 실패 신호(스파이크 감지가 중요)는 100% 유지.
  */
 const SAMPLE_RATE: Partial<Record<AdTelemetryEventName, number>> = {
-    ad_fallback_success: 100
+    ad_fallback_success: 100,
+    // 중복은 결함 신호라 전량이 원칙이지만, dedupe 후에도 페이지마다 몇 건씩 나온다.
+    // 하루 수십만 세션이면 기존 ad_telemetry 총량을 넘길 수 있어 1/10 로 줄인다.
+    // sample_rate 가 실려 나가므로 집계에서 총량은 복원된다.
+    ad_fallback_duplicate_unit: 10
 };
 
 export function trackAdEvent(name: AdTelemetryEventName, props: AdTelemetryPayload = {}): void {
