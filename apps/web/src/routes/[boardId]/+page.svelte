@@ -76,8 +76,6 @@
         DropdownMenuCheckboxItem
     } from '$lib/components/ui/dropdown-menu/index.js';
     import Settings2 from '@lucide/svelte/icons/settings-2';
-    import Newspaper from '@lucide/svelte/icons/newspaper';
-    import { trackEvent } from '$lib/services/ga4.js';
 
     // 특수 게시판 컴포넌트 (플러그인 레지스트리 기반)
     import { boardTypeRegistry } from '$lib/components/features/board/board-type-registry.js';
@@ -1052,25 +1050,6 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <!-- 실험(bug/13666·소모임): 자유 제외 전체 새글로 가는 진입점.
-                         /feed 는 읽기 전용이라 작성 유입을 유발하지 않고, scope=nofree 로
-                         자유(전체의 88%) 를 빼 다른 게시판(질문·소모임 등) 활동을 노출한다. -->
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        class="relative h-9 w-9 shrink-0"
-                        title="새글 (자유게시판 제외)"
-                        onclick={() => {
-                            trackEvent('feed_entry_click', {
-                                board_id: boardId,
-                                source: 'board_header',
-                                scope: 'nofree'
-                            });
-                            goto('/feed?scope=nofree');
-                        }}
-                    >
-                        <Newspaper class="h-4 w-4" />
-                    </Button>
                     {#if listLayoutId === 'classic'}
                         <DropdownMenu>
                             <DropdownMenuTrigger>
