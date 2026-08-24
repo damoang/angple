@@ -1115,22 +1115,20 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <!-- 재설계 3단계(B): 자유게시판에서 전체 새글(피드) 제자리 토글. 톱니 왼쪽. -->
-                    {#if boardId === 'free'}
-                        <!-- 전체 새글(피드) 진입 유도: 안 눌러 보는 분이 많아, 비활성 상태에선
-                             그라데이션이 연속으로 흐르게 해 눈에 띄게 한다(prefers-reduced-motion 존중). -->
-                        <Button
-                            variant={allView ? 'default' : 'outline'}
-                            size="icon"
-                            class="relative h-9 w-9 shrink-0 {allView
-                                ? ''
-                                : 'feed-toggle-anim border-transparent text-white hover:text-white'}"
-                            title={allView ? '이 게시판만 보기' : '전체 새글 보기'}
-                            onclick={() => goto(allView ? '/free' : '/free?all=1')}
-                        >
-                            <Newspaper class="relative z-10 h-4 w-4" />
-                        </Button>
-                    {/if}
+                    <!-- 전체 새글(피드) 진입 유도 — 전 게시판 노출. 자유게시판(allView)=제자리 토글,
+                         그 외 게시판=클릭 시 /free?all=1(전체 새글 피드)로 이동. 안 눌러 보는 분이 많아
+                         비활성 상태엔 그라데이션이 연속으로 흐르게 해 눈에 띄게 한다(prefers-reduced-motion 존중). 톱니 왼쪽. -->
+                    <Button
+                        variant={allView ? 'default' : 'outline'}
+                        size="icon"
+                        class="relative h-9 w-9 shrink-0 {allView
+                            ? ''
+                            : 'feed-toggle-anim border-transparent text-white hover:text-white'}"
+                        title={allView ? '이 게시판만 보기' : '전체 새글 보기'}
+                        onclick={() => goto(allView ? '/free' : '/free?all=1')}
+                    >
+                        <Newspaper class="relative z-10 h-4 w-4" />
+                    </Button>
                     {#if listLayoutId === 'classic'}
                         <DropdownMenu>
                             <DropdownMenuTrigger>
