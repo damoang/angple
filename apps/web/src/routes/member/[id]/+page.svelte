@@ -839,9 +839,10 @@
                                 </div>
                             </div>
 
-                            <!-- 관리자 삭제 -->
+                            <!-- 관리자·글작성자 삭제: '댓글'은 관리자뿐 아니라 글 작성자가 자기 글에 달린
+                                 댓글을 지운 경우도 포함된다(내가 안 지웠는데 삭제된 것으로 보이던 오해 방지 — bug/13675). -->
                             <div>
-                                <div class="mb-1 text-sm font-medium">관리자 삭제</div>
+                                <div class="mb-1 text-sm font-medium">관리자·글작성자 삭제</div>
                                 <div class="bg-muted flex h-4 overflow-hidden rounded-full">
                                     <div
                                         class="flex flex-1 items-center justify-center bg-yellow-200 text-[10px] font-medium text-yellow-900 dark:bg-yellow-800 dark:text-yellow-100"
@@ -854,6 +855,9 @@
                                         댓글 {p.stats.delete_comment_by_admin.toLocaleString()}
                                     </div>
                                 </div>
+                                <p class="text-muted-foreground mt-1 text-[10px] leading-tight">
+                                    댓글은 글 작성자가 자기 글의 댓글을 삭제한 경우도 포함됩니다.
+                                </p>
                             </div>
 
                             <!-- 추천/신고 -->
