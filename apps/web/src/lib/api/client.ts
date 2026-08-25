@@ -2078,6 +2078,15 @@ class ApiClient {
     }
 
     /**
+     * 알림 전체 삭제 (bug/13692). onlyRead=true 면 읽은 알림만 삭제.
+     */
+    async deleteAllNotifications(onlyRead = false): Promise<void> {
+        await this.request<void>(`/notifications/all${onlyRead ? '?read_only=true' : ''}`, {
+            method: 'DELETE'
+        });
+    }
+
+    /**
      * 그룹화 알림 목록 조회
      */
     async getGroupedNotifications(

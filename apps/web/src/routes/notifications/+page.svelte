@@ -166,6 +166,21 @@
         }
     }
 
+    // bug/13692: 하나씩만 지울 수 있던 알림을 전체/읽은 것만 한번에 삭제.
+    async function handleDeleteAll(onlyRead: boolean): Promise<void> {
+        const msg = onlyRead
+            ? '읽은 알림을 모두 삭제하시겠습니까?'
+            : '모든 알림을 삭제하시겠습니까?';
+        if (!confirm(msg)) return;
+        try {
+            await apiClient.deleteAllNotifications(onlyRead);
+            await loadNotifications();
+        } catch (err) {
+            console.error('Failed to delete notifications:', err);
+            alert('알림 삭제에 실패했습니다.');
+        }
+    }
+
     async function handleDeleteGroup(
         notification: GroupedNotification,
         event: Event
@@ -244,11 +259,32 @@
                 {/if}
             </h1>
         </div>
-        {#if notificationData && notificationData.unread_count > 0}
-            <Button variant="ghost" size="sm" class="text-xs" onclick={handleMarkAllAsRead}>
-                <Check class="mr-1 h-3.5 w-3.5" />
-                모두 읽음
-            </Button>
+        {#if notificationData && notificationData.items.length > 0}
+            <div class="flex items-center gap-1">
+                {#if notificationData.unread_count > 0}
+                    <Button variant="ghost" size="sm" class="text-xs" onclick={handleMarkAllAsRead}>
+                        <Check class="mr-1 h-3.5 w-3.5" />
+                        모두 읽음
+                    </Button>
+                {/if}
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    class="text-muted-foreground text-xs"
+                    onclick={() => handleDeleteAll(true)}
+                >
+                    읽은 알림 삭제
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    class="text-destructive hover:text-destructive text-xs"
+                    onclick={() => handleDeleteAll(false)}
+                >
+                    <Trash2 class="mr-1 h-3.5 w-3.5" />
+                    전체 삭제
+                </Button>
+            </div>
         {/if}
     </div>
 
