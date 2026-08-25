@@ -609,11 +609,11 @@
                           d.ecnt +
                           '/' +
                           d.ccnt +
-                          '\nhbal=' +
-                          d.hbal +
-                          ',' +
-                          d.hmin +
-                          (d.trunc ? ',trunc' : '') +
+                          // ⛔ C1: 상한에서 끊기면 그 뒤의 닫는 마커를 못 세어 hbal 이 큰 양수로
+                          //    뜬다. 「hbal≠0 = 마커가 사라졌다」는 해석 규칙과 정면충돌하므로
+                          //    숫자를 내보내지 않는다. 실측 최대 7,798 노드(여유 35%)라
+                          //    댓글 많은 글은 넘길 수 있다.
+                          (d.trunc ? '\nhbal=na,na,trunc' : '\nhbal=' + d.hbal + ',' + d.hmin) +
                           '\ndsig=' +
                           d.sig +
                           '\ndpre=' +
@@ -627,6 +627,7 @@
                         var muts = [];
                         var tail = [];
                         var mutn = 0;
+                        var mutb = 0; // 하이드레이션 **전** 변형 수
                         var mo = new MutationObserver(function (recs) {
                             try {
                                 for (var i = 0; i < recs.length; i++) {
@@ -649,6 +650,12 @@
                         });
                         function push(s) {
                             mutn++;
+                            // ⭐ C2: 시각 비교가 아니라 **상태**로 가른다.
+                            //    __angpleHydrateAt 은 루트 컴포넌트가 하이드레이션되는 순간
+                            //    비로소 정의된다. 아직 없다 = 이 변형은 하이드레이션 **전**이다
+                            //    = 우리 코드가 아닌 **외부**가 건드린 것이다. 확정적이고 비용 0.
+                            //    (MO 의 타임스탬프는 전달 시각이라 이 판정에 못 쓴다)
+                            if (typeof window.__angpleHydrateAt === 'undefined') mutb++;
                             if (muts.length < 3) muts.push(s);
                             else {
                                 tail.push(s);
@@ -657,7 +664,7 @@
                         }
                         mo.observe(probeRoot, { childList: true, subtree: true });
                         window.__angpleMut = function () {
-                            return { n: mutn, list: muts.concat(tail) };
+                            return { n: mutn, b: mutb, list: muts.concat(tail) };
                         };
                         // ⛔ 반드시 해제된다 — 루트 onMount 가 어느 분기로 가든 호출한다.
                         window.__angpleMutStop = function () {

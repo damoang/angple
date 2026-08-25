@@ -720,14 +720,17 @@
             const get = w.__angpleMut;
             // ⛔ 관찰자가 아예 안 붙은 것과 "변형 0건"은 다르다. 섞으면 대조군이 거짓말한다.
             if (typeof get !== 'function') return 'off';
-            const r = (get as () => { n: number; list: string[] })();
+            const r = (get as () => { n: number; b: number; list: string[] })();
             // 경계 두 개를 병기한다.
             //   b = 번들 모듈 평가 시각(하이드레이션보다 앞이지만 청크 평가 시간만큼 헐겁다)
             //   h = 루트 컴포넌트가 실제로 하이드레이션되는 시각 — 이쪽이 진짜 경계다
             // 둘의 차이가 곧 "경계가 얼마나 헐거웠나"를 알려주는 자기 진단이 된다.
             const b = `@${String(w.__angpleBundleAt ?? '?')}/${String(w.__angpleHydrateAt ?? '?')}`;
-            if (r.n === 0) return `${b}|n=0`;
-            return `${b}|n=${r.n}|${r.list.join(',')}`.slice(0, 200);
+            // ⭐ b = 하이드레이션 **전** 변형 수 = 외부가 건드린 횟수.
+            //    이게 이 계측의 핵심 질문에 대한 답이다. n(총합)에는 실패 시 Svelte 자신의
+            //    폐기 동작이 섞이므로, n 만으로는 "외부가 몇 번 건드렸나"를 알 수 없다.
+            if (r.n === 0) return `${b}|n=0,b=0`;
+            return `${b}|n=${r.n},b=${r.b}|${r.list.join(',')}`.slice(0, 200);
         } catch {
             return '?';
         }
