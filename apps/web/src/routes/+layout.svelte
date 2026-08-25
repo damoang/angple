@@ -48,6 +48,22 @@
     import { readUserBasicFromCookie } from '$lib/utils/user-basic-client';
     import { env } from '$env/dynamic/public';
 
+    // ⭐ 진짜 하이드레이션 경계 (2026-08-25 계측).
+    //    이 줄은 **루트 컴포넌트가 하이드레이션되는 그 순간** 동기로 실행된다.
+    //    hooks.client.ts 의 __angpleBundleAt 은 모듈 평가 시각이라, 그 뒤 라우트 청크를
+    //    동적 import 해 평가하는 시간(느린 CPU 에서 수십 ms)만큼 **앞으로 헐겁다**.
+    //    그 창에서 일어난 외부 변형이 "Svelte 자신의 동작"으로 무죄 방면되는 걸 막는다.
+    //    ⛔ onMount 에 두면 안 된다 — 거기는 하이드레이션이 이미 끝난 뒤다.
+    if (browser) {
+        try {
+            (window as unknown as Record<string, unknown>).__angpleHydrateAt = Math.round(
+                performance.now()
+            );
+        } catch {
+            /* 관측용 */
+        }
+    }
+
     const LAYOUT_INIT_STORAGE_KEY = 'angple:layout-init:v1';
     const LAYOUT_INIT_STORAGE_TTL_MS = 5 * 60 * 1000;
     const MENU_STORAGE_KEY = 'angple:layout-menus:v1';
@@ -697,6 +713,29 @@
     //    앱 div 안에 꽂히는 인피드 광고를 통째로 놓친다 — 실제로 그래서 2026-08-19 에
     //    "광고 없이도 실패 91건" 이라는 잘못된 기각 판정을 냈다.
     //    ok(대조군) 대비로 비교해야 의미가 있다.
+    /** app.html 이 모은 하이드레이션 전 DOM 변형 요약. 없으면 빈 값. */
+    function mutSig(): string {
+        try {
+            const w = window as unknown as Record<string, unknown>;
+            const get = w.__angpleMut;
+            // ⛔ 관찰자가 아예 안 붙은 것과 "변형 0건"은 다르다. 섞으면 대조군이 거짓말한다.
+            if (typeof get !== 'function') return 'off';
+            const r = (get as () => { n: number; b: number; list: string[] })();
+            // 경계 두 개를 병기한다.
+            //   b = 번들 모듈 평가 시각(하이드레이션보다 앞이지만 청크 평가 시간만큼 헐겁다)
+            //   h = 루트 컴포넌트가 실제로 하이드레이션되는 시각 — 이쪽이 진짜 경계다
+            // 둘의 차이가 곧 "경계가 얼마나 헐거웠나"를 알려주는 자기 진단이 된다.
+            const b = `@${String(w.__angpleBundleAt ?? '?')}/${String(w.__angpleHydrateAt ?? '?')}`;
+            // ⭐ b = 하이드레이션 **전** 변형 수 = 외부가 건드린 횟수.
+            //    이게 이 계측의 핵심 질문에 대한 답이다. n(총합)에는 실패 시 Svelte 자신의
+            //    폐기 동작이 섞이므로, n 만으로는 "외부가 몇 번 건드렸나"를 알 수 없다.
+            if (r.n === 0) return `${b}|n=0,b=0`;
+            return `${b}|n=${r.n},b=${r.b}|${r.list.join(',')}`.slice(0, 200);
+        } catch {
+            return '?';
+        }
+    }
+
     function adCounts(): string {
         try {
             const all = document.querySelectorAll('ins.adsbygoogle, iframe[id^="aswift"]').length;
@@ -739,18 +778,38 @@
             `tpost=${tgtNow}`,
             `tsame=${tgtPre === tgtNow}`,
             `ads=${adCounts()}`,
+            // ⛔ nav= 를 **신규 장문 필드보다 앞**에 둔다. stack 은 뒤에서 잘리는데,
+            //    가장 값싼 판별자가 제일 먼저 죽으면 안 된다.
+            `nav=${navType()}`,
+            // 하이드레이션 전 DOM 신호 (app.html 이 파싱 직후 채운다).
+            // dcnt/dsig: #app-root 서브트리의 요소 수와 태그열 해시.
+            //   ⭐ **같은 글(URL)** 의 실패 로드와 성공 로드에서 이 둘이 다르면 하이드레이션
+            //      전에 이미 DOM 이 달라진 것이다. 같으면 원인은 클라이언트 타이밍 쪽이다.
+            // mut=: 파싱 후 ~ 하이드레이션 사이에 관찰된 childList 변형(최대 5건).
+            String((window as unknown as Record<string, unknown>).__angpleDeep ?? 'dcnt=?'),
             // ⛔ 내비게이션 유형이 다음 판별자 후보다.
             //    Playwright WebKit 으로 신선 로드·항해를 24회 돌려도 실패율 0% 였는데
             //    운영 iOS 사파리는 ~50~68% 다(비로그인 포함). 차이가 뭔지 좁혀야 한다.
             //    `back_forward` = bfcache 복원 — app.html 의 iOS 전용 reload 스크립트가
             //    발화하는 바로 그 경로이고, Playwright 의 goBack 은 이걸 재현하지 못한다.
-            `nav=${navType()}`
+            `mut=${mutSig()}`
         ]
             .join('\n')
             .slice(0, 1500);
     }
 
     onMount(() => {
+        // ⛔ 하이드레이션 전 DOM 관찰자를 **가장 먼저** 끊는다.
+        //    여기는 하이드레이션이 끝난 뒤다. 더 두면 앱이 정상적으로 만드는 변형까지
+        //    기록되어 5칸이 채워지고, 정작 원인인 초기 변형이 밀려난다.
+        //    ⭐ 아래 앵커 판정이 어느 분기로 가든(detached/missing/ok/무판정) 이미 해제된다.
+        try {
+            const stop = (window as unknown as Record<string, unknown>).__angpleMutStop;
+            if (typeof stop === 'function') (stop as () => void)();
+        } catch {
+            /* 관측용 */
+        }
+
         // 읽음 표시 전환 재개 — app.html 이 첫 페인트 전에 건 .hydrating 을 뗀다.
         // ⛔ 프레임을 두 번 넘긴 뒤에 뗀다. 하이드레이션이 클래스를 바꾸는 그 프레임에
         //    전환이 살아 있으면 0.8초짜리 색 변화가 그대로 보인다 — 끄는 의미가 없어진다.
@@ -835,6 +894,8 @@
                 // 서명도 함께 버린다 — 참조를 남기면 노드 누수와 같은 종류의 낭비다.
                 delete w.__angpleBodySig;
                 delete w.__angpleTargetSig;
+                delete w.__angpleDeep;
+                delete w.__angpleMut;
             }
         } catch {
             // 관측용이라 실패해도 무시
