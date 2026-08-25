@@ -725,10 +725,13 @@
         try {
             const get = (window as unknown as Record<string, unknown>).__angpleRm;
             if (typeof get !== 'function') return 'off';
-            const r = (get as () => { n: number; list: string[] })();
+            const r = (get as () => { n: number | string; list: string[] })();
             // ⛔ 「3건」과 「300건 중 앞3+뒤2」를 구분해야 한다. n 이 없으면 상한 도달을 못 본다.
-            if (!r || r.n === 0) return 'none';
-            return `n=${r.n}|${r.list.join(';')}`.slice(0, 150);
+            if (!r || r.n === 0 || r.n === '0') return 'none';
+            // ⛔ 150 자로 자르면 앞3+뒤2 링버퍼의 **뒤 2건이 통째로 사라진다**(항목당 ~60자).
+            //    늦게 오는 제거(실측 ~839ms)를 잡으려고 링버퍼를 둔 건데 그게 무효가 된다.
+            //    rm= 은 세 번째 필드라 1500 예산 중 앞쪽 400자만 써도 안전하다.
+            return `n=${r.n}|${r.list.join(';')}`.slice(0, 400);
         } catch {
             return '?';
         }
@@ -931,6 +934,8 @@
                 delete w.__angpleTargetSig;
                 delete w.__angpleDeep;
                 delete w.__angpleMut;
+                // ⛔ 이 클로저는 #app-root 참조를 붙들고 있다. 안 버리면 노드 누수다.
+                delete w.__angpleRm;
             }
         } catch {
             // 관측용이라 실패해도 무시

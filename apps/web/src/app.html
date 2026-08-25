@@ -77,12 +77,21 @@
                     // ⛔ `:line:col` 까지 벗겨야 한다 — 안 그러면 파일명 자리를 라인번호가 먹는다.
                     function culprit(stack) {
                         try {
-                            var m = String(stack).match(
-                                /(?:https?|chrome-extension|moz-extension|safari-web-extension):\/\/[^\s)'"]+/g
+                            var st = String(stack || '');
+                            if (!st) return 'nostack';
+                            // ⛔ `blob:https://…/<uuid>` 는 안쪽 URL 이 우리 호스트라 그대로 두면
+                            //    P4 와 똑같은 모양의 오답(`damoang.net/<uuid>`)이 된다.
+                            var m = st.match(
+                                /(?:blob:)?(?:https?|chrome-extension|moz-extension|safari-web-extension):\/\/[^\s)'"]+/g
                             );
-                            if (!m) return 'nostack';
+                            // ⛔ 「스택이 없었다」와 「URL 을 못 읽었다」는 다르다(data:/eval 프레임 등).
+                            if (!m) return 'nourl';
                             for (var i = 0; i < m.length; i++) {
                                 var u0 = m[i].replace(/[?#].*$/, '').replace(/:\d+(?::\d+)?$/, '');
+                                if (u0.indexOf('blob:') === 0) {
+                                    var bu = u0.slice(5).split('/');
+                                    return 'blob/' + (bu[2] || '?');
+                                }
                                 if (u0 === SELF) continue; // 우리 인라인 래퍼
                                 if (u0.indexOf('/_app/immutable/') >= 0) continue; // 우리 번들
                                 var u = u0.split('/');
@@ -105,7 +114,7 @@
                     }
                     function note(n, how) {
                         try {
-                            if (rmn >= 40 || started()) return;
+                            if (rmn >= 200 || started()) return;
                             if (!n || n.nodeType !== 1) return;
                             var r = rootEl();
                             if (!r || !r.contains(n)) return;
@@ -154,7 +163,9 @@
                         Element.prototype.replaceWith = wReplaceWith;
                     }
                     window.__angpleRm = function () {
-                        return { n: rmn, list: recs.concat(tail) };
+                        // ⛔ n 은 상한(200)에서 포화한다. 「200」과 「730」이 같아 보이면 안 되므로
+                        //    포화했으면 '200+' 로 표시한다.
+                        return { n: rmn >= 200 ? '200+' : rmn, list: recs.concat(tail) };
                     };
                     // ⛔ 루트 onMount 가 원본을 되돌린다. 안 되돌리면 페이지 수명 내내 모든
                     //    DOM 제거에 래퍼가 얹힌다.
