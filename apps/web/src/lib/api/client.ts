@@ -1255,6 +1255,23 @@ class ApiClient {
         return json.data;
     }
 
+    /**
+     * 글 전체 댓글의 현재 사용자 좋아요/비추천 상태 배치 조회 (bug/13729).
+     * 글상세는 SSR 시 user 가 stripped 되어 하트 상태가 비어 오므로, 클라이언트가
+     * 인증 확립 후 쿠키인증 라우트로 실제 상태를 다시 받는다.
+     */
+    async getCommentLikeStatuses(
+        boardId: string,
+        postId: string
+    ): Promise<{ likedIds: number[]; dislikedIds: number[] }> {
+        const res = await fetch(`/api/boards/${boardId}/posts/${postId}/comments/like-statuses`, {
+            credentials: 'include'
+        });
+        const json = await res.json();
+        if (!json.success) return { likedIds: [], dislikedIds: [] };
+        return json.data;
+    }
+
     // ========================================
     // 게시글 별점 (features.rating 보드 — 앙티티 Phase 0)
     // ========================================
