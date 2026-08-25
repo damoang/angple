@@ -713,6 +713,26 @@
     //    앱 div 안에 꽂히는 인피드 광고를 통째로 놓친다 — 실제로 그래서 2026-08-19 에
     //    "광고 없이도 실패 91건" 이라는 잘못된 기각 판정을 냈다.
     //    ok(대조군) 대비로 비교해야 의미가 있다.
+    /**
+     * 하이드레이션 **전** 에 #app-root 안의 노드를 제거한 **주체**.
+     *
+     * app.html 이 head 최상단에서 removeChild/remove/replaceWith 를 감싸 두고, 제거가
+     * 일어나면 스택에서 **우리 번들이 아닌 첫 스크립트의 host+파일명**을 뽑아 둔다.
+     * 2026-08-25 실측으로 이 제거가 실패의 74.5% 에 있고 성공에는 0% 인 것까지는 확인됐으나,
+     * **누가** 하는지는 몰랐다. 이 필드가 그 답이다.
+     */
+    function rmSig(): string {
+        try {
+            const get = (window as unknown as Record<string, unknown>).__angpleRm;
+            if (typeof get !== 'function') return 'off';
+            const list = (get as () => string[])();
+            if (!Array.isArray(list) || list.length === 0) return 'none';
+            return list.join(';').slice(0, 150);
+        } catch {
+            return '?';
+        }
+    }
+
     /** app.html 이 모은 하이드레이션 전 DOM 변형 요약. 없으면 빈 값. */
     function mutSig(): string {
         try {
@@ -781,18 +801,23 @@
             // ⛔ nav= 를 **신규 장문 필드보다 앞**에 둔다. stack 은 뒤에서 잘리는데,
             //    가장 값싼 판별자가 제일 먼저 죽으면 안 된다.
             `nav=${navType()}`,
+            // ⭐ 범인 — 하이드레이션 전에 #app-root 안을 지운 스크립트.
+            //    가장 값진 필드라 장문 필드(dpre)보다 앞에 둔다.
+            `rm=${rmSig()}`,
             // 하이드레이션 전 DOM 신호 (app.html 이 파싱 직후 채운다).
             // dcnt/dsig: #app-root 서브트리의 요소 수와 태그열 해시.
             //   ⭐ **같은 글(URL)** 의 실패 로드와 성공 로드에서 이 둘이 다르면 하이드레이션
             //      전에 이미 DOM 이 달라진 것이다. 같으면 원인은 클라이언트 타이밍 쪽이다.
             // mut=: 파싱 후 ~ 하이드레이션 사이에 관찰된 childList 변형(최대 5건).
-            String((window as unknown as Record<string, unknown>).__angpleDeep ?? 'dcnt=?'),
+            `mut=${mutSig()}`,
             // ⛔ 내비게이션 유형이 다음 판별자 후보다.
             //    Playwright WebKit 으로 신선 로드·항해를 24회 돌려도 실패율 0% 였는데
             //    운영 iOS 사파리는 ~50~68% 다(비로그인 포함). 차이가 뭔지 좁혀야 한다.
             //    `back_forward` = bfcache 복원 — app.html 의 iOS 전용 reload 스크립트가
             //    발화하는 바로 그 경로이고, Playwright 의 goBack 은 이걸 재현하지 못한다.
-            `mut=${mutSig()}`
+            // ⛔ 맨 뒤에 둔다. stack 은 뒤에서 잘리는데, 이 안의 dpre= 가 가장 길고
+            //    지금 판정에서 가장 덜 쓰인다 — 잘려야 한다면 여기부터다.
+            String((window as unknown as Record<string, unknown>).__angpleDeep ?? 'dcnt=?')
         ]
             .join('\n')
             .slice(0, 1500);
@@ -806,6 +831,14 @@
         try {
             const stop = (window as unknown as Record<string, unknown>).__angpleMutStop;
             if (typeof stop === 'function') (stop as () => void)();
+        } catch {
+            /* 관측용 */
+        }
+        // ⛔ 프로토타입 후킹(removeChild/remove/replaceWith)도 여기서 되돌린다.
+        //    안 되돌리면 페이지 수명 내내 모든 DOM 제거에 래퍼가 얹힌다.
+        try {
+            const stopRm = (window as unknown as Record<string, unknown>).__angpleRmStop;
+            if (typeof stopRm === 'function') (stopRm as () => void)();
         } catch {
             /* 관측용 */
         }

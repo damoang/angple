@@ -34,6 +34,115 @@
             })();
         </script>
         <!--
+          하이드레이션 폐기의 **범인 특정** 계측 (2026-08-25).
+
+          2026-08-25 운영 실측: 글 상세 하이드레이션 실패의 74.5%(410/550)에서
+          하이드레이션 **전에** DOM 이 변형돼 있었다(성공 204건은 0%). 지워지는 것은
+          `div.flex`(724) 와 `div.dm-clip-wrapper`(254) — author-activity-panel 의
+          AdSense 컨테이너와 그 부모다. 그리고 **730건 전부가 우리 번들 실행 전**에
+          일어난다(평균 839ms vs 번들 1517ms). 즉 우리 코드가 아니다.
+
+          확장도 아니다 — 외부 변형 비율이 Whale 81% · Chrome 80% · Firefox 79% ·
+          모바일 Chrome 87.8% 로 균일하다(모바일 크롬은 확장 자체가 없다).
+
+          ⛔ 이 스크립트는 반드시 **Turnstile · adsbygoogle.js · Clarity 보다 먼저**
+             와야 한다. 그래서 head 최상단(.at 폴리필 바로 뒤)에 있다. 옮기지 마라.
+
+          제거를 실행한 **스크립트 URL** 을 스택에서 뽑아 비콘에 싣는다. 스택에는 URL 만
+          담고 인자·텍스트는 담지 않는다.
+        -->
+        <script>
+            (function () {
+                try {
+                    var recs = [];
+                    var root = null;
+                    // ⛔ 핫패스 최적화: 하이드레이션이 시작되면 즉시 통과시킨다.
+                    //    Svelte 는 하이드레이션·폐기 중 removeChild 를 대량 호출하므로,
+                    //    이 typeof 한 번이 프로토타입 후킹 비용을 사실상 0 으로 만든다.
+                    function started() {
+                        return typeof window.__angpleHydrateAt !== 'undefined';
+                    }
+                    function rootEl() {
+                        if (root && root.isConnected) return root;
+                        root = document.getElementById('app-root');
+                        return root;
+                    }
+                    // 스택에서 **우리 번들이 아닌 첫 스크립트**의 host+파일명만 뽑는다.
+                    function culprit(stack) {
+                        try {
+                            var m = String(stack).match(/https?:\/\/[^\s)'"]+/g);
+                            if (!m) return 'inline';
+                            for (var i = 0; i < m.length; i++) {
+                                if (m[i].indexOf('/_app/immutable/') >= 0) continue;
+                                var u = m[i].replace(/[?#].*$/, '').split('/');
+                                return (u[2] || '?') + '/' + (u[u.length - 1] || '').slice(0, 22);
+                            }
+                            return 'ours';
+                        } catch (e) {
+                            return '?';
+                        }
+                    }
+                    function note(n, how) {
+                        try {
+                            if (recs.length >= 3 || started()) return;
+                            if (!n || n.nodeType !== 1) return;
+                            var r = rootEl();
+                            if (!r || !r.contains(n)) return;
+                            var sig = n.tagName.toLowerCase();
+                            if (n.id) sig += '#' + String(n.id).slice(0, 12);
+                            var c = n.getAttribute('class');
+                            if (c)
+                                sig +=
+                                    '.' + String(c).split(/\s+/).slice(0, 2).join('.').slice(0, 26);
+                            recs.push(
+                                Math.round(performance.now()) +
+                                    how +
+                                    sig +
+                                    '<' +
+                                    culprit(new Error().stack)
+                            );
+                        } catch (e) {
+                            /* 관측용 */
+                        }
+                    }
+                    var oRemoveChild = Node.prototype.removeChild;
+                    Node.prototype.removeChild = function (c) {
+                        note(c, '-');
+                        return oRemoveChild.call(this, c);
+                    };
+                    var oRemove = Element.prototype.remove;
+                    Element.prototype.remove = function () {
+                        note(this, '-');
+                        return oRemove.call(this);
+                    };
+                    var oReplaceWith = Element.prototype.replaceWith;
+                    if (oReplaceWith) {
+                        Element.prototype.replaceWith = function () {
+                            note(this, '~');
+                            return oReplaceWith.apply(this, arguments);
+                        };
+                    }
+                    window.__angpleRm = function () {
+                        return recs;
+                    };
+                    // ⛔ 루트 onMount 가 원본을 반드시 되돌린다. 프로토타입을 계속 덮어둔 채
+                    //    두면 페이지 수명 내내 모든 removeChild 에 래퍼가 얹힌다.
+                    window.__angpleRmStop = function () {
+                        try {
+                            Node.prototype.removeChild = oRemoveChild;
+                            Element.prototype.remove = oRemove;
+                            if (oReplaceWith) Element.prototype.replaceWith = oReplaceWith;
+                        } catch (e) {
+                            /* 관측용 */
+                        }
+                        window.__angpleRmStop = null;
+                    };
+                } catch (e) {
+                    /* 관측용이라 실패해도 무시 — 아래 코드에 영향 없다 */
+                }
+            })();
+        </script>
+        <!--
           #989 fix: iOS Safari는 짧은 시간 내 연속 history 쓰기(replaceState→pushState)를
           한 틱으로 병합해, list→detail pushState가 새 엔트리 대신 현재 엔트리를 덮어쓴다
           (빠른 탭→뒤로가기 시 목록을 건너뛰고 about:blank로 이탈).
