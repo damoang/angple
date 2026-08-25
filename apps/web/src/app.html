@@ -34,6 +34,169 @@
             })();
         </script>
         <!--
+          하이드레이션 폐기의 **범인 특정** 계측 (2026-08-25).
+
+          2026-08-25 운영 실측: 글 상세 하이드레이션 실패의 74.5%(410/550)에서
+          하이드레이션 **전에** DOM 이 변형돼 있었다(성공 204건은 0%). 지워지는 것은
+          `div.flex`(724) 와 `div.dm-clip-wrapper`(254) — author-activity-panel 의
+          AdSense 컨테이너와 그 부모다. 그리고 **730건 전부가 우리 번들 실행 전**에
+          일어난다(평균 839ms vs 번들 1517ms). 즉 우리 코드가 아니다.
+
+          확장도 아니다 — 외부 변형 비율이 Whale 81% · Chrome 80% · Firefox 79% ·
+          모바일 Chrome 87.8% 로 균일하다(모바일 크롬은 확장 자체가 없다).
+
+          ⛔ 이 스크립트는 반드시 **Turnstile · adsbygoogle.js · Clarity 보다 먼저**
+             와야 한다. 그래서 head 최상단(.at 폴리필 바로 뒤)에 있다. 옮기지 마라.
+
+          제거를 실행한 **스크립트 URL** 을 스택에서 뽑아 비콘에 싣는다. 스택에는 URL 만
+          담고 인자·텍스트는 담지 않는다.
+        -->
+        <script>
+            (function () {
+                try {
+                    var recs = [];
+                    var tail = [];
+                    var rmn = 0;
+                    var root = null;
+                    // ⛔ **우리 인라인 래퍼 프레임의 URL** — 모든 엔진이 인라인 스크립트 프레임에
+                    //    문서 URL 을 붙인다. 이걸 배제하지 않으면 범인이 누구든 항상 이 값이 나와
+                    //    「범인 = damoang.net/<글번호>」라는 그럴듯한 **오답**을 만든다.
+                    var SELF = String(location.href).replace(/[?#].*$/, '');
+                    // ⛔ 핫패스 최적화: 하이드레이션이 시작되면 즉시 통과시킨다.
+                    //    Svelte 는 하이드레이션·폐기 중 removeChild 를 대량 호출하므로,
+                    //    이 typeof 한 번이 프로토타입 후킹 비용을 사실상 0 으로 만든다.
+                    function started() {
+                        return typeof window.__angpleHydrateAt !== 'undefined';
+                    }
+                    function rootEl() {
+                        if (root && root.isConnected) return root;
+                        root = document.getElementById('app-root');
+                        return root;
+                    }
+                    // 스택에서 **우리 것이 아닌 첫 스크립트**의 host+파일명만 뽑는다.
+                    // ⛔ `:line:col` 까지 벗겨야 한다 — 안 그러면 파일명 자리를 라인번호가 먹는다.
+                    function culprit(stack) {
+                        try {
+                            var st = String(stack || '');
+                            if (!st) return 'nostack';
+                            // ⛔ `blob:https://…/<uuid>` 는 안쪽 URL 이 우리 호스트라 그대로 두면
+                            //    P4 와 똑같은 모양의 오답(`damoang.net/<uuid>`)이 된다.
+                            var m = st.match(
+                                /(?:blob:)?(?:https?|chrome-extension|moz-extension|safari-web-extension):\/\/[^\s)'"]+/g
+                            );
+                            // ⛔ 「스택이 없었다」와 「URL 을 못 읽었다」는 다르다(data:/eval 프레임 등).
+                            if (!m) return 'nourl';
+                            for (var i = 0; i < m.length; i++) {
+                                var u0 = m[i].replace(/[?#].*$/, '').replace(/:\d+(?::\d+)?$/, '');
+                                if (u0.indexOf('blob:') === 0) {
+                                    var bu = u0.slice(5).split('/');
+                                    return 'blob/' + (bu[2] || '?');
+                                }
+                                if (u0 === SELF) continue; // 우리 인라인 래퍼
+                                if (u0.indexOf('/_app/immutable/') >= 0) continue; // 우리 번들
+                                var u = u0.split('/');
+                                return (u[2] || '?') + '/' + (u[u.length - 1] || '').slice(0, 22);
+                            }
+                            return 'self'; // 문서 인라인 + 우리 번들뿐이었다
+                        } catch (e) {
+                            return '?';
+                        }
+                    }
+                    function push(s) {
+                        rmn++;
+                        // ⛔ 앞 3 + 마지막 2. 앞만 남기면 초기 광고 정리가 칸을 선점해
+                        //    정작 늦게 오는(실측 ~839ms) 제거를 놓친다.
+                        if (recs.length < 3) recs.push(s);
+                        else {
+                            tail.push(s);
+                            if (tail.length > 2) tail.shift();
+                        }
+                    }
+                    function note(n, how) {
+                        try {
+                            // ⛔ 상한을 크게 잡지 마라. 상한 전까지는 제거 1건마다
+                            //    new Error().stack 을 만드는데(12~20µs, 저사양 모바일은 그 5~10배),
+                            //    그게 **이 계측이 재려는 바로 그 하이드레이션 전 임계 구간** 안이다.
+                            //    관측된 실제 건수는 1~3건(4건 이상은 550건 중 8건)이라 60 이면 넉넉하다.
+                            if (rmn >= 60 || started()) return;
+                            if (!n || n.nodeType !== 1) return;
+                            var r = rootEl();
+                            if (!r || !r.contains(n)) return;
+                            var sig = n.tagName.toLowerCase();
+                            if (n.id) sig += '#' + String(n.id).slice(0, 12);
+                            var c = n.getAttribute('class');
+                            if (c)
+                                sig +=
+                                    '.' + String(c).split(/\s+/).slice(0, 2).join('.').slice(0, 26);
+                            push(
+                                Math.round(performance.now()) +
+                                    how +
+                                    sig +
+                                    '<' +
+                                    culprit(new Error().stack)
+                            );
+                        } catch (e) {
+                            /* 관측용 */
+                        }
+                    }
+                    var oRemoveChild = Node.prototype.removeChild;
+                    var wRemoveChild = function (c) {
+                        note(c, '-');
+                        return oRemoveChild.call(this, c);
+                    };
+                    Node.prototype.removeChild = wRemoveChild;
+                    var oReplaceChild = Node.prototype.replaceChild;
+                    var wReplaceChild = function (nw, old) {
+                        note(old, '~');
+                        return oReplaceChild.call(this, nw, old);
+                    };
+                    Node.prototype.replaceChild = wReplaceChild;
+                    var oRemove = Element.prototype.remove;
+                    var wRemove = function () {
+                        note(this, '-');
+                        return oRemove.call(this);
+                    };
+                    Element.prototype.remove = wRemove;
+                    var oReplaceWith = Element.prototype.replaceWith;
+                    var wReplaceWith = null;
+                    if (oReplaceWith) {
+                        wReplaceWith = function () {
+                            note(this, '~');
+                            return oReplaceWith.apply(this, arguments);
+                        };
+                        Element.prototype.replaceWith = wReplaceWith;
+                    }
+                    window.__angpleRm = function () {
+                        // ⛔ n 은 상한(60)에서 포화한다. 「60」과 「730」이 같아 보이면 안 되므로
+                        //    포화했으면 '60+' 로 표시한다.
+                        return { n: rmn >= 60 ? '60+' : rmn, list: recs.concat(tail) };
+                    };
+                    // ⛔ 루트 onMount 가 원본을 되돌린다. 안 되돌리면 페이지 수명 내내 모든
+                    //    DOM 제거에 래퍼가 얹힌다.
+                    // ⛔ **무조건 대입하면 안 된다.** 우리 뒤에 제3자(AdSense·Clarity·확장)가
+                    //    같은 프로토타입을 후킹했을 수 있고, 그걸 조용히 지우면 광고·분석이
+                    //    깨진다. **우리 래퍼가 아직 걸려 있을 때만** 되돌린다.
+                    window.__angpleRmStop = function () {
+                        try {
+                            if (Node.prototype.removeChild === wRemoveChild)
+                                Node.prototype.removeChild = oRemoveChild;
+                            if (Node.prototype.replaceChild === wReplaceChild)
+                                Node.prototype.replaceChild = oReplaceChild;
+                            if (Element.prototype.remove === wRemove)
+                                Element.prototype.remove = oRemove;
+                            if (wReplaceWith && Element.prototype.replaceWith === wReplaceWith)
+                                Element.prototype.replaceWith = oReplaceWith;
+                        } catch (e) {
+                            /* 관측용 */
+                        }
+                        window.__angpleRmStop = null;
+                    };
+                } catch (e) {
+                    /* 관측용이라 실패해도 무시 — 아래 코드에 영향 없다 */
+                }
+            })();
+        </script>
+        <!--
           #989 fix: iOS Safari는 짧은 시간 내 연속 history 쓰기(replaceState→pushState)를
           한 틱으로 병합해, list→detail pushState가 새 엔트리 대신 현재 엔트리를 덮어쓴다
           (빠른 탭→뒤로가기 시 목록을 건너뛰고 about:blank로 이탈).

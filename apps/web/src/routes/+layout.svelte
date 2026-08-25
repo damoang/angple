@@ -713,6 +713,32 @@
     //    앱 div 안에 꽂히는 인피드 광고를 통째로 놓친다 — 실제로 그래서 2026-08-19 에
     //    "광고 없이도 실패 91건" 이라는 잘못된 기각 판정을 냈다.
     //    ok(대조군) 대비로 비교해야 의미가 있다.
+    /**
+     * 하이드레이션 **전** 에 #app-root 안의 노드를 제거한 **주체**.
+     *
+     * app.html 이 head 최상단에서 removeChild/remove/replaceWith 를 감싸 두고, 제거가
+     * 일어나면 스택에서 **우리 번들이 아닌 첫 스크립트의 host+파일명**을 뽑아 둔다.
+     * 2026-08-25 실측으로 이 제거가 실패의 74.5% 에 있고 성공에는 0% 인 것까지는 확인됐으나,
+     * **누가** 하는지는 몰랐다. 이 필드가 그 답이다.
+     */
+    function rmSig(): string {
+        try {
+            const get = (window as unknown as Record<string, unknown>).__angpleRm;
+            if (typeof get !== 'function') return 'off';
+            const r = (get as () => { n: number | string; list: string[] })();
+            // ⛔ 「3건」과 「300건 중 앞3+뒤2」를 구분해야 한다. n 이 없으면 상한 도달을 못 본다.
+            if (!r || r.n === 0 || r.n === '0') return 'none';
+            // ⛔ 150 자로 자르면 앞3+뒤2 링버퍼의 **뒤 2건이 통째로 사라진다**(항목당 ~60자).
+            //    늦게 오는 제거(실측 ~839ms)를 잡으려고 링버퍼를 둔 건데 그게 무효가 된다.
+            //    ⛔ 400 도 빡빡하다 — 실제 AdSense 요소(`ins#aswift_9.adsbygoogle…`)처럼
+            //       id + 긴 class 를 달면 항목이 88자가 되어 마지막 링 항목이 중간에서 잘린다.
+            //       하필 그게 가장 유력한 범인이다. 700 이면 예산 730/1500 로 완전히 해소된다.
+            return `n=${r.n}|${r.list.join(';')}`.slice(0, 700);
+        } catch {
+            return '?';
+        }
+    }
+
     /** app.html 이 모은 하이드레이션 전 DOM 변형 요약. 없으면 빈 값. */
     function mutSig(): string {
         try {
@@ -771,6 +797,10 @@
         return [
             `at=${Math.round(performance.now())}ms`,
             '(anchor-context)',
+            // ⭐ 범인 — 하이드레이션 전에 #app-root 안을 지운 스크립트.
+            //    ⛔ **세 번째 필드**로 둔다. stack 은 뒤에서 잘리는데 pre=/post= 는 항목별
+            //       상한이 없어(광고 id 가 길면 수백 자) 뒤 필드를 통째로 밀어낼 수 있다.
+            `rm=${rmSig()}`,
             `pre=${sigPre}`,
             `post=${sigNow}`,
             `same=${sigPre === sigNow}`,
@@ -786,13 +816,15 @@
             //   ⭐ **같은 글(URL)** 의 실패 로드와 성공 로드에서 이 둘이 다르면 하이드레이션
             //      전에 이미 DOM 이 달라진 것이다. 같으면 원인은 클라이언트 타이밍 쪽이다.
             // mut=: 파싱 후 ~ 하이드레이션 사이에 관찰된 childList 변형(최대 5건).
-            String((window as unknown as Record<string, unknown>).__angpleDeep ?? 'dcnt=?'),
+            `mut=${mutSig()}`,
             // ⛔ 내비게이션 유형이 다음 판별자 후보다.
             //    Playwright WebKit 으로 신선 로드·항해를 24회 돌려도 실패율 0% 였는데
             //    운영 iOS 사파리는 ~50~68% 다(비로그인 포함). 차이가 뭔지 좁혀야 한다.
             //    `back_forward` = bfcache 복원 — app.html 의 iOS 전용 reload 스크립트가
             //    발화하는 바로 그 경로이고, Playwright 의 goBack 은 이걸 재현하지 못한다.
-            `mut=${mutSig()}`
+            // ⛔ 맨 뒤에 둔다. stack 은 뒤에서 잘리는데, 이 안의 dpre= 가 가장 길고
+            //    지금 판정에서 가장 덜 쓰인다 — 잘려야 한다면 여기부터다.
+            String((window as unknown as Record<string, unknown>).__angpleDeep ?? 'dcnt=?')
         ]
             .join('\n')
             .slice(0, 1500);
@@ -806,6 +838,14 @@
         try {
             const stop = (window as unknown as Record<string, unknown>).__angpleMutStop;
             if (typeof stop === 'function') (stop as () => void)();
+        } catch {
+            /* 관측용 */
+        }
+        // ⛔ 프로토타입 후킹(removeChild/remove/replaceWith)도 여기서 되돌린다.
+        //    안 되돌리면 페이지 수명 내내 모든 DOM 제거에 래퍼가 얹힌다.
+        try {
+            const stopRm = (window as unknown as Record<string, unknown>).__angpleRmStop;
+            if (typeof stopRm === 'function') (stopRm as () => void)();
         } catch {
             /* 관측용 */
         }
@@ -896,6 +936,8 @@
                 delete w.__angpleTargetSig;
                 delete w.__angpleDeep;
                 delete w.__angpleMut;
+                // ⛔ 이 클로저는 #app-root 참조를 붙들고 있다. 안 버리면 노드 누수다.
+                delete w.__angpleRm;
             }
         } catch {
             // 관측용이라 실패해도 무시
