@@ -77,7 +77,6 @@
     } from '$lib/components/ui/dropdown-menu/index.js';
     import Settings2 from '@lucide/svelte/icons/settings-2';
     import Newspaper from '@lucide/svelte/icons/newspaper';
-    import GalleryVerticalEnd from '@lucide/svelte/icons/gallery-vertical-end';
     import FeedListView from '$lib/components/features/feed/feed-list-view.svelte';
 
     // 특수 게시판 컴포넌트 (플러그인 레지스트리 기반)
@@ -1116,18 +1115,6 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <!-- 새글 모아보기(/feed) 전용 페이지 진입 — 전 게시판 노출, 신문 토글 왼쪽.
-                         옆 토글(제자리 훑기)과 구분되게 '모아보기(쌓인 목록)' 아이콘을 쓴다.
-                         /feed 는 글/댓글·정렬·그룹 필터가 있는 독립 페이지. -->
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        class="relative h-9 w-9 shrink-0"
-                        title="새글 모아보기"
-                        href="/feed"
-                    >
-                        <GalleryVerticalEnd class="h-4 w-4" />
-                    </Button>
                     <!-- 전체 새글(피드) 진입 유도 — 전 게시판 노출. 자유게시판(allView)=제자리 토글,
                          그 외 게시판=클릭 시 /free?all=1(전체 새글 피드)로 이동. 안 눌러 보는 분이 많아
                          비활성 상태엔 그라데이션이 연속으로 흐르게 해 눈에 띄게 한다(prefers-reduced-motion 존중). 톱니 왼쪽. -->
