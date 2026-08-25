@@ -114,7 +114,11 @@
                     }
                     function note(n, how) {
                         try {
-                            if (rmn >= 200 || started()) return;
+                            // ⛔ 상한을 크게 잡지 마라. 상한 전까지는 제거 1건마다
+                            //    new Error().stack 을 만드는데(12~20µs, 저사양 모바일은 그 5~10배),
+                            //    그게 **이 계측이 재려는 바로 그 하이드레이션 전 임계 구간** 안이다.
+                            //    관측된 실제 건수는 1~3건(4건 이상은 550건 중 8건)이라 60 이면 넉넉하다.
+                            if (rmn >= 60 || started()) return;
                             if (!n || n.nodeType !== 1) return;
                             var r = rootEl();
                             if (!r || !r.contains(n)) return;
@@ -163,9 +167,9 @@
                         Element.prototype.replaceWith = wReplaceWith;
                     }
                     window.__angpleRm = function () {
-                        // ⛔ n 은 상한(200)에서 포화한다. 「200」과 「730」이 같아 보이면 안 되므로
-                        //    포화했으면 '200+' 로 표시한다.
-                        return { n: rmn >= 200 ? '200+' : rmn, list: recs.concat(tail) };
+                        // ⛔ n 은 상한(60)에서 포화한다. 「60」과 「730」이 같아 보이면 안 되므로
+                        //    포화했으면 '60+' 로 표시한다.
+                        return { n: rmn >= 60 ? '60+' : rmn, list: recs.concat(tail) };
                     };
                     // ⛔ 루트 onMount 가 원본을 되돌린다. 안 되돌리면 페이지 수명 내내 모든
                     //    DOM 제거에 래퍼가 얹힌다.
