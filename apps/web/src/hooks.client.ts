@@ -5,6 +5,17 @@ import { loadAllPluginClientHooks } from '$lib/client/plugin-client-loader';
 // Fire-and-forget: 실패해도 앱 부팅에 영향 없음. 모듈 load 시점 1회 실행.
 void loadAllPluginClientHooks();
 
+// 하이드레이션 시작 경계 표식 (2026-08-25 계측).
+// 이 모듈 본문은 클라이언트 번들이 실행될 때 = **하이드레이션 직전**에 돌아간다.
+// app.html 의 MutationObserver 가 기록한 변형이 이 시각보다 **앞이면 외부 요인**
+// (확장·서드파티 스크립트), **뒤면 Svelte 자신의 하이드레이션/폐기 동작**이다.
+// 이 경계가 없으면 5칸짜리 기록이 Svelte 의 teardown 으로 채워져 범인을 가린다.
+try {
+    (window as unknown as Record<string, unknown>).__angpleBundleAt = Math.round(performance.now());
+} catch {
+    /* 관측용 */
+}
+
 const DANTRY_URL = 'https://aplog.damoang.net/api/v1/dantry';
 
 // 외부 스크립트 소스 URL 필터 (광고, 애널리틱스, 브라우저 확장)

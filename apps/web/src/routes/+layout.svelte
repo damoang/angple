@@ -697,6 +697,20 @@
     //    앱 div 안에 꽂히는 인피드 광고를 통째로 놓친다 — 실제로 그래서 2026-08-19 에
     //    "광고 없이도 실패 91건" 이라는 잘못된 기각 판정을 냈다.
     //    ok(대조군) 대비로 비교해야 의미가 있다.
+    /** app.html 이 모은 하이드레이션 전 DOM 변형 요약. 없으면 빈 값. */
+    function mutSig(): string {
+        try {
+            const w = window as unknown as Record<string, unknown>;
+            const m = w.__angpleMut;
+            // 경계 시각을 함께 싣는다 — 이게 없으면 변형이 하이드레이션 전인지 후인지 못 가른다.
+            const b = `@${String(w.__angpleBundleAt ?? '?')}`;
+            if (!Array.isArray(m) || m.length === 0) return b;
+            return `${b}|${m.join(',')}`.slice(0, 200);
+        } catch {
+            return '?';
+        }
+    }
+
     function adCounts(): string {
         try {
             const all = document.querySelectorAll('ins.adsbygoogle, iframe[id^="aswift"]').length;
@@ -739,6 +753,13 @@
             `tpost=${tgtNow}`,
             `tsame=${tgtPre === tgtNow}`,
             `ads=${adCounts()}`,
+            // 하이드레이션 전 DOM 신호 (app.html 이 파싱 직후 채운다).
+            // dcnt/dsig: #app-root 서브트리의 요소 수와 태그열 해시.
+            //   ⭐ **같은 글(URL)** 의 실패 로드와 성공 로드에서 이 둘이 다르면 하이드레이션
+            //      전에 이미 DOM 이 달라진 것이다. 같으면 원인은 클라이언트 타이밍 쪽이다.
+            // mut=: 파싱 후 ~ 하이드레이션 사이에 관찰된 childList 변형(최대 5건).
+            String((window as unknown as Record<string, unknown>).__angpleDeep ?? 'dcnt=?'),
+            `mut=${mutSig()}`,
             // ⛔ 내비게이션 유형이 다음 판별자 후보다.
             //    Playwright WebKit 으로 신선 로드·항해를 24회 돌려도 실패율 0% 였는데
             //    운영 iOS 사파리는 ~50~68% 다(비로그인 포함). 차이가 뭔지 좁혀야 한다.
@@ -751,6 +772,17 @@
     }
 
     onMount(() => {
+        // ⛔ 하이드레이션 전 DOM 관찰자를 **가장 먼저** 끊는다.
+        //    여기는 하이드레이션이 끝난 뒤다. 더 두면 앱이 정상적으로 만드는 변형까지
+        //    기록되어 5칸이 채워지고, 정작 원인인 초기 변형이 밀려난다.
+        //    ⭐ 아래 앵커 판정이 어느 분기로 가든(detached/missing/ok/무판정) 이미 해제된다.
+        try {
+            const stop = (window as unknown as Record<string, unknown>).__angpleMutStop;
+            if (typeof stop === 'function') (stop as () => void)();
+        } catch {
+            /* 관측용 */
+        }
+
         // 읽음 표시 전환 재개 — app.html 이 첫 페인트 전에 건 .hydrating 을 뗀다.
         // ⛔ 프레임을 두 번 넘긴 뒤에 뗀다. 하이드레이션이 클래스를 바꾸는 그 프레임에
         //    전환이 살아 있으면 0.8초짜리 색 변화가 그대로 보인다 — 끄는 의미가 없어진다.

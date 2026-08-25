@@ -496,6 +496,104 @@
                 } catch (e) {
                     /* 관측용 */
                 }
+                // ── 하이드레이션 전 DOM 신호 2종 (2026-08-25)
+                //
+                // 왜 필요한가: 지금 계측은 **결과**만 본다(앵커가 떨어졌다).
+                // 원인은 "파싱 완료 ~ Svelte 하이드레이션" 사이 창에서 #app-root 안이
+                // 어떻게 달라졌는가다. 이 스크립트는 </body> 직전 인라인이고 번들은 그 뒤에
+                // 모듈로 로드돼 하이드레이션하므로, 그 창이 여기서 정확히 열린다.
+                //
+                // ⛔ 태그·id·class 앞부분만 담는다. 텍스트 내용·속성값·URL 은 담지 않는다.
+                //    사용자 작성 본문이 로그로 새면 안 된다.
+                function nodeSig(n) {
+                    try {
+                        if (!n) return '?';
+                        if (n.nodeType === 3) return 't';
+                        if (n.nodeType === 8) return '#';
+                        if (n.nodeType !== 1) return '?';
+                        var s = n.tagName.toLowerCase();
+                        if (n.id) s += '#' + String(n.id).slice(0, 12);
+                        var c = n.getAttribute && n.getAttribute('class');
+                        if (c) s += '.' + String(c).split(/\s+/)[0].slice(0, 14);
+                        return s;
+                    } catch (e) {
+                        return '?';
+                    }
+                }
+                // 서브트리 전체의 요소 수와 태그열 해시.
+                // ⭐ 판정법: **같은 글(URL)** 의 실패 로드와 성공 로드에서 이 둘이 다르면,
+                //    하이드레이션 전에 DOM 이 이미 달라졌다는 뜻이다(확장·스크립트·파서 교정).
+                //    같다면 SSR DOM 은 동일하고 원인은 클라이언트 쪽 타이밍이다.
+                //    tpre(최상위 12개)는 실패·성공이 전부 같은 값이라 판별력이 없었다.
+                function deepStats(el) {
+                    var cnt = 0;
+                    var h = 5381;
+                    var head = [];
+                    try {
+                        var walk = document.createTreeWalker(el, 1 /* SHOW_ELEMENT */);
+                        var n;
+                        while ((n = walk.nextNode())) {
+                            cnt++;
+                            if (cnt > 4000) break; // 폭주 방지
+                            var t = n.tagName;
+                            for (var i = 0; i < t.length; i++) {
+                                h = ((h << 5) + h + t.charCodeAt(i)) | 0;
+                            }
+                            if (head.length < 20) head.push(nodeSig(n));
+                        }
+                    } catch (e) {
+                        /* 관측용 */
+                    }
+                    return {
+                        cnt: cnt,
+                        sig: (h >>> 0).toString(36),
+                        head: head.join(',').slice(0, 200)
+                    };
+                }
+                try {
+                    var probeRoot = appRoot();
+                    if (probeRoot) {
+                        var d = deepStats(probeRoot);
+                        window.__angpleDeep =
+                            'dcnt=' + d.cnt + '\ndsig=' + d.sig + '\ndpre=' + d.head;
+                        // 파싱 후 ~ 하이드레이션 사이의 외부 변형을 잡는다.
+                        // ⛔ 파서 교정은 여기 안 잡힌다(파싱 중에 끝난다) — 그건 위 dcnt/dsig 몫이다.
+                        var muts = [];
+                        var mo = new MutationObserver(function (recs) {
+                            try {
+                                for (var i = 0; i < recs.length; i++) {
+                                    if (muts.length >= 5) return;
+                                    var r = recs[i];
+                                    var q;
+                                    // 시각을 함께 남긴다 — __angpleBundleAt 보다 앞이면 외부 요인이다.
+                                    var ts = Math.round(performance.now());
+                                    for (q = 0; q < r.removedNodes.length && muts.length < 5; q++) {
+                                        muts.push(ts + '-' + nodeSig(r.removedNodes[q]));
+                                    }
+                                    for (q = 0; q < r.addedNodes.length && muts.length < 5; q++) {
+                                        muts.push(ts + '+' + nodeSig(r.addedNodes[q]));
+                                    }
+                                }
+                            } catch (e) {
+                                /* 관측용 */
+                            }
+                        });
+                        mo.observe(probeRoot, { childList: true, subtree: true });
+                        window.__angpleMut = muts;
+                        // ⛔ 반드시 해제된다 — 루트 onMount 가 어느 분기로 가든 호출한다.
+                        window.__angpleMutStop = function () {
+                            try {
+                                mo.disconnect();
+                            } catch (e) {
+                                /* 관측용 */
+                            }
+                            window.__angpleMutStop = null;
+                        };
+                    }
+                } catch (e) {
+                    /* 관측용이라 실패해도 무시 — 아래 앵커 판정에 영향 없다 */
+                }
+
                 try {
                     var target = appRoot();
                     if (!target) return;
