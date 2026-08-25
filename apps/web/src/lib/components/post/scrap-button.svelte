@@ -28,10 +28,18 @@
     let scrapped = $state(initialScrapped);
     let loading = $state(false);
     let userInteracted = $state(false);
+    // bug/13722: userInteracted 가 글을 넘어가도 true 로 남아, 이전 글에서 스크랩한 상태(scrapped=true)가
+    // 다음 글(SPA 이동)로 누수돼 '스크랩됨'이 잘못 표시됐다("되돌아가면 정상"=새 인스턴스로 리셋되던 것).
+    // postId 가 바뀌면 조작 플래그를 리셋하고 새 글의 스크랩 상태로 동기화한다(인스턴스 재사용 대비).
+    let syncedPostId: string | number | undefined = undefined;
 
-    // SSR 스트리밍: initialScrapped prop이 변경되면 동기화 (사용자 조작 전만)
     $effect(() => {
-        if (!userInteracted) {
+        if (syncedPostId !== postId) {
+            syncedPostId = postId;
+            userInteracted = false;
+            scrapped = initialScrapped;
+        } else if (!userInteracted) {
+            // 같은 글에서 initialScrapped 가 늦게(SSR 스트리밍) 도착하면 동기화(사용자 조작 전만).
             scrapped = initialScrapped;
         }
     });
