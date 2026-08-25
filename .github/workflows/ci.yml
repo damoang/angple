@@ -49,6 +49,15 @@ jobs:
       - name: Check direct getClientAddress() calls
         run: node scripts/check-client-address.mjs
 
+      # authStore 로 렌더를 가르면 하이드레이션이 폐기된다 — 2026-08-25.
+      # authStore 는 모듈 레벨 $state 라 서버에서 채우면 요청 간 공유되어 정보가 샌다.
+      # 그래서 $effect 안에서만 채우고, $effect 는 서버에서 실행되지 않는다.
+      # → SSR 은 "비로그인", 클라이언트는 "로그인" 으로 그려 DOM 이 어긋난다.
+      # 실측: 로그인 x 글상세 14.42% vs 목록 0.11%(같은 분기가 없는 곳).
+      # 불일치 하나만 있어도 전체가 폐기되므로 "새로 늘어나는 것" 을 막는 게 핵심이다.
+      - name: Check authStore SSR mismatch
+        run: node scripts/check-auth-ssr-mismatch.mjs
+
   # 하이드레이션 AST 가드 — 두 검사가 pnpm install 을 공유한다.
   #
   #  1) 중첩 <a>  (2026-07-28)
