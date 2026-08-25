@@ -457,6 +457,9 @@
     let postReportCount = $state<number | string | null>(null);
     let syncedCommentsPostId: number | null = null;
     let syncedReactionStatePostId: number | null = null;
+    // bug/13729: 인증 확립 후 하트 재동기화가 이 글에 대해 이미 실값을 채웠는지 표시.
+    // 스트리밍(SSR strip 으로 빈값)과 재동기화의 순서 경쟁에서 재동기화가 이기게 한다.
+    let likeStatusResyncedForPostId: number | null = null;
     let trackedPostViewKey = '';
     let resetDetailUiPostId: number | null = null;
 
@@ -562,22 +565,26 @@
                     postReportCount = result.postReportCount;
                 }
 
-                if (result.postLikeStatus) {
-                    isLiked = result.postLikeStatus.userLiked;
-                    isDisliked = result.postLikeStatus.userDisliked;
-                }
+                // bug/13729: 인증 확립 후 재동기화($effect)가 이미 이 글의 실 하트값을 채웠으면,
+                // SSR strip 으로 비어 있는 스트리밍 값이 늦게 도착해도 덮어써 하트를 다시 비우지 않는다.
+                if (likeStatusResyncedForPostId !== data.post.id) {
+                    if (result.postLikeStatus) {
+                        isLiked = result.postLikeStatus.userLiked;
+                        isDisliked = result.postLikeStatus.userDisliked;
+                    }
 
-                // 낙관적 오버레이: 이 세션에서 직접 누른 공감/비공감이 있으면
-                // (SPA 재진입 시) 아직 반영 안 된 SSR 값보다 우선.
-                const myLike = postLikeStore.get(boardId, data.post.id);
-                if (myLike) {
-                    isLiked = myLike.liked;
-                    isDisliked = myLike.disliked;
-                }
+                    // 낙관적 오버레이: 이 세션에서 직접 누른 공감/비공감이 있으면
+                    // (SPA 재진입 시) 아직 반영 안 된 SSR 값보다 우선.
+                    const myLike = postLikeStore.get(boardId, data.post.id);
+                    if (myLike) {
+                        isLiked = myLike.liked;
+                        isDisliked = myLike.disliked;
+                    }
 
-                if (result.commentLikeStatuses) {
-                    initialLikedCommentIds = result.commentLikeStatuses.likedIds || [];
-                    initialDislikedCommentIds = result.commentLikeStatuses.dislikedIds || [];
+                    if (result.commentLikeStatuses) {
+                        initialLikedCommentIds = result.commentLikeStatuses.likedIds || [];
+                        initialDislikedCommentIds = result.commentLikeStatuses.dislikedIds || [];
+                    }
                 }
 
                 if (result.truthroomCommentMap) {
@@ -688,6 +695,51 @@
     let isLiking = $state(false);
     let isDisliking = $state(false);
     let isLikeAnimating = $state(false); // 좋아요 애니메이션
+
+    // bug/13729: 글상세는 SSR_STRIP_USER 로 서버에서 user=null → SSR/스트리밍 하트 상태가 항상 비어
+    // 있다(엣지캐시 설계). 인증은 하이드레이션 뒤 확립되므로, authStore.isAuthenticated 가 true 로
+    // 바뀌는 순간을 $effect 로 추적해 쿠키인증 엔드포인트로 실제 좋아요 상태를 다시 받아 하트를 채운다.
+    // ⛔ onMount 게이트로 걸면 그 시점엔 아직 false 라 영원히 안 돈다(과거 read-posts 0건 함정).
+    $effect(() => {
+        const postId = data.post.id;
+        const isAuth = authStore.isAuthenticated; // 추적 대상 — 인증 확립 시 발화
+        if (!browser || !isAuth) return;
+        if (likeStatusResyncedForPostId === postId) return;
+        likeStatusResyncedForPostId = postId;
+        untrack(() => {
+            void (async () => {
+                // 포스트 하트 — 내가 방금 누른 낙관적 값(postLikeStore)은 덮지 않는다.
+                if (!isLiking && !isDisliking) {
+                    try {
+                        const status = await apiClient.getPostLikeStatus(boardId, String(postId));
+                        if (data.post.id === postId && !isLiking && !isDisliking) {
+                            isLiked = status.user_liked;
+                            isDisliked = status.user_disliked ?? false;
+                            likeCount = status.likes;
+                            dislikeCount = status.dislikes ?? 0;
+                            const myLike = postLikeStore.get(boardId, postId);
+                            if (myLike) {
+                                isLiked = myLike.liked;
+                                isDisliked = myLike.disliked;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('하트 상태 재조회 실패(post):', e);
+                    }
+                }
+                // 댓글 하트 — 글 전체(페이지네이션/backfill 절연).
+                try {
+                    const cs = await apiClient.getCommentLikeStatuses(boardId, String(postId));
+                    if (data.post.id === postId) {
+                        initialLikedCommentIds = cs.likedIds ?? [];
+                        initialDislikedCommentIds = cs.dislikedIds ?? [];
+                    }
+                } catch (e) {
+                    console.error('하트 상태 재조회 실패(comments):', e);
+                }
+            })();
+        });
+    });
 
     // 추천자 목록 다이얼로그 상태
     let showLikersDialog = $state(false);
