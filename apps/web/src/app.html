@@ -55,7 +55,13 @@
             (function () {
                 try {
                     var recs = [];
+                    var tail = [];
+                    var rmn = 0;
                     var root = null;
+                    // ⛔ **우리 인라인 래퍼 프레임의 URL** — 모든 엔진이 인라인 스크립트 프레임에
+                    //    문서 URL 을 붙인다. 이걸 배제하지 않으면 범인이 누구든 항상 이 값이 나와
+                    //    「범인 = damoang.net/<글번호>」라는 그럴듯한 **오답**을 만든다.
+                    var SELF = String(location.href).replace(/[?#].*$/, '');
                     // ⛔ 핫패스 최적화: 하이드레이션이 시작되면 즉시 통과시킨다.
                     //    Svelte 는 하이드레이션·폐기 중 removeChild 를 대량 호출하므로,
                     //    이 typeof 한 번이 프로토타입 후킹 비용을 사실상 0 으로 만든다.
@@ -67,24 +73,39 @@
                         root = document.getElementById('app-root');
                         return root;
                     }
-                    // 스택에서 **우리 번들이 아닌 첫 스크립트**의 host+파일명만 뽑는다.
+                    // 스택에서 **우리 것이 아닌 첫 스크립트**의 host+파일명만 뽑는다.
+                    // ⛔ `:line:col` 까지 벗겨야 한다 — 안 그러면 파일명 자리를 라인번호가 먹는다.
                     function culprit(stack) {
                         try {
-                            var m = String(stack).match(/https?:\/\/[^\s)'"]+/g);
-                            if (!m) return 'inline';
+                            var m = String(stack).match(
+                                /(?:https?|chrome-extension|moz-extension|safari-web-extension):\/\/[^\s)'"]+/g
+                            );
+                            if (!m) return 'nostack';
                             for (var i = 0; i < m.length; i++) {
-                                if (m[i].indexOf('/_app/immutable/') >= 0) continue;
-                                var u = m[i].replace(/[?#].*$/, '').split('/');
+                                var u0 = m[i].replace(/[?#].*$/, '').replace(/:\d+(?::\d+)?$/, '');
+                                if (u0 === SELF) continue; // 우리 인라인 래퍼
+                                if (u0.indexOf('/_app/immutable/') >= 0) continue; // 우리 번들
+                                var u = u0.split('/');
                                 return (u[2] || '?') + '/' + (u[u.length - 1] || '').slice(0, 22);
                             }
-                            return 'ours';
+                            return 'self'; // 문서 인라인 + 우리 번들뿐이었다
                         } catch (e) {
                             return '?';
                         }
                     }
+                    function push(s) {
+                        rmn++;
+                        // ⛔ 앞 3 + 마지막 2. 앞만 남기면 초기 광고 정리가 칸을 선점해
+                        //    정작 늦게 오는(실측 ~839ms) 제거를 놓친다.
+                        if (recs.length < 3) recs.push(s);
+                        else {
+                            tail.push(s);
+                            if (tail.length > 2) tail.shift();
+                        }
+                    }
                     function note(n, how) {
                         try {
-                            if (recs.length >= 3 || started()) return;
+                            if (rmn >= 40 || started()) return;
                             if (!n || n.nodeType !== 1) return;
                             var r = rootEl();
                             if (!r || !r.contains(n)) return;
@@ -94,7 +115,7 @@
                             if (c)
                                 sig +=
                                     '.' + String(c).split(/\s+/).slice(0, 2).join('.').slice(0, 26);
-                            recs.push(
+                            push(
                                 Math.round(performance.now()) +
                                     how +
                                     sig +
@@ -106,32 +127,50 @@
                         }
                     }
                     var oRemoveChild = Node.prototype.removeChild;
-                    Node.prototype.removeChild = function (c) {
+                    var wRemoveChild = function (c) {
                         note(c, '-');
                         return oRemoveChild.call(this, c);
                     };
+                    Node.prototype.removeChild = wRemoveChild;
+                    var oReplaceChild = Node.prototype.replaceChild;
+                    var wReplaceChild = function (nw, old) {
+                        note(old, '~');
+                        return oReplaceChild.call(this, nw, old);
+                    };
+                    Node.prototype.replaceChild = wReplaceChild;
                     var oRemove = Element.prototype.remove;
-                    Element.prototype.remove = function () {
+                    var wRemove = function () {
                         note(this, '-');
                         return oRemove.call(this);
                     };
+                    Element.prototype.remove = wRemove;
                     var oReplaceWith = Element.prototype.replaceWith;
+                    var wReplaceWith = null;
                     if (oReplaceWith) {
-                        Element.prototype.replaceWith = function () {
+                        wReplaceWith = function () {
                             note(this, '~');
                             return oReplaceWith.apply(this, arguments);
                         };
+                        Element.prototype.replaceWith = wReplaceWith;
                     }
                     window.__angpleRm = function () {
-                        return recs;
+                        return { n: rmn, list: recs.concat(tail) };
                     };
-                    // ⛔ 루트 onMount 가 원본을 반드시 되돌린다. 프로토타입을 계속 덮어둔 채
-                    //    두면 페이지 수명 내내 모든 removeChild 에 래퍼가 얹힌다.
+                    // ⛔ 루트 onMount 가 원본을 되돌린다. 안 되돌리면 페이지 수명 내내 모든
+                    //    DOM 제거에 래퍼가 얹힌다.
+                    // ⛔ **무조건 대입하면 안 된다.** 우리 뒤에 제3자(AdSense·Clarity·확장)가
+                    //    같은 프로토타입을 후킹했을 수 있고, 그걸 조용히 지우면 광고·분석이
+                    //    깨진다. **우리 래퍼가 아직 걸려 있을 때만** 되돌린다.
                     window.__angpleRmStop = function () {
                         try {
-                            Node.prototype.removeChild = oRemoveChild;
-                            Element.prototype.remove = oRemove;
-                            if (oReplaceWith) Element.prototype.replaceWith = oReplaceWith;
+                            if (Node.prototype.removeChild === wRemoveChild)
+                                Node.prototype.removeChild = oRemoveChild;
+                            if (Node.prototype.replaceChild === wReplaceChild)
+                                Node.prototype.replaceChild = oReplaceChild;
+                            if (Element.prototype.remove === wRemove)
+                                Element.prototype.remove = oRemove;
+                            if (wReplaceWith && Element.prototype.replaceWith === wReplaceWith)
+                                Element.prototype.replaceWith = oReplaceWith;
                         } catch (e) {
                             /* 관측용 */
                         }

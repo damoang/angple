@@ -725,9 +725,10 @@
         try {
             const get = (window as unknown as Record<string, unknown>).__angpleRm;
             if (typeof get !== 'function') return 'off';
-            const list = (get as () => string[])();
-            if (!Array.isArray(list) || list.length === 0) return 'none';
-            return list.join(';').slice(0, 150);
+            const r = (get as () => { n: number; list: string[] })();
+            // ⛔ 「3건」과 「300건 중 앞3+뒤2」를 구분해야 한다. n 이 없으면 상한 도달을 못 본다.
+            if (!r || r.n === 0) return 'none';
+            return `n=${r.n}|${r.list.join(';')}`.slice(0, 150);
         } catch {
             return '?';
         }
@@ -791,6 +792,10 @@
         return [
             `at=${Math.round(performance.now())}ms`,
             '(anchor-context)',
+            // ⭐ 범인 — 하이드레이션 전에 #app-root 안을 지운 스크립트.
+            //    ⛔ **세 번째 필드**로 둔다. stack 은 뒤에서 잘리는데 pre=/post= 는 항목별
+            //       상한이 없어(광고 id 가 길면 수백 자) 뒤 필드를 통째로 밀어낼 수 있다.
+            `rm=${rmSig()}`,
             `pre=${sigPre}`,
             `post=${sigNow}`,
             `same=${sigPre === sigNow}`,
@@ -801,9 +806,6 @@
             // ⛔ nav= 를 **신규 장문 필드보다 앞**에 둔다. stack 은 뒤에서 잘리는데,
             //    가장 값싼 판별자가 제일 먼저 죽으면 안 된다.
             `nav=${navType()}`,
-            // ⭐ 범인 — 하이드레이션 전에 #app-root 안을 지운 스크립트.
-            //    가장 값진 필드라 장문 필드(dpre)보다 앞에 둔다.
-            `rm=${rmSig()}`,
             // 하이드레이션 전 DOM 신호 (app.html 이 파싱 직후 채운다).
             // dcnt/dsig: #app-root 서브트리의 요소 수와 태그열 해시.
             //   ⭐ **같은 글(URL)** 의 실패 로드와 성공 로드에서 이 둘이 다르면 하이드레이션
