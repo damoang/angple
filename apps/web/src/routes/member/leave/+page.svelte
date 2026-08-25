@@ -36,27 +36,23 @@
             <CardDescription>탈퇴를 신청하시기 전에 아래 내용을 확인해주세요.</CardDescription>
         </CardHeader>
         <CardContent>
-            <!-- 탈퇴 숙려기간(30일) 고지문 -->
+            <!-- 탈퇴 고지문. 2026-08-25 숙려기간 폐지 — 신청 즉시 확정이다. -->
             <div
                 class="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200"
             >
                 <ul class="space-y-2">
+                    <li class="font-semibold">- 탈퇴하시면 되돌릴 수 없습니다.</li>
                     <li>
-                        - 탈퇴를 신청하시면 계정이 즉시 비활성화되어, 게시글·댓글이 더 이상 표시되지
-                        않습니다.
+                        - 탈퇴하시면 계정이 즉시 비활성화되어 로그인할 수 없고, 게시글·댓글이 더
+                        이상 표시되지 않습니다.
                     </li>
                     <li>
-                        - 신청일로부터 30일 이내에 다시 로그인하시면 언제든 탈퇴를 취소하고 원래대로
-                        복구하실 수 있습니다.
+                        - 부정 이용 및 중복가입 방지를 위한 최소한의 식별정보는 관련
+                        법령·개인정보처리방침에 따라 일정 기간 보관 후 파기됩니다.
                     </li>
                     <li>
-                        - 30일이 지나면 탈퇴가 확정되며, 회원정보는 익명 처리됩니다. 단, 부정 이용
-                        및 중복가입 방지를 위한 최소한의 식별정보는 관련 법령·개인정보처리방침에
-                        따라 일정 기간 보관 후 파기됩니다.
-                    </li>
-                    <li>
-                        - 이용제한(제재)이 적용 중인 경우, 탈퇴하거나 취소하더라도 제재 이력은
-                        유지되며 탈퇴로 제재를 회피할 수 없습니다.
+                        - 이용제한(제재)이 적용 중인 경우, 탈퇴하더라도 제재 이력은 유지되며 탈퇴로
+                        제재를 회피할 수 없습니다.
                     </li>
                 </ul>
             </div>
@@ -84,7 +80,7 @@
                 <div class="flex items-start gap-2">
                     <Checkbox id="agree" name="agree" bind:checked={agreed} class="mt-0.5" />
                     <Label for="agree" class="cursor-pointer text-sm leading-relaxed">
-                        위 내용을 확인하였으며 탈퇴에 동의합니다.
+                        되돌릴 수 없음을 확인하였으며 탈퇴에 동의합니다.
                     </Label>
                 </div>
 
@@ -102,7 +98,7 @@
                         class="flex-1"
                         disabled={!agreed || submitting}
                     >
-                        {submitting ? '처리 중...' : '회원 탈퇴 신청'}
+                        {submitting ? '처리 중...' : '회원 탈퇴'}
                     </Button>
                 </div>
             </form>
