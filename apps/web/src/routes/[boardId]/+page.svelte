@@ -192,6 +192,29 @@
     let feedTotal = $state(0);
     // 페이지는 1 이상으로 클램프(음수/0/문자 방어). listPage 는 상세 링크용이라 그대로 둔다.
     const feedPage = $derived(Math.max(1, listPage));
+    // 전체 새글(allView) 인라인 옵션 — URL 파라미터로 유지(공유·새로고침 안전).
+    //   fv = 뷰('' 전체 | w 글만 | c 댓글만), fs = 정렬(latest 최신 | comments 댓글순 | views 조회순).
+    const FEED_VIEWS = ['', 'w', 'c'];
+    const FEED_SORTS = ['latest', 'comments', 'views'];
+    const feedView = $derived.by(() => {
+        const v = $page.url.searchParams.get('fv') ?? '';
+        return FEED_VIEWS.includes(v) ? v : '';
+    });
+    const feedSort = $derived.by(() => {
+        const s = $page.url.searchParams.get('fs') ?? 'latest';
+        return FEED_SORTS.includes(s) ? s : 'latest';
+    });
+    // 필터 변경: URL 갱신 + 1페이지로. goToPage 가 fv/fs 를 보존하므로 페이지 이동엔 유지된다.
+    function setFeedFilter(key: 'fv' | 'fs', value: string) {
+        const url = new URL(window.location.href);
+        if ((key === 'fv' && value) || (key === 'fs' && value !== 'latest')) {
+            url.searchParams.set(key, value);
+        } else {
+            url.searchParams.delete(key);
+        }
+        url.searchParams.delete('page');
+        goto(url.pathname + url.search, { keepFocus: true, noScroll: true });
+    }
     // fetch 순서 가드(비반응성 카운터). 페이지를 빠르게 넘길 때 늦게 온 이전 응답이
     // 최신 화면을 덮어쓰지 않게 한다(이 파일의 promotion/backfill effect 와 동일 패턴).
     let feedRunId = 0;
@@ -200,9 +223,11 @@
     $effect(() => {
         if (!allView) return;
         const p = feedPage;
+        const v = feedView; // 옵션 변경 시 재조회되도록 effect 안에서 읽는다
+        const s = feedSort;
         const myRun = ++feedRunId;
         feedLoading = true;
-        fetch(`/api/feed?view=w&page=${p}`)
+        fetch(`/api/feed?view=${v}&sort=${s}&page=${p}`)
             .then((r) => (r.ok ? r.json() : { items: [], total: 0 }))
             .then((d) => {
                 if (myRun !== feedRunId) return; // 더 새 요청이 떴으면 이 응답은 버린다
@@ -1791,6 +1816,33 @@
                 {/if}
                 {#if allView}
                     <!-- 재설계 3단계(B): 전체 새글(피드)를 게시판 자리에 렌더. 기존 목록 파이프라인 미사용. -->
+                    <!-- 인라인 옵션(글/댓글·정렬). 결과가 비어도 항상 보여 필터를 되돌릴 수 있게 한다. -->
+                    <div class="mb-3 flex flex-wrap items-center gap-2">
+                        <div class="bg-muted inline-flex rounded-lg p-0.5 text-sm">
+                            {#each [['', '전체'], ['w', '글'], ['c', '댓글']] as opt (opt[0])}
+                                <button
+                                    type="button"
+                                    class="rounded-md px-3 py-1 transition-colors {feedView ===
+                                    opt[0]
+                                        ? 'bg-background text-foreground shadow-sm'
+                                        : 'text-muted-foreground hover:text-foreground'}"
+                                    onclick={() => setFeedFilter('fv', opt[0])}>{opt[1]}</button
+                                >
+                            {/each}
+                        </div>
+                        <div class="bg-muted inline-flex rounded-lg p-0.5 text-sm">
+                            {#each [['latest', '최신순'], ['comments', '댓글순'], ['views', '조회순']] as opt (opt[0])}
+                                <button
+                                    type="button"
+                                    class="rounded-md px-3 py-1 transition-colors {feedSort ===
+                                    opt[0]
+                                        ? 'bg-background text-foreground shadow-sm'
+                                        : 'text-muted-foreground hover:text-foreground'}"
+                                    onclick={() => setFeedFilter('fs', opt[0])}>{opt[1]}</button
+                                >
+                            {/each}
+                        </div>
+                    </div>
                     {#if !feedLoaded || (feedLoading && feedItems.length === 0)}
                         <!-- 첫 조회 완료 전엔 '새 글 없음'을 띄우지 않는다(직접접속 가짜 빈화면 방지). -->
                         <div class="text-muted-foreground py-10 text-center text-sm">
