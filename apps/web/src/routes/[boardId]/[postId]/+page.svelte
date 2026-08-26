@@ -2872,7 +2872,12 @@
                     slotKey="board-after-comments"
                 />
             </div>
-            <div class="mt-2 hidden md:block">
+            <!-- ⛔ 자리예약은 **여기(부모)** 가 진다. AdsenseMultiplex 의 래퍼는 마운트
+                 후에만 존재하므로(차단기가 하이드레이션 전에 지우면 트리 전체가 폐기된다)
+                 SSR 시점에 자리를 잡아 줄 것이 부모밖에 없다. 이걸 빼면 광고가 뜨는 순간
+                 아래 내용이 300px 밀린다 — 2026-08-11 감사에서 글 상세 CLS 0.111 의
+                 주요 기여분이었던 바로 그 밀림이다. -->
+            <div class="dm-mplex-reserve mt-2 hidden md:block">
                 <AdsenseMultiplex />
             </div>
         {/if}
@@ -3146,6 +3151,26 @@
 {/if}
 
 <style>
+    /*
+     * AdSense Multiplex 자리예약 — CLS 방지.
+     *
+     * 종전엔 컴포넌트 안의 래퍼가 `.is-reserved` 로 졌으나, 그 래퍼는 이제 마운트 후에만
+     * 존재한다(SSR 에 두면 차단기가 하이드레이션 전에 지워 트리 전체가 폐기된다).
+     * 그래서 예약을 부모인 여기로 올렸다.
+     *
+     * ⛔ 미충전 시 예약을 푸는 규칙은 반드시 `:global()` 이어야 한다. 종전 컴포넌트의
+     *    `:has(ins[data-ad-status='unfilled'])` 는 Svelte 가 **미사용 셀렉터로 판정해
+     *    산출 CSS 에서 잘라내 왔다**(#2040 이래 계속 죽어 있었고, 그래서 미충전 광고는
+     *    300px 빈칸이 영구히 남았다). `<ins>` 는 런타임에만 생기므로 정적으로 안 보인다.
+     */
+    .dm-mplex-reserve {
+        min-height: 300px;
+        contain: layout;
+    }
+
+    .dm-mplex-reserve:has(:global(ins[data-ad-status='unfilled'])) {
+        min-height: 0;
+    }
     .dm-welcome-line {
         animation: dm-welcome-pop 4.2s ease forwards;
     }
