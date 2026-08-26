@@ -373,7 +373,11 @@
             </div>
         {/if}
 
-        <Card class="hidden gap-0 sm:col-span-2 sm:flex">
+        <!-- ⛔ `sm:col-start-2` 를 빼지 마라. 광고 칸이 SSR 에 없으므로, 이게 없으면
+             CSS 그리드 자동배치가 Card 를 **1-2열**에 놓았다가 마운트 후 광고가 1열을
+             차지하면서 **2-3열로 민다** — 데스크톱에서 ~300px 가로 밀림이다.
+             .dm-ad-row 의 min-height 가 세로를 잡듯, 이건 가로를 잡는다. -->
+        <Card class="hidden gap-0 sm:col-span-2 sm:col-start-2 sm:flex">
             <CardHeader class="pb-2 pt-2">
                 <button
                     type="button"
@@ -500,15 +504,18 @@
     /* ⛔ 광고 칸을 SSR 에서 빼면(위 {#if adReady}) 모바일에서 그리드가 **높이 0** 이 된다 —
        옆 Card 가 `hidden sm:flex` 라 모바일에선 광고 칸이 그리드의 유일한 자식이기 때문이다.
        마운트 후 110px 이 생기며 아래를 밀어 CLS 가 난다. 그래서 자리를 미리 잡는다.
-       값은 아래 .dm-clip-wrapper 와 **같아야** 한다(모바일 110 / sm+ 214). 함께 고쳐라.
+       ⛔ 값은 CSS 의 110/214 가 아니라 **JS 가 !important 로 강제하는 실제 높이**여야 한다
+          (MOBILE_AD_MAX_HEIGHT=88 / DESKTOP_AD_MAX_HEIGHT=190). CSS 값으로 잡으면
+          페이지가 영구히 22~24px 커진다 — 밀림은 없애고 높이를 늘리는 헛수고가 된다.
+          그 상수를 바꾸면 여기도 같이 바꿔라.
        ⚠️ 차단기가 광고 칸을 지운 사용자에게는 이만큼 빈 공간이 남는다 — 의도한 맞바꿈이다
           (밀림은 전원에게, 빈 공간은 차단 사용자에게만). */
     .dm-ad-row {
-        min-height: 110px;
+        min-height: 88px;
     }
     @media (min-width: 640px) {
         .dm-ad-row {
-            min-height: 214px;
+            min-height: 190px;
         }
     }
 
