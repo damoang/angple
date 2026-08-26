@@ -71,7 +71,7 @@ export interface WithdrawalGraceStatus {
     inGrace: boolean;
     /** 신청일 (YYYY-MM-DD) */
     leaveDate: string;
-    /** 확정 예정일 (YYYY-MM-DD, 신청일 + 30일) */
+    /** 확정 예정일 (YYYY-MM-DD, 신청일 + WITHDRAWAL_GRACE_DAYS) */
     deadline: string;
     /** 남은 일수 (0 이상) */
     daysRemaining: number;
