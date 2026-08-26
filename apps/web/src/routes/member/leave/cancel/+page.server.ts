@@ -1,5 +1,10 @@
 /**
- * 탈퇴 숙려기간 중 재로그인 → 탈퇴 취소 화면 서버
+ * ⛔ 2026-08-25 숙려 폐지(WITHDRAWAL_GRACE_DAYS=0)로 이 화면은 도달 불가다.
+ *    OAuth 콜백이 grace 쿠키를 더는 발급하지 않는다. 직접 접근해도
+ *    load 의 inGrace 검사에서 /login?error=account_inactive 로 빠지고,
+ *    cancel 액션은 403 을 돌려준다. 상수를 되돌리면 다시 살아난다.
+ *
+ * (원래 동작) 탈퇴 숙려기간 중 재로그인 → 탈퇴 취소 화면 서버
  *
  * OAuth 콜백에서 숙려 상태(취소 가능)를 감지하면 단기 서명 쿠키
  * (WITHDRAWAL_GRACE_COOKIE)를 심고 이 화면으로 보낸다. 이 화면은 완전한 로그인

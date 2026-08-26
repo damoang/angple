@@ -1,6 +1,9 @@
 /**
  * 회원 탈퇴 상태 판정 서버 유틸리티
  *
+ * ⛔ 2026-08-25 숙려 폐지 이후 취소(DELETE) 는 항상 403 이다. 아래 설명은
+ *    남아 있는 엔드포인트의 원래 용도이지 현재 동작이 아니다.
+ *
  * 백엔드(angple-backend)가 탈퇴 신청/취소의 원본 로직을 담당한다.
  *  - POST   /api/v1/members/me/leave  : 탈퇴 신청(숙려 상태 진입)
  *  - DELETE /api/v1/members/me/leave  : 숙려기간 내 탈퇴 취소
@@ -30,8 +33,14 @@ const secretNext = JWT_SECRET_NEXT ? new TextEncoder().encode(JWT_SECRET_NEXT) :
  *    띄우고 백엔드는 "이미 확정되어 취소할 수 없습니다" 를 돌려줘서, 회원에게
  *    눌러도 듣지 않는 취소 버튼을 보여줬다. 한쪽만 고치면 그 상태가 재현된다.
  *
- * 0 이면 deadline 이 신청일 자정 = 항상 과거이므로 daysRemaining 이 0 이고,
- * inGrace 는 어떤 날짜로도 false 가 된다. 즉 취소 화면 분기 자체가 성립하지 않는다.
+ * 0 이면 신청일 이하의 날짜에서 deadline <= now 이므로 daysRemaining 이 0 이고
+ * inGrace 가 false 다. 즉 취소 화면 분기가 성립하지 않는다.
+ *
+ * ⚠️ Math.max(0, ...) 는 음수만 자른다. mb_leave_date 에 미래 일자가 들어가면
+ *    daysRemaining 이 양수가 되어 inGrace 가 true 가 될 수 있다. 코드에서
+ *    mb_leave_date 를 쓰는 세 경로는 모두 "오늘"만 기록하므로(backend
+ *    member_leave_handler.go / admin_member_handler.go, web member-leave.ts)
+ *    정상 경로로는 생기지 않는다. 수동 SQL 로 넣을 때만 주의하면 된다.
  */
 export const WITHDRAWAL_GRACE_DAYS = 0;
 
