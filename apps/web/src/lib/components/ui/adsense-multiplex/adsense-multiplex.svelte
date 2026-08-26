@@ -63,7 +63,15 @@
     }
 </script>
 
-<div class="adsense-multiplex {className}" class:is-reserved={!suppressAds}>
+<!-- ⛔ 클래스 이름에 `adsense`/`ad` 를 넣지 마라. 이 래퍼는 **SSR 로 나가는 유일한
+     광고성 요소** 중 하나이고, `[class*="adsense"]` 같은 **일반 차단 규칙은 이름만으로**
+     매칭한다. 차단기가 하이드레이션 **전에** 이걸 지우면 Svelte 5 는 한 곳만 어긋나도
+     트리 전체를 버려 페이지가 통째로 CSR 재마운트된다(2026-08-25 실측: 같은 기전으로
+     글 상세 실패율 18.23%. 광고 칸을 SSR 에서 빼서 0.10% 로 내렸다 — PR #2218).
+     ⛔ 이건 **방어가 아니라 표면 축소**다. 사이트 지정 규칙이 붙으면 이름을 바꿔도 뚫린다
+        (`dm-` 접두로 이미 한 번 실패했다 — 커밋 22830eee). 그때 기댈 것은 감시다:
+        triage/tools/adblock_regression_watch.py -->
+<div class="dm-mplex-frame {className}" class:is-reserved={!suppressAds}>
     {#if ready && !suppressAds}
         <ins
             bind:this={insEl}
@@ -77,7 +85,7 @@
 </div>
 
 <style>
-    .adsense-multiplex {
+    .dm-mplex-frame {
         overflow: hidden;
     }
 
@@ -92,12 +100,12 @@
      * `data-ad-status="unfilled"` 를 만나면 예약을 해제한다.
      * 광고가 숨겨지는 글(성인/차단 작가)에는 애초에 예약하지 않는다.
      */
-    .adsense-multiplex.is-reserved {
+    .dm-mplex-frame.is-reserved {
         min-height: 300px;
         contain: layout;
     }
 
-    .adsense-multiplex.is-reserved:has(ins[data-ad-status='unfilled']) {
+    .dm-mplex-frame.is-reserved:has(ins[data-ad-status='unfilled']) {
         min-height: 0;
     }
 </style>
