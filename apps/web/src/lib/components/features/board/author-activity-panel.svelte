@@ -256,25 +256,29 @@
 
         // ⛔ 순서가 중요하다. `<ins>` 가 DOM 에 들어간 **뒤에** push 해야 AdSense 가 찾는다.
         //    SSR 로 내보내지 않으므로 여기서 그리고, tick 으로 DOM 반영을 기다린다.
+        // ⛔ clipWrapper·adContainer 는 이제 **SSR 에 없다**(위 {#if adReady}).
+        //    adReady 를 켠 뒤 tick 으로 DOM 반영을 기다려야 bind:this 가 채워진다.
+        //    rAF 를 tick 밖에 두면 참조가 비어 높이 방어가 통째로 죽는다.
         adReady = true;
-        void tick().then(() => loadAdSense());
+        void tick().then(() => {
+            loadAdSense();
+            requestAnimationFrame(() => {
+                if (!clipWrapper) return;
+                enforceClipHeight();
+                mutationObserver = new MutationObserver(() => enforceClipHeight());
+                mutationObserver.observe(clipWrapper, {
+                    attributes: true,
+                    attributeFilter: ['style']
+                });
 
-        requestAnimationFrame(() => {
-            if (!clipWrapper) return;
-            enforceClipHeight();
-            mutationObserver = new MutationObserver(() => enforceClipHeight());
-            mutationObserver.observe(clipWrapper, {
-                attributes: true,
-                attributeFilter: ['style']
+                if (typeof ResizeObserver !== 'undefined') {
+                    resizeObserver = new ResizeObserver(() => enforceClipHeight());
+                    resizeObserver.observe(clipWrapper);
+                    if (panelEl) resizeObserver.observe(panelEl);
+                } else {
+                    window.addEventListener('resize', handleResize);
+                }
             });
-
-            if (typeof ResizeObserver !== 'undefined') {
-                resizeObserver = new ResizeObserver(() => enforceClipHeight());
-                resizeObserver.observe(clipWrapper);
-                if (panelEl) resizeObserver.observe(panelEl);
-            } else {
-                window.addEventListener('resize', handleResize);
-            }
         });
 
         return () => {
@@ -334,33 +338,46 @@
 {/snippet}
 
 {#if post.author_id && !post.deleted_at}
-    <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3" bind:this={panelEl}>
-        <!-- AdSense 광고 -->
-        <div class="flex flex-col">
-            <!-- 외부 클리핑 래퍼: MutationObserver로 AdSense의 height 덮어쓰기 방어 -->
-            <!-- 모바일: max-height 100px로 제한 / 데스크톱: 카드 높이에 맞춤 -->
-            <div
-                bind:this={clipWrapper}
-                class="dm-clip-wrapper overflow-hidden rounded-xl"
-                style="position: relative;"
-            >
-                <!-- AdSense가 이 div의 height를 !important로 바꿔도 외부 래퍼가 잘라냄 -->
-                <div bind:this={adContainer}>
-                    {#if adReady && ADSENSE_ACTIVITY_CLIENT && ADSENSE_ACTIVITY_SLOT}
-                        <ins
-                            class="adsbygoogle"
-                            style="display:block;"
-                            data-ad-client={ADSENSE_ACTIVITY_CLIENT}
-                            data-ad-slot={ADSENSE_ACTIVITY_SLOT}
-                            data-ad-format="auto"
-                            data-full-width-responsive="true"
-                        ></ins>
-                    {/if}
+    <div class="dm-ad-row mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3" bind:this={panelEl}>
+        <!-- ⛔ 광고 칸 전체를 마운트 후에만 그린다 — SSR 에 내보내면 차단기가 하이드레이션
+             **전에** 지워서 Svelte 가 트리 전체를 폐기한다(2026-08-25 실측: 실패의 73.6%에
+             하이드레이션 전 DOM 변형, 성공은 0%. 지워진 대상 `div.flex.flex-col` 121/121,
+             주체 `local.adguard.org` 95%).
+             ⛔ #2189 는 `<ins>` 만 뺐고 **이 껍데기를 남겨서 효과가 0** 이었다. 경계는
+                반드시 이 바깥이어야 한다 — Svelte 5 는 한 곳만 어긋나도 전체를 버린다.
+             ⛔ 되돌릴 때 SSR 로 다시 내보내지 마라. 같은 증상이 그대로 재발한다. -->
+        {#if adReady}
+            <!-- AdSense 광고 -->
+            <div class="flex flex-col">
+                <!-- 외부 클리핑 래퍼: MutationObserver로 AdSense의 height 덮어쓰기 방어 -->
+                <!-- 모바일: max-height 100px로 제한 / 데스크톱: 카드 높이에 맞춤 -->
+                <div
+                    bind:this={clipWrapper}
+                    class="dm-clip-wrapper overflow-hidden rounded-xl"
+                    style="position: relative;"
+                >
+                    <!-- AdSense가 이 div의 height를 !important로 바꿔도 외부 래퍼가 잘라냄 -->
+                    <div bind:this={adContainer}>
+                        {#if ADSENSE_ACTIVITY_CLIENT && ADSENSE_ACTIVITY_SLOT}
+                            <ins
+                                class="adsbygoogle"
+                                style="display:block;"
+                                data-ad-client={ADSENSE_ACTIVITY_CLIENT}
+                                data-ad-slot={ADSENSE_ACTIVITY_SLOT}
+                                data-ad-format="auto"
+                                data-full-width-responsive="true"
+                            ></ins>
+                        {/if}
+                    </div>
                 </div>
             </div>
-        </div>
+        {/if}
 
-        <Card class="hidden gap-0 sm:col-span-2 sm:flex">
+        <!-- ⛔ `sm:col-start-2` 를 빼지 마라. 광고 칸이 SSR 에 없으므로, 이게 없으면
+             CSS 그리드 자동배치가 Card 를 **1-2열**에 놓았다가 마운트 후 광고가 1열을
+             차지하면서 **2-3열로 민다** — 데스크톱에서 ~300px 가로 밀림이다.
+             .dm-ad-row 의 min-height 가 세로를 잡듯, 이건 가로를 잡는다. -->
+        <Card class="hidden gap-0 sm:col-span-2 sm:col-start-2 sm:flex">
             <CardHeader class="pb-2 pt-2">
                 <button
                     type="button"
@@ -484,6 +501,24 @@
 {/if}
 
 <style>
+    /* ⛔ 광고 칸을 SSR 에서 빼면(위 {#if adReady}) 모바일에서 그리드가 **높이 0** 이 된다 —
+       옆 Card 가 `hidden sm:flex` 라 모바일에선 광고 칸이 그리드의 유일한 자식이기 때문이다.
+       마운트 후 110px 이 생기며 아래를 밀어 CLS 가 난다. 그래서 자리를 미리 잡는다.
+       ⛔ 값은 CSS 의 110/214 가 아니라 **JS 가 !important 로 강제하는 실제 높이**여야 한다
+          (MOBILE_AD_MAX_HEIGHT=88 / DESKTOP_AD_MAX_HEIGHT=190). CSS 값으로 잡으면
+          페이지가 영구히 22~24px 커진다 — 밀림은 없애고 높이를 늘리는 헛수고가 된다.
+          그 상수를 바꾸면 여기도 같이 바꿔라.
+       ⚠️ 차단기가 광고 칸을 지운 사용자에게는 이만큼 빈 공간이 남는다 — 의도한 맞바꿈이다
+          (밀림은 전원에게, 빈 공간은 차단 사용자에게만). */
+    .dm-ad-row {
+        min-height: 88px;
+    }
+    @media (min-width: 640px) {
+        .dm-ad-row {
+            min-height: 190px;
+        }
+    }
+
     /* 모바일은 낮게, 데스크톱은 카드형 비율로 보이도록 높이를 제한합니다. */
     .dm-clip-wrapper {
         min-height: 110px;
