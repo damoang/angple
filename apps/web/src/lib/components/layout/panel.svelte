@@ -19,28 +19,33 @@
     <!-- 마음메시지 카드 위젯 (공지 아래, 사이드바 배너 위) -->
     <WidgetRenderer zone="sidebar" onlyIds={['celebration']} />
 
-    <!-- 이용가이드 미니 카드 (마음메시지 아래) -->
+    <!-- 이용가이드 미니 카드 (마음메시지 아래) — 가로 1줄 콤팩트 -->
     <a
         href="/content/guide"
-        class="block rounded-xl border bg-teal-50 p-3.5 text-center no-underline transition-colors hover:border-teal-300 dark:bg-teal-950/30"
+        class="flex items-center gap-2.5 rounded-xl border bg-teal-50 px-3.5 py-2.5 no-underline transition-colors hover:border-teal-300 dark:bg-teal-950/30"
     >
-        <div class="text-2xl">🙌</div>
-        <div class="text-foreground mt-0.5 text-sm font-bold">다모앙 이용가이드</div>
-        <div class="text-muted-foreground text-xs">처음이신가요? 3분이면 충분해요</div>
+        <span class="text-xl leading-none">🙌</span>
+        <span class="text-foreground text-sm font-bold">다모앙 이용가이드</span>
         <span
-            class="mt-2 inline-block rounded-full bg-teal-500 px-3.5 py-1 text-xs font-bold text-white"
+            class="ml-auto whitespace-nowrap rounded-full bg-teal-500 px-3 py-1 text-xs font-bold text-white"
             >가이드 보기 →</span
         >
     </a>
 
-    <!-- 온라인 대전 현황 위젯 (이용가이드 아래) -->
+    <!-- 4분할 배너 (이용가이드 바로 아래로 승격) -->
+    <WidgetRenderer zone="sidebar" onlyIds={['sidebar-ad-2']} />
+
+    <!-- 온라인 대전 현황 위젯 (4분할 배너 아래) -->
     <WidgetRenderer zone="sidebar" onlyIds={['game-lobby']} />
 
     <!-- 사이드바 배너 (슬롯 기반) -->
     <PluginSlot name="sidebar-banner" />
 
-    <!-- 나머지 사이드바 위젯 -->
-    <WidgetRenderer zone="sidebar" excludeIds={['notice', 'celebration', 'game-lobby']} />
+    <!-- 나머지 사이드바 위젯 (4분할 배너는 위로 뺐으므로 제외) -->
+    <WidgetRenderer
+        zone="sidebar"
+        excludeIds={['notice', 'celebration', 'game-lobby', 'sidebar-ad-2']}
+    />
 
     <!-- Slot: sidebar-right-bottom -->
     {#each getComponentsForSlot('sidebar-right-bottom') as slotComp (slotComp.id)}
