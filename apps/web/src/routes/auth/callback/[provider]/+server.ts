@@ -371,8 +371,11 @@ async function handleCallback(
                     redirect(302, '/login?error=account_inactive');
                 }
             } else {
-                // 탈퇴 숙려기간(30일) 중 & 취소 가능 → 탈퇴 취소 화면으로 인계.
-                // 완전한 로그인 세션 대신 단기 서명 쿠키만 발급한다.
+                // ⛔ 2026-08-25 숙려 폐지(WITHDRAWAL_GRACE_DAYS=0)로 이 분기는 도달 불가다.
+                //    inGrace 가 false 라 아래 두 리다이렉트 중 하나로 빠진다.
+                //    상수를 되돌리면 다시 살아나므로 코드는 남겨 둔다.
+                // (원래 동작) 숙려 중 & 취소 가능 → 탈퇴 취소 화면으로 인계.
+                //    완전한 로그인 세션 대신 단기 서명 쿠키만 발급한다.
                 const grace = member ? computeWithdrawalGrace(member) : null;
                 if (member && grace?.inGrace) {
                     const graceToken = await signWithdrawalGraceToken(member.mb_id);

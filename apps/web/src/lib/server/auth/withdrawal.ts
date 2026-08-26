@@ -1,5 +1,8 @@
 /**
- * 회원 탈퇴 숙려기간(30일) 관련 서버 유틸리티
+ * 회원 탈퇴 상태 판정 서버 유틸리티
+ *
+ * ⛔ 2026-08-25 숙려 폐지 이후 취소(DELETE) 는 항상 403 이다. 아래 설명은
+ *    남아 있는 엔드포인트의 원래 용도이지 현재 동작이 아니다.
  *
  * 백엔드(angple-backend)가 탈퇴 신청/취소의 원본 로직을 담당한다.
  *  - POST   /api/v1/members/me/leave  : 탈퇴 신청(숙려 상태 진입)
@@ -20,8 +23,26 @@ const JWT_SECRET_NEXT = env.JWT_SECRET_NEXT || ''; // 무중단 키 롤오버 �
 const secret = new TextEncoder().encode(JWT_SECRET);
 const secretNext = JWT_SECRET_NEXT ? new TextEncoder().encode(JWT_SECRET_NEXT) : null;
 
-/** 숙려기간(일) — 백엔드와 동일하게 30일 */
-export const WITHDRAWAL_GRACE_DAYS = 30;
+/**
+ * 숙려기간(일) — 백엔드 common.WithdrawalGraceDays 와 같은 값이어야 한다.
+ *
+ * ⛔ 2026-08-25 정책 변경으로 0 이다. 탈퇴는 신청 즉시 확정되고 철회 경로가 없다.
+ *
+ * ⛔ 이 값은 백엔드와 반드시 함께 움직여야 한다. 2026-08-25 에 백엔드만 0 으로
+ *    내리고 여기를 30 으로 둔 적이 있다. 그때 웹은 "숙려중 23일 남음" 화면을
+ *    띄우고 백엔드는 "이미 확정되어 취소할 수 없습니다" 를 돌려줘서, 회원에게
+ *    눌러도 듣지 않는 취소 버튼을 보여줬다. 한쪽만 고치면 그 상태가 재현된다.
+ *
+ * 0 이면 신청일 이하의 날짜에서 deadline <= now 이므로 daysRemaining 이 0 이고
+ * inGrace 가 false 다. 즉 취소 화면 분기가 성립하지 않는다.
+ *
+ * ⚠️ Math.max(0, ...) 는 음수만 자른다. mb_leave_date 에 미래 일자가 들어가면
+ *    daysRemaining 이 양수가 되어 inGrace 가 true 가 될 수 있다. 코드에서
+ *    mb_leave_date 를 쓰는 세 경로는 모두 "오늘"만 기록하므로(backend
+ *    member_leave_handler.go / admin_member_handler.go, web member-leave.ts)
+ *    정상 경로로는 생기지 않는다. 수동 SQL 로 넣을 때만 주의하면 된다.
+ */
+export const WITHDRAWAL_GRACE_DAYS = 0;
 
 /** 재로그인 → 취소 화면 인계용 단기 쿠키 이름 */
 export const WITHDRAWAL_GRACE_COOKIE = 'withdrawal_grace';
@@ -59,7 +80,7 @@ export interface WithdrawalGraceStatus {
     inGrace: boolean;
     /** 신청일 (YYYY-MM-DD) */
     leaveDate: string;
-    /** 확정 예정일 (YYYY-MM-DD, 신청일 + 30일) */
+    /** 확정 예정일 (YYYY-MM-DD, 신청일 + WITHDRAWAL_GRACE_DAYS) */
     deadline: string;
     /** 남은 일수 (0 이상) */
     daysRemaining: number;
@@ -69,8 +90,10 @@ export interface WithdrawalGraceStatus {
  * g5_member 행으로 탈퇴 숙려 상태를 계산한다.
  *  - mb_leave_date 미설정 → null (정상 회원)
  *  - 관리자 처리 탈퇴(PROTECTED_LEAVE_REASONS) → inGrace=false (영구 차단)
- *  - 신청일 + 30일 경과 → inGrace=false (확정 대상, 취소 불가)
- *  - 그 외 자발적 탈퇴 & 30일 이내 → inGrace=true (취소 가능)
+ *  - 신청일 + WITHDRAWAL_GRACE_DAYS 경과 → inGrace=false (확정, 취소 불가)
+ *  - 그 외 자발적 탈퇴 & 기간 이내 → inGrace=true (취소 가능)
+ *
+ * ⛔ WITHDRAWAL_GRACE_DAYS=0 인 현재는 inGrace 가 항상 false 다.
  */
 export function computeWithdrawalGrace(member: MemberRow): WithdrawalGraceStatus | null {
     if (!member.mb_leave_date) return null;
