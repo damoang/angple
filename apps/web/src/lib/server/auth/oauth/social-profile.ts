@@ -171,7 +171,8 @@ export async function upsertSocialProfile(
         //    연동이 사라지고 조회하면 언제나 1:1 로 보였다. 이제 쓰지 않고 관측만 한다.
         await observeBinding('identifier_mismatch_write_skipped', {
             mbId,
-            provider: providerLower
+            provider: providerLower,
+            identifier: profile.identifier
         });
         return;
     }
@@ -193,7 +194,28 @@ export async function upsertSocialProfile(
             ]
         );
     } else {
-        // 신규 등록
+        // 신규 등록.
+        //
+        // ⛔ 이 분기가 침입자가 자기 신원을 남의 계정에 **영구히 박는** 경로다
+        //    (2026-08-27 `naver_989f08ee` 에 kakao 신원이 이렇게 들어갔다).
+        //    그렇다고 전부 관측하면 안 된다 — 정상 신규가입도 여기를 타서 하루 1,000건이 넘고,
+        //    매일 늑대를 외치면 아무도 안 본다.
+        //
+        // ⭐ 신호가 되는 것은 **이미 다른 provider 프로필을 가진 기존 계정**에 새 신원이 붙는 경우다.
+        //    갓 만들어진 계정은 프로필이 하나도 없으므로 여기 걸리지 않는다.
+        const [others] = await pool.query<RowDataPacket[]>(
+            `SELECT COUNT(*) AS cnt FROM g5_member_social_profiles
+			  WHERE mb_id = ? AND provider <> ?`,
+            [mbId, providerLower]
+        );
+        if (Number(others[0]?.cnt || 0) > 0) {
+            await observeBinding('new_provider_attached_to_existing_member', {
+                mbId,
+                provider: providerLower,
+                identifier: profile.identifier
+            });
+        }
+
         await pool.query(
             `INSERT INTO g5_member_social_profiles
 			 (mb_id, provider, object_sha, identifier, profileurl, photourl, displayname, description, mp_register_day, mp_latest_day)

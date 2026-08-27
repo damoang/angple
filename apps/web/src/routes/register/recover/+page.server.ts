@@ -30,7 +30,7 @@ export const load: PageServerLoad = async ({ cookies }) => {
         redirect(302, '/register');
     }
 
-    // ⛔ 2026-08-27 잠금 — 직접 URL 접근도 막는다(account-recovery-lock.ts).
+    // ⛔ 응급 킬 스위치. 평상시 false 이며, 복구 경로에 다시 문제가 발견되면 즉시 잠근다.
     if (ACCOUNT_RECOVERY_LOCKED) {
         redirect(302, '/register?recovery=locked');
     }
@@ -40,8 +40,11 @@ export const load: PageServerLoad = async ({ cookies }) => {
         socialProfile.identifier
     );
 
-    // 점유 계정이 없으면 평범한 가입 건이다. 원래 흐름으로 돌려보낸다.
-    if (occupant.kind === 'none') {
+    // ⛔ `owned` 가 아니면 이 화면을 보여주지 않는다.
+    //    `unverified` 는 해시만 겹친 남의 계정일 수 있고, 이 화면은 그 계정의
+    //    닉네임·가입일·글수를 보여주므로 그 자체가 남의 정보 노출이다.
+    //    `blocked` 도 여기서 계정 정보를 흘리지 않는다.
+    if (occupant.kind !== 'owned') {
         redirect(302, '/register');
     }
 

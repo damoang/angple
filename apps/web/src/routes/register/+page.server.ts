@@ -37,6 +37,7 @@ import type { OAuthUserProfile, SocialProvider } from '$lib/server/auth/oauth/ty
 import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 import { verifyTurnstile } from '$lib/server/captcha.js';
 import { checkRateLimit, recordAttempt, resolveClientIp } from '$lib/server/rate-limit.js';
+import { observeBinding } from '$lib/server/auth/oauth/binding-observer.js';
 import { getCertConfig } from '$lib/server/auth/cert-inicis.js';
 import { getContent, getSiteTitle, replaceContentVariables } from '$lib/server/content.js';
 import { sanitizePostContent } from '$lib/server/sanitize.js';
@@ -70,7 +71,7 @@ async function generateInviteTempNickname(provider: string): Promise<string> {
     throw new Error('초대 임시 닉네임 생성에 실패했습니다.');
 }
 
-export const load: PageServerLoad = async ({ url, cookies }) => {
+export const load: PageServerLoad = async ({ url, cookies, request, getClientAddress }) => {
     const provider = url.searchParams.get('provider') || '';
     const email = url.searchParams.get('email') || '';
     const redirectUrl = url.searchParams.get('redirect') || '/';
@@ -91,6 +92,16 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
 
     const isInviteFlow = redirectUrl.includes('ads.damoang.net/invite/');
 
+    /**
+     * 탈퇴한 옛 계정이 있는 것 같지만 소유를 자동으로 확인할 수 없는 경우.
+     *
+     * ⛔ 탈퇴 시 `member-leave.ts` 가 소셜 프로필 행을 하드삭제해 왔기 때문에
+     *    대조할 근거가 남아 있지 않다(탈퇴 계정의 86%, 활성은 0.27%).
+     *    자동 복구는 위험하고, 조용히 새 계정만 내주면 옛 글·이력을 잃은 줄도 모르신다.
+     *    그래서 가입은 그대로 진행하되 안내를 띄우고 사람이 확인한다.
+     */
+    let manualRecovery = false;
+
     // 같은 소셜 계정으로 만들어진 계정이 이미 있으면 재가입이 아니라 복원 대상이다.
     // 개인정보처리방침상 DI 를 반영구 보관하며 중복 가입을 막고 있으므로, 탈퇴자의
     // 재가입은 애초에 성립하지 않는다. 그동안 운영에서 수동으로 복원해 주던 것을
@@ -101,14 +112,26 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
             socialProfile.provider,
             socialProfile.identifier
         );
-        // ⛔ 2026-08-27 잠금: 해시 충돌만으로 남의 계정을 "이전 계정"이라 안내하던
-        //    경로다(account-recovery-lock.ts 참고). 복구 화면으로 보내지 않는다.
-        //    이용제한 계정이 점유한 mb_id 는 계속 막는다 — 그건 별개 가드다.
         if (occupant.kind === 'blocked') {
             redirect(302, '/login?error=account_blocked');
         }
-        if (!ACCOUNT_RECOVERY_LOCKED && occupant.kind !== 'none') {
+        // ⭐ `owned` 일 때만 복구로 보낸다. 해시만 겹친 `unverified` 를 보내면
+        //    남의 계정을 "당신의 이전 계정"이라고 안내하게 된다(2026-08-26 실사고).
+        if (!ACCOUNT_RECOVERY_LOCKED && occupant.kind === 'owned') {
             redirect(302, '/register/recover');
+        }
+        // 해시만 겹친 경우. 새 계정으로 가입시키되, 옛 계정을 잃는 분이 생기므로
+        // 탈퇴 계정이면 안내를 띄운다(아래 manualRecovery).
+        if (occupant.kind === 'unverified') {
+            manualRecovery = occupant.withdrawn && !occupant.hasProfileRows;
+            // ⛔ 이 분기가 몇 명에게 걸리는지 남긴다. 이 수치가 없어서 지난 조사에서
+            //    11명의 피해 여부를 가리지 못했다.
+            await observeBinding('occupant_unverified_recovery_denied', {
+                mbId: occupant.mbId,
+                provider: socialProfile.provider,
+                identifier: socialProfile.identifier,
+                clientIp: resolveClientIp(getClientAddress, request) ?? ''
+            });
         }
     }
 
@@ -128,6 +151,7 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
         displayName: socialProfile.displayName || '',
         redirectUrl,
         isInviteFlow,
+        manualRecovery,
         termsHtml: termsContent
             ? sanitizePostContent(replaceContentVariables(termsContent.co_content, siteTitle))
             : '',
@@ -225,13 +249,17 @@ export const actions: Actions = {
                 socialProfile.provider,
                 socialProfile.identifier
             );
-            if (occupant.kind !== 'recoverable') {
+            // ⛔ `owned` 가 아니면 절대 내주지 않는다. 화면을 막아도 폼은 직접 POST 할 수 있으므로
+            //    최종 판정은 여기서 한다. `unverified` 는 해시만 겹친 **남의 계정**일 수 있다.
+            if (occupant.kind !== 'owned') {
                 cookies.delete('pending_social_register', { path: '/' });
                 return fail(400, {
                     error:
                         occupant.kind === 'blocked'
                             ? '이용이 제한된 계정입니다. 자세한 내용은 고객센터로 문의해주세요.'
-                            : '복구할 이전 계정을 찾지 못했습니다. 다시 시도해주세요.',
+                            : occupant.kind === 'unverified'
+                              ? '이 계정이 회원님의 것인지 자동으로 확인하지 못했습니다. contact@damoang.net 으로 문의해 주시면 확인 후 도와드리겠습니다.'
+                              : '복구할 이전 계정을 찾지 못했습니다. 다시 시도해주세요.',
                     nickname
                 });
             }
@@ -270,7 +298,7 @@ export const actions: Actions = {
             nickname = nicknameResult.normalized ?? nickname;
 
             // 같은 소셜 계정으로 만들어진 계정이 이미 있으면 새로 만들지 않는다.
-            // mb_id는 소셜 sub에서 결정적으로 나오므로 충돌 = 동일인이 확실하다.
+            // ⛔ 단 「mb_id 충돌 = 동일인」이 아니다. 소유가 확인된 `owned` 만 그렇다.
             const occupant = await inspectSocialMbIdOccupant(
                 socialProfile.provider,
                 socialProfile.identifier
@@ -282,7 +310,7 @@ export const actions: Actions = {
                     nickname
                 });
             }
-            if (!ACCOUNT_RECOVERY_LOCKED && occupant.kind === 'recoverable') {
+            if (!ACCOUNT_RECOVERY_LOCKED && occupant.kind === 'owned') {
                 return fail(409, {
                     error: '이전에 사용하시던 계정이 있습니다. 그 계정으로 이어서 이용하실 수 있습니다.',
                     nickname,
@@ -290,10 +318,10 @@ export const actions: Actions = {
                 });
             }
 
-            // ⛔ 잠금 중에는 점유 계정을 내주지 않고 새 mb_id 로 가입시킨다.
-            //    해시가 겹쳤다고 같은 사람이라는 보장이 없다.
+            // ⛔ 점유 계정을 그대로 내주지 않는다. 해시가 겹쳤다고 같은 사람이라는
+            //    보장이 없다(`unverified`). 이미 쓰이는 mb_id 면 접미사를 붙여 새로 만든다.
             mbId = occupant.mbId;
-            if (ACCOUNT_RECOVERY_LOCKED && (await isMbIdTaken(mbId))) {
+            if (await isMbIdTaken(mbId)) {
                 mbId = appendMbIdSuffix(mbId);
             }
         }

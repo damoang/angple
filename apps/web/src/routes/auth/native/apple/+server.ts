@@ -151,8 +151,11 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
                 mbId = existingTemp.mb_id;
             } else {
                 // ⛔ 이용제한 중인 계정이 점유한 mb_id 면 새 계정을 만들지 않는다.
-                //    generateSocialMbId 는 결정적이라 충돌 = 같은 소셜 계정 = 동일인이다.
                 //    접미사를 붙여 우회시키면 영구정지가 앱 경로로 뚫린다(F3 §4-②).
+                // ⛔ 2026-08-27 정정: 예전 주석은 「충돌 = 같은 소셜 계정 = 동일인」이라 했는데
+                //    **거짓이다**(adler32(md5 hex) 충돌). 그래서 `blocked` 는 소유 확인과
+                //    무관하게 막는다 — 제재 계정 105개는 프로필 행이 없어 소유를 확인할 수 없고,
+                //    확인을 통과 조건으로 걸면 그쪽으로 회피가 열린다.
                 const occupant = await inspectSocialMbIdOccupant('apple', identifier);
                 if (occupant.kind === 'blocked') {
                     return json({ success: false, error: 'account_blocked' }, { status: 403 });
