@@ -61,16 +61,24 @@ export function appendMbIdSuffix(baseMbId: string): string {
 /**
  * 소셜 재가입 시 이미 그 소셜 계정으로 만들어진 계정이 있는지 판정한다.
  *
- * `generateSocialMbId`는 결정적이라 mb_id가 충돌한다는 것은 **같은 소셜 계정**이라는 뜻이다.
- * 즉 점유 계정은 동일인의 것이 확실하므로, 새 계정을 만들 게 아니라 복구를 안내해야 한다.
- * (2026-07-23 실측: 같은 base를 공유하는 198계정 90묶음 중 둘 이상이 활동한 묶음 0개
- *  — 다중이가 아니라 재가입이 막혀 쌓인 빈 계정이었다)
+ * ⛔ 2026-08-27 정정. 예전 주석에는 이렇게 적혀 있었고, **거짓이었다**:
+ *   「generateSocialMbId는 결정적이라 mb_id가 충돌한다는 것은 같은 소셜 계정이라는 뜻이다」
+ * 결정적인 것과 충돌하지 않는 것은 다르다. `generateSocialMbId`는 adler32를 md5의
+ * **hex 문자열 32자**('0'~'f')에 걸기 때문에 출력 공간이 무너져 있다(충돌 체감 키공간 약 205만).
+ * 서로 다른 소셜 계정이 같은 mb_id를 만들어내고, 실제로 남의 계정이
+ * 「당신의 이전 계정입니다」로 안내되어 넘어간 사고가 있었다.
+ *
+ * 근거로 쓰였던 「2026-07-23 실측: 둘 이상이 활동한 묶음 0개」도 뒤집혔다 — 2026-08-26에 1건 나왔다.
+ *
+ * 그러므로 **mb_id 일치는 후보일 뿐**이고, 소유는 `g5_member_social_profiles`에서 확인한다:
+ * (점유 mb_id, provider, **들어온 identifier**) 행이 실제로 있어야 동일인이다.
  *
  * - `none`        점유 없음 → 정상 가입
  * - `blocked`     이용제한 중 → 계정 생성 금지. 제재 회피 재가입 통로를 막는다
- * - `recoverable` 그 외(탈퇴/활성) → 복구 안내 대상
+ * - `owned`       소유 확인됨 → 복구 안내 대상
+ * - `unverified`  해시만 같고 소유 미확인 → ⛔ 복구 안내 금지
  */
-export type OccupantKind = 'none' | 'blocked' | 'recoverable';
+export type OccupantKind = 'none' | 'blocked' | 'owned' | 'unverified';
 
 export interface OccupantInfo {
     kind: OccupantKind;
@@ -79,6 +87,18 @@ export interface OccupantInfo {
     joinedAt: string;
     postCount: number;
     withdrawn: boolean;
+    /**
+     * 점유 계정에 이 provider 의 소셜 프로필 행이 하나라도 있는지.
+     *
+     * `unverified` 를 두 갈래로 나누기 위해 필요하다.
+     * - `false` = 대조할 것이 아예 없다. 본인일 가능성이 높지만 자동으로 내줄 수는 없다 → 사람이 확인한다.
+     *   ⛔ 2026-07 **이전** 탈퇴 경로가 프로필 행을 하드삭제했다. 그 경로(`processMemberLeave`)는
+     *   지금 죽어 있고, 라이브 탈퇴(Go `member_leave_handler`)는 프로필을 건드리지 않는다.
+     *   그래서 이 칸은 **레거시 재고이고 시간이 지날수록 비어간다**:
+     *   ~2026-06 탈퇴 100% 결손 → 2026-07 4% → 2026-08 6%.
+     * - `true`  = 다른 신원이 이미 등록돼 있는데 내 신원은 없다. **남의 계정일 가능성이 높다.**
+     */
+    hasProfileRows: boolean;
 }
 
 export async function inspectSocialMbIdOccupant(
@@ -93,7 +113,15 @@ export async function inspectSocialMbIdOccupant(
     );
     const row = rows[0];
     if (!row) {
-        return { kind: 'none', mbId, nick: '', joinedAt: '', postCount: 0, withdrawn: false };
+        return {
+            kind: 'none',
+            mbId,
+            nick: '',
+            joinedAt: '',
+            postCount: 0,
+            withdrawn: false,
+            hasProfileRows: false
+        };
     }
 
     // mb_intercept_date는 YYYYMMDD 문자열. 99991231 = 영구.
@@ -106,18 +134,39 @@ export async function inspectSocialMbIdOccupant(
         `${String(today.getDate()).padStart(2, '0')}`;
     const blocked = intercept.length === 8 && intercept >= todayStr;
 
+    // ⛔ 소유 확인. 해시 일치는 후보일 뿐이므로 여기서 동일인 여부가 갈린다.
+    //    같은 provider 라도 identifier 가 다르면 **다른 사람**이다.
+    const [prof] = await pool.query<RowDataPacket[]>(
+        `SELECT COUNT(*) AS total,
+		        SUM(identifier = ?) AS mine
+		   FROM g5_member_social_profiles
+		  WHERE mb_id = ? AND provider = ?`,
+        [identifier, mbId, provider.toLowerCase()]
+    );
+    const owned = Number(prof[0]?.mine || 0) > 0;
+    const hasProfileRows = Number(prof[0]?.total || 0) > 0;
+
     const [cnt] = await pool.query<RowDataPacket[]>(
         'SELECT COUNT(*) AS cnt FROM g5_board_new WHERE mb_id = ?',
         [mbId]
     );
 
+    // ⛔ blocked 는 소유 확인보다 앞선다 — 종전과 정확히 같게 막는다.
+    //    제재중 소셜계정 529개 중 105개(그중 영구 104개)가 프로필 행이 없어서,
+    //    소유 확인을 통과 조건으로 걸면 그 진짜 본인들이 unverified 로 떨어져
+    //    접미사를 붙인 새 계정을 받게 된다 = **제재 회피 통로가 열린다.**
+    //    「우연히 해시가 겹친 남이 가입하지 못한다」는 부작용은 남는다(잔존 결함).
+    //    identifier 는 adler32(md5(...)) 역산이 불가능하므로 프로필 백필로 해소할 수 없다.
+    const kind: OccupantKind = blocked ? 'blocked' : owned ? 'owned' : 'unverified';
+
     return {
-        kind: blocked ? 'blocked' : 'recoverable',
+        kind,
         mbId,
         nick: row.mb_nick || '',
         joinedAt: row.mb_datetime ? String(row.mb_datetime) : '',
         postCount: Number(cnt[0]?.cnt || 0),
-        withdrawn: Boolean(row.mb_leave_date)
+        withdrawn: Boolean(row.mb_leave_date),
+        hasProfileRows
     };
 }
 

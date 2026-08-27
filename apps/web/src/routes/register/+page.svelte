@@ -157,6 +157,22 @@
                 </div>
             {/if}
 
+            <!--
+                예전에 쓰시던 계정이 있는 것으로 보이나 자동으로 확인하지 못한 경우.
+                가입은 그대로 진행되지만, 옛 글·이력을 잃은 줄 모르고 지나치시면 안 되므로 알린다.
+            -->
+            {#if data.manualRecovery}
+                <div class="border-border bg-muted/40 mb-4 rounded-md border p-3 text-sm leading-6">
+                    <p class="font-semibold">이전에 사용하시던 계정이 있을 수 있습니다</p>
+                    <p class="text-muted-foreground mt-1">
+                        지금 그대로 가입하시면 새 계정으로 시작하게 됩니다. 예전 계정의 글과 활동을
+                        이어서 쓰고 싶으시면
+                        <span class="text-foreground font-medium">contact@damoang.net</span> 으로 문의해
+                        주십시오. 확인 후 도와드리겠습니다.
+                    </p>
+                </div>
+            {/if}
+
             {#if !data.isInviteFlow}
                 <div class="border-border bg-muted/40 mb-6 rounded-lg border p-4 text-sm leading-6">
                     <p class="font-semibold">가입 후 안내</p>

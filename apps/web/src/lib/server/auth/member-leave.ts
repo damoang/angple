@@ -13,6 +13,7 @@
  *    ⛔ 이 호출을 지우면 탈퇴 진입점 전수 커버가 깨진다.
  */
 import pool from '$lib/server/db.js';
+import { deleteSocialProfilesByMember } from './oauth/social-profile.js';
 import type { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { purgeAuthArtifacts } from '$lib/server/auth/purge-auth-artifacts.js';
 
@@ -69,10 +70,11 @@ export async function processMemberLeave(
         [leaveDate, nextMemo, mbId]
     );
 
-    // 소셜 프로필 삭제
-    await pool.query<ResultSetHeader>('DELETE FROM g5_member_social_profiles WHERE mb_id = ?', [
-        mbId
-    ]);
+    // 소셜 프로필 삭제.
+    // ⛔ raw DELETE 를 쓰지 않는다. deleteSocialProfilesByMember 가 지우기 전에
+    //    지문을 아카이브하고, 아카이브가 실패하면 지우지 않는다.
+    //    (이 함수 자체는 현재 dead 지만, 되살아났을 때 기록 없이 지우면 안 된다)
+    await deleteSocialProfilesByMember(mbId, 'member_leave');
 
     // 인증 산출물(세션·리프레시 토큰) 선제 파기.
     // ⛔ 탈퇴 UPDATE 가 끝난 **뒤에** 부른다. 파기 실패가 탈퇴를 되돌리면 안 된다
