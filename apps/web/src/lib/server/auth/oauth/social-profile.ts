@@ -58,13 +58,101 @@ export async function getSocialProfilesByMember(mbId: string): Promise<SocialPro
     return rows as SocialProfileRow[];
 }
 
-/** 소셜 프로필 삭제 (연결 해제) */
+/**
+ * 소셜 프로필 삭제 (연결 해제).
+ *
+ * ⛔ 지우기 **전에** 반드시 아카이브한다. 아카이브를 별도 헬퍼로 두고 호출부에 맡기면
+ *    언젠가 안 부르는 경로가 생긴다 — 그래서 삭제 함수 안에 넣어 우회로를 없앤다.
+ *
+ * ⛔ 아카이브가 실패하면 **삭제도 하지 않는다**(fail-closed).
+ *    `observeBinding` 은 실패를 삼키지만 그건 로그인 경로의 수동 관측이라 그렇다.
+ *    여기는 되돌릴 수 없는 파괴적 동작이고, 기록 없이 지우면 「누구 것이었는지」를
+ *    영영 잃는다. 연동 해제가 잠깐 안 되는 편이 낫다.
+ */
 export async function deleteSocialProfile(mpNo: number, mbId: string): Promise<boolean> {
+    const archived = await archiveSocialProfiles(
+        'SELECT * FROM g5_member_social_profiles WHERE mp_no = ? AND mb_id = ?',
+        [mpNo, mbId],
+        'settings_unlink'
+    );
+    if (!archived) return false;
+
     const [result] = await pool.query<RowDataPacket[]>(
         'DELETE FROM g5_member_social_profiles WHERE mp_no = ? AND mb_id = ?',
         [mpNo, mbId]
     );
     return (result as unknown as { affectedRows: number }).affectedRows > 0;
+}
+
+/**
+ * 회원의 소셜 프로필 전체 삭제 (탈퇴 경로용).
+ *
+ * ⚠️ 현재 라이브 탈퇴는 Go 백엔드가 처리하며 프로필을 건드리지 않는다.
+ *    이 함수는 web 쪽 탈퇴 경로가 되살아날 때를 대비한 것으로,
+ *    되살아나더라도 기록 없이 지우는 일은 없게 한다.
+ */
+export async function deleteSocialProfilesByMember(
+    mbId: string,
+    reason: 'member_leave'
+): Promise<boolean> {
+    const archived = await archiveSocialProfiles(
+        'SELECT * FROM g5_member_social_profiles WHERE mb_id = ?',
+        [mbId],
+        reason
+    );
+    if (!archived) return false;
+
+    await pool.query('DELETE FROM g5_member_social_profiles WHERE mb_id = ?', [mbId]);
+    return true;
+}
+
+/**
+ * 삭제 대상 행을 아카이브에 옮긴다. 성공 여부를 돌려준다.
+ *
+ * ⛔ 원문 `identifier` 는 담지 않는다 — sha256 **전체 64자** 지문만 남긴다.
+ *    `photourl`·`displayname`·`profileurl` 도 담지 않는다. 탈퇴자 개인정보이고,
+ *    「이 신원이 같은 사람인가」를 판정하는 데 쓰이지 않는다.
+ *    복구 시 프로필은 그 시점 OAuth 응답에서 새로 받는다.
+ *
+ * ⭐ 자르지 않는다. 지금 고치고 있는 사고 자체가 해시를 잘라 써서 난 것이다.
+ */
+async function archiveSocialProfiles(
+    selectSql: string,
+    params: unknown[],
+    reason: string
+): Promise<boolean> {
+    try {
+        const [rows] = await pool.query<RowDataPacket[]>(selectSql, params);
+        if (rows.length === 0) return true; // 지울 게 없으면 아카이브도 없다
+
+        const values = rows.map((r) => [
+            r.mp_no,
+            r.mb_id,
+            r.provider,
+            createHash('sha256')
+                .update(String(r.identifier ?? ''))
+                .digest('hex'),
+            r.mp_register_day,
+            r.mp_latest_day,
+            reason
+        ]);
+
+        await pool.query(
+            `INSERT INTO g5_member_social_profiles_archive
+			     (mp_no, mb_id, provider, identifier_sha,
+			      mp_register_day, mp_latest_day, archived_reason, archived_at)
+			 VALUES ${rows.map(() => '(?, ?, ?, ?, ?, ?, ?, NOW())').join(', ')}`,
+            values.flat()
+        );
+        return true;
+    } catch (err) {
+        // ⛔ 여기서 false 를 돌려주면 호출부가 삭제를 건너뛴다. 그게 의도다.
+        console.error(
+            '[social-profile] 아카이브 실패 — 삭제를 중단한다',
+            err instanceof Error ? err.message : 'unknown'
+        );
+        return false;
+    }
 }
 
 /**
