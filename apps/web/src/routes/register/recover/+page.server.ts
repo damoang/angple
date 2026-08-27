@@ -1,6 +1,7 @@
 import type { PageServerLoad } from './$types';
 import { redirect } from '@sveltejs/kit';
 import { inspectSocialMbIdOccupant } from '$lib/server/auth/register.js';
+import { ACCOUNT_RECOVERY_LOCKED } from '$lib/server/auth/account-recovery-lock.js';
 
 /**
  * 이전 계정 안내 화면.
@@ -27,6 +28,11 @@ export const load: PageServerLoad = async ({ cookies }) => {
 
     if (!socialProfile.identifier) {
         redirect(302, '/register');
+    }
+
+    // ⛔ 2026-08-27 잠금 — 직접 URL 접근도 막는다(account-recovery-lock.ts).
+    if (ACCOUNT_RECOVERY_LOCKED) {
+        redirect(302, '/register?recovery=locked');
     }
 
     const occupant = await inspectSocialMbIdOccupant(

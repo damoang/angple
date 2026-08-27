@@ -18,6 +18,10 @@ import {
 } from '$lib/server/auth/register.js';
 import { upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
 import {
+    ACCOUNT_RECOVERY_LOCKED,
+    ACCOUNT_RECOVERY_LOCKED_MESSAGE
+} from '$lib/server/auth/account-recovery-lock.js';
+import {
     getMemberById,
     updateLoginTimestamp,
     findMemberByEmail
@@ -97,7 +101,13 @@ export const load: PageServerLoad = async ({ url, cookies }) => {
             socialProfile.provider,
             socialProfile.identifier
         );
-        if (occupant.kind !== 'none') {
+        // ⛔ 2026-08-27 잠금: 해시 충돌만으로 남의 계정을 "이전 계정"이라 안내하던
+        //    경로다(account-recovery-lock.ts 참고). 복구 화면으로 보내지 않는다.
+        //    이용제한 계정이 점유한 mb_id 는 계속 막는다 — 그건 별개 가드다.
+        if (occupant.kind === 'blocked') {
+            redirect(302, '/login?error=account_blocked');
+        }
+        if (!ACCOUNT_RECOVERY_LOCKED && occupant.kind !== 'none') {
             redirect(302, '/register/recover');
         }
     }
@@ -202,6 +212,11 @@ export const actions: Actions = {
         }
 
         let mbId: string;
+        if (isRecovery && ACCOUNT_RECOVERY_LOCKED) {
+            // ⛔ 화면 진입을 막아도 폼을 직접 POST 할 수 있다. 여기서 다시 막는다.
+            cookies.delete('pending_social_register', { path: '/' });
+            return fail(423, { error: ACCOUNT_RECOVERY_LOCKED_MESSAGE, nickname });
+        }
         if (isRecovery) {
             // 복구 경로: 닉네임·약관 절차 없이 옛 계정으로 이어붙인다.
             // 이 경로에 도달했다는 것 자체가 같은 소셜 sub 으로 로그인했다는 뜻이므로
@@ -267,7 +282,7 @@ export const actions: Actions = {
                     nickname
                 });
             }
-            if (occupant.kind === 'recoverable') {
+            if (!ACCOUNT_RECOVERY_LOCKED && occupant.kind === 'recoverable') {
                 return fail(409, {
                     error: '이전에 사용하시던 계정이 있습니다. 그 계정으로 이어서 이용하실 수 있습니다.',
                     nickname,
@@ -275,7 +290,12 @@ export const actions: Actions = {
                 });
             }
 
+            // ⛔ 잠금 중에는 점유 계정을 내주지 않고 새 mb_id 로 가입시킨다.
+            //    해시가 겹쳤다고 같은 사람이라는 보장이 없다.
             mbId = occupant.mbId;
+            if (ACCOUNT_RECOVERY_LOCKED && (await isMbIdTaken(mbId))) {
+                mbId = appendMbIdSuffix(mbId);
+            }
         }
 
         // 이메일 중복 체크: 같은 이메일로 가입된 계정이 있으면 가입 차단.
