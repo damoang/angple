@@ -360,7 +360,7 @@ export const actions: Actions = {
                 photoUrl: socialProfile.photoUrl,
                 profileUrl: socialProfile.profileUrl
             };
-            await upsertSocialProfile(mbId, socialProfile.provider, oauthProfile);
+            await upsertSocialProfile(mbId, socialProfile.provider, oauthProfile, clientIp);
 
             // 로그인 시각 업데이트
             await updateLoginTimestamp(mbId, clientIp);

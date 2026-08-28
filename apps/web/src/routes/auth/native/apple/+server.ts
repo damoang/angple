@@ -95,6 +95,8 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         return json({ success: false, error: 'invalid_token' }, { status: 401 });
     }
 
+    const clientIp = resolveClientIp(getClientAddress, request) ?? '';
+
     const identifier = payload.sub;
     if (!identifier) {
         return json({ success: false, error: 'invalid_token' }, { status: 401 });
@@ -128,7 +130,9 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
                 if (bound.length > 0 && !bound.some((r) => r.identifier === identifier)) {
                     await observeBinding('email_match_into_bound_account', {
                         mbId: byEmail.mb_id,
-                        provider: 'apple'
+                        provider: 'apple',
+                        identifier,
+                        clientIp
                     });
                 }
                 mbId = byEmail.mb_id;
@@ -170,7 +174,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
                     mb_nick: nickname,
                     mb_email: verifiedEmail,
                     mb_name: nickname,
-                    mb_ip: resolveClientIp(getClientAddress, request) ?? '',
+                    mb_ip: clientIp,
                     skipNickLock: true
                 });
             }
@@ -183,7 +187,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
         }
 
         // 5. 소셜 프로필 갱신 + app-login 코드 발급
-        await upsertSocialProfile(mbId, 'apple', profile);
+        await upsertSocialProfile(mbId, 'apple', profile, clientIp);
         const code = await generateAppLoginCode({
             mb_id: member.mb_id,
             mb_nick: member.mb_nick,

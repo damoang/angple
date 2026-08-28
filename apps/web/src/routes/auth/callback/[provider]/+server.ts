@@ -227,6 +227,7 @@ async function handleCallback(
                     await observeBinding('email_match_into_bound_account', {
                         mbId: memberByEmail.mb_id,
                         provider: providerName,
+                        identifier: profile.identifier,
                         clientIp
                     });
                 }
@@ -398,7 +399,7 @@ async function handleCallback(
         }
 
         // 소셜 프로필 업데이트
-        await upsertSocialProfile(mbId, providerName, profile);
+        await upsertSocialProfile(mbId, providerName, profile, clientIp);
 
         await runSocialLoginPostProcess(mbId, clientIp, member.mb_leave_reason);
 
