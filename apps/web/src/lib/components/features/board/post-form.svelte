@@ -15,6 +15,8 @@
     import { stripAdminMentions } from '$lib/utils/sanitize-mentions.js';
     import { findMapLink } from '$lib/utils/angmap-link.js';
     import { stripBlobMedia } from '$lib/utils/strip-blob-media.js';
+    import { checkContent, NUDGE_ENFORCED } from '$lib/utils/politeness-filter.js';
+    import PolitenessNudgeDialog from './politeness-nudge-dialog.svelte';
     import type {
         FreePost,
         CreatePostRequest,
@@ -574,6 +576,38 @@
     // 중복 제출 방지
     let isSubmitting = $state(false);
 
+    // ── 작성 시점 경어체/비속어 넛지 (순수 정규식 · observe-first) ──────────────
+    let nudgeOpen = $state(false);
+    let nudgeResult = $state<{ politeness: boolean; profanity: boolean }>({
+        politeness: false,
+        profanity: false
+    });
+    let nudgeResolve: ((proceed: boolean) => void) | null = null;
+
+    /**
+     * 넛지 검사. 걸릴 게 없으면 즉시 통과.
+     * NUDGE_ENFORCED=false 면 모달을 띄우지 않고 관측만(콘솔) 하고 통과시킨다.
+     * true 면 모달을 띄우고 사용자의 [수정]/[무시하고 글쓰기] 선택을 기다린다.
+     */
+    function askNudge(text: string): Promise<boolean> {
+        const r = checkContent(text);
+        if (!r.politeness && !r.profanity) return Promise.resolve(true);
+        if (!NUDGE_ENFORCED) {
+            console.info('[politeness-nudge:observe]', { scope: 'post', ...r });
+            return Promise.resolve(true);
+        }
+        nudgeResult = r;
+        nudgeOpen = true;
+        return new Promise<boolean>((resolve) => (nudgeResolve = resolve));
+    }
+
+    function decideNudge(proceed: boolean): void {
+        nudgeOpen = false;
+        const resolve = nudgeResolve;
+        nudgeResolve = null;
+        resolve?.(proceed);
+    }
+
     // bug/12839 후속: 에디터의 백그라운드 이미지 변환 진행 개수.
     // 제출 시 0 이 될 때까지 자동 대기 → "이미지가 떴는데 완료가 막힌다"는 마찰 제거.
     let uploadingCount = $state(0);
@@ -697,6 +731,8 @@
                   };
 
         try {
+            // 등록 직전 넛지 검사. [수정] 선택 시 여기서 멈춘다(finally 가 isSubmitting 해제).
+            if (!(await askNudge(`${sanitizedTitle}\n${finalContent}`))) return;
             await onSubmit(data);
 
             // 제출 성공 시 임시저장 삭제
@@ -1121,3 +1157,11 @@
         </form>
     </CardContent>
 </Card>
+
+<PolitenessNudgeDialog
+    bind:open={nudgeOpen}
+    politeness={nudgeResult.politeness}
+    profanity={nudgeResult.profanity}
+    onEdit={() => decideNudge(false)}
+    onProceed={() => decideNudge(true)}
+/>
