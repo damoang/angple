@@ -229,7 +229,17 @@ export async function linkSocialProfile(
 export async function upsertSocialProfile(
     mbId: string,
     provider: string,
-    profile: OAuthUserProfile
+    profile: OAuthUserProfile,
+    /**
+     * 관측에 남길 요청 IP.
+     *
+     * ⛔ 2026-08-28 추가. 없으면 이 함수가 남기는 관측에 IP 가 비어 `identifier_mismatch`
+     *    80건 전부 `client_ip=''` 였고, 그 때문에 2026-08 사고에서 **11명의 피해 여부를
+     *    가리지 못했다.** 신원 지문만으로는 「누가 시도했는가」를 못 좁힌다.
+     *    선택 인자인 이유는 호출부가 4곳이고 전부 이미 clientIp 를 들고 있어서,
+     *    빠뜨린 곳이 조용히 컴파일되지 않도록 하는 것보다 점진 적용이 안전했기 때문이다.
+     */
+    clientIp?: string
 ): Promise<void> {
     const providerLower = provider.toLowerCase();
     const objectSha = createHash('sha1').update(JSON.stringify(profile)).digest('hex');
@@ -242,7 +252,9 @@ export async function upsertSocialProfile(
         await observeBinding('identifier_bound_other_member_delete_skipped', {
             mbId,
             provider: providerLower,
-            otherMbId: conflicting.mb_id
+            otherMbId: conflicting.mb_id,
+            identifier: profile.identifier,
+            clientIp
         });
     }
 
@@ -260,7 +272,8 @@ export async function upsertSocialProfile(
         await observeBinding('identifier_mismatch_write_skipped', {
             mbId,
             provider: providerLower,
-            identifier: profile.identifier
+            identifier: profile.identifier,
+            clientIp
         });
         return;
     }
@@ -300,7 +313,8 @@ export async function upsertSocialProfile(
             await observeBinding('new_provider_attached_to_existing_member', {
                 mbId,
                 provider: providerLower,
-                identifier: profile.identifier
+                identifier: profile.identifier,
+                clientIp
             });
         }
 
