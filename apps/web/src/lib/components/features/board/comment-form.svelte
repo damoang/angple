@@ -15,6 +15,8 @@
     import type { BoardPermissions } from '$lib/api/types.js';
     import { apiClient } from '$lib/api/index.js';
     import { stripAdminMentions } from '$lib/utils/sanitize-mentions.js';
+    import { checkContent, NUDGE_ENFORCED } from '$lib/utils/politeness-filter.js';
+    import PolitenessNudgeDialog from './politeness-nudge-dialog.svelte';
     import Send from '@lucide/svelte/icons/send';
     import RefreshCw from '@lucide/svelte/icons/refresh-cw';
     import X from '@lucide/svelte/icons/x';
@@ -182,6 +184,38 @@
 
     let isSubmitting = $state(false);
 
+    // ── 작성 시점 경어체/비속어 넛지 (순수 정규식 · observe-first) ──────────────
+    let nudgeOpen = $state(false);
+    let nudgeResult = $state<{ politeness: boolean; profanity: boolean }>({
+        politeness: false,
+        profanity: false
+    });
+    let nudgeResolve: ((proceed: boolean) => void) | null = null;
+
+    /**
+     * 넛지 검사. 걸릴 게 없으면 즉시 통과.
+     * NUDGE_ENFORCED=false 면 모달을 띄우지 않고 관측만(콘솔) 하고 통과시킨다.
+     * true 면 모달을 띄우고 사용자의 [수정]/[무시하고 글쓰기] 선택을 기다린다.
+     */
+    function askNudge(text: string): Promise<boolean> {
+        const r = checkContent(text);
+        if (!r.politeness && !r.profanity) return Promise.resolve(true);
+        if (!NUDGE_ENFORCED) {
+            console.info('[politeness-nudge:observe]', { scope: 'comment', ...r });
+            return Promise.resolve(true);
+        }
+        nudgeResult = r;
+        nudgeOpen = true;
+        return new Promise<boolean>((resolve) => (nudgeResolve = resolve));
+    }
+
+    function decideNudge(proceed: boolean): void {
+        nudgeOpen = false;
+        const resolve = nudgeResolve;
+        nudgeResolve = null;
+        resolve?.(proceed);
+    }
+
     async function handleSubmit(e: Event): Promise<void> {
         e.preventDefault();
 
@@ -201,6 +235,8 @@
 
         try {
             const submitContent = await stripAdminMentions(convertEmoticonImages(content.trim()));
+            // 등록 직전 넛지 검사. [수정] 선택 시 여기서 멈춘다(finally 가 isSubmitting 해제).
+            if (!(await askNudge(submitContent))) return;
             // 별점은 원댓글(리뷰)에만 — 대댓글/비rating 보드는 undefined
             const reviewRating = showRating && !isReplyMode && rating > 0 ? rating : undefined;
             await onSubmit(submitContent, parentId, false, undefined, reviewRating);
@@ -473,6 +509,14 @@
             onchange={handleFileChange}
         />
     </form>
+
+    <PolitenessNudgeDialog
+        bind:open={nudgeOpen}
+        politeness={nudgeResult.politeness}
+        profanity={nudgeResult.profanity}
+        onEdit={() => decideNudge(false)}
+        onProceed={() => decideNudge(true)}
+    />
 {:else if authStore.isAuthenticated && !canUseCertifiedAction(authStore.user, boardId)}
     <div class="bg-muted/50 rounded-md p-4 text-center">
         <p class="text-muted-foreground">
