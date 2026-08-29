@@ -608,7 +608,11 @@ function createUiSettingsStore() {
             if (BLUR_KEYWORDS.some((k) => lower.includes(k.toLowerCase()))) return true;
             // 스포일러 계열: 부정/관용 표현(노스포·스포주의 등)이 있으면 블러 제외
             if (BLUR_SPOILER_WHITELIST.some((w) => lower.includes(w.toLowerCase()))) return false;
-            return BLUR_SPOILER_KEYWORDS.some((k) => lower.includes(k.toLowerCase()));
+            // '스포' 는 뒤에 한글 음절이 오면 더 긴 단어의 일부이므로 제외(스포츠·스포티파이·스포트라이트 오탐 방지).
+            // '스포일러' 등 나머지 키워드는 그대로 포함 매칭.
+            return BLUR_SPOILER_KEYWORDS.some((k) =>
+                k === '스포' ? /스포(?![가-힣])/.test(lower) : lower.includes(k.toLowerCase())
+            );
         }
     };
 }
