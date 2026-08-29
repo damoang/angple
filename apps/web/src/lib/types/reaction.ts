@@ -87,6 +87,90 @@ export function hexToEmoji(hex: string): string {
 }
 
 /** 리액션의 표시 정보를 동적으로 생성 */
+/**
+ * `import-image:` 리액션의 실제 확장자 표.
+ *
+ * ⭐ 이 집합은 **닫혀 있다.** `REACTION_REPLACE` 를 비운 뒤로 새 `import-image` 는
+ *    생기지 않고, 이모티콘 피커도 이 종류를 제공하지 않는다. 그래서 표가 정본이다.
+ * ⛔ 소비 코드가 `.webp` 를 하드코딩해 왔는데 실제로는 gif 40 · webp 9 · jpg 8 이다.
+ *    (2026-08-29 `g5_da_reaction` 76개 × legacy-data 전수 대조)
+ */
+const IMPORT_IMAGE_EXT: Record<string, string> = {
+    'damoang-air-001': 'webp',
+    'damoang-air-003': 'gif',
+    'damoang-air-004': 'gif',
+    'damoang-air-005': 'webp',
+    'damoang-air-006': 'gif',
+    'damoang-air-010': 'gif',
+    'damoang-air-011': 'gif',
+    'damoang-emo-000': 'gif',
+    'damoang-emo-004': 'gif',
+    'damoang-emo-005': 'gif',
+    'damoang-emo-006': 'gif',
+    'damoang-emo-007': 'gif',
+    'damoang-emo-008': 'gif',
+    'damoang-emo-011': 'gif',
+    'damoang-emo-012': 'gif',
+    'damoang-emo-014': 'gif',
+    'damoang-emo-015': 'gif',
+    'damoang-emo-016': 'gif',
+    'damoang-emo-017': 'gif',
+    'damoang-emo-023': 'gif',
+    'damoang-emo-025': 'gif',
+    'damoang-emo-026': 'gif',
+    'damoang-emo-028': 'gif',
+    'damoang-emo-029': 'gif',
+    'damoang-emo-030': 'gif',
+    'damoang-emo-031': 'gif',
+    'damoang-emo-033': 'webp',
+    'damoang-emo-036': 'webp',
+    'damoang-emo-037': 'webp',
+    'damoang-emo-038': 'gif',
+    'damoang-emo-040': 'gif',
+    'damoang-emo-041': 'gif',
+    'damoang-emo-042': 'gif',
+    'damoang-emo-043': 'gif',
+    'damoang-meme-002': 'gif',
+    'damoang-meme-007': 'webp',
+    'damoang-meme-016': 'webp',
+    'damoang-meme-023': 'webp',
+    'damoang-meme-030': 'gif',
+    'damoang-meme-037': 'gif',
+    'damoang-meme-63': 'webp',
+    'damoang-meme-69': 'jpg',
+    'logo-muzia': 'jpg',
+    'moon-emo-016': 'gif',
+    'onion-001': 'gif',
+    'onion-006': 'gif',
+    'onion-038': 'gif',
+    'onion-113': 'gif',
+    'onion-161': 'gif',
+    'onion-254': 'gif',
+    'onion-269': 'gif',
+    'president-003': 'jpg',
+    'president-006': 'jpg',
+    'welcome-001': 'jpg',
+    'welcome-002': 'jpg',
+    'welcome-003': 'jpg',
+    'welcome-004': 'jpg'
+};
+
+/**
+ * 원본이 서버에 남아 있지 않은 19개용 중립 아이콘.
+ *
+ * ⛔ 리액션 행을 지우면 반응 수가 줄어 이상해지므로 남긴다. 네트워크를 타지 않는
+ *    data URI 라 404 가 나지 않는다(`img-src 'self' data: blob: https:` 로 CSP 통과 확인).
+ */
+export const BROKEN_REACTION_ICON =
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">' +
+            '<circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".45"/>' +
+            '<path d="M7 8.2a3 3 0 0 1 5.6 1.3c0 2-2.6 2.2-2.6 3.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".45"/>' +
+            '<circle cx="10" cy="15.4" r=".9" fill="currentColor" opacity=".45"/>' +
+            '</svg>'
+    );
+
 export function getReactionDisplay(reaction: string): {
     renderType: ReactionRenderType;
     emoji?: string;
@@ -141,12 +225,18 @@ export function getReactionDisplay(reaction: string): {
                 label: `Noto ${reactionId}`
             };
         }
-        case 'import-image':
+        case 'import-image': {
+            const ext = IMPORT_IMAGE_EXT[reactionId];
             return {
                 renderType: 'image',
-                url: `/api/emoticons/da_reaction/${reactionId}.webp`,
+                // ⛔ da_reaction 경로를 쓰면 안 된다. 그 요청은 호스트 nginx 규칙에 없어
+                //    파드의 SvelteKit 라우트로 가는데, 파드에는 `/home/damoang/legacy-data`
+                //    가 마운트돼 있지 않아 **항상 404** 다(2026-08-29 파드 안에서 실측).
+                //    nariya 는 호스트 nginx 가 alias 로 직접 서빙해 200 이다 — 같은 파일이다.
+                url: ext ? `/api/emoticons/nariya/${reactionId}.${ext}` : BROKEN_REACTION_ICON,
                 label: `이미지 ${reactionId}`
             };
+        }
         default:
             return { renderType: 'emoji', emoji: reaction, label: reaction };
     }

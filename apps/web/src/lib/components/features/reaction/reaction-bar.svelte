@@ -6,7 +6,8 @@
         getReactionDisplay,
         generateDocumentTargetId,
         generateCommentTargetId,
-        generateParentId
+        generateParentId,
+        BROKEN_REACTION_ICON
     } from '$lib/types/reaction.js';
     import {
         REACTION_CATEGORIES,
@@ -290,12 +291,15 @@
         return () => document.removeEventListener('click', handleClickOutside);
     });
     /**
-     * 이모티콘 이미지가 404 일 때 대체 표시.
+     * 이모티콘 이미지가 404 일 때의 **일반 안전망**.
      *
-     * ⛔ `import-image:` 리액션 76개 중 19개는 원본 파일이 **서버 어디에도 없다**
-     *    (2026-08-29 전수 확인). 지우면 리액션 수가 줄어 이상해지므로 남기되,
-     *    액박 대신 중립 아이콘을 보여준다.
+     * ⭐ `import-image:` 액박은 이걸로 막지 않는다 — `getReactionDisplay` 가
+     *    처음부터 올바른 URL(또는 data URI)을 주도록 고쳤다. 소비 지점이 셋이라
+     *    (리액션바·리액터 다이얼로그·emoji-awards 위젯) 근원에서 고치는 쪽이 맞다.
+     *    이 핸들러는 그 밖의 이미지가 깨졌을 때를 위한 여분이다.
      * ⛔ 대체 이미지도 실패하면 무한 루프가 되므로 한 번만 바꾼다.
+     * ⛔ `<picture>` 안에서 `<source media>` 가 매칭되면 `img.src` 교체가 무시된다.
+     *    (import-image 는 staticUrl 이 없어 source 가 안 생기므로 이번 건엔 무해)
      */
     const BROKEN_ICON =
         'data:image/svg+xml;utf8,' +
@@ -313,7 +317,7 @@
         const img = event.currentTarget as HTMLImageElement | null;
         if (!img || img.dataset.fallbackApplied === '1') return;
         img.dataset.fallbackApplied = '1';
-        img.src = BROKEN_ICON;
+        img.src = BROKEN_REACTION_ICON;
     }
 </script>
 
