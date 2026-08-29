@@ -289,6 +289,32 @@
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
     });
+    /**
+     * 이모티콘 이미지가 404 일 때 대체 표시.
+     *
+     * ⛔ `import-image:` 리액션 76개 중 19개는 원본 파일이 **서버 어디에도 없다**
+     *    (2026-08-29 전수 확인). 지우면 리액션 수가 줄어 이상해지므로 남기되,
+     *    액박 대신 중립 아이콘을 보여준다.
+     * ⛔ 대체 이미지도 실패하면 무한 루프가 되므로 한 번만 바꾼다.
+     */
+    const BROKEN_ICON =
+        'data:image/svg+xml;utf8,' +
+        encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">' +
+                '<circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" ' +
+                'stroke-width="1.5" opacity=".45"/>' +
+                '<path d="M7 8.2a3 3 0 0 1 5.6 1.3c0 2-2.6 2.2-2.6 3.8" fill="none" ' +
+                'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".45"/>' +
+                '<circle cx="10" cy="15.4" r=".9" fill="currentColor" opacity=".45"/>' +
+                '</svg>'
+        );
+
+    function handleIconError(event: Event) {
+        const img = event.currentTarget as HTMLImageElement | null;
+        if (!img || img.dataset.fallbackApplied === '1') return;
+        img.dataset.fallbackApplied = '1';
+        img.src = BROKEN_ICON;
+    }
 </script>
 
 <div class="reaction-bar-root relative inline-flex flex-wrap items-center gap-1.5">
@@ -320,7 +346,12 @@
                             media="(prefers-reduced-motion: reduce)"
                         />
                     {/if}
-                    <img src={display.url} alt={display.label} class="h-5 w-5 object-scale-down" />
+                    <img
+                        src={display.url}
+                        alt={display.label}
+                        class="h-5 w-5 object-scale-down"
+                        onerror={handleIconError}
+                    />
                 </picture>
             {:else}
                 <span class="text-base leading-none">{display.emoji}</span>

@@ -219,10 +219,16 @@ const NOTO_ANIMOJI: EmoticonDef[] = [
     }
 ];
 
-// 리액션 교체 맵 (PHP와 동일: emoji:1f389 → import-image:ezgif-55990bc446328e)
-export const REACTION_REPLACE: Record<string, string> = {
-    'emoji:1f389': 'import-image:ezgif-55990bc446328e'
-};
+/**
+ * 리액션 교체 맵.
+ *
+ * ⛔ 2026-08-29 비움. 예전에는 `emoji:1f389` → `import-image:ezgif-55990bc446328e` 였는데,
+ *    그 이미지 파일이 **서버 어디에도 없다**(legacy-data·staging·아카이브 전부 확인).
+ *    그래서 회원이 🎉 를 누를 때마다 **액박이 새로 만들어지고 있었다** —
+ *    실측 25행 48회로 다른 import-image(1~4회)보다 압도적이었던 이유다.
+ *    파일을 되찾으면 그때 되살린다. 그 전까지는 🎉 를 그대로 쓴다.
+ */
+export const REACTION_REPLACE: Record<string, string> = {};
 
 /** 전체 이모티콘 목록 */
 export const REACTION_EMOTICONS: EmoticonDef[] = [...EMOJIS, ...ANGTICONS, ...NOTO_ANIMOJI];
