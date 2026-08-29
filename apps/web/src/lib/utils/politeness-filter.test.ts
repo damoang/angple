@@ -207,3 +207,38 @@ describe('종합 / 필수 대조군', () => {
         expect(checkContent(t)).toEqual(checkContent(t));
     });
 });
+
+describe('튜닝 — 실데이터 600건 FP 대응 (Evaluator 피드백)', () => {
+    it('1) 단독 "새끼"(동물/신체) 오탐 제거 — 사람 지칭 조합만 잡는다', () => {
+        // 잡으면 안 됨
+        expect(profanity('강아지 새끼가 너무 귀여워요')).toBe(false);
+        expect(profanity('고양이 새끼 세 마리')).toBe(false);
+        expect(profanity('새끼손가락 다쳤어요')).toBe(false);
+        // 여전히 잡아야 함
+        expect(profanity('개새끼야')).toBe(true);
+        expect(profanity('이새끼 진짜')).toBe(true);
+        expect(profanity('저새끼 뭐냐')).toBe(true);
+    });
+
+    it('2) 요→여 / 니다→미다 오타를 존댓으로 흡수 (문장 끝)', () => {
+        expect(politeness('그러네여')).toBe(false);
+        expect(politeness('이거 맞나 인가여')).toBe(false);
+        expect(politeness('저도 같아여')).toBe(false);
+        expect(politeness('감사합미다')).toBe(false);
+        expect(politeness('여기 있습미다')).toBe(false);
+    });
+
+    it('3) 혼합문 — 존댓 마커가 하나라도 있으면 전역으로 통과', () => {
+        expect(politeness('잘 모르겠군요 진작 나왔어야지')).toBe(false);
+        expect(politeness('그거 하는거죠 근데 깠으니 어쩔')).toBe(false);
+        expect(politeness('좋네요 근데 별로다')).toBe(false);
+        expect(politeness('맞을까요 아닐수도 있지')).toBe(false);
+    });
+
+    it('유지 — 진짜 반말은 그대로 잡는다 (과교정 금지)', () => {
+        expect(politeness('표을 줄수가 없다')).toBe(true);
+        expect(politeness('보장이 없다')).toBe(true);
+        expect(politeness('볼거 같다')).toBe(true);
+        expect(politeness('이랜다')).toBe(true);
+    });
+});
