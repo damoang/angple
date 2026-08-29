@@ -102,6 +102,12 @@ describe('A. 존댓말 마커가 하나라도 있으면 통과', () => {
         expect(politeness('여기 앉으십시오')).toBe(false);
     });
 
+    it('죠→져 귀여운 변형(시져 등)은 존댓이라 통과', () => {
+        expect(politeness('오늘은 비 안오시져? 설마?요')).toBe(false); // 필수 케이스
+        expect(politeness('그러시져')).toBe(false);
+        expect(politeness('이거 하져?')).toBe(false);
+    });
+
     it('반말과 존댓이 섞여도 존댓이 하나 있으면 통과', () => {
         expect(politeness('이건 별로다. 그래도 감사합니다')).toBe(false);
     });

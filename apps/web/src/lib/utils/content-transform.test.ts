@@ -369,9 +369,20 @@ describe('transformEmoticons - 팩별 기본 폭 (bug#13145)', () => {
         expect(transformEmoticons('{emo:onion-133.gif}')).toContain('width="50"');
     });
 
-    it('DINKIssTyle 계열도 여유가 없어 그대로 50px', () => {
+    // 2026-08-29: DINKIssTyle 앙티콘 계열(원본 >=100w)은 100px 로 상향. face/flag(64w)는 확대되면 뭉개져 그대로 둔다.
+    it('DINKIssTyle 앙티콘 계열(128w/104w)은 100px', () => {
+        expect(transformEmoticons('{emo:DINKIssTyle-3d-ang-001.webp}')).toContain('width="100"');
+        expect(transformEmoticons('{emo:DINKIssTyle-ang-001.webp}')).toContain('width="100"');
+        expect(transformEmoticons('{emo:DINKIssTyle-ani-001.webp}')).toContain('width="100"');
+        expect(transformEmoticons('{emo:DINKIssTyle-animal-001.webp}')).toContain('width="100"');
+        expect(transformEmoticons('{emo:DINKIssTyle-anniversary-001.webp}')).toContain(
+            'width="100"'
+        );
+    });
+
+    it('DINKIssTyle-face/flag 은 원본 64px 라 그대로 50px (올리면 뭉개진다)', () => {
         expect(transformEmoticons('{emo:DINKIssTyle-face-003.webp}')).toContain('width="50"');
-        expect(transformEmoticons('{emo:DINKIssTyle-3d-ang-001.webp}')).toContain('width="50"');
+        expect(transformEmoticons('{emo:DINKIssTyle-flag-001.webp}')).toContain('width="50"');
     });
 
     it('팩에 속하지 않는 파일은 기본 50px', () => {

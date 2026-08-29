@@ -76,7 +76,17 @@ const PACK_DEFAULT_WIDTH: ReadonlyArray<readonly [string, number]> = [
     ['lee-president-', 100],
     ['president-', 100],
     ['damoang-sol-', 100],
-    ['damoang-emo-', 80]
+    ['damoang-emo-', 80],
+    // 2026-08-29 추가 — DINKIssTyle 앙티콘 계열(운영 파일 실측). 폭 >=100 인 팩만 100px.
+    //   3d-ang/ang/animal/anniversary 원본 128w · ani 104w → 100px 는 확대 아님(선명).
+    //   ⛔ flag(64w)·face(64w)는 제외 — 100px 로 올리면 1.5배 확대되어 뭉개진다.
+    //   ⛔ 접두사는 소문자·끝 하이픈 유지(defaultWidthFor 가 lower 로 비교). 'dinkisstyle-ani-'
+    //      는 'dinkisstyle-animal-' 을 잡지 않는다(끝 하이픈 때문 — startsWith).
+    ['dinkisstyle-3d-ang-', 100],
+    ['dinkisstyle-ang-', 100],
+    ['dinkisstyle-ani-', 100],
+    ['dinkisstyle-animal-', 100],
+    ['dinkisstyle-anniversary-', 100]
 ];
 
 /**
