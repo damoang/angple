@@ -16,7 +16,7 @@
  */
 
 /** 넛지 집행 스위치. false = confirm 안 띄우고 관측만(observe-first). 측정 후 켠다. */
-export const NUDGE_ENFORCED = false;
+export const NUDGE_ENFORCED = true;
 
 /** checkContent 결과. 각 필드 true = 해당 넛지가 발동할 후보. */
 export interface ContentCheck {
