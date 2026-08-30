@@ -2,6 +2,7 @@
     import type { GivingDrawResult } from './api.js';
     import { methodLabel } from './methods.js';
     import { simulateLadder } from './pure/ladder.js';
+    import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
 
     let { draw }: { draw: GivingDrawResult } = $props();
 
@@ -54,7 +55,7 @@
         {#if draw.method === 'lowest_unique' && draw.winning_number != null}
             <p class="text-foreground text-sm">
                 당첨 번호 <strong class="text-primary">{draw.winning_number}</strong> —
-                <strong>{nick(winners[0])}</strong>
+                <strong><AuthorLink authorId={winners[0]} authorName={nick(winners[0])} /></strong>
             </p>
         {:else}
             <p class="text-foreground mb-1 text-sm">당첨자</p>
@@ -63,7 +64,7 @@
                     <li
                         class="rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
                     >
-                        {nick(w)}
+                        <AuthorLink authorId={w} authorName={nick(w)} />
                     </li>
                 {/each}
             </ul>
