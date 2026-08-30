@@ -235,7 +235,7 @@
               모바일은 기본 텍스트 너비만큼만 클릭 영역 — 제목 의도 터치 보호.
             -->
             <DropdownMenu.Trigger
-                class="inline-block cursor-pointer text-left hover:underline focus:outline-none {touchAreaClass} {nowrapClass} {className} {isWithdrawn
+                class="inline-block max-w-[11rem] cursor-pointer truncate text-left align-middle hover:underline focus:outline-none {touchAreaClass} {nowrapClass} {className} {isWithdrawn
                     ? 'line-through opacity-60'
                     : ''}"
             >

@@ -4,6 +4,7 @@
     import Search from '@lucide/svelte/icons/search';
     import User from '@lucide/svelte/icons/user';
     import Bell from '@lucide/svelte/icons/bell';
+    import Bookmark from '@lucide/svelte/icons/bookmark';
     import X from '@lucide/svelte/icons/x';
     import Home from '@lucide/svelte/icons/home';
     import Sun from '@lucide/svelte/icons/sun';
@@ -488,6 +489,16 @@
             {/if}
 
             {#if !authResolving && isEffectivelyLoggedIn}
+                <!-- 스크랩 바로가기 (버그판 #13725: 스크랩 접근성) -->
+                <a
+                    href="/my/scraps"
+                    class="hover:bg-accent relative rounded-lg p-2 transition-all duration-200 ease-out"
+                    aria-label="내 스크랩"
+                >
+                    <span class="pointer-events-none absolute -inset-1"></span>
+                    <Bookmark class="text-muted-foreground h-5 w-5" />
+                </a>
+
                 <!-- 쪽지 아이콘 + 미읽음 배지 -->
                 <MessageIcon />
 
