@@ -17,7 +17,11 @@ export const GET: RequestHandler = async ({ url }) => {
     try {
         // 주요 게시판에서 최근 게시글 20개
         const [boards] = await pool.query<RowDataPacket[]>(
-            'SELECT bo_table, bo_subject FROM g5_board WHERE bo_use_search = 1 ORDER BY bo_order LIMIT 10'
+            // ⛔ `bo_use_search` 만 보면 회원/관리자 전용 보드가 섞인다.
+            //    gnuboard 규약상 비회원 = 레벨 1 이므로 `<= 1` 만 게스트 공개다.
+            `SELECT bo_table, bo_subject FROM g5_board
+              WHERE bo_use_search = 1 AND bo_list_level <= 1 AND bo_read_level <= 1
+              ORDER BY bo_order LIMIT 10`
         );
 
         const allPosts: Array<{
