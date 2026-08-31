@@ -1,4 +1,5 @@
 import type { RequestHandler } from './$types';
+import { rssEtag, etagMatches, rssHeaders } from './headers.js';
 import pool from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-mask.js';
@@ -7,7 +8,7 @@ import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-ma
  * 전체 RSS 피드 (최근 게시글)
  * RSS 2.0 규격
  */
-export const GET: RequestHandler = async ({ url }) => {
+export const GET: RequestHandler = async ({ url, request }) => {
     const siteUrl = url.origin;
     const siteTitle = import.meta.env.VITE_SITE_NAME || 'Angple';
     const siteDescription = `${siteTitle} 커뮤니티 - 최근 게시글`;
@@ -109,12 +110,12 @@ ${items}
   </channel>
 </rss>`;
 
-    return new Response(xml, {
-        headers: {
-            'Content-Type': 'application/rss+xml; charset=utf-8',
-            'Cache-Control': 'max-age=1800'
-        }
-    });
+    // ⭐ 본문을 만든 뒤 해시로 판정한다. 삭제·수정·마스킹 무엇이든 여기 반영된다.
+    const etag = rssEtag(xml);
+    if (etagMatches(request, etag)) {
+        return new Response(null, { status: 304, headers: rssHeaders(etag) });
+    }
+    return new Response(xml, { headers: rssHeaders(etag) });
 };
 
 /** HTML 태그를 반복 제거 (중첩 태그 우회 방지) */
