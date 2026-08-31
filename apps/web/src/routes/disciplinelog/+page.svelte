@@ -80,8 +80,13 @@
     const grouped = $derived.by(() => {
         const acc: { date: string; items: DisciplineLogListItem[] }[] = [];
         for (const log of logs) {
-            const last = acc[acc.length - 1];
-            if (last && last.date === log.penalty_date_from) last.items.push(log);
+            // ⛔ 연속 병합만 하면 penalty_date_from 이 비연속으로 같은 날짜가 나올 때
+            //    (날짜 없는 기록이 사이에 끼는 등) 같은 date 그룹이 둘 생겨
+            //    {#each grouped (group.date)} 키가 중복 → svelte each_key_duplicate 로
+            //    페이지 전체가 크래시(빈 화면)한다. 날짜 전체 기준으로 묶어 각 날짜가
+            //    정확히 한 그룹이 되게 한다(Map 금지 규칙 → find 로 접는다).
+            const g = acc.find((x) => x.date === log.penalty_date_from);
+            if (g) g.items.push(log);
             else acc.push({ date: log.penalty_date_from, items: [log] });
         }
         return acc;
