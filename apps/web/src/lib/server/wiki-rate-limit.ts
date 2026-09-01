@@ -16,6 +16,7 @@
  * 막지 않는다. (실제 차단은 wikiang_ip_blocks → isIpBlocked 가 담당.)
  */
 import { getRedis } from '$lib/server/redis';
+import { hashIp } from '$lib/server/wiki';
 
 /**
  * IP(또는 회원)당 위키 편집 한도. 조정하기 쉽도록 상수로 분리.
@@ -70,7 +71,10 @@ export async function checkWikiEditRateLimit(
     userId: number | null
 ): Promise<RateLimitResult> {
     // 주체를 특정할 수 없으면 카운트 불가 → 허용 (isIpBlocked 와 동일 정책)
-    const subject = userId != null ? `u:${userId}` : ip ? `ip:${ip}` : null;
+    // ⛔ 원본 IP 를 Redis 키에 넣지 않는다 — Redis 는 damoang 과 공유 인스턴스라
+    //    raw IP 가 들어가면 IP↔편집 상관이 경계 밖으로 샌다. 해시로만 카운트한다
+    //    (같은 IP=같은 해시라 한도 강제는 동일). 원본 IP 는 wka_wiki 의 author_ip 에만.
+    const subject = userId != null ? `u:${userId}` : ip ? `ip:${hashIp(ip)}` : null;
     if (!subject) return { allowed: true };
 
     try {
