@@ -1,11 +1,41 @@
 <script lang="ts">
     import type { PageData } from './$types';
     import { page } from '$app/stores';
+    import { goto } from '$app/navigation';
 
     const { data }: { data: PageData } = $props();
 
     let selectedOld = $state<number | null>(null);
     let selectedNew = $state<number | null>(null);
+    let revertingId = $state<number | null>(null);
+    let revertError = $state<string | null>(null);
+
+    // 되돌리기: 해당 리비전 내용으로 새 리비전을 생성한다(히스토리 보존)
+    async function revert(revisionId: number, versionNumber: number) {
+        if (revertingId !== null) return;
+        if (!confirm(`버전 v${versionNumber} 내용으로 되돌립니다. 진행할까요?`)) {
+            return;
+        }
+        revertingId = revisionId;
+        revertError = null;
+        try {
+            const response = await fetch(`/api/wiki/pages/${data.wikiPage.id}/revert`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ revisionId })
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || '되돌리기에 실패했습니다.');
+            }
+            // 되돌려진 문서로 이동
+            goto(`/wiki${result.path}`);
+        } catch (err) {
+            revertError = err instanceof Error ? err.message : '되돌리기에 실패했습니다.';
+        } finally {
+            revertingId = null;
+        }
+    }
 
     // 작성자 표시: 로그인 회원은 표시명, 익명(author_id NULL)은 IP 해시 라벨
     function authorLabel(revision: {
@@ -173,6 +203,10 @@
                     </a>
                 </div>
 
+                {#if revertError}
+                    <p class="error-message">{revertError}</p>
+                {/if}
+
                 <table class="revision-table">
                     <thead>
                         <tr>
@@ -182,6 +216,7 @@
                             <th class="col-author">편집자</th>
                             <th class="col-size">크기</th>
                             <th class="col-comment">편집 요약</th>
+                            <th class="col-action">작업</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -227,6 +262,23 @@
                                         <span class="minor-badge">사소한 편집</span>
                                     {/if}
                                     {revision.comment || ''}
+                                </td>
+                                <td class="col-action">
+                                    {#if index > 0}
+                                        <button
+                                            type="button"
+                                            class="revert-button"
+                                            disabled={revertingId !== null}
+                                            onclick={() =>
+                                                revert(revision.id, revision.version_number)}
+                                        >
+                                            {revertingId === revision.id
+                                                ? '되돌리는 중…'
+                                                : '되돌리기'}
+                                        </button>
+                                    {:else}
+                                        <span class="current-label">현재</span>
+                                    {/if}
                                 </td>
                             </tr>
                         {/each}
@@ -322,6 +374,35 @@
 
     .col-size {
         white-space: nowrap;
+    }
+
+    .col-action {
+        white-space: nowrap;
+        text-align: center;
+    }
+
+    .revert-button {
+        padding: 0.25rem 0.625rem;
+        font-size: 0.8125rem;
+        color: var(--primary);
+        background-color: transparent;
+        border: 1px solid var(--border);
+        border-radius: 0.25rem;
+        cursor: pointer;
+    }
+
+    .revert-button:hover:not(:disabled) {
+        background-color: var(--muted);
+    }
+
+    .revert-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .current-label {
+        color: var(--muted-foreground);
+        font-size: 0.8125rem;
     }
 
     .current {

@@ -273,6 +273,29 @@ export async function getRevisionById(revisionId: number): Promise<WikiRevision 
 }
 
 /**
+ * 특정 페이지의 특정 버전 번호 리비전 조회
+ */
+export async function getRevisionByVersion(
+    pageId: number,
+    versionNumber: number
+): Promise<WikiRevision | null> {
+    const [rows] = await readPool.execute<RowDataPacket[]>(
+        `SELECT r.id, r.page_id, r.content, r.content_raw, r.content_type,
+                r.version_number, r.version_date, r.comment, r.is_minor,
+                r.author_id, r.author_ip_hash, r.size, r.delta,
+                u.display_name AS author_name
+         FROM wikiang_revisions r
+         LEFT JOIN wikiang_users u ON r.author_id = u.id
+         WHERE r.page_id = ? AND r.version_number = ?
+         LIMIT 1`,
+        [pageId, versionNumber]
+    );
+
+    if (rows.length === 0) return null;
+    return rows[0] as WikiRevision;
+}
+
+/**
  * 두 리비전 간 비교를 위한 데이터 조회
  * 실제 diff 계산은 클라이언트에서 처리 (diff-match-patch 등 사용)
  */
@@ -548,6 +571,62 @@ export async function getWikiPageById(pageId: number): Promise<WikiPage | null> 
 
     if (rows.length === 0) return null;
     return rows[0] as WikiPage;
+}
+
+/**
+ * 되돌리기: 과거 리비전 내용으로 페이지를 복원한다.
+ *
+ * 파괴적 롤백이 아니라 "그 내용으로 새 리비전을 하나 더 쌓는" 방식이라
+ * 히스토리가 그대로 보존된다. 대상 리비전의 content/content_raw/content_type
+ * 만 가져와 복원하고, 제목·설명은 현재 페이지 값을 유지한다.
+ * 작성자 귀속은 요청자(userId 또는 IP) — 원본 리비전 작성자를 승계하지 않는다.
+ *
+ * @param ref 되돌릴 대상 리비전. revisionId 또는 versionNumber 중 하나.
+ */
+export async function revertWikiPage(
+    pageId: number,
+    ref: { revisionId?: number; versionNumber?: number },
+    author: WikiAuthor
+): Promise<{ revisionId: number; versionNumber: number; path: string; sourceVersion: number }> {
+    // 1. 대상 리비전 로드
+    const target =
+        ref.revisionId != null
+            ? await getRevisionById(ref.revisionId)
+            : ref.versionNumber != null
+              ? await getRevisionByVersion(pageId, ref.versionNumber)
+              : null;
+
+    if (!target || target.page_id !== pageId) {
+        throw new Error('되돌릴 리비전을 찾을 수 없습니다.');
+    }
+
+    // 2. 현재 페이지(제목·설명 유지용)
+    const page = await getWikiPageById(pageId);
+    if (!page) {
+        throw new Error('페이지를 찾을 수 없습니다.');
+    }
+
+    // 3. 대상 내용으로 새 리비전 생성 (updateWikiPage 재사용 → delta/버전/캐시무효화 일관)
+    const result = await updateWikiPage(
+        pageId,
+        {
+            title: page.title,
+            content: target.content || '',
+            content_raw: target.content_raw || '',
+            content_type: target.content_type,
+            description: page.description || undefined,
+            comment: `되돌리기: v${target.version_number}`,
+            is_minor: false
+        },
+        author
+    );
+
+    return {
+        revisionId: result.revisionId,
+        versionNumber: result.versionNumber,
+        path: page.path,
+        sourceVersion: target.version_number
+    };
 }
 
 /**
