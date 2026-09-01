@@ -6,6 +6,7 @@ name: Repo Guards
 #  2) 커밋/PR 에 AI 어시스턴트 서명 문구 금지 — 공개 저장소 정책.
 on:
   pull_request:
+    types: [opened, synchronize, reopened, edited]
 
 jobs:
   guards:
