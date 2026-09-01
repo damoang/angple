@@ -7,6 +7,16 @@
     let selectedOld = $state<number | null>(null);
     let selectedNew = $state<number | null>(null);
 
+    // 작성자 표시: 로그인 회원은 표시명, 익명(author_id NULL)은 IP 해시 라벨
+    function authorLabel(revision: {
+        author_name: string | null;
+        author_ip_hash: string | null;
+    }): string {
+        if (revision.author_name) return revision.author_name;
+        if (revision.author_ip_hash) return `익명(${revision.author_ip_hash})`;
+        return '익명';
+    }
+
     function formatDate(date: Date | string): string {
         return new Date(date).toLocaleString('ko-KR', {
             year: 'numeric',
@@ -204,7 +214,7 @@
                                     {formatDate(revision.version_date)}
                                 </td>
                                 <td class="col-author">
-                                    {revision.author_name || '익명'}
+                                    {authorLabel(revision)}
                                 </td>
                                 <td class="col-size">
                                     {formatSize(revision.size)}

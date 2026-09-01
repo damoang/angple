@@ -5,8 +5,71 @@
  * - 페이지 조회, 리비전 조회/비교, 카테고리/태그, 검색
  */
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { createHash } from 'node:crypto';
+import { env } from '$env/dynamic/private';
 import { readPool, pool } from '$lib/server/db';
 import { createCache } from '$lib/server/cache';
+
+// ============================================
+// 익명편집: 작성자(IP) 귀속 유틸
+// ============================================
+
+/**
+ * 위키 편집 작성자 정보.
+ * - userId: 로그인 회원이면 회원 ID, 익명이면 null (레거시 author_id 보존)
+ * - ip: 원본 클라이언트 IP (서버 차단/수사 전용 — 절대 응답/표시로 내보내지 말 것)
+ * - ipHash: 표시용 안정 해시 (같은 IP=같은 해시). 익명 작성자 라벨에만 사용
+ */
+export interface WikiAuthor {
+    userId: number | null;
+    ip: string | null;
+    ipHash: string | null;
+}
+
+/**
+ * 표시용 IP 해시 생성.
+ * sha256(ip + SALT) 앞 16자. SALT는 필수 env(WIKIANG_IP_HASH_SALT).
+ * 원본 IP 대신 이 값만 노출한다.
+ */
+export function hashIp(ip: string): string {
+    const salt = env.WIKIANG_IP_HASH_SALT;
+    if (!salt) {
+        throw new Error('WIKIANG_IP_HASH_SALT 환경변수가 설정되지 않았습니다.');
+    }
+    return createHash('sha256')
+        .update(ip + salt)
+        .digest('hex')
+        .slice(0, 16);
+}
+
+/**
+ * userId + 원본 IP로 작성자 정보 구성.
+ * 익명(userId=null)이면서 IP가 있으면 표시용 해시를 계산한다.
+ */
+export function makeWikiAuthor(userId: number | null, ip: string | null): WikiAuthor {
+    return {
+        userId: userId ?? null,
+        ip: ip || null,
+        ipHash: ip ? hashIp(ip) : null
+    };
+}
+
+/**
+ * IP가 wikiang_ip_blocks 의 활성 차단 범위에 매칭되는지 조회.
+ * IP를 알 수 없으면(null) 차단 판단 불가 → false(허용).
+ */
+export async function isIpBlocked(ip: string | null): Promise<boolean> {
+    if (!ip) return false;
+    const [rows] = await readPool.execute<RowDataPacket[]>(
+        `SELECT 1
+         FROM wikiang_ip_blocks
+         WHERE INET6_ATON(?) BETWEEN ip_start AND ip_end
+           AND (expires_at IS NULL OR expires_at > NOW())
+         LIMIT 1`,
+        [ip]
+    );
+    return rows.length > 0;
+}
 
 // ============================================
 // 타입 정의
@@ -37,6 +100,7 @@ export interface WikiRevision {
     is_minor: boolean;
     author_id: number | null;
     author_name: string | null;
+    author_ip_hash: string | null;
     size: number;
     delta: number;
 }
@@ -175,7 +239,7 @@ export async function getPageRevisions(
         const [rows] = await readPool.query<RowDataPacket[]>(
             `SELECT r.id, r.page_id, r.content, r.content_raw, r.content_type,
                     r.version_number, r.version_date, r.comment, r.is_minor,
-                    r.author_id, r.size, r.delta,
+                    r.author_id, r.author_ip_hash, r.size, r.delta,
                     u.display_name AS author_name
              FROM wikiang_revisions r
              LEFT JOIN wikiang_users u ON r.author_id = u.id
@@ -195,7 +259,7 @@ export async function getRevisionById(revisionId: number): Promise<WikiRevision 
     const [rows] = await readPool.execute<RowDataPacket[]>(
         `SELECT r.id, r.page_id, r.content, r.content_raw, r.content_type,
                 r.version_number, r.version_date, r.comment, r.is_minor,
-                r.author_id, r.size, r.delta,
+                r.author_id, r.author_ip_hash, r.size, r.delta,
                 u.display_name AS author_name
          FROM wikiang_revisions r
          LEFT JOIN wikiang_users u ON r.author_id = u.id
@@ -521,7 +585,7 @@ export interface WikiPageInput {
 export async function createWikiPage(
     path: string,
     input: WikiPageInput,
-    authorId: number
+    author: WikiAuthor
 ): Promise<{ pageId: number; revisionId: number }> {
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
     const contentType = input.content_type || 'html';
@@ -531,7 +595,7 @@ export async function createWikiPage(
     try {
         await connection.beginTransaction();
 
-        // 1. 페이지 생성
+        // 1. 페이지 생성 (익명이면 author_id=NULL)
         const [pageResult] = await connection.execute<ResultSetHeader>(
             `INSERT INTO wikiang_pages
              (path, title, content, content_raw, content_type, description, author_id, is_published, namespace_id, created_at, updated_at)
@@ -543,16 +607,17 @@ export async function createWikiPage(
                 input.content_raw,
                 contentType,
                 input.description || null,
-                authorId
+                author.userId
             ]
         );
         const pageId = pageResult.insertId;
 
         // 2. 리비전 생성 (버전 1)
+        //    원본 IP는 author_ip(INET6_ATON)에만, 표시용 해시는 author_ip_hash에.
         const [revResult] = await connection.execute<ResultSetHeader>(
             `INSERT INTO wikiang_revisions
-             (page_id, content, content_raw, content_type, version_number, version_date, comment, is_minor, author_id, size, delta)
-             VALUES (?, ?, ?, ?, 1, NOW(), ?, ?, ?, ?, ?)`,
+             (page_id, content, content_raw, content_type, version_number, version_date, comment, is_minor, author_id, author_ip, author_ip_hash, size, delta)
+             VALUES (?, ?, ?, ?, 1, NOW(), ?, ?, ?, INET6_ATON(?), ?, ?, ?)`,
             [
                 pageId,
                 input.content,
@@ -560,7 +625,9 @@ export async function createWikiPage(
                 contentType,
                 input.comment || '문서 생성',
                 input.is_minor || false,
-                authorId,
+                author.userId,
+                author.ip,
+                author.ipHash,
                 size,
                 size
             ]
@@ -586,7 +653,7 @@ export async function createWikiPage(
 export async function updateWikiPage(
     pageId: number,
     input: WikiPageInput,
-    authorId: number
+    author: WikiAuthor
 ): Promise<{ revisionId: number; versionNumber: number }> {
     const contentType = input.content_type || 'html';
     const newSize = Buffer.byteLength(input.content_raw || '', 'utf8');
@@ -631,10 +698,11 @@ export async function updateWikiPage(
         );
 
         // 4. 새 리비전 생성
+        //    원본 IP는 author_ip(INET6_ATON)에만, 표시용 해시는 author_ip_hash에.
         const [revResult] = await connection.execute<ResultSetHeader>(
             `INSERT INTO wikiang_revisions
-             (page_id, content, content_raw, content_type, version_number, version_date, comment, is_minor, author_id, size, delta)
-             VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?)`,
+             (page_id, content, content_raw, content_type, version_number, version_date, comment, is_minor, author_id, author_ip, author_ip_hash, size, delta)
+             VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?, INET6_ATON(?), ?, ?, ?)`,
             [
                 pageId,
                 input.content,
@@ -643,7 +711,9 @@ export async function updateWikiPage(
                 newVersionNumber,
                 input.comment || '',
                 input.is_minor || false,
-                authorId,
+                author.userId,
+                author.ip,
+                author.ipHash,
                 newSize,
                 delta
             ]
