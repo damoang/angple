@@ -1,0 +1,47 @@
+name: Repo Guards
+
+# 회귀·실수를 CI에서 결정적으로 차단하는 가드 모음.
+#  1) 정규식 lookbehind 금지 — 구형 iOS Safari(<16.4)에서 파싱 실패로 페이지 전체가
+#     빈 화면/멈춤이 되는 만성 크래시 재발 방지 (bug/13825).
+#  2) 커밋/PR 에 AI 어시스턴트 서명 문구 금지 — 공개 저장소 정책.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: No regex lookbehind in client source (iOS Safari <16.4 crash)
+        run: |
+          # (?<= / (?<! 는 iOS Safari <16.4 에서 파싱 SyntaxError → 번들 전체 중단.
+          # 대안: 경계 그룹 (^|[^…]) 로 재작성. lookahead (?! (?= 는 허용(전 브라우저 지원).
+          if grep -rnE '\(\?<[=!]' apps/web/src; then
+            echo "::error::정규식 lookbehind (?<= / (?<! 발견 — 구형 iOS Safari에서 크래시합니다. 경계그룹 (^|[^…]) 형태로 바꾸세요."
+            exit 1
+          fi
+          echo "OK: lookbehind 없음"
+
+      - name: No AI-assistant signature in PR body / title / commit messages
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          PATTERN='Generated with Claude|Co-Authored-By: Claude|Co-authored-by: Claude|Claude-Session|noreply@anthropic\.com|🤖 Generated with'
+          fail=0
+          if printf '%s\n%s\n' "$PR_TITLE" "$PR_BODY" | grep -iE "$PATTERN"; then
+            echo "::error::PR 제목/본문에 AI 어시스턴트 서명 문구가 있습니다. 제거 후 다시 올려주세요."
+            fail=1
+          fi
+          git fetch origin "$BASE_REF" --depth=200 --quiet || true
+          if git log --format='%B' "origin/${BASE_REF}..HEAD" | grep -iE "$PATTERN"; then
+            echo "::error::커밋 메시지에 AI 어시스턴트 서명 문구가 있습니다."
+            fail=1
+          fi
+          if [ "$fail" -eq 0 ]; then echo "OK: 서명 문구 없음"; fi
+          exit $fail
