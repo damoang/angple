@@ -3,8 +3,12 @@
  * plain text 및 HTML에서 @멘션을 추출하고 변환
  */
 
-/** 멘션 정규식: @닉네임 패턴 — URL/이메일 내 @는 제외 */
-const MENTION_REGEX = /(?<![a-zA-Z0-9.+_\-/])@([a-zA-Z0-9_가-힣]+)/g;
+/**
+ * 멘션 정규식: @닉네임 패턴 — URL/이메일 내 @는 제외.
+ * iOS Safari <16.4 는 lookbehind(부정 뒤돌아보기) 파싱 시 SyntaxError 이므로,
+ * 앞 경계를 캡처 그룹 `(^|[^…])` 로 대체(닉은 group1 → group2 로 이동).
+ */
+const MENTION_REGEX = /(^|[^a-zA-Z0-9.+_\-/])@([a-zA-Z0-9_가-힣]+)/g;
 
 /** HTML data-mention 속성에서 멘션 추출 정규식 */
 const HTML_MENTION_REGEX = /data-mention="([^"]+)"/g;
@@ -29,7 +33,7 @@ export function extractMentions(content: string): string[] {
     const textOnly = content.replace(/<[^>]+>/g, ' ');
     const textRegex = new RegExp(MENTION_REGEX.source, 'g');
     while ((match = textRegex.exec(textOnly)) !== null) {
-        mentions.add(match[1]);
+        mentions.add(match[2]);
     }
 
     return [...mentions];
@@ -52,9 +56,9 @@ export function highlightMentions(content: string): string {
         .map((part) => {
             if (part.startsWith('<')) return part;
             return part.replace(
-                /(?<![a-zA-Z0-9.+_\-/])@([a-zA-Z0-9_가-힣]+)/g,
-                (_match, nick) =>
-                    `<a href="/member/${encodeURIComponent(nick)}" class="mention-link text-primary font-medium hover:underline" data-mention="${nick}">@${nick}</a>`
+                /(^|[^a-zA-Z0-9.+_\-/])@([a-zA-Z0-9_가-힣]+)/g,
+                (_match, pre, nick) =>
+                    `${pre}<a href="/member/${encodeURIComponent(nick)}" class="mention-link text-primary font-medium hover:underline" data-mention="${nick}">@${nick}</a>`
             );
         })
         .join('');
