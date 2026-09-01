@@ -97,6 +97,20 @@ describe('A. 존댓말 마커가 하나라도 있으면 통과', () => {
         expect(politeness('여기 있습니다')).toBe(false);
     });
 
+    // ── lookbehind → (^|[^아]) 경계그룹 재작성(iOS<16.4) 회귀 방지 ──
+    it('합니다 감지는 재작성 후에도 유지(존댓=통과)', () => {
+        expect(politeness('합니다')).toBe(false);
+    });
+
+    it("'아니다' 는 여전히 반말(존댓 미감지)", () => {
+        expect(politeness('그건 아니다')).toBe(true);
+    });
+
+    it('문두 니다 는 ^ 경계로 존댓 감지(통과)', () => {
+        // '니다'로 시작(앞글자 없음) = 아니다 아님 → 존댓 마커로 인식
+        expect(politeness('니다')).toBe(false);
+    });
+
     it('~세요/십시오 면 통과', () => {
         expect(politeness('꼭 확인해 주세요')).toBe(false);
         expect(politeness('여기 앉으십시오')).toBe(false);

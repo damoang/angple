@@ -32,6 +32,23 @@ describe('extractMentions', () => {
     it('returns empty array for empty input', () => {
         expect(extractMentions('')).toEqual([]);
     });
+
+    // ── lookbehind → 경계그룹 재작성(iOS<16.4) 회귀 방지 ──
+    it('does not match short email like a@b.com', () => {
+        expect(extractMentions('a@b.com')).toEqual([]);
+    });
+
+    it('extracts both adjacent mentions @kim @lee', () => {
+        expect(extractMentions('@kim @lee')).toEqual(['kim', 'lee']);
+    });
+
+    it('extracts only the first in @a@b (second @ has no boundary)', () => {
+        expect(extractMentions('@a@b')).toEqual(['a']);
+    });
+
+    it('matches a leading mention @a (start-of-string boundary)', () => {
+        expect(extractMentions('@a hello')).toEqual(['a']);
+    });
 });
 
 describe('highlightMentions', () => {
@@ -77,5 +94,20 @@ describe('highlightMentions', () => {
 
     it('returns empty string for empty input', () => {
         expect(highlightMentions('')).toBe('');
+    });
+
+    // ── 경계문자 보존: 경계그룹 재작성 시 앞글자 유실 없어야 함 ──
+    it('keeps the leading boundary char before a mention (no char loss)', () => {
+        const result = highlightMentions('a @kim');
+        // 앞의 "a " 가 유실되지 않아야 한다
+        expect(result.startsWith('a ')).toBe(true);
+        expect(result).toContain('href="/member/kim"');
+    });
+
+    it('wraps a mention at the very start of the string', () => {
+        const result = highlightMentions('@kim hello');
+        expect(result.startsWith('<a ')).toBe(true);
+        expect(result).toContain('href="/member/kim"');
+        expect(result).toContain(' hello');
     });
 });
