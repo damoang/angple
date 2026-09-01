@@ -2433,38 +2433,41 @@
                         </Dialog.Footer>
                     </Dialog.Content>
                 </Dialog.Root>
-                <Dialog.Root bind:open={showBumpDialog}>
-                    <Dialog.Trigger>
-                        <Button variant="outline" size="sm" disabled={isBumping}>
-                            <ArrowUpCircle class="mr-1 h-4 w-4" />
-                            {isBumping ? '처리 중...' : '끌어올리기'}
-                        </Button>
-                    </Dialog.Trigger>
-                    <Dialog.Content>
-                        <Dialog.Header>
-                            <Dialog.Title>글 끌어올리기</Dialog.Title>
-                            <Dialog.Description>
-                                이 글을 목록 최상단으로 이동합니다.
-                            </Dialog.Description>
-                        </Dialog.Header>
-                        <div
-                            class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
-                        >
-                            끌어올리기 시 <strong>1일 글쓰기 1회가 차감</strong>됩니다.<br />
-                            하루 2회, 1시간 간격으로 사용 가능합니다.
-                        </div>
-                        <Dialog.Footer>
-                            <Button
-                                variant="outline"
-                                onclick={() => (showBumpDialog = false)}
-                                disabled={isBumping}>취소</Button
-                            >
-                            <Button onclick={handleBump} disabled={isBumping}>
+                <!-- 끌어올리기 비활성화 (운영 요청 2026-09-01): 버튼/다이얼로그 숨김. 재활성화 시 {#if false} 제거 -->
+                {#if false}
+                    <Dialog.Root bind:open={showBumpDialog}>
+                        <Dialog.Trigger>
+                            <Button variant="outline" size="sm" disabled={isBumping}>
+                                <ArrowUpCircle class="mr-1 h-4 w-4" />
                                 {isBumping ? '처리 중...' : '끌어올리기'}
                             </Button>
-                        </Dialog.Footer>
-                    </Dialog.Content>
-                </Dialog.Root>
+                        </Dialog.Trigger>
+                        <Dialog.Content>
+                            <Dialog.Header>
+                                <Dialog.Title>글 끌어올리기</Dialog.Title>
+                                <Dialog.Description>
+                                    이 글을 목록 최상단으로 이동합니다.
+                                </Dialog.Description>
+                            </Dialog.Header>
+                            <div
+                                class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
+                            >
+                                끌어올리기 시 <strong>1일 글쓰기 1회가 차감</strong>됩니다.<br />
+                                하루 2회, 1시간 간격으로 사용 가능합니다.
+                            </div>
+                            <Dialog.Footer>
+                                <Button
+                                    variant="outline"
+                                    onclick={() => (showBumpDialog = false)}
+                                    disabled={isBumping}>취소</Button
+                                >
+                                <Button onclick={handleBump} disabled={isBumping}>
+                                    {isBumping ? '처리 중...' : '끌어올리기'}
+                                </Button>
+                            </Dialog.Footer>
+                        </Dialog.Content>
+                    </Dialog.Root>
+                {/if}
             {/if}
         </div>
     </div>
