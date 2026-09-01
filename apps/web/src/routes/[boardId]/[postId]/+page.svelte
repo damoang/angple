@@ -2403,20 +2403,20 @@
                     <Dialog.Trigger>
                         <Button variant="outline" size="sm">
                             <RefreshCw class="mr-1 h-4 w-4" />
-                            이 글 복제
+                            새로운 글로 작성
                         </Button>
                     </Dialog.Trigger>
                     <Dialog.Content>
                         <Dialog.Header>
-                            <Dialog.Title>이전 글 복제</Dialog.Title>
+                            <Dialog.Title>새로운 글로 작성</Dialog.Title>
                             <Dialog.Description>
-                                이전 글의 내용을 복사하여 새 글을 작성합니다.
+                                이 글의 내용을 복사하여 새 글을 작성합니다.
                             </Dialog.Description>
                         </Dialog.Header>
                         <div
                             class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800"
                         >
-                            이전 글 복제 시 <strong>1일 글쓰기 1회가 차감</strong>됩니다.
+                            새 글 작성 시 <strong>1일 글쓰기 1회가 차감</strong>됩니다.
                         </div>
                         <Dialog.Footer>
                             <Button variant="outline" onclick={() => (showRepostDialog = false)}
@@ -2428,7 +2428,7 @@
                                     goto(`/promotion/write?repost=${data.post.id}`);
                                 }}
                             >
-                                복제하여 새 글 쓰기
+                                새 글로 작성하기
                             </Button>
                         </Dialog.Footer>
                     </Dialog.Content>
