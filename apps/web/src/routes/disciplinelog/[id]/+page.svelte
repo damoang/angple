@@ -109,7 +109,7 @@
 </script>
 
 <svelte:head>
-    <title>이용제한 기록 상세</title>
+    <title>이용제한열람 상세</title>
 </svelte:head>
 
 <div class="container mx-auto max-w-2xl px-4 py-6">

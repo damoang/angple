@@ -100,7 +100,7 @@
 </script>
 
 <svelte:head>
-    <title>이용제한 기록</title>
+    <title>이용제한열람</title>
 </svelte:head>
 
 <div class="container mx-auto max-w-4xl px-4 py-6">
@@ -109,10 +109,10 @@
             <div class="flex items-center gap-2">
                 <Card.Title class="flex items-center gap-2">
                     <Shield class="text-muted-foreground h-5 w-5" />
-                    이용제한 기록
+                    이용제한열람
                 </Card.Title>
-                <BoardFavoriteButton boardId="disciplinelog" boardTitle="이용제한 기록" />
-                <BoardSubscribeButton boardId="disciplinelog" boardTitle="이용제한 기록" />
+                <BoardFavoriteButton boardId="disciplinelog" boardTitle="이용제한열람" />
+                <BoardSubscribeButton boardId="disciplinelog" boardTitle="이용제한열람" />
             </div>
             <Card.Description>규정을 위반한 회원에 대한 제재 기록입니다.</Card.Description>
         </Card.Header>
