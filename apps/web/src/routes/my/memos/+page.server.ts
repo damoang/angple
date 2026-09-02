@@ -11,6 +11,7 @@ type MemoSearchParams = {
     memo?: string;
     detail?: string;
     target?: string;
+    sort?: 'created' | 'updated';
 };
 
 interface MemoItem {
@@ -50,22 +51,25 @@ export const load: PageServerLoad = async ({ url, locals, depends }) => {
     const memo = url.searchParams.get('memo') || '';
     const detail = url.searchParams.get('detail') || '';
     const target = url.searchParams.get('target') || '';
+    // 정렬: 기본 추가일(created) 최신순, ?sort=updated 시 수정일 최신순.
+    const sort: 'created' | 'updated' =
+        url.searchParams.get('sort') === 'updated' ? 'updated' : 'created';
 
-    const search: MemoSearchParams = {};
+    const search: MemoSearchParams = { sort };
     if (color) search.color = color;
     if (memo) search.memo = memo;
     if (detail) search.detail = detail;
     if (target) search.target = target;
 
     if (!locals.user?.id) {
-        return { memos: [], total: 0, page, totalPages: 1, search, colorDist: {} };
+        return { memos: [], total: 0, page, totalPages: 1, search, sort, colorDist: {} };
     }
 
     // Phase 1D-prep: 직접 import 대신 plugin lib loader 사용.
     // member-memo plugin 미설치 시 null → 빈 페이지.
     const queries = await loadPluginServerLib<MemoModule>('member-memo', 'queries');
     if (!queries) {
-        return { memos: [], total: 0, page, totalPages: 1, search, colorDist: {} };
+        return { memos: [], total: 0, page, totalPages: 1, search, sort, colorDist: {} };
     }
 
     const [result, colorDist] = await Promise.all([
@@ -78,6 +82,7 @@ export const load: PageServerLoad = async ({ url, locals, depends }) => {
         page: result.page,
         totalPages: result.totalPages,
         search,
+        sort,
         colorDist
     };
 };
