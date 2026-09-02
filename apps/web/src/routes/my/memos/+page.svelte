@@ -44,6 +44,11 @@
     let searchDetail = $state(data.search?.detail ?? '');
     let searchTarget = $state(data.search?.target ?? '');
 
+    // 정렬 기준(추가일 최신순 기본 / 수정일 최신순). 서버가 확정한 값을 SoT 로 사용.
+    const currentSort = $derived<'created' | 'updated'>(
+        data.sort === 'updated' ? 'updated' : 'created'
+    );
+
     const hasActiveSearch = $derived(!!(searchColor || searchMemo || searchDetail || searchTarget));
     const isSearching = $derived(
         !!(data.search?.color || data.search?.memo || data.search?.detail || data.search?.target)
@@ -65,6 +70,8 @@
         if (searchMemo.trim()) params.set('memo', searchMemo.trim());
         if (searchDetail.trim()) params.set('detail', searchDetail.trim());
         if (searchTarget.trim()) params.set('target', searchTarget.trim());
+        // 검색 시에도 현재 정렬 유지 (기본 created 는 생략)
+        if (currentSort === 'updated') params.set('sort', 'updated');
         const qs = params.toString();
         goto(`/my/memos${qs ? `?${qs}` : ''}`);
     }
@@ -74,7 +81,23 @@
         searchMemo = '';
         searchDetail = '';
         searchTarget = '';
-        goto('/my/memos');
+        // 검색만 초기화하고 정렬은 유지
+        const qs = currentSort === 'updated' ? '?sort=updated' : '';
+        goto(`/my/memos${qs}`);
+    }
+
+    function setSort(sort: 'created' | 'updated') {
+        if (sort === currentSort) return;
+        // 정렬 전환 시 현재 검색 조건은 보존하고, 페이지는 1로 리셋(순서가 바뀌므로)
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity
+        const params = new URLSearchParams();
+        if (searchColor) params.set('color', searchColor);
+        if (searchMemo.trim()) params.set('memo', searchMemo.trim());
+        if (searchDetail.trim()) params.set('detail', searchDetail.trim());
+        if (searchTarget.trim()) params.set('target', searchTarget.trim());
+        if (sort === 'updated') params.set('sort', 'updated');
+        const qs = params.toString();
+        goto(`/my/memos${qs ? `?${qs}` : ''}`);
     }
 
     // 메모 텍스트 내 URL 을 클릭 가능한 링크 세그먼트로 분리 (XSS 안전: 텍스트 그대로 바인딩)
@@ -183,6 +206,8 @@
         if (searchMemo.trim()) params.set('memo', searchMemo.trim());
         if (searchDetail.trim()) params.set('detail', searchDetail.trim());
         if (searchTarget.trim()) params.set('target', searchTarget.trim());
+        // 페이지 이동 시에도 현재 정렬 유지
+        if (currentSort === 'updated') params.set('sort', 'updated');
         goto(`/my/memos?${params.toString()}`);
     }
 
@@ -227,34 +252,58 @@
                 다른 회원에 대해 작성한 개인 메모 {data.total}건
             </p>
         </div>
-        <div class="flex items-center gap-0">
-            <Button
-                variant="outline"
-                size="sm"
-                class="gap-1.5 {showSearch || isSearching || uiSettingsStore.pinMemoSearch
-                    ? 'rounded-r-none border-r-0'
-                    : ''}"
-                onclick={() => (showSearch = !showSearch)}
-            >
-                <Search class="h-3.5 w-3.5" />
-                검색
-            </Button>
-            {#if showSearch || isSearching || pinMemoSearchReady}
+        <div class="flex items-center gap-2">
+            <!-- 정렬 토글: 추가일순(기본) / 수정일순, 둘 다 최신순 -->
+            <div class="flex items-center gap-0">
+                <Button
+                    variant={currentSort === 'created' ? 'default' : 'outline'}
+                    size="sm"
+                    class="rounded-r-none"
+                    onclick={() => setSort('created')}
+                    title="추가한 날짜 최신순으로 정렬"
+                >
+                    추가일순
+                </Button>
+                <Button
+                    variant={currentSort === 'updated' ? 'default' : 'outline'}
+                    size="sm"
+                    class="rounded-l-none border-l-0"
+                    onclick={() => setSort('updated')}
+                    title="수정한 날짜 최신순으로 정렬"
+                >
+                    수정일순
+                </Button>
+            </div>
+            <div class="flex items-center gap-0">
                 <Button
                     variant="outline"
                     size="sm"
-                    class="rounded-l-none px-2 {uiSettingsStore.pinMemoSearch
-                        ? 'bg-primary/10 text-primary'
+                    class="gap-1.5 {showSearch || isSearching || uiSettingsStore.pinMemoSearch
+                        ? 'rounded-r-none border-r-0'
                         : ''}"
-                    onclick={() => uiSettingsStore.setPinMemoSearch(!uiSettingsStore.pinMemoSearch)}
-                    title={uiSettingsStore.pinMemoSearch ? '검색 고정 해제' : '검색 고정'}
+                    onclick={() => (showSearch = !showSearch)}
                 >
-                    <Pin
-                        class="h-3.5 w-3.5"
-                        fill={uiSettingsStore.pinMemoSearch ? 'currentColor' : 'none'}
-                    />
+                    <Search class="h-3.5 w-3.5" />
+                    검색
                 </Button>
-            {/if}
+                {#if showSearch || isSearching || pinMemoSearchReady}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        class="rounded-l-none px-2 {uiSettingsStore.pinMemoSearch
+                            ? 'bg-primary/10 text-primary'
+                            : ''}"
+                        onclick={() =>
+                            uiSettingsStore.setPinMemoSearch(!uiSettingsStore.pinMemoSearch)}
+                        title={uiSettingsStore.pinMemoSearch ? '검색 고정 해제' : '검색 고정'}
+                    >
+                        <Pin
+                            class="h-3.5 w-3.5"
+                            fill={uiSettingsStore.pinMemoSearch ? 'currentColor' : 'none'}
+                        />
+                    </Button>
+                {/if}
+            </div>
         </div>
     </div>
 
