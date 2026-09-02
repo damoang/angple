@@ -163,7 +163,8 @@
     }
     .md-tool {
         padding: 0.25rem 0.6rem;
-        background: white;
+        background: var(--background, white);
+        color: var(--foreground, #0f172a);
         border: 1px solid var(--border, #d1d5db);
         border-radius: 0.25rem;
         font-size: 0.8rem;
@@ -191,13 +192,14 @@
         font-size: 0.875rem;
         line-height: 1.6;
         border-right: 1px solid var(--border, #e5e7eb);
-        background: #fafbfc;
+        background: var(--background, #fafbfc);
         color: var(--foreground, #0f172a);
     }
     .md-preview {
         padding: 0.5rem 1rem;
         overflow-y: auto;
-        background: white;
+        background: var(--background, white);
+        color: var(--foreground, #0f172a);
     }
     .md-preview-empty {
         color: var(--muted-foreground, #6b7280);
