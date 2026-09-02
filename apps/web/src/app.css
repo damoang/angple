@@ -469,3 +469,22 @@ html.hydrating .post-title,
 html.hydrating [class^='post-title-read-'] {
     transition: none;
 }
+
+/*
+ * iOS Safari 입력 포커스 자동확대(zoom-in) 방지 (#13832)
+ * 사파리는 폰트 16px 미만인 input/select/textarea 에 포커스하면 페이지를 확대해,
+ * 글쓰기 등에서 매번 줌아웃으로 되돌려야 하는 불편이 생긴다(제보: 아이폰17 프로).
+ * 모바일에서 텍스트 입력 계열 폼 컨트롤을 최소 16px 로 보장한다.
+ * ⛔ checkbox/radio/range/color/file/button 은 확대 대상이 아니라 제외.
+ * !important: Tailwind 의 text-sm(0.875rem) 유틸리티보다 이겨야 하므로 필요.
+ * (본문 에디터 .tiptap 은 이미 1rem, 제목 Input 은 md:text-sm 로 모바일 16px 이므로 무영향)
+ */
+@media (max-width: 767px) {
+    input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not(
+            [type='file']
+        ):not([type='button']):not([type='submit']):not([type='reset']),
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+}
