@@ -164,7 +164,8 @@ export const GET: RequestHandler = async ({ params, locals }) => {
                         delete_post_by_admin, delete_comment_by_admin,
                         total_rcmd_count, total_singo_count
                  FROM g5_member_board_status WHERE mb_id = ?`,
-                [memberId]
+                // #13780: 슬러그가 닉네임일 수 있어 정본 mb_id 로 조회 (memberId=슬러그 금지)
+                [member.mb_id]
             );
             stats = statsRows[0] || defaultStats;
         } catch {
@@ -181,7 +182,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
             const counts = await calculateMemberCounts(
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (sql: string, params?: unknown[]) => pool.query(sql, params) as any,
-                memberId
+                member.mb_id // #13780: 정본 mb_id (슬러그가 닉네임이면 재계산이 0건이 됨)
             );
             if (counts) {
                 stats = {
@@ -211,7 +212,8 @@ export const GET: RequestHandler = async ({ params, locals }) => {
                  WHERE (wr_subject = ? OR wr_subject LIKE CONCAT(?, '(%'))
                    AND wr_is_comment = 0
                  ORDER BY wr_datetime DESC LIMIT 10`,
-                [memberId, memberId]
+                // #13780: 정본 mb_id — wr_subject 는 `mb_id(닉네임)` 형식이라 슬러그(닉)로는 안 잡힘
+                [member.mb_id, member.mb_id]
             );
             for (const row of logRows) {
                 const entry = parseDisciplineLogContent(row);
@@ -237,11 +239,11 @@ export const GET: RequestHandler = async ({ params, locals }) => {
         try {
             [followerRows] = await pool.query<CountRow[]>(
                 'SELECT COUNT(*) AS count FROM g5_member_follow WHERE target_id = ?',
-                [memberId]
+                [member.mb_id]
             );
             [followingRows] = await pool.query<CountRow[]>(
                 'SELECT COUNT(*) AS count FROM g5_member_follow WHERE mb_id = ?',
-                [memberId]
+                [member.mb_id]
             );
         } catch {
             // 테이블 없으면 무시
