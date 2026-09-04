@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>홈 위젯 터치 타깃 개선 — 설계</title>
+<style>
+body{font:15px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;max-width:1000px;margin:0 auto;padding:32px 20px;color:#1a1a1a}
+h1{font-size:26px;border-bottom:3px solid #222;padding-bottom:10px;margin-bottom:6px}
+h2{font-size:20px;margin-top:36px;border-left:5px solid #2563eb;padding-left:10px}
+h3{font-size:16px;margin-top:22px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px}
+th,td{border:1px solid #d4d4d4;padding:7px 9px;text-align:left;vertical-align:top}
+th{background:#f3f4f6}
+code{background:#f1f3f5;padding:1px 5px;border-radius:3px;font-size:13px}
+pre{background:#1e1e1e;color:#e6e6e6;padding:12px;border-radius:6px;overflow-x:auto;font-size:13px}
+.no{color:#b91c1c;font-weight:600}.yes{color:#15803d;font-weight:600}.star{color:#b45309;font-weight:600}
+.box{background:#fff7ed;border:1px solid #fdba74;border-radius:6px;padding:12px 14px;margin:14px 0}
+.box.bad{background:#fef2f2;border-color:#fca5a5}.box.ok{background:#f0fdf4;border-color:#86efac}
+.meta{color:#666;font-size:13px}.num{font-variant-numeric:tabular-nums}
+</style></head><body>
+
+<h1>홈 위젯 터치 타깃 개선</h1>
+<p class="meta">2026-09-04 · 구현 전 컨펌 대기 · 근거는 전부 실측</p>
+
+<h2>1. 왜</h2>
+<p><b>2026-09-02 배포한 오터치 계측이 하루 만에 답을 줬다.</b> 실사용자에게서 <b class="num">770건</b>이
+수집됐고(9/2 17:32~9/4 09:16), 그중 홈이 <b class="num">542건(70%)</b>이다.</p>
+
+<div class="box">
+<b class="star">⭐ 그런데 홈은 제보(bug/13836)와 다른 문제였다.</b><br>
+제보는 <b>「아래 글이 열린다」</b>인데, 홈은 <b>위로 어긋남이 2배</b>(339 vs 156)다.
+어긋나는 px 을 재보니 갈렸다.
+</div>
+
+<table>
+<tr><th>어긋난 px</th><th>홈 <code>/</code></th><th><code>/free</code> 목록</th></tr>
+<tr><td>10~39px</td><td><b class="num">470건 (87%)</b></td><td>14건</td></tr>
+<tr><td>40~99px (한 행 79px)</td><td>62건</td><td><b class="num">95건 (76%)</b></td></tr>
+</table>
+
+<p><b class="no">⛔ 홈의 어긋남은 목록 한 행(79px)의 절반도 안 된다. 밀림이 아니다.</b>
+20~39px 은 <b>링크 자체의 높이</b>다 — 손가락이 맞닿은 두 링크에 걸친 것이다.</p>
+
+<h3>실측 — 터치 타깃 (412px 모바일, CPU 4배 스로틀)</h3>
+<table>
+<tr><th></th><th>홈 <code>/</code></th><th><code>/free</code></th></tr>
+<tr><td>링크 높이 <b>44px 이상</b>(권장)</td><td class="no">8%</td><td>31%</td></tr>
+<tr><td>24~43px</td><td class="num">68%</td><td>34%</td></tr>
+<tr><td><b>인접 간격 0px</b></td><td class="no">64/90 (71%)</td><td class="yes">1/34 (3%)</td></tr>
+</table>
+<p>구글·애플 모두 최소 <b>44×44px</b> 을 권장한다. 홈 위젯은 <b class="num">36px</b> 이고
+<b>빈틈 없이 맞닿아</b> 있다.</p>
+
+<h3>대상 — 위젯 5곳, 74개 링크</h3>
+<table>
+<tr><th>섹션</th><th>링크</th><th>높이</th><th>파일</th></tr>
+<tr><td>소모임 공감글</td><td class="num">26</td><td>36px</td><td><code>features/group/components/post-list/group-post-list.svelte</code></td></tr>
+<tr><td>공감 글</td><td class="num">17</td><td>36px</td><td><code>features/recommended/components/post-list/post-list.svelte</code></td></tr>
+<tr><td>모아보기</td><td class="num">17</td><td>36px</td><td><code>features/explore/explore-preview.svelte</code></td></tr>
+<tr><td>정보광장</td><td class="num">7</td><td>36px</td><td><code>features/new-board/components/post-list/simple-post-list.svelte</code></td></tr>
+<tr><td>알뜰 · 장터</td><td class="num">7</td><td>36px</td><td><code>features/economy/components/post-list/economy-post-list.svelte</code></td></tr>
+</table>
+<p class="meta">각 파일에 해당 패턴은 <b>1곳씩</b>. premium 덮어쓰기 <b>없음</b>(<code>grep</code> 확인).</p>
+
+<h2>2. 기각한 방안</h2>
+
+<h3>(가) 히트 영역만 몰래 넓히기 — <span class="no">불가</span></h3>
+<p>화면을 안 바꾸고 터치만 키우려 했으나, <b>넓힐 빈 공간이 0px</b> 이다.</p>
+<pre>공감 글 / 모아보기 / 소모임 공감글 / 정보광장 / 알뜰·장터
+  링크 36px · 간격 0px · li 36px · 간격 0px  →  여유 0px</pre>
+<p><b class="no">⛔ 이웃 영역을 뺏을 뿐 경계만 옮겨진다.</b>
+(푸터는 여유 10px 이 있어 이 방법이 통한다 — 별건으로 분리)</p>
+
+<h3>(나) 표시 개수를 줄여 홈 길이 유지 — <span class="no">기각</span></h3>
+<p>처음엔 홈이 길어지는 것을 막으려 <code>17→14</code>, <code>20→16</code> 을 검토했다.
+<b class="star">그런데 스크롤 실측이 이를 뒤집었다.</b></p>
+<table>
+<tr><th>홈에서 탭한 위치 (<code>sy</code>)</th><th>건수</th></tr>
+<tr><td><b>첫 화면 (0~915px)</b></td><td class="num"><b>597 (93%)</b></td></tr>
+<tr><td>2화면</td><td class="num">33 (5%)</td></tr>
+<tr><td>3화면</td><td class="num">11 (2%)</td></tr>
+<tr><td>4화면 이하</td><td class="num">2 (0.3%)</td></tr>
+</table>
+<p><b class="star">⭐ 93%가 첫 화면에서 끝난다.</b> 아래로 밀리는 글은 <b>원래도 안 눌리던 것</b>이라
+홈이 길어져도 손해가 거의 없다. 반대로 <b>개수를 줄이면 93%가 일어나는 첫 화면을 깎는다</b>.</p>
+<p class="meta">⛔ 이 표본은 오터치 비콘이라 정상 탭이 빠진 편향이 있다. 다만 4화면 이하가 2건뿐인 것은
+「거기까지 안 간다」는 신호로 충분히 강하다.</p>
+
+<h3>(다) Tailwind <code>py-*</code> 클래스 교체 — <span class="no">효과 없음</span></h3>
+<div class="box bad">
+<b class="no">⛔ 처음에 「<code>py-1.5</code> → <code>py-2.5</code> 로 바꾸면 된다」고 판단했으나 틀렸다.</b><br>
+클래스만 보고 인라인 <code>style</code> 을 안 봤다. 실제로는 인라인이 클래스를 이긴다.
+</div>
+<pre>class="... py-2 ..."                                    ← 무시됨
+style="padding-top: calc(0.125rem + var(--row-pad-extra, 0px)); ..."   ← 이게 이긴다
+
+실제 = 2px + 3px(balanced) = 5px  →  실측 5px/5px 과 일치</pre>
+
+<h2>3. 설계</h2>
+
+<div class="box ok">
+<b>링크에 <code>min-height: 44px</code> 를 주고 세로 가운데 정렬한다.</b><br>
+padding 을 키우지 않는 이유는 <b>밀도 설정(<code>--row-pad-extra</code>)과 곱해지기 때문</b>이다.
+</div>
+
+<table>
+<tr><th>밀도</th><th><code>--row-pad-extra</code></th><th>현재</th><th>padding 방식(9px)</th><th class="yes">min-height 방식</th></tr>
+<tr><td>compact</td><td>0px</td><td class="num">30px</td><td class="num">44px</td><td class="num yes">44px</td></tr>
+<tr><td><b>balanced</b>(기본)</td><td>3px</td><td class="num">36px</td><td class="num">50px</td><td class="num yes">44px</td></tr>
+<tr><td>relaxed</td><td>6px</td><td class="num">42px</td><td class="num no">56px</td><td class="num yes">44px</td></tr>
+</table>
+<p><b class="star">⭐ padding 을 키우면 relaxed 사용자가 56px 로 과해진다.</b>
+<code>min-height</code> 는 바닥만 보장하므로 그 문제는 없다.</p>
+
+<div class="box bad">
+<b class="no">⛔ 2026-09-04 정정 — 「밀도를 크게 쓰는 사람의 설정을 망가뜨리지 않는다」는 틀렸다.</b><br>
+Evaluator 실측: <b>세 밀도가 전부 44px 로 같아지고 문서 높이도 5582px 로 동일</b>해진다.
+relaxed(42px)조차 44 미만이라 전부 클램프되기 때문이다.
+→ <b>이 5개 위젯에서 UI 밀도 설정은 사실상 무효가 된다.</b>
+⭐ 그래도 진행하는 이유: <b>44px 은 접근성 하한</b>이라 그 아래로 내릴 수 없고,
+밀도별 차등(44/46/48)을 줘도 compact 회원이 원한 「촘촘함」은 어차피 못 지킨다.
+</div>
+
+<h3>변경 내용 — 5개 파일, 각 1곳</h3>
+<pre>&lt;a class="hover:bg-muted block rounded px-0.5 py-1.5 …"
+   style="padding-top: calc(0.125rem + var(--row-pad-extra, 0px)); …"&gt;
+
+  ↓ 다음을 추가 (기존 padding·클래스는 그대로 둔다)
+
+   min-height: 44px;
+   display: flex;
+   flex-direction: column;
+   justify-content: center;</pre>
+<p class="meta">⛔ <code>block</code> → <code>flex</code> 로 바뀌므로 자식 레이아웃이 깨지지 않는지 확인이 필요하다.
+자식은 <code>&lt;div class="flex items-center gap-1"&gt;</code> 하나뿐이라 위험은 낮지만 <b>실측으로 판정</b>한다.</p>
+
+<h2>4. 완료 기준</h2>
+<table>
+<tr><td>1</td><td>412px 모바일에서 위젯 5곳 링크 높이가 <b>전부 44px 이상</b></td></tr>
+<tr><td>2</td><td>밀도 <b>compact·balanced·relaxed 세 가지 모두</b> 44px 이상</td></tr>
+<tr><td>3</td><td>제목·배지·댓글수 등 <b>자식 요소 배치가 변경 전과 동일</b>(스크린샷 대조)</td></tr>
+<tr><td>4</td><td>표시 개수 <b>변경 없음</b>
+   <br><span class="meta">⛔ 설계 시 17·17·20·7·7 로 적었으나 라이브 실측은 <b>17·15·26·7·7</b>
+   (모아보기 15, 소모임 26). 전후 동일(72→72)이라 계약엔 영향 없음</span></td></tr>
+<tr><td>5</td><td><code>pnpm check</code> 0 errors · lint 증분 0 · 기존 테스트 통과</td></tr>
+</table>
+
+<h2>5. 검증 — 배포 후</h2>
+<div class="box">
+<b class="star">⭐ 이 변경은 스스로 검증된다.</b> 오터치 계측이 이미 돌고 있어,
+배포 후 <b>홈의 <code>dy 10~39px</code> 470건이 줄어드는지</b>로 판정한다.
+</div>
+<pre>SELECT ... FROM error_logs.js_errors
+WHERE type='mistouch' AND extract(stack,'page=([^\n]*)')='/'
+-- 배포 전 3일 평균 vs 배포 후 3일</pre>
+<p><b class="no">⛔ 어제 같은 시각과 비교한다.</b> 2시간 전과 비교하면 시간대 차이에 속는다.</p>
+<div class="box bad">
+<b class="no">⛔ 0 이 되지는 않는다.</b> 오터치의 축은 둘인데(<b>타깃 36px</b> + <b>인접 간격 0px</b>)
+이번 변경은 <b>타깃만</b> 고쳤다. 실측상 간격은 전 67/67=0px → 후 67/67=<b>0px</b> 그대로다.
+경계 허용치가 ±18px → ±22px 로 늘어난 것이지 링크가 분리된 것이 아니다.
+<b>줄되 남는다</b>는 전제로 판정하라.
+</div>
+
+<h2>6. 위험</h2>
+<table>
+<tr><th style="width:230px">위험</th><th>대응</th></tr>
+<tr><td class="no">⛔ <code>block</code>→<code>flex</code> 로 자식 배치 깨짐</td><td>세 밀도 × 두 뷰포트에서 <b>스크린샷 대조</b>. Evaluator 가 독립 확인</td></tr>
+<tr><td class="no">⛔ 홈이 길어짐 — <b>밀도별로 다르다</b><br>
+   <span class="num">compact +1008px · balanced +576px · relaxed +144px</span></td>
+   <td>⛔ 설계 시 balanced(+592px)만 적었으나 <b>compact 사용자가 가장 크게 늘어난다</b>(2026-09-04 실측).
+   촘촘하게 쓰려고 고른 설정인데 제일 길어진다.<br>
+   ⭐ 스크롤 실측상 탭의 93%가 첫 화면 — 아래로 밀리는 글은 원래 안 눌리던 것이라 손해는 미미. 배포 후 재확인</td></tr>
+<tr><td class="no">⛔ 라이브는 premium 이 이길 수 있다</td><td>이번 5개 파일은 premium 덮어쓰기 <b>0건</b> 확인함</td></tr>
+<tr><td class="no">⛔ 이 컴포넌트가 홈 밖에서도 쓰임</td><td><code>economy-tabs</code>·<code>admin-customizer</code> 등에서 사용.
+   <b>거기서도 44px 이 되는 것은 의도된 개선</b>이나, 레이아웃 파손 여부는 확인한다</td></tr>
+</table>
+
+<h2>7. 범위 밖 (별건)</h2>
+<ul>
+<li><b>푸터 24개</b>(16px, 여유 10px) — 히트 영역 확대로 화면 변화 없이 가능. 별도 PR</li>
+<li><b><code>/free</code> 목록 125건</b> — 한 행(79px) 밀림. 제보 건이며 원인·처방이 다르다
+    (<code>docs/2026-09-02-list-mistouch.html</code>)</li>
+</ul>
+</body></html>

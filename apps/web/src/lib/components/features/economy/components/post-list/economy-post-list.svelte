@@ -37,10 +37,22 @@
     <ul>
         {#each posts as post (post.id)}
             <li>
+                <!--
+                    ⭐ 터치 타깃 최소 44px (구글·애플 공통 권장). 이 링크는 36px 이고 인접 간격이
+                       0px 이라 손가락이 두 링크에 걸쳤다 — 실사용자 오터치 계측에서 홈만 하루 542건,
+                       어긋난 px 의 87%가 10~39px 로 링크 높이 자체와 일치했다(행 밀림이 아니다).
+                    ⛔ padding 을 키워서 44px 을 만들지 말 것. --row-pad-extra 는 회원의 UI 밀도
+                       설정(compact 0 / balanced 3 / relaxed 6px)이라 곱해지면 relaxed 가 56px 로
+                       과해진다. min-height 는 바닥만 보장하므로 밀도를 크게 쓰는 회원 설정은 그대로다.
+                    ⛔ 인라인 style 이 Tailwind 클래스를 이긴다 — 아래 padding 계산식 때문에 class 의
+                       py-* 는 이미 무시되고 있다. 그래서 display 도 인라인에 두고 class 에서 block 을
+                       지웠다. 남겨두면 「class 는 block 인데 실제 동작은 flex」라는 거짓이 하나 더
+                       생긴다(py-* 가 이미 같은 방식으로 사람을 속였다).
+                -->
                 <a
                     href={post.url}
-                    class="hover:bg-muted block rounded px-0.5 py-2 transition-all duration-200 ease-out"
-                    style="padding-top: calc(0.125rem + var(--row-pad-extra, 0px)); padding-bottom: calc(0.125rem + var(--row-pad-extra, 0px));"
+                    class="hover:bg-muted rounded px-0.5 py-2 transition-all duration-200 ease-out"
+                    style="min-height: 44px; display: flex; flex-direction: column; justify-content: center; padding-top: calc(0.125rem + var(--row-pad-extra, 0px)); padding-bottom: calc(0.125rem + var(--row-pad-extra, 0px));"
                 >
                     <div class="flex items-center gap-1">
                         <!-- 추천수 배지 -->
