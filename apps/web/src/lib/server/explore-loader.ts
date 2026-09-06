@@ -19,7 +19,35 @@ const EXPLORE_FILE = 'explore.json';
 let cache: { data: ExploreData; timestamp: number } | null = null;
 const CACHE_TTL_MS = 60_000; // 60초
 
-const PREVIEW_POST_COUNT = 17;
+/**
+ * 서버가 미리보기로 내려주는 모드별 글 수.
+ *
+ * ⛔ 클라이언트가 화면에 그리는 개수는 17개다(explore-preview.svelte `PREVIEW_COUNT`).
+ *    이 상수는 **그 17개를 채우기 위한 후보 공급량**이지 표시 개수가 아니다.
+ *
+ * 왜 17 이면 안 됐나 — 클라이언트는 slice(0,17) **앞에서** 차단 회원·차단 키워드·
+ * 공감글 중복(#13598)을 걸러낸다. 「빠진 만큼 다른 글로 채운다」는 의도였지만
+ * 서버가 딱 17개만 줘서 채울 여분이 0 이었다. 새벽에는 새 글이 적어 공감글과
+ * 후보가 크게 겹쳐 실제로 **8개**까지 줄었다(공감글 23개 중 9개가 앞 17개와 중복).
+ *
+ * 왜 42 인가 — 17(표시) + 25(제외 상한). 공감글 id 집합은 홈 SSR prefetch 의
+ * 기본 기간(getDefaultPeriod: 0~6시 6h / 6~9시 3h / 그 외 1h)에서 만들어지고,
+ * 그 상한이 6h 스냅샷의 25개다(community 15 + group 7 + info 3). 즉 공감글 중복만으로는
+ * 42개 후보가 17개 아래로 깎이지 않는다. 실측 캐시로 「17개를 채우는 데 필요한 깊이」를
+ * 12개 조합(4모드 × 3기간)에서 재보니 최댓값이 32였고, 42는 그 위로 10개 여유다.
+ *
+ * ⛔ 공짜가 아니다. 이 응답은 홈에서 매번 부르고 s-maxage=120 으로 캐시된다.
+ *    실측(운영 응답 구조 동일): 17 → 23,504B / gzip 4,504B, 42 → 57,756B / gzip 9,865B.
+ *    즉 gzip +5,361B(+119%). 더 올릴 거면 이 숫자부터 다시 재라.
+ * ⛔ 50 을 넘기지 마라. 원본이 rising 50개 / top periods['24h'] 50개뿐이라 그 위는
+ *    바이트만 늘고 후보는 안 는다(hot/new 만 100개).
+ * ⛔ top 모드는 posts 가 아니라 periods['24h'] 를 쓴다 — 아래 slice 두 곳 모두에 걸린다.
+ */
+const PREVIEW_POST_COUNT = 42;
+// ⛔ 2026-09-07 추가 — 비용은 API 만이 아니다.
+//    이 페이로드는 **홈 SSR HTML 에도 그대로 실린다**(`+page.server.ts` → HomePageData.exploreData).
+//    실측: 홈 HTML 461,836B / gzip 69,505B 기준 **+34.3KB raw(+7.4%) · +5.6KB gzip(+8%)**.
+//    API 응답 자체는 gzip 4,186 → 9,812B (+134%).
 
 function trimExploreModeData(mode: ExploreModeData, topOnly = false): ExploreModeData {
     return {
