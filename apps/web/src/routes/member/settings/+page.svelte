@@ -145,6 +145,29 @@
         payco: 'bg-[#E42529] text-white'
     };
 
+    // 추가 연결 가능한 소셜 provider (login 페이지 mainProviders 와 동일 집합·순서)
+    const LINKABLE_PROVIDERS = [
+        'kakao',
+        'naver',
+        'google',
+        'apple',
+        'facebook',
+        'twitter',
+        'payco'
+    ] as const;
+
+    // 이미 연결된 provider 는 제외 — 남은 것만 "추가 연결" 버튼으로 노출.
+    let connectedProviders = $derived(new Set(profiles.map((p) => p.provider)));
+    let linkableProviders = $derived(LINKABLE_PROVIDERS.filter((p) => !connectedProviders.has(p)));
+
+    // #13862/#13860: 추가 연결은 로그인 세션을 유지한 채 link 모드로 시작해야 한다.
+    // 예전엔 /login 으로 보내 (a) 새 소셜이 신규가입으로 오판되거나(#13862)
+    // (b) 이미 로그인 상태라 login→settings 바운스 루프가 났다(#13860).
+    function socialLinkHref(provider: string): string {
+        const redirect = encodeURIComponent('/member/settings');
+        return `/auth/start?provider=${encodeURIComponent(provider)}&link=1&redirect=${redirect}`;
+    }
+
     async function disconnectSocial(mpNo: number): Promise<void> {
         if (disconnecting) return;
 
@@ -845,12 +868,22 @@
 
                 <div>
                     <p class="text-muted-foreground mb-3 text-sm">
-                        새 소셜 계정을 연결하려면 해당 서비스로 로그인하세요.
+                        새 소셜 계정을 현재 계정에 추가로 연결합니다. 연결할 서비스를 선택하세요.
                     </p>
-                    <Button variant="outline" href="/login?redirect=/member/settings">
-                        <Link class="mr-2 h-4 w-4" />
-                        소셜 계정 추가 연결
-                    </Button>
+                    {#if linkableProviders.length === 0}
+                        <p class="text-muted-foreground text-sm">
+                            연결 가능한 소셜 서비스를 모두 연결했습니다.
+                        </p>
+                    {:else}
+                        <div class="flex flex-wrap gap-2">
+                            {#each linkableProviders as provider (provider)}
+                                <Button variant="outline" size="sm" href={socialLinkHref(provider)}>
+                                    <Link class="mr-2 h-4 w-4" />
+                                    {providerNames[provider] || provider} 연결
+                                </Button>
+                            {/each}
+                        </div>
+                    {/if}
                 </div>
             </CardContent>
         </Card>
