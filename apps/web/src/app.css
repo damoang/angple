@@ -444,6 +444,36 @@ html {
     }
 }
 
+/* 홈 위젯(공감글·모아보기·그룹·새글·경제) 목록 링크의 터치 타깃 — 2026-09-05.
+ *
+ * 2026-09-04 에 이 5개 위젯 링크에 min-height:44px 을 인라인 style 로 넣었다(오터치 하루 542건).
+ * 그런데 인라인 style 은 미디어쿼리를 못 써서 **마우스 환경에도 그대로 걸렸다** — 1440px 데스크톱
+ * 홈이 +592px 늘어났다. 터치 타깃은 손가락 문제지 마우스 문제가 아니다.
+ *
+ * ⭐ 그래서 4속성(min-height/display/flex-direction/justify-content)만 이 클래스로 옮기고
+ *    `(hover: none) and (pointer: coarse)` 안에서만 켠다. 위 :active 규칙과 같은 판정식이다.
+ * ⛔ padding 은 인라인에 그대로 둔다. `calc(0.125rem + var(--row-pad-extra))` 는 회원 UI 밀도
+ *    설정이고, 이미 인라인이라 class 의 py-* 를 이기고 있다. 여기로 옮기면 그 관계가 뒤집힌다.
+ * ⛔ Tailwind `block` 클래스를 같이 쓰지 않는다. `.block` 과 이 클래스는 특이성이 같아(0,1,0)
+ *    승자가 번들 순서로 갈린다 — 「클래스 넣음 ≠ 적용됨」. 기본값 display:block 을 이 클래스가
+ *    직접 들고, 같은 파일 뒤쪽 미디어쿼리에서 flex 로 덮는다(같은 특이성 + 뒤 = 확정적).
+ *    이 규칙들은 @layer 밖이라 Tailwind 유틸리티(@layer utilities)보다 항상 강하다.
+ * ⛔ 공용 클래스 하나로 둔 이유: 5개 파일이 같은 마크업·같은 수치다. 컴포넌트 <style> 은
+ *    스코프돼 있어 정의가 5벌로 갈라지고, 다음에 44 를 고칠 때 하나만 고쳐질 위험이 생긴다.
+ * ⛔ 44px 은 바닥만 보장한다(min-height). 밀도 relaxed 로 더 큰 회원 설정은 그대로 커진다. */
+.widget-post-row {
+    display: block;
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .widget-post-row {
+        min-height: 44px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+}
+
 /* 하이드레이션 중에는 읽음 표시 전환을 끈다 — 2026-08-19.
  *
  * 읽음 상태는 localStorage(L1) 기반이라 SSR 이 알 수 없다. 그래서 서버는 전부
