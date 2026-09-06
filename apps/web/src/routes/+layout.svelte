@@ -44,6 +44,7 @@
     import { detectAdblockOnce } from '$lib/services/ad-telemetry';
     import { initWebVitalsRum } from '$lib/services/web-vitals-rum';
     import { initMistouchProbe, resetMistouchBudget } from '$lib/services/mistouch-probe';
+    import { initHistoryProbe, resetHistoryProbeBudget } from '$lib/services/history-probe';
     import { AdblockNotice } from '$lib/components/features/adblock-notice';
     import type { MenuItem } from '$lib/api/types';
     import { readUserBasicFromCookie } from '$lib/utils/user-basic-client';
@@ -480,6 +481,8 @@
         // 오탭 계측(bug/13836) 상한을 페이지 단위로 되돌린다. 모듈 스코프 카운터는
         // soft-nav 로 리셋되지 않아, 안 하면 상한이 "세션당 3건" 이 된다.
         resetMistouchBudget();
+        // 히스토리 병합 계측(bug/13858) 상한도 페이지 단위로 되돌린다(같은 이유).
+        resetHistoryProbeBudget();
         // GA4 페이지뷰 추적
         if (to?.url) {
             // PIPA: 민감 페이지는 Clarity 리플레이 제외 (SPA 라우팅마다 재평가)
@@ -1022,6 +1025,10 @@
         // 오탭 계측(bug/13836): 닿은 좌표에 있던 글 vs 실제로 열린 글. 리스너 2개 등록뿐이라
         // 렌더 경로에 아무것도 추가하지 않는다. 오탭이 확정된 순간에만 비콘이 나간다.
         initMistouchProbe();
+
+        // 히스토리 병합 계측(bug/13858): 목록→글 pushState 가 엔트리를 못 만드는 순간을 잡는다.
+        // history.pushState/replaceState 를 관측 목적으로만 감싼다(동작 무변경). 병합 확정 시만 비콘.
+        initHistoryProbe();
 
         // Built-in Hooks 초기화 (콘텐츠 임베딩, 게시판 필터 등)
         initBuiltinHooks();
