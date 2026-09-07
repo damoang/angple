@@ -107,6 +107,7 @@ export async function sendPasswordResetEmail(params: {
     const resetUrl = `${SITE_URL}/password-reset/${params.nonce}?mb_no=${params.mbNo}`;
 
     await sendMail({
+        kind: 'password-reset',
         to: params.to,
         subject: '[다모앙] 비밀번호 재설정 안내',
         html: `
