@@ -41,7 +41,6 @@
 
     // ⛔ $state 안에 Map/Set 을 두지 않는다(룬 모드에서 반응성이 깨진다). 평범한 객체로.
     let waiting = $state<Record<string, number>>({});
-    let loaded = $state(false);
 
     const totalWaiting = $derived(GAMES.reduce((sum, g) => sum + (waiting[g.id] ?? 0), 0));
     const activeGames = $derived(GAMES.filter((g) => (waiting[g.id] ?? 0) > 0));
@@ -60,7 +59,6 @@
         }
         if (signal.aborted) return;
         waiting = next;
-        loaded = true;
     }
 
     $effect(() => {
@@ -76,50 +74,52 @@
     });
 </script>
 
-{#if loaded || isEditMode}
-    <Card class="overflow-hidden">
-        <CardContent class="p-3">
-            {#if totalWaiting > 0}
-                <!-- 대기자 있음 — 강조. 지금 들어가면 바로 매칭된다는 게 핵심 메시지다. -->
-                <div class="flex flex-wrap items-center gap-2">
-                    <span
-                        class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+<!--
+  ⛔ #13836: 예전엔 {#if loaded}로 데이터 도착 전(SSR·초기) 아무것도 안 그려 0px 였다가,
+     클라 fetch(~140ms) 후 카드(1행)가 목록 바로 위에 삽입되며 목록을 아래로 밀었다
+     (모바일 오터치의 지배 원인, 홈 방문자 전원 발화). 이제 셸을 SSR 부터 항상 그린다.
+     대기자는 상시 0 이므로(위젯이 존재하는 이유) SSR="대기자 0" 셸 = fetch 후에도 동일
+     높이 → 시프트 0. 대기자가 생기면(드묾) 같은 카드 안에서 텍스트만 강조로 스왑된다.
+-->
+<Card class="overflow-hidden">
+    <CardContent class="p-3">
+        {#if totalWaiting > 0}
+            <!-- 대기자 있음 — 강조. 지금 들어가면 바로 매칭된다는 게 핵심 메시지다. -->
+            <div class="flex flex-wrap items-center gap-2">
+                <span
+                    class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                >
+                    <Users class="h-3.5 w-3.5" />
+                    지금 {totalWaiting}명 대기 중
+                </span>
+                {#each activeGames as g (g.id)}
+                    <a
+                        href={g.href}
+                        class="hover:bg-accent inline-flex items-center gap-1 rounded-md border px-2 py-1 text-sm font-medium"
                     >
-                        <Users class="h-3.5 w-3.5" />
-                        지금 {totalWaiting}명 대기 중
-                    </span>
-                    {#each activeGames as g (g.id)}
-                        <a
-                            href={g.href}
-                            class="hover:bg-accent inline-flex items-center gap-1 rounded-md border px-2 py-1 text-sm font-medium"
-                        >
-                            {g.label}
-                            {waiting[g.id]}명
-                            <ChevronRight class="h-3.5 w-3.5" />
-                        </a>
-                    {/each}
-                    <span class="text-muted-foreground text-xs">바로 대국이 시작됩니다</span>
-                </div>
-            {:else}
-                <!-- 대기자 0 — 조용히 존재만 알린다. 여기서 숨기면 첫 대기자가 영영 안 생긴다. -->
-                <div class="flex flex-wrap items-center gap-2">
-                    <span class="text-muted-foreground inline-flex items-center gap-1 text-xs">
-                        <PlayCircle class="h-3.5 w-3.5" />
-                        온라인 대전
-                    </span>
-                    {#each GAMES as g (g.id)}
-                        <a
-                            href={g.href}
-                            class="text-sm font-medium underline-offset-2 hover:underline"
-                        >
-                            {g.label}
-                        </a>
-                    {/each}
-                    <span class="text-muted-foreground text-xs">
-                        먼저 기다리시면 다음 앙님과 바로 매칭됩니다
-                    </span>
-                </div>
-            {/if}
-        </CardContent>
-    </Card>
-{/if}
+                        {g.label}
+                        {waiting[g.id]}명
+                        <ChevronRight class="h-3.5 w-3.5" />
+                    </a>
+                {/each}
+                <span class="text-muted-foreground text-xs">바로 대국이 시작됩니다</span>
+            </div>
+        {:else}
+            <!-- 대기자 0 — 조용히 존재만 알린다. 여기서 숨기면 첫 대기자가 영영 안 생긴다. -->
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-muted-foreground inline-flex items-center gap-1 text-xs">
+                    <PlayCircle class="h-3.5 w-3.5" />
+                    온라인 대전
+                </span>
+                {#each GAMES as g (g.id)}
+                    <a href={g.href} class="text-sm font-medium underline-offset-2 hover:underline">
+                        {g.label}
+                    </a>
+                {/each}
+                <span class="text-muted-foreground text-xs">
+                    먼저 기다리시면 다음 앙님과 바로 매칭됩니다
+                </span>
+            </div>
+        {/if}
+    </CardContent>
+</Card>
