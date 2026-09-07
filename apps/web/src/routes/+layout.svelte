@@ -46,6 +46,7 @@
     import { initMistouchProbe, resetMistouchBudget } from '$lib/services/mistouch-probe';
     import { initHistoryProbe, resetHistoryProbeBudget } from '$lib/services/history-probe';
     import { AdblockNotice } from '$lib/components/features/adblock-notice';
+    import { TmpNicknameNotice } from '$lib/components/features/tmp-nickname-notice';
     import type { MenuItem } from '$lib/api/types';
     import { readUserBasicFromCookie } from '$lib/utils/user-basic-client';
     import { env } from '$env/dynamic/public';
@@ -1228,6 +1229,11 @@
 <!-- AdBlock 감지 시 안내 토스트 (admin/install 제외) -->
 {#if !isAdminRoute && !isInstallRoute}
     <AdblockNotice />
+{/if}
+
+<!-- 임시 닉네임(tmp_…) 회원에게 닉네임 설정 안내 (admin/install 제외) -->
+{#if !isAdminRoute && !isInstallRoute}
+    <TmpNicknameNotice />
 {/if}
 
 <!-- 플러그인 슬롯: </body> 직전 (지연 로딩 컴포넌트, fallback 등) — Slot Catalog Sprint 2 -->
