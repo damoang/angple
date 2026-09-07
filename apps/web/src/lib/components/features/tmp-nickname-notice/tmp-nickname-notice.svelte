@@ -12,9 +12,16 @@
      *    닉네임을 정하는 단계를 안 만든 것이다.
      *
      * ⛔ 닉네임을 추천하거나 미리 채워주지 않는다 — 소셜 프로필 이름이 실명인 프로바이더가 있다.
+     *
+     * ⛔ 위치가 `bottom-32` 인 이유 — 모바일 글쓰기 버튼이 오른쪽 아래에 있다(`md:hidden`).
+     *    실측 높이: 글목록 100px(h-9 + gap-2 + h-10 + bottom-4),
+     *              글상세 104px(h-10 + gap-2 + h-10 + bottom-4).
+     *    `bottom-4` 로 두면 그 버튼을 통째로 덮는다. 128px 로 비켜 준다.
+     *    데스크톱(`md:`)은 그 버튼이 없으므로 원래 자리로 돌아온다.
      */
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { tmpNicknameNotice, isTempNickname } from '$lib/stores/tmp-nickname-notice.svelte.js';
+    import { adblockNotice } from '$lib/stores/adblock-notice.svelte';
     import { Button } from '$lib/components/ui/button';
     import X from '@lucide/svelte/icons/x';
 
@@ -29,8 +36,16 @@
     const currentNick = $derived(authStore.user?.mb_name);
 
     // ⛔ 로딩 중에는 띄우지 않는다. 인증이 확립되기 전에 판정하면 깜빡인다.
+    //
+    // ⛔ 광고차단 안내가 떠 있으면 양보한다. 두 안내가 **같은 자리**를 쓰기 때문이다
+    //    (`adblock-notice.svelte` 도 `fixed bottom-4 right-4 z-[100]`).
+    //    겹치면 나중에 그려지는 이쪽이 덮어 상대의 닫기 버튼까지 가린다.
+    //    ⭐ 잔소리는 한 번에 하나만. 광고차단 안내는 7일 뒤 사라지고 그때 이쪽이 뜬다.
     const show = $derived(
-        !authStore.isLoading && isTempNickname(currentNick) && tmpNicknameNotice.notDismissed
+        !authStore.isLoading &&
+            isTempNickname(currentNick) &&
+            tmpNicknameNotice.notDismissed &&
+            !adblockNotice.shouldShow
     );
 
     function handleDismiss() {
@@ -40,7 +55,7 @@
 
 {#if show}
     <div
-        class="tmp-nickname-notice fixed bottom-4 right-4 z-[100] max-w-sm rounded-xl border border-blue-200 bg-white p-4 shadow-2xl ring-1 ring-black/5 sm:bottom-6 sm:right-6 dark:border-blue-900/40 dark:bg-zinc-900 dark:ring-white/10"
+        class="tmp-nickname-notice fixed bottom-32 right-4 z-[100] max-w-sm rounded-xl border border-blue-200 bg-white p-4 shadow-2xl ring-1 ring-black/5 md:bottom-6 md:right-6 dark:border-blue-900/40 dark:bg-zinc-900 dark:ring-white/10"
         role="status"
         aria-live="polite"
         aria-label="닉네임 설정 안내"
