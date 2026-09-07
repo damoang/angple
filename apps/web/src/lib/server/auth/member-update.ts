@@ -203,18 +203,17 @@ export async function updateEmail(
     const token = randomBytes(24).toString('hex');
     const timestamp = Date.now().toString(36);
 
-    // mb_email_certify2에 "새이메일|토큰|타임스탬프" 저장
-    await pool.query<ResultSetHeader>(
-        'UPDATE g5_member SET mb_email_certify2 = ? WHERE mb_id = ?',
-        [`${trimmed}|${token}|${timestamp}`, mbId]
-    );
-
-    // 인증 메일 발송
+    // ⛔ 2026-09-07 — **순서를 뒤집었다.** 이전에는 UPDATE 를 먼저 하고 발송했다.
+    //    운영에 SMTP 설정이 없어 발송이 전부 실패하는 동안 대기행만 111건 쌓였고
+    //    (2026-03-27 ~ 09-07), 토큰 유효기간 24시간이라 전부 만료된 채 남았다.
+    //    ⭐ 보낸 뒤에 쓴다. 못 보냈으면 아무것도 남기지 않고 **회원에게 실패라고 말한다.**
     const verifyUrl = `${SITE_URL}/member/settings/verify-email?token=${token}&mb_id=${encodeURIComponent(mbId)}`;
-    await sendMail({
-        to: trimmed,
-        subject: `[${SITE_NAME}] 이메일 변경 인증`,
-        html: `
+    try {
+        await sendMail({
+            kind: 'email-change',
+            to: trimmed,
+            subject: `[${SITE_NAME}] 이메일 변경 인증`,
+            html: `
             <div style="max-width:600px;margin:0 auto;font-family:sans-serif;">
                 <h2 style="color:#333;">이메일 변경 인증</h2>
                 <p>${profile.mb_nick}님, 안녕하세요.</p>
@@ -233,7 +232,21 @@ export async function updateEmail(
                 <p style="color:#999;font-size:12px;">${SITE_NAME}</p>
             </div>
         `
-    });
+        });
+    } catch {
+        // ⛔ 상세 사유를 회원에게 노출하지 않는다(발송 인프라 정보다).
+        //    마커 로그는 sendMail 이 이미 남겼다 — 감시 스크립트가 그걸 센다.
+        return {
+            success: false,
+            error: '인증 메일을 보내지 못했습니다. 잠시 후 다시 시도해주세요.'
+        };
+    }
+
+    // 발송에 성공한 뒤에만 대기 상태를 남긴다.
+    await pool.query<ResultSetHeader>(
+        'UPDATE g5_member SET mb_email_certify2 = ? WHERE mb_id = ?',
+        [`${trimmed}|${token}|${timestamp}`, mbId]
+    );
 
     return {
         success: true,
