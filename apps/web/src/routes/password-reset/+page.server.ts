@@ -72,7 +72,11 @@ export const actions: Actions = {
                     nonce
                 });
             } catch (err) {
-                console.error('[Password Reset] 메일 발송 실패:', err);
+                // ⛔ `err` 를 통째로 찍지 않는다. Node 가 Error 를 펼치면서 nodemailer 가
+                //    붙여 둔 `response`·`recipient`(회원 메일 주소)까지 로그에 남는다.
+                //    분류와 상세는 sendMail 이 이미 마커 한 줄로 남겼다(주소는 가려서).
+                const code = (err as NodeJS.ErrnoException)?.code ?? (err as Error)?.name;
+                console.error(`[Password Reset] 메일 발송 실패 reason=${code ?? 'unknown'}`);
                 // 메일 발송 실패해도 사용자에게는 성공 메시지 (보안)
             }
         }

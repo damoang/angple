@@ -35,7 +35,22 @@ function missingConfig(): string[] {
     const missing: string[] = [];
     if (!env.SMTP_HOST) missing.push('SMTP_HOST');
     if (!env.MAIL_FROM) missing.push('MAIL_FROM');
+    // ⛔ 사용자만 있고 비밀번호가 비면 매번 EAUTH 로 실패한다. 그러면 감시 문구가
+    //    「설정 누락」이 아니라 「SES 자격증명 문제」를 가리켜 **엉뚱한 곳을 보게 된다.**
+    if (env.SMTP_USER && !env.SMTP_PASS) missing.push('SMTP_PASS');
     return missing;
+}
+
+/**
+ * 오류 메시지에서 메일 주소를 지운다.
+ *
+ * ⛔ nodemailer 는 SMTP 서버 응답 원문을 `err.message` 에 이어 붙이고
+ *    (`smtp-connection/index.js:921`), 거절 응답에는 **수신 주소가 그대로 들어 있다.**
+ *    `'Invalid recipient ' + JSON.stringify(to)` 경로(같은 파일 1167)도 마찬가지다.
+ *    이걸 그대로 찍으면 파드 로그가 회원 메일 주소 저장소가 된다.
+ */
+function maskEmails(text: string): string {
+    return text.replace(/[^\s<>"'()[\],;:]+@[^\s<>"'()[\],;:]+/g, '<주소가림>');
 }
 
 /** 발송 가능한 상태인지. 호출부가 미리 확인해 분기할 때 쓴다. */
@@ -73,7 +88,9 @@ function getTransporter(): Transporter {
 /**
  * 메일 발송.
  *
- * ⛔ 실패하면 **던진다.** 호출부가 「성공」이라고 답하지 않도록 하는 것이 이 함수의 계약이다.
+ * ⛔ 실패하면 **던진다.** 호출부가 모르고 지나가지 않게 하는 것이 이 함수의 계약이다.
+ *    ⭐ 다만 비밀번호 재설정은 **알고도 회원에게 성공이라 답한다**(계정 존재 여부를 감추는
+ *       의도된 설계다). 그 흐름의 유일한 신호는 아래 마커뿐이니 감시를 반드시 살려 둬라.
  * @param kind 어떤 흐름에서 보내는지. 마커 로그·감시 집계의 분류 키다(수신 주소 대신 이걸 쓴다).
  */
 export async function sendMail(options: {
@@ -98,10 +115,10 @@ export async function sendMail(options: {
             err instanceof MailNotConfiguredError
                 ? 'not_configured'
                 : ((err as NodeJS.ErrnoException)?.code ?? (err as Error)?.name ?? 'unknown');
-        console.error(
-            `${MAIL_LOG_PREFIX} fail kind=${options.kind} reason=${reason}`,
-            err instanceof Error ? err.message : err
-        );
+        // ⛔ 인자를 하나로 합친다. 두 번째 인자로 Error 를 넘기면 Node 가 통째로 펼쳐
+        //    `response`·`recipient` 까지 찍는다. 문자열 한 줄만, 그것도 가려서 남긴다.
+        const detail = err instanceof Error ? maskEmails(err.message).slice(0, 200) : '';
+        console.error(`${MAIL_LOG_PREFIX} fail kind=${options.kind} reason=${reason} ${detail}`);
         throw err;
     }
 }
