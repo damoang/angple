@@ -714,6 +714,15 @@
         height: auto !important;
     }
 
+    /* bug/13894: 본문 세로(portrait) 영상이 화면 높이를 넘지 않도록 높이 상한.
+       - embed-container(비율박스) 세로 임베드는 아래 컨테이너 폭 캡으로 처리되어 이 값은 무해(no-op).
+       - 직접 <video>({video:} 패턴·첨부)만 실제로 캡된다. 가로/이미지·iframe은 영향 없음. */
+    .prose :global(video) {
+        max-height: 80vh;
+        display: block;
+        margin-inline: auto;
+    }
+
     /* YouTube iframe은 16:9 비율 유지 */
     .prose :global(iframe[src*='youtube']),
     .prose :global(iframe[src*='youtu.be']),
@@ -763,9 +772,13 @@
     }
 
     /* 세로 영상 (Shorts, Reels, TikTok) */
+    /* bug/13894: 세로 비율(≈177.78%)이라 폭을 제한하면 높이도 함께 줄어든다.
+       45vh × 1.7778 ≈ 80vh 이므로, 폭을 min(작성자 지정폭, 45vh)로 캡하면
+       화면 높이의 80%를 넘지 않는다. 좁은 화면에선 --max-width(400px)가 그대로 유지된다. */
     .prose :global(.embed-container[data-platform='youtube-shorts']),
     .prose :global(.embed-container[data-platform='instagram-reel']),
     .prose :global(.embed-container[data-platform='tiktok']) {
+        max-width: min(var(--max-width, 400px), 45vh);
         margin-left: auto;
         margin-right: auto;
     }

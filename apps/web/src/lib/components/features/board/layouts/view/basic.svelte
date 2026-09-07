@@ -661,12 +661,15 @@
                                 <div class="overflow-hidden rounded-lg border">
                                     <!-- poster = 관례 키(…_poster.jpg) 도출. 포스터 없는 옛 동영상은
                                          404 인데 <video poster> 는 로드 실패를 조용히 무시하므로 무해 -->
+                                    <!-- bug/13894: w-full 은 세로 첨부영상을 화면 밖으로 늘린다.
+                                         max-w-full + max-h-[80vh] 로 두 축을 캡하면 native <video> 가
+                                         비율을 유지한 채 화면 안에 맞춰지고, 가로영상은 종전대로 꽉 찬다. -->
                                     <video
                                         controls
                                         preload="none"
                                         playsinline
                                         poster={deriveVideoPoster(video.url)}
-                                        class="w-full"
+                                        class="mx-auto block max-h-[80vh] max-w-full"
                                     >
                                         <source src={video.url} />
                                         동영상을 재생할 수 없습니다.
