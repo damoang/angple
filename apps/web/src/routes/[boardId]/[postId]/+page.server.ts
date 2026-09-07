@@ -174,6 +174,10 @@ export const load: PageServerLoad = async ({
         }
 
         // 삭제된 게시글: 본문+메타데이터 숨김 + 검색엔진 색인 차단
+        // #13754: 타인삭제(이동/관리자)된 글은 본문이 tombstone 으로 가려지는데, 댓글은
+        // 웹 직접 SQL 경로(comments API)가 부모 삭제를 몰라 이동 전 원본 댓글을 그대로
+        // 채워 본문·댓글 소스가 어긋났다. 아래 댓글 fetch 를 이 플래그로 게이트한다.
+        let hideComments = false;
         if (post.deleted_at) {
             post.content = '';
             post.tags = [];
@@ -194,6 +198,7 @@ export const load: PageServerLoad = async ({
             if (!selfDeleted) {
                 // 헤더 카운트 라벨/SSR total/클라 backfill 게이트 일치를 위해 권위 카운트 0.
                 post.comments_count = 0;
+                hideComments = true;
             }
             setHeaders({ 'X-Robots-Tag': 'noindex, noarchive' });
         }
@@ -432,6 +437,24 @@ export const load: PageServerLoad = async ({
 
         // --- 2단계: 핵심/보조 데이터를 분리해 스트리밍 ---
         const commentsData = await (async () => {
+            // #13754: 타인삭제(이동/관리자)된 글은 원본 댓글도 노출하지 않는다.
+            // 본문 tombstone·comments_count=0 과 정합(웹 직접 SQL 이 부모 삭제를 몰라
+            // 이동 전 댓글을 채우던 문제 차단). 개별 "[삭제된 댓글]" 동작은 무영향.
+            if (hideComments) {
+                return {
+                    comments: {
+                        items: [],
+                        total: 0,
+                        page: 1,
+                        limit: initialCommentsLimit,
+                        total_pages: 0,
+                        loadState: 'complete' as 'complete' | 'partial' | 'failed',
+                        edit_policy: undefined as
+                            | { cost: number; grace_seconds: number }
+                            | undefined
+                    }
+                };
+            }
             if (isDataRequest && !locals.user?.id) {
                 // 비로그인 SPA 네비(__data.json): 댓글은 클라가 backfill 로 로드. total 은 권위값 보존.
                 // 비로그인 __data.json 은 nginx/SSR 캐시 대상이라 댓글을 비워 stale 캐시를 방지.
