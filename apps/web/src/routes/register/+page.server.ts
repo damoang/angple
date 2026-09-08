@@ -16,7 +16,7 @@ import {
     inspectSocialMbIdOccupant,
     reactivateMember
 } from '$lib/server/auth/register.js';
-import { upsertSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
+import { upsertSocialProfile, findSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
 import {
     ACCOUNT_RECOVERY_LOCKED,
     ACCOUNT_RECOVERY_LOCKED_MESSAGE
@@ -236,6 +236,9 @@ export const actions: Actions = {
         }
 
         let mbId: string;
+        // 이 소셜 identifier 로 이미 만들어진 계정을 재사용하는 경우(폼 재제출 방어) true.
+        // 그때는 새 mb_id 생성·createMember·이메일 중복차단을 모두 건너뛴다.
+        let reuseExistingMbId = false;
         if (isRecovery && ACCOUNT_RECOVERY_LOCKED) {
             // ⛔ 화면 진입을 막아도 폼을 직접 POST 할 수 있다. 여기서 다시 막는다.
             cookies.delete('pending_social_register', { path: '/' });
@@ -297,38 +300,57 @@ export const actions: Actions = {
             // 검증기가 안 보이는 문자(제로폭·전각공백 등)를 제거한 정규화 값을 저장한다.
             nickname = nicknameResult.normalized ?? nickname;
 
-            // 같은 소셜 계정으로 만들어진 계정이 이미 있으면 새로 만들지 않는다.
-            // ⛔ 단 「mb_id 충돌 = 동일인」이 아니다. 소유가 확인된 `owned` 만 그렇다.
-            const occupant = await inspectSocialMbIdOccupant(
+            // ⭐ 폼 재제출 방어 (소셜 가입 중복 접미사 계정 버그).
+            //    콜백(auth/callback)은 findSocialProfile(provider, identifier)로 기존 계정을
+            //    찾아 로그인하지만, 이 폼 제출 경로는 그 조회 없이 base mb_id(아래
+            //    inspectSocialMbIdOccupant)만 봤다. base 가 adler32(md5) 해시충돌로 남에게
+            //    점유돼 있으면(2024-03~04 대량가입으로 32비트 키공간 포화), 폼을 다시 낼 때마다
+            //    랜덤 접미사(appendMbIdSuffix)로 **새 계정**을 만들어 버려진 접미사 계정이 쌓였다.
+            //    identifier 는 소셜 제공자의 고유 사용자 id 라 동일 identifier = 동일인이 보장된다.
+            //    이미 이 identifier 로 만들어진 계정이 있으면(직전 제출 등) 그 계정으로 이어간다.
+            //    ※ 이용제한(mb_intercept_date) 계정 차단은 로그인/세션 가드에서 별도 강제된다.
+            const priorProfile = await findSocialProfile(
                 socialProfile.provider,
                 socialProfile.identifier
             );
-            if (occupant.kind === 'blocked') {
-                cookies.delete('pending_social_register', { path: '/' });
-                return fail(400, {
-                    error: '이용이 제한된 계정입니다. 자세한 내용은 고객센터로 문의해주세요.',
-                    nickname
-                });
-            }
-            if (!ACCOUNT_RECOVERY_LOCKED && occupant.kind === 'owned') {
-                return fail(409, {
-                    error: '이전에 사용하시던 계정이 있습니다. 그 계정으로 이어서 이용하실 수 있습니다.',
-                    nickname,
-                    needsRecovery: true
-                });
-            }
+            if (priorProfile?.mb_id) {
+                mbId = priorProfile.mb_id;
+                reuseExistingMbId = true;
+            } else {
+                // 같은 소셜 계정으로 만들어진 계정이 이미 있으면 새로 만들지 않는다.
+                // ⛔ 단 「mb_id 충돌 = 동일인」이 아니다. 소유가 확인된 `owned` 만 그렇다.
+                const occupant = await inspectSocialMbIdOccupant(
+                    socialProfile.provider,
+                    socialProfile.identifier
+                );
+                if (occupant.kind === 'blocked') {
+                    cookies.delete('pending_social_register', { path: '/' });
+                    return fail(400, {
+                        error: '이용이 제한된 계정입니다. 자세한 내용은 고객센터로 문의해주세요.',
+                        nickname
+                    });
+                }
+                if (!ACCOUNT_RECOVERY_LOCKED && occupant.kind === 'owned') {
+                    return fail(409, {
+                        error: '이전에 사용하시던 계정이 있습니다. 그 계정으로 이어서 이용하실 수 있습니다.',
+                        nickname,
+                        needsRecovery: true
+                    });
+                }
 
-            // ⛔ 점유 계정을 그대로 내주지 않는다. 해시가 겹쳤다고 같은 사람이라는
-            //    보장이 없다(`unverified`). 이미 쓰이는 mb_id 면 접미사를 붙여 새로 만든다.
-            mbId = occupant.mbId;
-            if (await isMbIdTaken(mbId)) {
-                mbId = appendMbIdSuffix(mbId);
+                // ⛔ 점유 계정을 그대로 내주지 않는다. 해시가 겹쳤다고 같은 사람이라는
+                //    보장이 없다(`unverified`). 이미 쓰이는 mb_id 면 접미사를 붙여 새로 만든다.
+                mbId = occupant.mbId;
+                if (await isMbIdTaken(mbId)) {
+                    mbId = appendMbIdSuffix(mbId);
+                }
             }
         }
 
         // 이메일 중복 체크: 같은 이메일로 가입된 계정이 있으면 가입 차단.
         // 복구 경로는 옛 계정 자신이 걸리므로 건너뛴다.
-        if (!isRecovery && socialProfile.email) {
+        // 재사용 경로도 건너뛴다 — 재사용 대상이 곧 그 이메일의 주인이라 자기 자신에 걸린다.
+        if (!isRecovery && !reuseExistingMbId && socialProfile.email) {
             const existingByEmail = await findMemberByEmail(socialProfile.email);
             if (existingByEmail) {
                 cookies.delete('pending_social_register', { path: '/' });
@@ -340,8 +362,8 @@ export const actions: Actions = {
         }
 
         try {
-            // g5_member INSERT (복구 경로는 이미 존재하는 계정이므로 생성하지 않는다)
-            if (!isRecovery) {
+            // g5_member INSERT (복구 경로·재사용 경로는 이미 존재하는 계정이므로 생성하지 않는다)
+            if (!isRecovery && !reuseExistingMbId) {
                 await createMember({
                     mb_id: mbId,
                     mb_nick: nickname,
