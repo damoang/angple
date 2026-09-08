@@ -29,9 +29,15 @@
     let notificationData = $state<GroupedNotificationListResponse | null>(null);
     let isLoading = $state(true);
     let error = $state<string | null>(null);
-    let activeFilter = $state('');
+    // ⛔ 기본값을 '전체'가 아니라 'main'(새 글 제외)으로 둔다.
+    //    자유게시판은 하루 1,127개 글이 올라온다. 구독자 87명이 하루 462~991개를 받고
+    //    읽힘률이 0.0% 인데, 그것이 **댓글 알림까지 파묻는다** —
+    //    같은 사람들의 댓글 알림 읽힘률이 87.7%(일반) 대 11.9%(구독자)로 갈렸다(2026-09-09 실측).
+    //    ⭐ 구독 알림을 없애는 게 아니다. 아래 '새 글' 탭에 그대로 있다.
+    let activeFilter = $state('main');
 
     const filters = [
+        { key: 'main', label: '주요' },
         { key: '', label: '전체' },
         { key: 'comment', label: '댓글' },
         { key: 'like', label: '공감' },
