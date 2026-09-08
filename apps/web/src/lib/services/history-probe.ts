@@ -25,6 +25,11 @@ const HISTORY_LENGTH_CAP_GUARD = 48;
 let sent = 0;
 let lastReplaceTs = 0;
 let installed = false;
+// 직전에 popstate(뒤로/앞으로)가 있었는가. 뒤로 간 뒤 새 글로 이동하면 브라우저가 앞쪽
+// 항목을 버리고 새 것을 넣어 history.length 가 안 늘지만 이는 **정상 truncation** 이다
+// (2026-09-08 chromium 실브라우저 재현으로 확인 — 백버튼은 목록으로 정상 복귀).
+// 이 플래그가 그 정상 케이스를 오탐에서 제외한다. 다음 pushState 가 소비한다.
+let poppedPending = false;
 
 /** 내비게이션마다 예산 초기화(같은 세션에서 여러 목록→글 이동을 각각 잡는다). */
 export function resetHistoryProbeBudget(): void {
@@ -95,6 +100,12 @@ export function initHistoryProbe(): void {
         return;
     installed = true;
 
+    // 뒤로/앞으로(popstate)를 표시해 둔다. 그 직후 첫 pushState 는 앞쪽 항목을 버리는
+    // 정상 truncation 이라 길이가 안 늘어도 병합이 아니다(아래 pushState 래퍼에서 제외).
+    window.addEventListener('popstate', () => {
+        poppedPending = true;
+    });
+
     // 원 함수를 history 에 바인딩해 그대로 통과시킨다(동작 무변경, 관측만).
     const origPush = history.pushState.bind(history);
     const origReplace = history.replaceState.bind(history);
@@ -112,8 +123,18 @@ export function initHistoryProbe(): void {
         const fromPath = pathGroup(location.pathname);
         origPush(data, unused, url);
         const lenAfter = history.length;
-        // 병합 지문: pushState 인데 길이가 안 늘었다(상한 포화는 제외).
-        if (lenAfter <= lenBefore && lenBefore < HISTORY_LENGTH_CAP_GUARD && sent < MAX_PER_PAGE) {
+        // 이 pushState 로 popstate 대기를 소비한다(앞쪽 항목이 있었다면 지금 잘려나갔다).
+        const afterPop = poppedPending;
+        poppedPending = false;
+        // 진짜 병합 지문: **tip 에 있었는데**(뒤로 직후가 아닌데) pushState 가 길이를 못 늘렸다.
+        // ⛔ 뒤로 간 뒤 새 글로 이동하면 앞쪽을 버려 길이가 유지되지만, 백버튼은 목록으로 정상
+        //    복귀한다(2026-09-08 chromium 재현). 그 정상 케이스(afterPop)를 제외해 오탐을 막는다.
+        if (
+            !afterPop &&
+            lenAfter <= lenBefore &&
+            lenBefore < HISTORY_LENGTH_CAP_GUARD &&
+            sent < MAX_PER_PAGE
+        ) {
             sent++;
             beacon(fromPath, Math.round(performance.now() - lastReplaceTs), lenBefore, lenAfter);
         }
