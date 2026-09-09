@@ -1043,7 +1043,12 @@ export interface Notification {
 }
 
 export interface NotificationSummary {
-    total_unread: number; // 읽지 않은 알림 수
+    // ⛔ 2026-09-09 부터 구독·팔로우(「새 글」)가 이 값에서 빠졌다.
+    //    키는 그대로다 — 지우면 소비자 4곳이 죽는다.
+    total_unread: number; // 읽지 않은 알림 수 (새 글 제외)
+    // 새 글(구독·팔로우) 미읽음 수. 배지에는 안 넣고 따로 보여준다.
+    // ⛔ 선택 필드다. 백엔드가 배포되기 전에는 안 온다 — 없어도 화면이 깨지면 안 된다.
+    feed_unread?: number;
 }
 
 export interface NotificationListResponse {
