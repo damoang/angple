@@ -831,7 +831,15 @@
                         <div class="mt-6 space-y-4">
                             {#each post.videos as video, i (i)}
                                 <div class="overflow-hidden rounded-lg border">
-                                    <video controls preload="none" playsinline class="w-full">
+                                    <!-- bug/13894 잔존분: w-full 은 세로 첨부영상을 화면 밖으로 늘린다.
+                                         max-w-full + max-h-[80vh] 로 두 축을 캡해 비율 유지하며 화면 안에 맞춘다
+                                         (basic.svelte 와 동일 패턴). report 레이아웃 게시판에서도 오버플로 방지. -->
+                                    <video
+                                        controls
+                                        preload="none"
+                                        playsinline
+                                        class="mx-auto block max-h-[80vh] max-w-full"
+                                    >
                                         <source src={video.url} />
                                         동영상을 재생할 수 없습니다.
                                     </video>
