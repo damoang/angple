@@ -24,6 +24,11 @@
     import { Button } from '$lib/components/ui/button/index.js';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import WriteEtiquetteSubtitle from '$lib/components/features/board/write-etiquette-subtitle.svelte';
+    import BugWriteNotice from '$lib/components/features/board/bug-write-notice.svelte';
+    import {
+        isBugNoticeSkipped,
+        BUG_TEMPLATE_CONTENT
+    } from '$lib/components/features/board/bug-write-notice.js';
 
     let { data }: { data: PageData } = $props();
 
@@ -69,6 +74,22 @@
 
     // claim 게시판 직접 접근 차단: disciplinelog_id 없이는 소명 작성 불가
     const isClaimWithoutDiscipline = $derived(boardId === 'claim' && !disciplinelogId);
+
+    // 버그게시판 글쓰기 안내 인터스티셜 (신고·질문 오용 예방)
+    const isBugBoard = $derived(boardId === 'bug');
+    let bugNoticeAcknowledged = $state(false);
+    // 버그게시판 진입 시 24시간 내 "오늘 하루 보지 않기"가 저장돼 있으면 안내 생략
+    $effect(() => {
+        if (browser && isBugBoard) {
+            bugNoticeAcknowledged = isBugNoticeSkipped();
+        }
+    });
+    function acknowledgeBugNotice(): void {
+        bugNoticeAcknowledged = true;
+    }
+    const showBugNotice = $derived(isBugBoard && !bugNoticeAcknowledged);
+    // 버그게시판 본문 양식 prefill (repost/소명 프리필이 없을 때만)
+    const bugInitialContent = $derived(isBugBoard ? BUG_TEMPLATE_CONTENT : '');
 
     // 글쓰기 권한 조회 결과
     const writePermission = $derived(data.writePermission as WritePermission | null);
@@ -270,6 +291,10 @@
                 <p class="text-muted-foreground mt-2 text-sm">{writePermissionMsg}</p>
             </div>
         </div>
+    {:else if showBugNotice}
+        <div class="pt-4">
+            <BugWriteNotice onContinue={acknowledgeBugNotice} />
+        </div>
     {:else}
         {#if error}
             <div class="bg-destructive/10 text-destructive mb-4 rounded-md p-4">
@@ -364,7 +389,7 @@
                     initialTitle={repostTitle || claimInitialTitle}
                     initialLink1={repostLink1 || claimInitialLink1}
                     initialLink2={repostLink2}
-                    initialContent={repostContent || claimInitialContent}
+                    initialContent={repostContent || claimInitialContent || bugInitialContent}
                     onSubmit={handleSubmit}
                     onCancel={handleCancel}
                     isLoading={isSubmitting}
