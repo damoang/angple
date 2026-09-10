@@ -4,6 +4,7 @@
     import { apiClient } from '$lib/api/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import { readPostsStore } from '$lib/stores/read-posts.svelte.js';
+    import { memoPresence } from '$lib/stores/memo-presence.svelte.js';
     import { takeBoardList } from '$lib/stores/board-list-carryover.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import Search from '@lucide/svelte/icons/search';
@@ -92,6 +93,13 @@
             memoByAuthorId = {};
             return;
         }
+        // ⛔ 메모가 하나도 없는 회원이면 응답은 언제나 빈 객체다. 부르지 않는다.
+        //    아직 모르는 상태(null)에서는 건너뛰지 않는다 — 모르면 부르는 쪽이 안전하다.
+        if (memoPresence.canSkip) {
+            memoByAuthorId = {};
+            return;
+        }
+
         const ids = [...new Set(posts.map((p) => p.author_id).filter(Boolean))];
         if (ids.length === 0) {
             memoByAuthorId = {};
@@ -107,6 +115,7 @@
             );
             if (!res.ok) return;
             const json = await res.json();
+            memoPresence.note(json?.has_any);
             const payload = (json?.data ?? {}) as Record<
                 string,
                 { content?: string; color?: string }

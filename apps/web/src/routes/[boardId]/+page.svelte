@@ -18,6 +18,7 @@
     import type { PageData } from './$types.js';
     import type { FreePost } from '$lib/api/types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import { memoPresence } from '$lib/stores/memo-presence.svelte.js';
     import {
         canUseCertifiedAction,
         getCertificationBlockedMessage,
@@ -451,6 +452,15 @@
             return;
         }
 
+        // ⛔ 메모가 하나도 없는 회원이면 응답은 언제나 빈 객체다. 부르지 않는다.
+        //    아직 모르는 상태(null)에서는 건너뛰지 않는다 — 모르면 부르는 쪽이 안전하다.
+        if (memoPresence.canSkip) {
+            clearMemoSchedule();
+            lastMemoRequestKey = '';
+            memoByAuthorId = {};
+            return;
+        }
+
         const uniqueAuthorIds = [...new Set(authorIds)].filter(Boolean);
         if (uniqueAuthorIds.length === 0) {
             clearMemoSchedule();
@@ -485,6 +495,7 @@
             }
 
             const json = await response.json();
+            memoPresence.note(json?.has_any);
             const payload = (json?.data ?? {}) as Record<
                 string,
                 { content?: string; color?: string }
