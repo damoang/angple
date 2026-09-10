@@ -18,6 +18,7 @@
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import type { ActivePlugin } from '$lib/stores/plugin.svelte';
     import { menuStore } from '$lib/stores/menu.svelte';
+    import { tagNavMenusStore } from '$lib/stores/tagnav-menus.svelte';
     import { loadThemeHooks } from '$lib/hooks/theme-loader';
     import { loadThemeComponents } from '$lib/utils/theme-component-loader';
     import { loadAllPluginHooks } from '$lib/hooks/plugin-loader';
@@ -246,6 +247,10 @@
         );
     }
 
+    // 상단 tag-nav 메뉴(menus 테이블)를 SSR 시점에 주입 — $effect 는 SSR 미실행이라
+    // 여기서 1회 채워야 SSR 렌더가 DEFAULT 가 아닌 실제 메뉴로 그려지고 라벨 flip 이 없다.
+    tagNavMenusStore.init(data.tagNavMenus);
+
     // SSR에서 받은 테마/메뉴로 스토어 초기화 (깜박임 방지!)
     // plugins는 /api/layout/init에서 클라이언트 로드 (비용 절감)
     $effect(() => {
@@ -256,6 +261,7 @@
         const sidebarWidgetLayout = data.sidebarWidgetLayout;
         untrack(() => {
             themeStore.initFromServer(theme);
+            tagNavMenusStore.init(data.tagNavMenus);
             if (menus.length > 0) {
                 menuStore.initFromServer(menus);
                 writeCachedMenus(menus);

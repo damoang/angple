@@ -1,6 +1,6 @@
 import type { LayoutServerLoad } from './$types';
 import { getActiveTheme } from '$lib/server/themes';
-import { loadMenus } from '$lib/server/menu-loader';
+import { loadMenus, loadTagNavMenus } from '$lib/server/menu-loader';
 import { getCachedLogoData } from '$lib/server/logo';
 import { resolveLogoRequestLocale } from '$lib/utils/logo-schedule';
 import { getWidgetLayout, getSidebarWidgetLayout } from '$lib/server/settings/index';
@@ -89,7 +89,8 @@ export const load: LayoutServerLoad = async ({
         pluginsResult,
         widgetLayoutResult,
         sidebarWidgetLayoutResult,
-        celebrationResult
+        celebrationResult,
+        tagNavResult
     ] = await Promise.allSettled([
         getActiveTheme(),
         isDataRequest ? Promise.resolve([]) : loadMenus(),
@@ -101,8 +102,11 @@ export const load: LayoutServerLoad = async ({
         //    다른 페이지에서는 위젯이 SSR 에 **아무것도 못 그리고**(높이 0) 하이드레이션
         //    후 81px 이 생기며 아래 위젯과 footer 를 밀었다(2026-08-20 실측).
         //    getCachedCelebrations 는 KST 날짜 키 서버 캐시라 페이지마다 재조회하지 않는다.
-        isDataRequest ? Promise.resolve([]) : getCachedCelebrations(false)
+        isDataRequest ? Promise.resolve([]) : getCachedCelebrations(false),
+        isDataRequest ? Promise.resolve(null) : loadTagNavMenus()
     ]);
+    // 상단 tag-nav 메뉴 (menus.show_in_tagnav). null/실패면 프론트가 하드코딩 폴백.
+    const tagNavMenus = tagNavResult.status === 'fulfilled' ? tagNavResult.value : null;
 
     const activeTheme = themeResult.status === 'fulfilled' ? themeResult.value : null;
     const menus = menusResult.status === 'fulfilled' ? menusResult.value : [];
@@ -172,6 +176,8 @@ export const load: LayoutServerLoad = async ({
         themeSettings: resolvedThemeSettings,
         activePlugins,
         menus,
+        // 상단 tag-nav 메뉴 (menus 테이블 구동). null 이면 tag-nav 가 하드코딩 폴백.
+        tagNavMenus,
         // 마음메시지 위젯의 SSR 렌더용. 실패해도 빈 배열로 사이트는 정상 동작한다.
         celebration: celebrationResult.status === 'fulfilled' ? celebrationResult.value : [],
         // SSR_STRIP_USER=true 시 user 제거 → SSR 캐시 가능 (클라이언트 /api/auth/me로 로드)

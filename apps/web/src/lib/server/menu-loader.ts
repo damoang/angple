@@ -11,6 +11,7 @@
 import type { MenuItem } from '$lib/api/types';
 import { env } from '$env/dynamic/private';
 import { TieredCache } from '$lib/server/cache';
+import { DEFAULT_TAG_NAV_MENUS, type TagNavMenu } from '$lib/components/ui/tag-nav/default-menus';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
@@ -132,4 +133,61 @@ export async function invalidateMenuCache(): Promise<void> {
     lastKnownMenus = null;
     // 즉시 재로드하여 새 데이터로 캐시 채움
     await loadMenus();
+}
+
+// ── 상단 tag-nav 메뉴 (menus.show_in_tagnav 구동) ─────────────────────────
+// 하드코딩 DEFAULT_TAG_NAV_MENUS 를 단일 출처(menus 테이블)로 대체하기 위한 SSR 로더.
+// 백엔드 /api/v1/menus/tagnav 를 호출하고, 실패/빈값이면 하드코딩으로 폴백(무중단).
+const tagNavCache = new TieredCache<TagNavMenu[]>('menus:tagnav', 60_000, 300, 100);
+let lastKnownTagNav: TagNavMenu[] | null = null;
+
+/** '/explore' → 'explore'. key 는 {#each} 식별자 용도라 url 슬러그로 파생한다. */
+function tagNavKey(url: string): string {
+    const slug = (url || '').replace(/^\//, '').replace(/[/?#].*$/, '');
+    return slug || url || 'item';
+}
+
+/**
+ * 상단 tag-nav 메뉴를 서버에서 로드. show_in_tagnav 메뉴가 없거나 백엔드 실패 시
+ * 하드코딩 기본값으로 폴백해 전환 중에도 tag-nav 가 비지 않게 한다.
+ */
+export async function loadTagNavMenus(): Promise<TagNavMenu[]> {
+    try {
+        return await tagNavCache.getOrFetch('all', async () => {
+            const response = await fetch(`${BACKEND_URL}/api/v1/menus/tagnav`, {
+                headers: {
+                    Accept: 'application/json',
+                    'User-Agent': 'Angple-Web-SSR/1.0'
+                },
+                signal: AbortSignal.timeout(3_000)
+            });
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+            const result = await response.json();
+            const rows = Array.isArray(result.data) ? result.data : [];
+            // 빈 목록이면 아직 seed 전 → 하드코딩 폴백(전환 무중단)
+            if (rows.length === 0) {
+                return DEFAULT_TAG_NAV_MENUS;
+            }
+            const menus: TagNavMenu[] = rows.map((m: { title: string; url: string }) => ({
+                key: tagNavKey(m.url),
+                text: m.title,
+                url: m.url,
+                show: true
+            }));
+            lastKnownTagNav = menus;
+            return menus;
+        });
+    } catch (err) {
+        console.error('[menu-loader] tagnav fetch failed:', err);
+        return lastKnownTagNav ?? DEFAULT_TAG_NAV_MENUS;
+    }
+}
+
+/** tag-nav 캐시 무효화 (관리자 편집/외부 변경 시). */
+export async function invalidateTagNavCache(): Promise<void> {
+    await tagNavCache.delete('all');
+    lastKnownTagNav = null;
+    await loadTagNavMenus();
 }
