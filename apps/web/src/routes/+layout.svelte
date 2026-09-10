@@ -18,6 +18,7 @@
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import type { ActivePlugin } from '$lib/stores/plugin.svelte';
     import { menuStore } from '$lib/stores/menu.svelte';
+    import { tagNavMenusStore } from '$lib/stores/tagnav-menus.svelte';
     import { loadThemeHooks } from '$lib/hooks/theme-loader';
     import { loadThemeComponents } from '$lib/utils/theme-component-loader';
     import { loadAllPluginHooks } from '$lib/hooks/plugin-loader';
@@ -256,6 +257,7 @@
         const sidebarWidgetLayout = data.sidebarWidgetLayout;
         untrack(() => {
             themeStore.initFromServer(theme);
+            tagNavMenusStore.init(data.tagNavMenus);
             if (menus.length > 0) {
                 menuStore.initFromServer(menus);
                 writeCachedMenus(menus);

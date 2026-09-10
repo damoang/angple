@@ -2,6 +2,7 @@
     import { page } from '$app/stores';
     import { invalidateAll } from '$app/navigation';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
+    import { tagNavMenusStore } from '$lib/stores/tagnav-menus.svelte';
     import { DEFAULT_TAG_NAV_MENUS, type TagNavMenu } from './default-menus';
 
     interface Props {
@@ -11,8 +12,13 @@
 
     let { menus: menusProp, class: className = '' }: Props = $props();
 
-    // 우선순위: props > 위젯 레이아웃 스토어(DB) > 기본값
-    const menus = $derived(menusProp ?? widgetLayoutStore.tagNavMenus ?? DEFAULT_TAG_NAV_MENUS);
+    // 우선순위: props > menus 테이블(show_in_tagnav, SSR) > 위젯 레이아웃 스토어 > 하드코딩 폴백
+    const menus = $derived(
+        menusProp ??
+            tagNavMenusStore.menus ??
+            widgetLayoutStore.tagNavMenus ??
+            DEFAULT_TAG_NAV_MENUS
+    );
 
     const visibleMenus = $derived(menus.filter((m) => m.show));
 
