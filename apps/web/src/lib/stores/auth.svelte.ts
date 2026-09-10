@@ -9,6 +9,7 @@
 
 import { apiClient } from '$lib/api';
 import type { DamoangUser } from '$lib/api/types.js';
+import { memoPresence } from './memo-presence.svelte.js';
 
 // 인증 상태
 let user = $state<DamoangUser | null>(null);
@@ -151,6 +152,9 @@ function resetAuth(): void {
     user = null;
     error = null;
     apiClient.setAccessToken(null);
+    // ⛔ 회원이 바뀌면 앞 회원의 「메모 없음」 판단을 물려주면 안 된다.
+    //    남겨두면 다음 회원에게 메모가 통째로 안 보인다.
+    memoPresence.reset();
 }
 
 /**
