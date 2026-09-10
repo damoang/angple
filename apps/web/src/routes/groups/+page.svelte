@@ -2,6 +2,7 @@
     // import { onMount } from 'svelte';
     import { SeoHead } from '$lib/seo/index.js';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
+    import TagNav from '$lib/components/ui/tag-nav/tag-nav.svelte';
     import Users from '@lucide/svelte/icons/users';
     import MessageSquare from '@lucide/svelte/icons/message-square';
     import FileText from '@lucide/svelte/icons/file-text';
@@ -128,6 +129,11 @@
 />
 
 <div class="mx-auto max-w-5xl px-4 py-8">
+    <!-- 상단 태그 네비 — 소모임 전체 목록 위에도 메뉴 노출 (bug/13921) -->
+    <div class="mb-4">
+        <TagNav />
+    </div>
+
     <Card class="gap-0">
         <CardHeader class="pb-0">
             <!-- 헤더 -->
