@@ -247,6 +247,10 @@
         );
     }
 
+    // 상단 tag-nav 메뉴(menus 테이블)를 SSR 시점에 주입 — $effect 는 SSR 미실행이라
+    // 여기서 1회 채워야 SSR 렌더가 DEFAULT 가 아닌 실제 메뉴로 그려지고 라벨 flip 이 없다.
+    tagNavMenusStore.init(data.tagNavMenus);
+
     // SSR에서 받은 테마/메뉴로 스토어 초기화 (깜박임 방지!)
     // plugins는 /api/layout/init에서 클라이언트 로드 (비용 절감)
     $effect(() => {
