@@ -26,8 +26,48 @@
     import { authStore } from '$lib/stores/auth.svelte.js';
 
     const DISMISS_KEY = 'angple_first_comment_nudge_dismissed';
+    const SETTLED_KEY_PREFIX = 'angple_first_comment_nudge_settled';
     const MIN_DAYS = 5;
     const MAX_DAYS = 21;
+    const DAY_MS = 86400000;
+
+    /**
+     * 결론이 난 회원에게 다시 묻지 않기 위한 마커.
+     *
+     * ⛔ 왜 필요한가 — 이 넛지는 「가입 5~21일 · 기여 0건」만 대상이다. 그 밖의 회원은
+     *    카드가 뜨지 않으니 닫을 일이 없고, 그래서 DISMISS_KEY 가 영영 안 생긴다.
+     *    결과가 정해진 질문을 페이지마다 다시 하게 된다.
+     *    onboarding-status 라우트 주석도 「호출량 억제는 클라이언트의 settled 마커가
+     *    담당한다」고 적고 있는데, 정작 부르는 이 컴포넌트에 그 마커가 없었다.
+     *
+     * ⛔ 회원별 키다. 공용 브라우저에서 앞 회원의 결론이 다음 회원에게 새면 안 된다.
+     *
+     * 값: 'never' = 두 번 다시 해당 없음 · 숫자 = 그 시각까지 보류
+     */
+    function settledKey(mbId: string): string {
+        return `${SETTLED_KEY_PREFIX}:${mbId}`;
+    }
+
+    function shouldAsk(mbId: string): boolean {
+        try {
+            const raw = localStorage.getItem(settledKey(mbId));
+            if (!raw) return true;
+            if (raw === 'never') return false;
+            const until = Number(raw);
+            // 값이 깨졌으면 묻는 쪽이 안전하다 — 잘못 막으면 넛지가 영영 안 뜬다.
+            return !Number.isFinite(until) || Date.now() >= until;
+        } catch {
+            return true;
+        }
+    }
+
+    function settle(mbId: string, until: number | 'never'): void {
+        try {
+            localStorage.setItem(settledKey(mbId), until === 'never' ? 'never' : String(until));
+        } catch {
+            /* localStorage 불가 환경 — 이번 세션에서만 조용히 넘어간다 */
+        }
+    }
 
     let show = $state(false);
     let checked = $state(false);
@@ -37,12 +77,16 @@
         if (checked || !user) return;
         checked = true;
 
+        const mbId = user.mb_id;
         try {
             if (localStorage.getItem(DISMISS_KEY)) return;
         } catch {
             // localStorage 불가 환경 — 조용히 미노출
             return;
         }
+
+        // 이미 결론이 난 회원이면 묻지 않는다.
+        if (!shouldAsk(mbId)) return;
 
         void (async () => {
             try {
@@ -53,16 +97,36 @@
                     last_contribution_at: string | null;
                 };
                 // 이미 기여한 회원에겐 띄우지 않는다.
-                if (data.last_contribution_at) return;
-                if (!data.signup_at) return;
+                // ⭐ 이 판정은 한 번 참이면 영영 참이다 — 「첫 댓글」은 되돌아오지 않는다.
+                if (data.last_contribution_at) {
+                    settle(mbId, 'never');
+                    return;
+                }
+                // 가입 시각을 못 읽는 건 데이터 이상이다. 영구로 막지 말고 하루만 쉰다.
+                if (!data.signup_at) {
+                    settle(mbId, Date.now() + DAY_MS);
+                    return;
+                }
 
                 const signedAt = Date.parse(data.signup_at);
-                if (Number.isNaN(signedAt)) return;
-
-                const daysSince = (Date.now() - signedAt) / 86400000;
-                if (daysSince >= MIN_DAYS && daysSince <= MAX_DAYS) {
-                    show = true;
+                if (Number.isNaN(signedAt)) {
+                    settle(mbId, Date.now() + DAY_MS);
+                    return;
                 }
+
+                const daysSince = (Date.now() - signedAt) / DAY_MS;
+                if (daysSince > MAX_DAYS) {
+                    // 창이 지났다. 다시 열리지 않는다.
+                    settle(mbId, 'never');
+                    return;
+                }
+                if (daysSince < MIN_DAYS) {
+                    // 아직 이르다. 창이 열리는 시각까지 쉰다.
+                    settle(mbId, signedAt + MIN_DAYS * DAY_MS);
+                    return;
+                }
+
+                show = true;
             } catch {
                 // 조회 실패 시 조용히 미노출 (넛지는 있으면 좋은 기능)
             }
