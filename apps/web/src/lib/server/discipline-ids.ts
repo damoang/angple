@@ -1,7 +1,9 @@
 /**
  * 이용제한 근거 글·댓글 ID 집합 (게시판 단위 캐시)
  *
- * `g5_na_singo.discipline_log_id IS NOT NULL` 인 대상은 화면에 "근거" 표시가 붙는다.
+ * `discipline_log_id IS NOT NULL AND admin_approved = 1` (실제 인용된 B형 제재)
+ * 인 대상만 화면에 "근거" 표시가 붙는다. 신고자 측 처분(예: 8호 이용방해)의 근거로
+ * 엮인 정상 글·댓글은 admin_approved=0 이라 제외한다(bug/13934).
  *
  * ## ⛔ 왜 캐시하는가 — DB 실행시간의 5.0% 였다
  *
@@ -63,7 +65,7 @@ export async function getDisciplineIds(boardId: string): Promise<Set<number>> {
     try {
         const [rows] = await pool.query<IdRow[]>(
             `SELECT DISTINCT sg_id FROM g5_na_singo
-             WHERE sg_table = ? AND discipline_log_id IS NOT NULL`,
+             WHERE sg_table = ? AND discipline_log_id IS NOT NULL AND admin_approved = 1`,
             [boardId]
         );
         ids = rows.map((r) => r.sg_id);
