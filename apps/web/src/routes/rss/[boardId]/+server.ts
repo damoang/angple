@@ -2,7 +2,7 @@ import type { RequestHandler } from './$types';
 import { rssEtag, etagMatches, rssHeaders } from '../headers.js';
 import pool from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
-import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-mask.js';
+import { findDisciplinedIds } from '$lib/server/discipline-mask.js';
 
 /**
  * 게스트에게 공개된 보드의 경계.
@@ -82,21 +82,29 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
             wr_datetime: string;
         }>;
 
-        // ⛔ 인덱스 피드(`/rss`)는 이미 이 마스킹을 하는데 보드별 피드에는 없었다.
-        //    `discipline-mask.ts` 주석이 「무조건 마스킹이야말로 인증 무관 캐시의 근거」라고
-        //    적어둔 바로 그 전제를, 정작 보드별 피드가 안 지키고 있었다.
+        // 이용제한 근거 글은 **피드에서 제외한다**(제목 치환이 아니라).
+        //
+        // ⛔ 예전에는 제목·본문을 '[이용제한 근거 글]' 로 치환해 내보냈다. 그러면
+        //    작성자 닉네임·원문 링크와 함께 「이 회원의 이 글이 이용제한 근거였다」는
+        //    사실이 **공개 피드로 공표**된다. 외부가 수집해 가면 되돌릴 수 없다.
+        //
+        // ⭐ discipline-mask.ts 가 밝힌 목적(원문 제목 은닉 · auth 무관 캐시 ·
+        //    봇 추출 차단)은 **제외가 더 잘 달성한다** — 아예 안 내보내므로.
+        //    헬퍼의 계약은 그대로 두고 **피드 표면에서만** 제외로 바꾼다.
+        //    같은 선택이 daily-recommended-loader.ts 에 이미 있다:
+        //    「추천 피드이므로 마스킹보다 목록에서 제외가 맞다」
         const disciplined = await findDisciplinedIds(
             boardId,
             rows.map((p) => p.wr_id)
         );
 
         items = rows
+            .filter((post) => !disciplined.has(post.wr_id))
             .map((post) => {
-                const masked = disciplined.has(post.wr_id);
                 return `    <item>
-      <title>${escapeXml(masked ? DISCIPLINED_TITLE : post.wr_subject)}</title>
+      <title>${escapeXml(post.wr_subject)}</title>
       <link>${siteUrl}/${boardId}/${post.wr_id}</link>
-      <description>${escapeXml(masked ? DISCIPLINED_TITLE : stripHtmlTags(post.wr_content).slice(0, 200))}</description>
+      <description>${escapeXml(stripHtmlTags(post.wr_content).slice(0, 200))}</description>
       <author>${escapeXml(post.wr_name)}</author>
       <pubDate>${new Date(post.wr_datetime).toUTCString()}</pubDate>
       <guid isPermaLink="true">${siteUrl}/${boardId}/${post.wr_id}</guid>
