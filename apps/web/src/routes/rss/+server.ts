@@ -2,7 +2,7 @@ import type { RequestHandler } from './$types';
 import { rssEtag, etagMatches, rssHeaders } from './headers.js';
 import pool from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
-import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-mask.js';
+import { findDisciplinedIds } from '$lib/server/discipline-mask.js';
 
 /**
  * 전체 RSS 피드 (최근 게시글)
@@ -53,23 +53,29 @@ export const GET: RequestHandler = async ({ url, request }) => {
                     wr_name: string;
                     wr_datetime: string;
                 }>;
-                // 이용제한 근거 글: 전면 공개 피드라 제목·본문을 원문 노출 없이 치환.
+                // 이용제한 근거 글은 **피드에서 제외한다**(제목 치환이 아니라).
+                //
+                // ⛔ 예전에는 제목을 '[이용제한 근거 글]' 로 치환해 내보냈다. 그러면 작성자
+                //    닉네임·원문 링크와 함께 「이 회원의 이 글이 이용제한 근거였다」는 사실이
+                //    **공개 피드로 공표**된다. 외부 서비스가 수집해 가면 되돌릴 수 없다.
+                //
+                // ⭐ 같은 판단이 이미 저장소 안에 있다 — daily-recommended-loader.ts:
+                //    「추천 피드이므로 마스킹(제목 치환)보다 **목록에서 제외**가 맞다」
+                //    RSS 도 같은 성격의 피드다. 규칙을 맞춘다.
                 const disciplined = await findDisciplinedIds(
                     board.bo_table,
                     typedPosts.map((p) => p.wr_id)
                 );
                 for (const post of typedPosts) {
-                    const masked = disciplined.has(post.wr_id);
+                    if (disciplined.has(post.wr_id)) continue;
                     allPosts.push({
-                        title: escapeXml(masked ? DISCIPLINED_TITLE : post.wr_subject),
+                        title: escapeXml(post.wr_subject),
                         link: `${siteUrl}/${board.bo_table}/${post.wr_id}`,
-                        description: masked
-                            ? ''
-                            : escapeXml(stripHtmlTags(post.wr_content).slice(0, 200)),
+                        description: escapeXml(stripHtmlTags(post.wr_content).slice(0, 200)),
                         author: escapeXml(post.wr_name),
                         pubDate: new Date(post.wr_datetime).toUTCString(),
                         boardSubject: escapeXml(board.bo_subject),
-                        imageUrl: masked ? '' : extractFirstImage(post.wr_content) || ''
+                        imageUrl: extractFirstImage(post.wr_content) || ''
                     });
                 }
             } catch {
@@ -90,7 +96,8 @@ export const GET: RequestHandler = async ({ url, request }) => {
       <author>${post.author}</author>
       <pubDate>${post.pubDate}</pubDate>
       <category>${post.boardSubject}</category>
-      <guid isPermaLink="true">${post.link}</guid>${post.imageUrl ? `\n      <media:content url="${escapeXml(post.imageUrl)}" medium="image" />` : ''}`
+      <guid isPermaLink="true">${post.link}</guid>${post.imageUrl ? `\n      <media:content url="${escapeXml(post.imageUrl)}" medium="image" />` : ''}
+    </item>`
             )
             .join('\n');
     } catch (err) {
