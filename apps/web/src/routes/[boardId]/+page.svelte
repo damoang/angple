@@ -1373,6 +1373,19 @@
 
             <!-- #12012: 내가 쓴 글/댓글 빠른 필터 (로그인 시) -->
             <!-- #12592: 모바일에서는 상단 SearchForm 과 검색 input 중복 → PC(md+) 전용 -->
+            <!-- 빠른필터 행 자리표시자 — 하이드레이션 밀림 방지.
+                 ⛔ SSR 은 캐시 때문에 user 를 벗겨 보낸다(SSR_STRIP_USER=true). 그래서 아래
+                    빠른필터 행이 SSR 에 없다가 /api/auth/me 응답 뒤 **나타나며 목록을 민다**.
+                 ⭐ 실측(2026-09-12): md(768) 미만 밀림 없음 · 768~1023 p75 0.311 ·
+                    1024+ 0.10 수준. md 에서 행이 생기고 lg(1024)에서 사이드바가 붙어
+                    본문이 좁아지며 완화된다. 태블릿이 두 분기점 사이라 가장 나빴다.
+                 ⭐ 높이 40px = 버튼 h-8(32) + mb-2(8). 익명 SSR 에 SearchForm 이 0개임을
+                    확인했으므로 이 행 말고 같이 움직이는 요소는 없다.
+                 ⛔ 익명 회원에겐 자리를 잡지 않는다 — 빈 띠가 생기면 그게 더 나쁘다.
+                    서버가 주는 isLoggedIn 으로 **로그인한 사람에게만** 예약한다. -->
+            {#if !authStore.isAuthenticated && $page.data.isLoggedIn}
+                <div class="mb-2 hidden h-8 md:block" aria-hidden="true"></div>
+            {/if}
             {#if authStore.isAuthenticated}
                 <div class="mb-2 hidden flex-wrap items-center gap-2 md:flex">
                     <Button
