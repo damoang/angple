@@ -56,6 +56,12 @@ export const load: LayoutServerLoad = async ({
             // SSR_STRIP_USER=true 시 user 제거 → SSR 캐시 가능 (클라이언트 /api/auth/me로 로드)
             // 단, CSRF 필요 경로(/member, /admin, /my)는 stripUser=false로 토큰 유지
             user: stripUser ? null : (locals.user ?? null),
+            // ⭐ user 를 벗겨도 **로그인했다는 사실**만은 남긴다(불리언 하나, 개인정보 아님).
+            //    SSR 은 이미 locals.user 로 알고 있는데 캐시 때문에 페이로드에서 뺄 뿐이다.
+            //    이게 없으면 로그인 전용 UI 가 하이드레이션 후에 **나타나며 화면을 민다**.
+            // ⛔ 로그인 HTML 은 캐시규칙 #19·#23·#24 가 angple_sid 등 4종으로 이미 제외하므로
+            //    공유 캐시 안전성에 영향 없다.
+            isLoggedIn: !!locals.user,
             accessToken: stripUser ? null : (locals.accessToken ?? null),
             csrfToken: stripUser ? null : (locals.csrfToken ?? null),
             // #12719/#12723: SSR 세션 조회 일시 장애 여부. 클라이언트가 "로그아웃 확정"과
@@ -183,6 +189,12 @@ export const load: LayoutServerLoad = async ({
         // SSR_STRIP_USER=true 시 user 제거 → SSR 캐시 가능 (클라이언트 /api/auth/me로 로드)
         // 단, CSRF 필요 경로(/member, /admin, /my)는 stripUser=false로 토큰 유지
         user: stripUser ? null : (locals.user ?? null),
+        // ⭐ user 를 벗겨도 **로그인했다는 사실**만은 남긴다(불리언 하나, 개인정보 아님).
+        //    SSR 은 이미 locals.user 로 알고 있는데 캐시 때문에 페이로드에서 뺄 뿐이다.
+        //    이게 없으면 로그인 전용 UI 가 하이드레이션 후에 **나타나며 화면을 민다**.
+        // ⛔ 로그인 HTML 은 캐시규칙 #19·#23·#24 가 angple_sid 등 4종으로 이미 제외하므로
+        //    공유 캐시 안전성에 영향 없다.
+        isLoggedIn: !!locals.user,
         accessToken: stripUser ? null : (locals.accessToken ?? null),
         csrfToken: stripUser ? null : (locals.csrfToken ?? null),
         // #12719/#12723: SSR 세션 조회 일시 장애 여부. 클라이언트가 "로그아웃 확정"과
