@@ -38,7 +38,7 @@
         }
     ];
 
-    // 글쓰기 규칙
+    // 박제와 공유
     const share = [
         {
             emoji: '📌',
@@ -72,21 +72,6 @@
             tone: 'rose',
             title: '이런 신고는 제한될 수 있어요',
             desc: '근거 없이 「다중이」로 신고, 본인 기준에 맞지 않는다는 이유의 신고, 상황을 자의적으로 유추한 신고, 운영 방해를 목적으로 한 다량의 신고. 허위·악의적 신고는 회원기만·이용방해·운영정책부정에 해당할 수 있습니다.'
-        }
-    ];
-
-    const writing = [
-        {
-            emoji: '🔗',
-            tone: 'amber',
-            title: '뉴스·기사 펌글엔 출처 + 내 의견을 꼭',
-            desc: '원문 링크를 남기고, 한 줄이라도 본인 생각을 덧붙여 주세요. 제목만 복붙한 글은 지양합니다.'
-        },
-        {
-            emoji: '📊',
-            tone: 'amber',
-            title: '여론조사를 퍼올 때',
-            desc: '조사기관·표본수·조사시점을 함께 밝혀주세요. 특정 결과만 잘라 과장하지 않기 — 왜곡 인용은 제한될 수 있어요.'
         }
     ];
 
@@ -248,27 +233,6 @@
         </p>
         <div class="divide-y">
             {#each criteria as item (item.title)}
-                <div class="flex items-start gap-3 py-3">
-                    <span
-                        class="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-base {toneBg[
-                            item.tone
-                        ]}">{item.emoji}</span
-                    >
-                    <div>
-                        <p class="text-foreground text-sm font-semibold">{item.title}</p>
-                        <p class="text-muted-foreground mt-0.5 text-sm">{item.desc}</p>
-                    </div>
-                </div>
-            {/each}
-        </div>
-    </section>
-
-    <!-- 글쓰기 규칙 -->
-    <section class="bg-card mb-4 rounded-2xl border p-5 shadow-sm">
-        <h2 class="text-foreground text-lg font-bold">✍️ 글쓰기 규칙</h2>
-        <p class="text-muted-foreground mb-3 text-xs">펌글·인용은 이렇게 해주세요.</p>
-        <div class="divide-y">
-            {#each writing as item (item.title)}
                 <div class="flex items-start gap-3 py-3">
                     <span
                         class="grid h-8 w-8 shrink-0 place-items-center rounded-xl text-base {toneBg[
