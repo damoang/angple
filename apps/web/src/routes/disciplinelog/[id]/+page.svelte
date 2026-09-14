@@ -173,10 +173,20 @@
                     />
                     <div class="text-sm">
                         <div class="font-semibold text-emerald-800 dark:text-emerald-300">
-                            {revoke.banner}
+                            {#if log.superseded_by}
+                                이 기록은 정정되어 새 기록으로 대체되었습니다
+                            {:else}
+                                {revoke.banner}
+                            {/if}
                         </div>
                         <div class="mt-0.5 text-emerald-700/80 dark:text-emerald-400/80">
-                            해제일 {log.revoked_at.slice(0, 10)}
+                            {#if log.superseded_by}
+                                <a href="/disciplinelog/{log.superseded_by}" class="underline"
+                                    >정정된 기록 #{log.superseded_by} 보기</a
+                                >
+                            {:else}
+                                해제일 {log.revoked_at.slice(0, 10)}
+                            {/if}
                         </div>
                     </div>
                 </Card.Content>

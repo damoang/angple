@@ -142,6 +142,7 @@ export interface DisciplineLogDetail {
     claim_post_id?: number;
     revoked_at?: string; // 회수된 경우 해제일 (revoked_by·admin_memo는 미노출)
     revoke_kind?: RevokeKind; // 'appeal'=소명 인용 해제 · 'admin'=운영진 검토·정정 회수
+    superseded_by?: number; // 수위 정정으로 대체된 기록이면 새 기록 번호
     reason_corrections?: ReasonCorrection[]; // 사유 정정 이력 (없으면 키 자체가 없다)
     /**
      * 글마다 적용 사유가 다른 경우.
