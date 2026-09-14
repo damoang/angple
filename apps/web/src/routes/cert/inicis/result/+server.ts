@@ -15,6 +15,8 @@ import {
     flagIdentityMismatch,
     getCertPendingMbId
 } from '$lib/server/auth/cert-inicis.js';
+import { readPool } from '$lib/server/db.js';
+import type { RowDataPacket } from 'mysql2';
 
 type SeedCipher = {
     decrypt: (seedKey: string, seedIV: string, encrypted: string) => string;
@@ -150,11 +152,20 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
         await flagDupinfoCollision(mbId, mbDupinfo, mbDupinfoAlt).catch((e) => {
             console.error('[Cert] DI 충돌 플래그 기록 실패:', e);
         });
+        // ⭐ 어느 소셜로 들어가야 하는지 **알려준다**.
+        // 예전 문구는 "기존 계정으로 로그인해 주시고" 로 끝났는데, 회원은 정작
+        // **어느 소셜이었는지를 모른다**. 로그인 화면은 버튼 순서를 매번 섞어
+        // (login/+page.svelte 의 shuffle) 위치 기억도 소용이 없다.
+        // 2026-09 한 주에만 같은 문의가 4건 왔고, 네 분 다 옛 계정이 살아 있는데
+        // 다른 소셜로 로그인해 새 계정이 생긴 경우였다.
+        // ⛔ 보여주는 것은 **제공자 이름뿐**이다. mb_id·닉네임·이메일은 말하지 않는다.
+        //    DI 가 일치하므로 같은 사람의 계정이지만, 필요한 최소만 알린다.
+        const howToLogin = await describeLoginMethod(existingId);
         return certResultPage(
             false,
-            '이전에 가입하신 계정이 있어 본인인증이 제한되었습니다. ' +
-                '기존 계정으로 로그인해 주시고, 그 계정을 되살리고 싶으시면 ' +
-                'contact@damoang.net 으로 복원 요청 메일을 보내주세요.'
+            '이전에 가입하신 계정이 있어 본인인증이 제한되었습니다.\n\n' +
+                howToLogin +
+                '\n\n계정을 되살리기 어려우시면 contact@damoang.net 으로 알려주세요.'
         );
     }
 
@@ -202,12 +213,49 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
 };
 
 /** 인증 결과를 부모 창에 전달하는 HTML 페이지 */
+/** 소셜 제공자 코드 → 회원이 로그인 화면에서 보는 이름. */
+const PROVIDER_LABEL: Record<string, string> = {
+    naver: '네이버',
+    kakao: '카카오',
+    google: '구글',
+    apple: '애플'
+};
+
+/**
+ * 기존 계정에 들어가는 방법을 회원이 읽을 문장으로 만든다.
+ *
+ * ⛔ 실패하면 **막지 않는다.** 조회가 안 되거나 소셜이 없으면(전체의 1.8%)
+ *    예전과 같은 일반 문구를 돌려준다. 안내를 못 해도 회원 흐름은 그대로 가야 한다.
+ * ⛔ 제공자 이름만 말한다. mb_id·닉네임·이메일은 담지 않는다.
+ */
+async function describeLoginMethod(existingId: string): Promise<string> {
+    const generic = '기존에 쓰시던 계정으로 로그인해 주세요.';
+    try {
+        const [rows] = await readPool.query<RowDataPacket[]>(
+            'SELECT DISTINCT provider FROM g5_member_social_profiles WHERE mb_id = ?',
+            [existingId]
+        );
+        const names = rows
+            .map((r) => PROVIDER_LABEL[String(r.provider)])
+            .filter((v): v is string => !!v);
+        if (names.length === 0) return generic;
+        const joined = names.join(' 또는 ');
+        return (
+            `그 계정은 ${joined}로 로그인하시면 들어가실 수 있습니다.\n` +
+            `로그인 화면에서 ${joined}를 선택해 주세요.`
+        );
+    } catch (e) {
+        console.error('[Cert] 기존 계정 로그인 방법 조회 실패:', e);
+        return generic;
+    }
+}
+
 function certResultPage(success: boolean, message: string) {
     const html = `<!DOCTYPE html>
 <html>
 <head><title>인증 결과</title></head>
 <body>
-<p style="text-align:center;margin-top:40px;font-family:sans-serif;color:#666;">${success ? '인증이 완료되었습니다. 잠시 후 이동합니다...' : message}</p>
+<p style="text-align:center;margin-top:40px;font-family:sans-serif;color:#666;white-space:pre-line;line-height:1.7;">${success ? '인증이 완료되었습니다. 잠시 후 이동합니다...' : message}</p>
 <script>
 (function() {
     // localStorage 이벤트로 부모 창에 결과 전달 (window.opener가 끊겨도 동작)
