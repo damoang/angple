@@ -54,6 +54,33 @@ export const VIOLATION_TYPES: Record<number, { title: string; desc: string }> = 
     41: { title: '부적절한 닉네임', desc: '부적절한 닉네임을 사용하는 행위' }
 };
 
+/**
+ * 회수 종류. 회수자 ID 는 내려오지 않고 종류만 온다.
+ * 'appeal' 소명 인용으로 해제 · 'admin' 운영진 검토·정정으로 회수.
+ * 값이 없으면(구버전 응답) 소명 인용으로 간주하지 않고 중립 문구를 쓴다.
+ */
+export type RevokeKind = 'appeal' | 'admin';
+
+/** 회수 배너·배지 문구 */
+export function revokeLabel(kind?: RevokeKind): {
+    banner: string;
+    badge: string;
+    inline: string;
+} {
+    if (kind === 'appeal') {
+        return {
+            banner: '이 이용제한은 소명 인용으로 해제되었습니다',
+            badge: '소명 해제',
+            inline: '소명 인용으로 해제'
+        };
+    }
+    return {
+        banner: '이 이용제한은 운영진 검토로 회수되었습니다',
+        badge: '회수',
+        inline: '운영진 검토로 회수'
+    };
+}
+
 export interface ReportedItem {
     table: string; // board_id (legacy: "table" field from PHP)
     id: number; // post_id
@@ -80,6 +107,7 @@ export interface DisciplineLogListItem {
     violation_titles: string[];
     memo?: string;
     revoked?: boolean; // 소명 인용 등으로 회수된 제재 (목록 배지용)
+    revoke_kind?: RevokeKind; // 회수 종류 (revoked 일 때만)
     /** 글마다 적용 사유가 다름 — violation_titles(합집합) 대신 배지로 대체한다 */
     reasons_differ_by_item?: boolean;
 }
@@ -112,7 +140,9 @@ export interface DisciplineLogDetail {
     created_at: string;
     status: 'pending' | 'approved' | 'rejected';
     claim_post_id?: number;
-    revoked_at?: string; // 소명 인용 등으로 회수된 경우 해제일 (revoked_by·admin_memo는 미노출)
+    revoked_at?: string; // 회수된 경우 해제일 (revoked_by·admin_memo는 미노출)
+    revoke_kind?: RevokeKind; // 'appeal'=소명 인용 해제 · 'admin'=운영진 검토·정정 회수
+    superseded_by?: number; // 수위 정정으로 대체된 기록이면 새 기록 번호
     reason_corrections?: ReasonCorrection[]; // 사유 정정 이력 (없으면 키 자체가 없다)
     /**
      * 글마다 적용 사유가 다른 경우.

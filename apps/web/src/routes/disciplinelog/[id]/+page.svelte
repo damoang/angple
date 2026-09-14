@@ -17,7 +17,8 @@
     import {
         getPenaltyDisplay,
         type DisciplineLogDetail,
-        type DisciplineLogListItem
+        type DisciplineLogListItem,
+        revokeLabel
     } from '$lib/api/discipline-log.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { getReportReasonLabel } from '$lib/utils/report-reasons.js';
@@ -160,8 +161,9 @@
         {@const penalty = getPenaltyDisplay(log.penalty_period, log.penalty_date_to)}
         {@const severity = penaltySeverity(log.penalty_period, penalty.released, !!log.revoked_at)}
 
-        <!-- 소명 인용 해제 배너: revoked_at 있을 때만. 회수 사실만 공개(회수자·사유 비공개). -->
+        <!-- 회수 배너: revoked_at 있을 때만. 종류(소명 인용/운영진 회수)만 공개하고 회수자·사유는 비공개. -->
         {#if log.revoked_at}
+            {@const revoke = revokeLabel(log.revoke_kind)}
             <Card.Root
                 class="mb-3 border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40"
             >
@@ -171,10 +173,20 @@
                     />
                     <div class="text-sm">
                         <div class="font-semibold text-emerald-800 dark:text-emerald-300">
-                            이 이용제한은 소명 인용으로 해제되었습니다
+                            {#if log.superseded_by}
+                                이 기록은 정정되어 새 기록으로 대체되었습니다
+                            {:else}
+                                {revoke.banner}
+                            {/if}
                         </div>
                         <div class="mt-0.5 text-emerald-700/80 dark:text-emerald-400/80">
-                            해제일 {log.revoked_at.slice(0, 10)}
+                            {#if log.superseded_by}
+                                <a href="/disciplinelog/{log.superseded_by}" class="underline"
+                                    >정정된 기록 #{log.superseded_by} 보기</a
+                                >
+                            {:else}
+                                해제일 {log.revoked_at.slice(0, 10)}
+                            {/if}
                         </div>
                     </div>
                 </Card.Content>
@@ -201,7 +213,7 @@
                             variant="secondary"
                             class="border-emerald-300 bg-emerald-100 text-xs text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
                         >
-                            소명 해제
+                            {revokeLabel(log.revoke_kind).badge}
                         </Badge>
                     {:else if penalty.released}
                         <Badge variant="secondary" class="text-xs">해제</Badge>
@@ -209,7 +221,7 @@
                     <span class="text-muted-foreground text-sm">
                         {#if log.revoked_at}
                             <!-- 회수된 제재: 원래 종료일에 취소선 + 조기 해제 표기.
-                                 (기간이 만료된 게 아니라 소명 인용으로 중간에 풀렸음을 명확히) -->
+                                 (기간이 만료된 게 아니라 중간에 풀렸음을 명확히. 종류는 revoke_kind) -->
                             ({log.penalty_date_from} 시작 ·
                             {#if log.penalty_period !== 0}
                                 <s class="opacity-60"
@@ -219,7 +231,7 @@
                                 > ·
                             {/if}
                             <span class="text-emerald-700 dark:text-emerald-400"
-                                >{log.revoked_at} 소명 인용으로 해제</span
+                                >{log.revoked_at} {revokeLabel(log.revoke_kind).inline}</span
                             >)
                         {:else}
                             ({formatPeriodRange(log)})
@@ -482,7 +494,9 @@
                                         {itemPenalty.text}
                                     </Badge>
                                     {#if item.revoked}
-                                        <Badge variant="secondary" class="text-xs">소명 해제</Badge>
+                                        <Badge variant="secondary" class="text-xs"
+                                            >{revokeLabel(item.revoke_kind).badge}</Badge
+                                        >
                                     {:else if itemPenalty.released}
                                         <Badge variant="secondary" class="text-xs">해제</Badge>
                                     {/if}

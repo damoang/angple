@@ -12,7 +12,11 @@
     import Shield from '@lucide/svelte/icons/shield';
     import Search from '@lucide/svelte/icons/search';
     import X from '@lucide/svelte/icons/x';
-    import { getPenaltyDisplay, type DisciplineLogListItem } from '$lib/api/discipline-log.js';
+    import {
+        getPenaltyDisplay,
+        type DisciplineLogListItem,
+        revokeLabel
+    } from '$lib/api/discipline-log.js';
     import { penaltySeverity, SEVERITY_DOT, SEVERITY_TEXT } from '$lib/utils/penalty-severity.js';
     import BoardFavoriteButton from '$lib/components/features/board/board-favorite-button.svelte';
     import BoardSubscribeButton from '$lib/components/features/board/board-subscribe-button.svelte';
@@ -221,7 +225,8 @@
                                                         <Badge
                                                             variant="secondary"
                                                             class="border-emerald-300 bg-emerald-100 text-[10px] text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                                                            >소명해제</Badge
+                                                            >{revokeLabel(log.revoke_kind)
+                                                                .badge}</Badge
                                                         >
                                                     {:else if penalty.released}
                                                         <span
