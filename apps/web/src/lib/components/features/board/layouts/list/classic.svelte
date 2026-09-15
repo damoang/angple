@@ -14,6 +14,7 @@
     import Heart from '@lucide/svelte/icons/heart';
     import Avatar from '$lib/components/ui/Avatar.svelte';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
+    import LuckyBadge from '../../lucky-badge.svelte';
     import { formatDate, formatDateCompact, isToday } from '$lib/utils/format-date.js';
     import { formatCompactNumber } from '$lib/utils/format-number.js';
     import { pluginStore } from '$lib/stores/plugin.svelte';
@@ -331,6 +332,7 @@
                         authorName={post.author}
                         isWithdrawn={!!post.is_left}
                     />
+                    <LuckyBadge amount={post.lucky_point ?? 0} />
                 </span>
 
                 <!-- 날짜 (col 4, 데스크톱만) -->

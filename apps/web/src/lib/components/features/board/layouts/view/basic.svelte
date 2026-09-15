@@ -39,6 +39,7 @@
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
     import { LevelBadge } from '$lib/components/ui/level-badge/index.js';
+    import LuckyBadge from '../../lucky-badge.svelte';
     import { memberLevelStore } from '$lib/stores/member-levels.svelte.js';
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
@@ -504,6 +505,7 @@
                                 isWithdrawn={!!post.is_left}
                                 nowrap
                             />
+                            <LuckyBadge amount={post.lucky_point ?? 0} />
                             {#if authStore.isAuthenticated && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
                                 <MemoBadge
                                     memberId={post.author_id}
