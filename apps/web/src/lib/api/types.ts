@@ -868,6 +868,14 @@ export interface Board {
     permissions?: BoardPermissions; // 사용자별 권한 정보 (서버에서 계산, 인증 시에만 포함)
     board_type?: 'standard' | 'giving' | 'angtt' | 'angmap' | 'used-market' | 'qa'; // 특수 게시판 타입
     insert_content?: string; // 게시판별 글쓰기 안내 텍스트 (placeholder)
+    write_notice?: {
+        // 게시판별 글쓰기 안내(확장설정) — 배너/차단형. 설정 없으면 키 자체가 없음.
+        enabled?: boolean;
+        mode?: 'off' | 'banner' | 'blocking';
+        html?: string;
+        skipHours?: number;
+        variant?: 'info' | 'warning';
+    };
 }
 
 // 파일 업로드 관련 타입

@@ -29,6 +29,8 @@
         isBugNoticeSkipped,
         BUG_TEMPLATE_CONTENT
     } from '$lib/components/features/board/bug-write-notice.js';
+    import PostWriteNotice from '$lib/components/features/board/post-write-notice.svelte';
+    import { isWriteNoticeSkipped } from '$lib/components/features/board/post-write-notice.js';
 
     let { data }: { data: PageData } = $props();
 
@@ -90,6 +92,21 @@
     const showBugNotice = $derived(isBugBoard && !bugNoticeAcknowledged);
     // 버그게시판 본문 양식 prefill (repost/소명 프리필이 없을 때만)
     const bugInitialContent = $derived(isBugBoard ? BUG_TEMPLATE_CONTENT : '');
+
+    // 게시판별 글쓰기 안내(확장설정 write_notice) — DB 설정. bug 하드코딩과 공존(DB 우선).
+    const writeNotice = $derived(data.board?.write_notice);
+    const hasBannerNotice = $derived(!!writeNotice?.enabled && writeNotice.mode === 'banner');
+    const hasBlockingNotice = $derived(!!writeNotice?.enabled && writeNotice.mode === 'blocking');
+    let writeNoticeAcknowledged = $state(false);
+    $effect(() => {
+        if (browser && hasBlockingNotice) {
+            writeNoticeAcknowledged = isWriteNoticeSkipped(boardId, writeNotice?.skipHours);
+        }
+    });
+    function acknowledgeWriteNotice(): void {
+        writeNoticeAcknowledged = true;
+    }
+    const showWriteNoticeGate = $derived(hasBlockingNotice && !writeNoticeAcknowledged);
 
     // 글쓰기 권한 조회 결과
     const writePermission = $derived(data.writePermission as WritePermission | null);
@@ -291,6 +308,19 @@
                 <p class="text-muted-foreground mt-2 text-sm">{writePermissionMsg}</p>
             </div>
         </div>
+    {:else if showWriteNoticeGate}
+        <!-- 게시판별 차단형 안내(DB write_notice). bug 하드코딩보다 우선. -->
+        <div class="pt-4">
+            <PostWriteNotice
+                mode="blocking"
+                {boardId}
+                html={writeNotice?.html ?? ''}
+                variant={writeNotice?.variant ?? 'info'}
+                skipHours={writeNotice?.skipHours}
+                dismissible={true}
+                onContinue={acknowledgeWriteNotice}
+            />
+        </div>
     {:else if showBugNotice}
         <div class="pt-4">
             <BugWriteNotice onContinue={acknowledgeBugNotice} />
@@ -309,6 +339,18 @@
 
         <!-- 플러그인 슬롯: 글쓰기 폼 직전 — Slot Catalog Sprint 2c -->
         <PluginSlot name="write-form-before" {boardId} />
+
+        <!-- 게시판별 배너형 안내(DB write_notice) — 폼 상단, board load 데이터라 최초 렌더에 존재 -->
+        {#if hasBannerNotice}
+            <PostWriteNotice
+                mode="banner"
+                {boardId}
+                html={writeNotice?.html ?? ''}
+                variant={writeNotice?.variant ?? 'info'}
+                skipHours={writeNotice?.skipHours}
+                dismissible={writeNotice?.skipHours != null && writeNotice.skipHours > 0}
+            />
+        {/if}
 
         {#if isPromotion}
             <div class="mb-4">

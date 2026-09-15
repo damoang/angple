@@ -172,6 +172,12 @@
     // 럭키포인트
     let formLuckyPoints = $state(500);
     let formLuckyOdds = $state(20);
+    // 게시판별 글쓰기 안내(write_notice)
+    let formWriteNoticeEnabled = $state(false);
+    let formWriteNoticeMode = $state<'off' | 'banner' | 'blocking'>('banner');
+    let formWriteNoticeHtml = $state('');
+    let formWriteNoticeSkipHours = $state(24);
+    let formWriteNoticeVariant = $state<'info' | 'warning'>('info');
 
     // 확장 기능 토글
     let formAutoEmbed = $state(false);
@@ -267,6 +273,11 @@
             formUseSns,
             formLuckyPoints,
             formLuckyOdds,
+            formWriteNoticeEnabled,
+            formWriteNoticeMode,
+            formWriteNoticeHtml,
+            formWriteNoticeSkipHours,
+            formWriteNoticeVariant,
             formAutoEmbed,
             formCodeHighlighter,
             formExternalImageSave,
@@ -376,6 +387,11 @@
         extendedSettings = es;
         formLuckyPoints = es.lucky?.points ?? 500;
         formLuckyOdds = es.lucky?.odds ?? 20;
+        formWriteNoticeEnabled = es.write_notice?.enabled ?? false;
+        formWriteNoticeMode = es.write_notice?.mode ?? 'banner';
+        formWriteNoticeHtml = es.write_notice?.html ?? '';
+        formWriteNoticeSkipHours = es.write_notice?.skipHours ?? 24;
+        formWriteNoticeVariant = es.write_notice?.variant ?? 'info';
         formAutoEmbed = es.features?.autoEmbed ?? false;
         formCodeHighlighter = es.features?.codeHighlighter ?? false;
         formExternalImageSave = es.features?.externalImageSave ?? false;
@@ -582,6 +598,13 @@
                     insertIndex: formPromotionInsertIndex,
                     insertCount: formPromotionInsertCount,
                     minPostCount: formPromotionMinPostCount
+                },
+                write_notice: {
+                    enabled: formWriteNoticeEnabled,
+                    mode: formWriteNoticeMode,
+                    html: formWriteNoticeHtml,
+                    skipHours: formWriteNoticeSkipHours,
+                    variant: formWriteNoticeVariant
                 }
             };
 
@@ -993,6 +1016,87 @@
                                     </div>
                                 </div>
                             </div>
+                        </Card.Content>
+                    </Card.Root>
+
+                    <Card.Root class="mt-6">
+                        <Card.Header>
+                            <Card.Title>글쓰기 안내</Card.Title>
+                            <Card.Description>
+                                글쓰기 진입 시 보이는 게시판별 안내(배너 또는 확인 인터스티셜).
+                            </Card.Description>
+                        </Card.Header>
+                        <Card.Content class="space-y-5">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium">글쓰기 안내 사용</p>
+                                    <p class="text-muted-foreground text-xs">
+                                        끄면 이 게시판 글쓰기에 안내가 표시되지 않습니다.
+                                    </p>
+                                </div>
+                                <Switch
+                                    checked={formWriteNoticeEnabled}
+                                    onCheckedChange={(v: boolean) => (formWriteNoticeEnabled = v)}
+                                />
+                            </div>
+                            {#if formWriteNoticeEnabled}
+                                <div class="ml-4 space-y-4 border-l-2 pl-4">
+                                    <div class="grid gap-2">
+                                        <Label for="write-notice-mode">표시 방식</Label>
+                                        <select
+                                            id="write-notice-mode"
+                                            bind:value={formWriteNoticeMode}
+                                            class="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                                        >
+                                            <option value="banner"
+                                                >배너 (폼 위에 표시, 글쓰기 진행)</option
+                                            >
+                                            <option value="blocking"
+                                                >확인 인터스티셜 (확인 후 글쓰기)</option
+                                            >
+                                        </select>
+                                    </div>
+                                    <div class="grid gap-2">
+                                        <Label for="write-notice-variant">색상</Label>
+                                        <select
+                                            id="write-notice-variant"
+                                            bind:value={formWriteNoticeVariant}
+                                            class="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                                        >
+                                            <option value="info">기본(info)</option>
+                                            <option value="warning">주의(warning)</option>
+                                        </select>
+                                    </div>
+                                    <div class="grid gap-2">
+                                        <Label for="write-notice-html">안내 내용 (HTML 허용)</Label>
+                                        <textarea
+                                            id="write-notice-html"
+                                            bind:value={formWriteNoticeHtml}
+                                            rows="5"
+                                            class="border-input bg-background min-h-[96px] rounded-md border px-3 py-2 text-sm"
+                                            placeholder="<p>안내 문구를 입력하세요…</p>"
+                                        ></textarea>
+                                        <p class="text-muted-foreground text-xs">
+                                            표시 직전 안전하게 정제(sanitize)됩니다. 스크립트는
+                                            무력화됩니다.
+                                        </p>
+                                    </div>
+                                    <div class="grid gap-2">
+                                        <Label for="write-notice-skiphours"
+                                            >"오늘 하루 보지 않기" 시간(시간)</Label
+                                        >
+                                        <Input
+                                            id="write-notice-skiphours"
+                                            type="number"
+                                            min="0"
+                                            bind:value={formWriteNoticeSkipHours}
+                                        />
+                                        <p class="text-muted-foreground text-xs">
+                                            0 이면 매번 표시(생략 옵션 없음). 기본 24시간.
+                                        </p>
+                                    </div>
+                                </div>
+                            {/if}
                         </Card.Content>
                     </Card.Root>
 

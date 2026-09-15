@@ -100,6 +100,16 @@ export interface ExtendedSettings {
     writing?: WritingSettings;
     skin?: SkinSettings;
     promotion?: PromotionSettings;
+    write_notice?: WriteNoticeSettings;
+}
+
+/** 게시판별 글쓰기 안내 (배너/차단형) */
+export interface WriteNoticeSettings {
+    enabled?: boolean;
+    mode?: 'off' | 'banner' | 'blocking';
+    html?: string;
+    skipHours?: number;
+    variant?: 'info' | 'warning';
 }
 
 /** API 응답 형태 */
