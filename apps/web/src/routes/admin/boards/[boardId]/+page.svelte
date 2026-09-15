@@ -170,6 +170,7 @@
     let extendedSettings = $state<ExtendedSettings>({});
 
     // 럭키포인트
+    let formLuckyEnabled = $state(false);
     let formLuckyPoints = $state(500);
     let formLuckyOdds = $state(20);
     // 게시판별 글쓰기 안내(write_notice)
@@ -271,6 +272,7 @@
             formCategoryList,
             formUseSecret,
             formUseSns,
+            formLuckyEnabled,
             formLuckyPoints,
             formLuckyOdds,
             formWriteNoticeEnabled,
@@ -385,6 +387,7 @@
 
         // Extended settings
         extendedSettings = es;
+        formLuckyEnabled = es.lucky?.enabled ?? false;
         formLuckyPoints = es.lucky?.points ?? 500;
         formLuckyOdds = es.lucky?.odds ?? 20;
         formWriteNoticeEnabled = es.write_notice?.enabled ?? false;
@@ -546,6 +549,7 @@
             // 확장 설정 업데이트 (프로모션 오버라이드 포함)
             const extendedUpdate: ExtendedSettings = {
                 lucky: {
+                    enabled: formLuckyEnabled,
                     points: formLuckyPoints,
                     odds: formLuckyOdds
                 },
@@ -1302,10 +1306,25 @@
                             <Card.Header>
                                 <Card.Title>럭키 포인트</Card.Title>
                                 <Card.Description>
-                                    글 작성 시 확률적으로 추가 포인트를 지급합니다.
+                                    글·댓글 작성 시 확률적으로 추가 포인트를 지급합니다. (전역 럭키
+                                    마스터 스위치가 켜져 있어야 실제로 발동)
                                 </Card.Description>
                             </Card.Header>
                             <Card.Content class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium">이 게시판에서 럭키 사용</p>
+                                        <p class="text-muted-foreground text-xs">
+                                            게시판마다 켜고 확률·포인트를 다르게 줄 수
+                                            있습니다(소모임은 크게 등). 꺼두면 이 게시판은 럭키
+                                            미발동.
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        checked={formLuckyEnabled}
+                                        onCheckedChange={(v: boolean) => (formLuckyEnabled = v)}
+                                    />
+                                </div>
                                 <div class="grid grid-cols-2 gap-4">
                                     <div class="grid gap-2">
                                         <Label for="lucky-points">당첨 포인트</Label>

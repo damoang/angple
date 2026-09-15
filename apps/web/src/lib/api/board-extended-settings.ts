@@ -28,6 +28,7 @@ export interface CommentSettings {
 
 /** 럭키 포인트 설정 */
 export interface LuckySettings {
+    enabled?: boolean;
     points?: number;
     odds?: number;
 }
