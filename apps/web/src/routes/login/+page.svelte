@@ -145,8 +145,17 @@
         checkAndRedirect();
     });
 
+    /** 지난번 로그인 방법 저장 키. 제공자 이름만 담는다(회원 식별정보 없음). */
+    const LAST_PROVIDER_KEY = 'angple_last_login_provider';
+
     function handleOAuthLogin(provider: OAuthProvider): void {
         trackEvent('login_click', { method: provider });
+        // 다음 방문 때 맨 위에 보여주기 위해 남긴다. 실패해도 로그인을 막지 않는다.
+        try {
+            localStorage.setItem(LAST_PROVIDER_KEY, provider);
+        } catch {
+            /* localStorage 불가 — 무시 */
+        }
         const params = new URLSearchParams({
             provider,
             redirect: redirectUrl
@@ -230,6 +239,38 @@
 
     let shuffledMainProviders = $state(shuffle(mainProviders));
     let shuffledSubProviders = $state(shuffle(subProviders));
+
+    /**
+     * 지난번에 쓴 로그인 방법을 기억해 맨 위에 보여준다.
+     *
+     * ⛔ 왜 필요한가 — 버튼 순서를 매번 섞으므로(제공자 편중 방어), 오랜만에 오는 회원은
+     *    위치로 기억하던 단서를 잃는다. 그래서 다른 소셜을 눌러 **새 계정이 만들어지고**
+     *    기존 계정에 실명인증이 있어 인증이 막힌다. 2026-09 한 주에만 문의가 4건이었고
+     *    네 분 다 이전 계정이 멀쩡히 살아 있었다.
+     *
+     * ⭐ 셔플은 **그대로 둔다.** 편중 방어는 *처음 고르는 사람*에게 의미가 있고,
+     *    재방문자가 제 계정으로 돌아가는 것은 신규 획득 비중과 무관하다.
+     *    → 셔플 목록 위에 **한 개만 따로** 올리고, 중복되지 않게 목록에서 뺀다.
+     *
+     * ⛔ 저장하는 것은 제공자 이름뿐이다(예: 'naver'). 회원 식별정보는 없고 본인 기기에만 남는다.
+     * ⛔ localStorage 를 못 쓰는 환경이면 조용히 지금과 똑같이 동작한다.
+     */
+    let lastProvider = $state<(typeof mainProviders)[number] | null>(null);
+
+    onMount(() => {
+        try {
+            const saved = localStorage.getItem(LAST_PROVIDER_KEY);
+            if (!saved) return;
+            const found = mainProviders.find((p) => p.id === saved);
+            if (!found) return; // 더 이상 지원하지 않는 제공자면 무시한다
+            // ⭐ 따로 렌더하지 않고 **목록 맨 앞으로 옮긴다.** 버튼 마크업에 제공자별 SVG 가
+            //    길게 들어 있어, 따로 그리면 전부 복제해야 한다. 같은 {#each} 를 그대로 쓴다.
+            lastProvider = found;
+            shuffledMainProviders = [found, ...shuffledMainProviders.filter((p) => p.id !== saved)];
+        } catch {
+            /* localStorage 불가 — 지금과 동일하게 동작 */
+        }
+    });
 </script>
 
 <svelte:head>
@@ -263,6 +304,11 @@
             {/if}
 
             <!-- 주요 소셜 로그인 (풀 너비) -->
+            {#if lastProvider}
+                <p class="text-muted-foreground mb-2 text-center text-xs">
+                    지난번에 <span class="font-semibold">{lastProvider.name}</span>로 로그인하셨어요
+                </p>
+            {/if}
             <div class="space-y-2.5">
                 {#each shuffledMainProviders as provider}
                     <button
