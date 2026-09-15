@@ -98,13 +98,17 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
             rows.map((p) => p.wr_id)
         );
 
+        // ⛔ 본문을 피드에 싣지 않는다(2026-09-15). 인덱스 피드와 같은 이유 —
+        //    /rss 요청 7일 810건 중 631건(78%)이 자칭 수집기다(trend-archive·CollectorHub).
+        //    사람이 리더로 읽는 것은 Feedly 46건 수준. 본문을 실으면 가져가는 쪽만 이득이다.
+        //    태그는 남긴다 — item 에 title 이 있으므로 빈 description 은 규격상 문제없다.
         items = rows
             .filter((post) => !disciplined.has(post.wr_id))
             .map((post) => {
                 return `    <item>
       <title>${escapeXml(post.wr_subject)}</title>
       <link>${siteUrl}/${boardId}/${post.wr_id}</link>
-      <description>${escapeXml(stripHtmlTags(post.wr_content).slice(0, 200))}</description>
+      <description></description>
       <author>${escapeXml(post.wr_name)}</author>
       <pubDate>${new Date(post.wr_datetime).toUTCString()}</pubDate>
       <guid isPermaLink="true">${siteUrl}/${boardId}/${post.wr_id}</guid>

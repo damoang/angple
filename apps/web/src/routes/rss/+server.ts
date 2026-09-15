@@ -32,7 +32,6 @@ export const GET: RequestHandler = async ({ url, request }) => {
             author: string;
             pubDate: string;
             boardSubject: string;
-            imageUrl: string;
         }> = [];
 
         for (const board of boards as Array<{ bo_table: string; bo_subject: string }>) {
@@ -71,11 +70,23 @@ export const GET: RequestHandler = async ({ url, request }) => {
                     allPosts.push({
                         title: escapeXml(post.wr_subject),
                         link: `${siteUrl}/${board.bo_table}/${post.wr_id}`,
-                        description: escapeXml(stripHtmlTags(post.wr_content).slice(0, 200)),
+                        // ⛔ 본문을 피드에 싣지 않는다.
+                        //
+                        //    2026-09-15 실측: /rss 요청 7일 810건 중 **631건(78%)이 자칭 수집기**다
+                        //    (trend-archive 337 · CollectorHub 294). 사람이 RSS 리더로 읽는 것은
+                        //    Feedly 46건 수준이다. 본문 200자를 실어 보내면 **얻는 쪽보다
+                        //    가져가는 쪽이 13배 많다.**
+                        //
+                        //    ⭐ 마침 외부 서비스가 「본문·댓글·이미지는 복사하지 않겠다」고
+                        //    문의해 왔는데, 정작 우리 피드가 먼저 본문을 건네주고 있었다.
+                        //
+                        //    ⛔ 태그 자체는 남긴다. RSS 리더가 파싱에 기대는 경우가 있고,
+                        //    item 에는 title 이 있으므로 빈 description 은 규격상 문제없다.
+                        //    제목을 여기 또 넣지 않는다 — <title> 과 중복이다.
+                        description: '',
                         author: escapeXml(post.wr_name),
                         pubDate: new Date(post.wr_datetime).toUTCString(),
-                        boardSubject: escapeXml(board.bo_subject),
-                        imageUrl: extractFirstImage(post.wr_content) || ''
+                        boardSubject: escapeXml(board.bo_subject)
                     });
                 }
             } catch {
@@ -83,6 +94,11 @@ export const GET: RequestHandler = async ({ url, request }) => {
             }
         }
 
+        // ⛔ 이미지(media:content)를 싣지 않는다 — 되살리지 마라.
+        //    본문을 빼면서 이미지 주소만 떠먹여 주는 것은 앞뒤가 맞지 않는다.
+        //    2026-09 에 수집기(CollectorHub)가 media:content 를 따라가 이미지를
+        //    실제로 가져간 기록이 있다. 이미지 자체는 CDN 에 공개돼 있으므로
+        //    **막는 것이 아니라 피드로 알려주지 않는** 것이다.
         // 날짜순 정렬 후 상위 20개
         allPosts.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
 
@@ -96,7 +112,7 @@ export const GET: RequestHandler = async ({ url, request }) => {
       <author>${post.author}</author>
       <pubDate>${post.pubDate}</pubDate>
       <category>${post.boardSubject}</category>
-      <guid isPermaLink="true">${post.link}</guid>${post.imageUrl ? `\n      <media:content url="${escapeXml(post.imageUrl)}" medium="image" />` : ''}
+      <guid isPermaLink="true">${post.link}</guid>
     </item>`
             )
             .join('\n');
@@ -137,16 +153,6 @@ function stripHtmlTags(str: string): string {
 }
 
 const CDN_BASE = 'https://s3.damoang.net';
-
-/** 본문 HTML에서 첫 번째 이미지 URL 추출 */
-function extractFirstImage(content: string): string | null {
-    if (!content) return null;
-    const match = content.match(/<img[^>]+src=["']([^"']+)["']/i);
-    if (!match?.[1]) return null;
-    let url = match[1];
-    if (url.startsWith('/data/')) url = CDN_BASE + url;
-    return url;
-}
 
 function escapeXml(str: string): string {
     return str
