@@ -974,6 +974,13 @@
             <!-- 내용 입력 (WYSIWYG 에디터) -->
             <div class="space-y-2">
                 <Label for="content">내용 <span class="text-destructive">*</span></Label>
+                {#if board?.insert_content}
+                    <!-- 게시판별 글쓰기 안내: 정상 문서 흐름 블록으로 렌더한다.
+                         (에디터 placeholder에 붙이면 height:0 ::before 라 아래 필드를 덮는다 — #13939) -->
+                    <p class="text-muted-foreground whitespace-pre-line text-sm">
+                        {board.insert_content}
+                    </p>
+                {/if}
                 {#if showScorecardButton}
                     <!-- 앙티티 연결 상태에서만 — 미연결 시 DOM 무변화(옵트인 보장) -->
                     <div class="flex justify-end">
@@ -992,7 +999,7 @@
                     bind:this={editorRef}
                     {content}
                     {contentFormat}
-                    placeholder={`/ 를 눌러 이미지와 앙티콘을 추가하세요\n\n경어체 사용은 필수이며, 초성 비속어도 이용제한 대상입니다.${board?.insert_content ? `\n\n${board.insert_content}` : ''}`}
+                    placeholder={`/ 를 눌러 이미지와 앙티콘을 추가하세요\n\n경어체 사용은 필수이며, 초성 비속어도 이용제한 대상입니다.`}
                     disabled={isLoading}
                     onUpdate={(value) => (content = value)}
                     onImageUpload={handleEditorImageUpload}
