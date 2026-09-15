@@ -102,7 +102,9 @@ function trimFreeListPayload(post: FreePost): FreePost {
         // 소모임 전역 공지는 원본이 다른 게시판에 있어, 이 두 필드가 없으면 링크가
         // 현재 소모임의 같은 번호 글로 잘못 걸린다(소모임 91곳 전부 이 trim 대상).
         global_notice: post.global_notice,
-        source_board: post.source_board
+        source_board: post.source_board,
+        // 럭키 당첨 🍀 배지 — 경량화 트림이 버리지 않도록 화이트리스트에 포함(classic 등 기본 목록).
+        lucky_point: post.lucky_point
     } as FreePost;
 }
 
