@@ -88,6 +88,7 @@ interface CommentResponseItem {
     from_board_name?: string;
     /** 리뷰 별점(리뷰=댓글+별점): 작성자가 이 댓글에 남긴 리뷰 점수(1~5). 별점 게시판만. */
     review_rating?: number;
+    lucky_point?: number;
 }
 
 function maskIp(ip: string): string {
@@ -324,6 +325,25 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
             }
         }
 
+        // 럭키 당첨 포인트(🍀 배지): g5_point(@lucky) 에서 댓글 wr_id 별 당첨 금액.
+        // po_rel_table=슬러그, po_rel_id=wr_id(VARCHAR)라 문자열로 비교(인덱스 seek). 레거시 과거 당첨 포함.
+        // MAX = 레거시 중복행 방어. 실패는 무시(배지 없이 진행).
+        const luckyMap = new Map<number, number>();
+        if (commentIds.length > 0) {
+            try {
+                const [lkRows] = await pool.query<RowDataPacket[]>(
+                    `SELECT po_rel_id, MAX(po_point) AS amt
+                     FROM g5_point
+                     WHERE po_rel_action = '@lucky' AND po_rel_table = ? AND po_rel_id IN (?)
+                     GROUP BY po_rel_id`,
+                    [safeBoardId, commentIds.map(String)]
+                );
+                for (const r of lkRows) luckyMap.set(Number(r.po_rel_id), Number(r.amt));
+            } catch (e) {
+                console.warn('[lucky] enrich(comments) failed:', e);
+            }
+        }
+
         // 요청자가 차단한 작성자 집합 (#12825). 서버에서 is_blocked 를 판정해 내려주면
         // 클라이언트 차단 스토어가 비동기 로드되기 전에도 첫 렌더부터 접힘 상태로 표시되어
         // "보였다 숨었다" 깜박임이 사라진다. 실패는 무시(클라 스토어가 fallback).
@@ -462,6 +482,7 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
                 ...(reviewRatingMap.has(row.wr_id)
                     ? { review_rating: reviewRatingMap.get(row.wr_id) }
                     : {}),
+                ...(luckyMap.get(row.wr_id) ? { lucky_point: luckyMap.get(row.wr_id) } : {}),
                 // admin 은 기존대로 신고수/lock 노출. 비로그인 잠긴 댓글은 'lock' 만 내려
                 // comment-list 가 "가려진 댓글" 접힘 플레이스홀더를 렌더하게 한다(본문은 위에서
                 // 이미 중립화됨). 로그인 일반 사용자는 기존 동작 유지(be 계약과 일관).

@@ -9,6 +9,7 @@
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Lock from '@lucide/svelte/icons/lock';
     import AuthorLink from '$lib/components/ui/author-link/author-link.svelte';
+    import LuckyBadge from '../../lucky-badge.svelte';
     import type { Component } from 'svelte';
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginComponent } from '$lib/utils/plugin-optional-loader';
@@ -144,6 +145,7 @@
                                             isWithdrawn={!!post.is_left}
                                         /></span
                                     >
+                                    <LuckyBadge amount={post.lucky_point ?? 0} />
                                     {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemoInList}
                                         <MemoBadge memberId={post.author_id} />
                                     {/if}
