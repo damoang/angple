@@ -90,6 +90,36 @@ Disallow: /
 User-agent: cohere-ai
 Disallow: /
 
+# ⛔ 무단 수집기 차단 — 2026-09-15 실측으로 확인
+#
+#    /rss 요청 7일 810건 중 631건(78%)이 자칭 수집기였다.
+#      trend-archive/0.1  337건  robots.txt 를 읽지 않는다(형식상 명시만 한다)
+#      CollectorHub/0.1   294건  robots.txt 를 30번 읽었다 → 막으면 지킬 가능성이 높다
+#    사람이 RSS 리더로 읽는 것은 Feedly 46건 수준이었다.
+#
+#    ⭐ 근본 대응은 피드에서 본문·이미지를 뺀 것이다(별건). robots 는 **의사 표시**다 —
+#       나중에 분쟁이 생기면 "금지 의사를 밝혔다"는 근거가 된다.
+User-agent: trend-archive
+Disallow: /
+
+User-agent: CollectorHub
+Disallow: /
+
+# ⛔ SEO 분석 크롤러 차단 — 검색 노출과 무관하고 크롤 예산만 먹는다
+#
+#    실측(3일): AhrefsBot 278,496건 — **Googlebot(92,831)의 3배**. SemrushBot 23,229건.
+#    이들은 검색엔진이 아니라 백링크 DB 를 만들어 파는 회사의 수집봇이라
+#    우리에게 방문자를 데려오지 않는다.
+#    ⭐ 막으면 크롤 예산이 진짜 검색엔진으로 돌아가므로 **검색에 오히려 도움**이다.
+#
+#    ⛔ 되살려야 할 때: 우리가 Ahrefs/Semrush 를 직접 구독해 우리 사이트를 분석하려면
+#       해당 줄을 빼야 한다. 그 도구들은 robots.txt 를 지키므로 막히면 분석이 안 된다.
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
 # Sitemap
 Sitemap: ${siteUrl}/sitemap.xml
 `;
