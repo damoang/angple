@@ -154,6 +154,9 @@ class KeyboardShortcutService {
         if (isInputElement(event.target)) return;
         // contentEditable 요소 안에서는 무시
         if (isContentEditable(event.target)) return;
+        // 포인터 잠금 중(마을 산책·게임 등 키보드 입력을 캡처하는 상태)엔 전역 단축키 비활성.
+        // 산책은 WASD/방향키로 이동하는데, 글자키가 메뉴 단축키로 먹히면 안 된다 (#13945).
+        if (typeof document !== 'undefined' && document.pointerLockElement) return;
 
         const code = event.code;
         const isDigit = code.startsWith('Digit');
