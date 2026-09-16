@@ -1125,9 +1125,23 @@
             {/if}
 
             <!-- 헤더 -->
-            <div class="mb-3 flex min-w-0 flex-wrap items-center justify-between gap-2">
+            <!-- ⛔ flex-wrap 금지 — 이 행은 SSR 과 하이드레이션 후의 내용이 다르다.
+                 오른쪽 그룹의 검색 토글은 authStore.isAuthenticated 게이트인데,
+                 SSR 은 캐시 때문에 user 를 벗겨 보낸다(SSR_STRIP_USER=true).
+                 그래서 /api/auth/me 응답 뒤에 버튼이 하나 늘고, 폭이 모자라면
+                 flex-wrap 이 **두 줄로 접히며** 아래 목록을 통째로 밀었다.
+
+                 실측(2026-09-16, /car 390×844, CPU 4배 스로틀):
+                   헤더 행  36px → 76px   목록 상단 234px → 274px (+40px)
+                   밀림 2회 중 이 한 번이 CLS 0.2843 (합계의 99.7%)
+                   ⛔ 같은 순간 배너(46px)와 롤링(28px)은 높이가 그대로였다 — 광고가 아니다.
+
+                 ⭐ 어느 자식이 늦게 나타나는지 몰라도 되게 **줄바꿈 자체를 없앤다.**
+                    버튼이 더 늘어도 안전하다. 대신 좁은 화면에서는 제목이 줄임표로 줄어든다.
+                 ⛔ 오른쪽 그룹에 shrink-0 이 없으면 버튼이 짓뭉개진다. -->
+            <div class="mb-3 flex min-w-0 flex-nowrap items-center justify-between gap-2">
                 <div class="flex min-w-0 shrink items-center gap-2">
-                    <h1 class="text-2xl font-bold sm:text-3xl">
+                    <h1 class="truncate text-2xl font-bold sm:text-3xl">
                         <a
                             href="/{boardId}"
                             class="text-foreground hover:text-primary transition-colors"
@@ -1150,7 +1164,7 @@
                     />
                 </div>
 
-                <div class="flex items-center gap-2">
+                <div class="flex shrink-0 items-center gap-2">
                     <!-- 전체 새글(피드) 진입 유도 — 전 게시판 노출. 자유게시판(allView)=제자리 토글,
                          그 외 게시판=클릭 시 /free?all=1(전체 새글 피드)로 이동. 안 눌러 보는 분이 많아
                          비활성 상태엔 그라데이션이 연속으로 흐르게 해 눈에 띄게 한다(prefers-reduced-motion 존중). 톱니 왼쪽. -->
