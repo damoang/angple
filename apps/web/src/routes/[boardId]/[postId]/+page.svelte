@@ -702,16 +702,26 @@
     // ⛔ onMount 게이트로 걸면 그 시점엔 아직 false 라 영원히 안 돈다(과거 read-posts 0건 함정).
     $effect(() => {
         const postId = data.post.id;
+        // ⛔ boardId 도 postId 처럼 **여기서 캡처한다.** 컴포넌트 $derived(data.boardId) 를
+        //    await 뒤에 읽으면, 그 사이 SPA 로 라우트를 떠났을 때 data 가 바뀌어 값이 사라지고
+        //    URL 에 `undefined` 가 박힌 요청이 나간다.
+        //    운영 실측(2026-09-16): /api/boards/undefined/posts/<정상>/comments/like-statuses
+        //    가 시간당 약 2건. postId 는 지역 캡처라 멀쩡하고 boardId 만 깨지는 비대칭이 지문이다.
+        //    ⭐ 같은 파일 댓글 backfill 이 이미 같은 이유로 AbortController 를 달았다(1780줄 주석).
+        const bid = boardId;
         const isAuth = authStore.isAuthenticated; // 추적 대상 — 인증 확립 시 발화
-        if (!browser || !isAuth) return;
+        if (!browser || !isAuth || !bid) return;
         if (likeStatusResyncedForPostId === postId) return;
         likeStatusResyncedForPostId = postId;
+        // ⛔ cleanup 이 없으면 라우트를 떠난 뒤에도 응답이 도착해 죽은 상태에 쓴다.
+        let cancelled = false;
         untrack(() => {
             void (async () => {
                 // 포스트 하트 — 내가 방금 누른 낙관적 값(postLikeStore)은 덮지 않는다.
                 if (!isLiking && !isDisliking) {
                     try {
-                        const status = await apiClient.getPostLikeStatus(boardId, String(postId));
+                        const status = await apiClient.getPostLikeStatus(bid, String(postId));
+                        if (cancelled) return;
                         if (data.post.id === postId && !isLiking && !isDisliking) {
                             isLiked = status.user_liked;
                             isDisliked = status.user_disliked ?? false;
@@ -728,8 +738,10 @@
                     }
                 }
                 // 댓글 하트 — 글 전체(페이지네이션/backfill 절연).
+                if (cancelled) return;
                 try {
-                    const cs = await apiClient.getCommentLikeStatuses(boardId, String(postId));
+                    const cs = await apiClient.getCommentLikeStatuses(bid, String(postId));
+                    if (cancelled) return;
                     if (data.post.id === postId) {
                         initialLikedCommentIds = cs.likedIds ?? [];
                         initialDislikedCommentIds = cs.dislikedIds ?? [];
@@ -739,6 +751,9 @@
                 }
             })();
         });
+        return () => {
+            cancelled = true;
+        };
     });
 
     // 추천자 목록 다이얼로그 상태
