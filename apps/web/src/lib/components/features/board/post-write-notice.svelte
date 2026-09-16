@@ -58,6 +58,10 @@
                 <!-- eslint-disable-next-line svelte/no-at-html-tags -->
                 {@html safeHtml}
             </div>
+            <!-- 전역 규칙(모든 게시판 공통) — placeholder에서 이곳 공통 섹션으로 이전 -->
+            <div class="border-border/50 text-muted-foreground border-t px-5 py-3 text-xs">
+                경어체 사용은 필수이며, 초성 비속어도 이용제한 대상입니다.
+            </div>
             <div class="border-border/60 border-t px-5 py-4">
                 <Button class="w-full" onclick={handleContinue}>확인하고 계속하기 →</Button>
                 {#if dismissible}
@@ -81,6 +85,10 @@
             <!-- eslint-disable-next-line svelte/no-at-html-tags -->
             {@html safeHtml}
         </div>
+        <!-- 전역 규칙(모든 게시판 공통) — placeholder에서 이곳 공통 섹션으로 이전 -->
+        <p class="text-muted-foreground mt-2 text-xs">
+            경어체 사용은 필수이며, 초성 비속어도 이용제한 대상입니다.
+        </p>
         {#if dismissible}
             <div class="mt-2 flex justify-end">
                 <button
