@@ -171,6 +171,15 @@
         {#snippet child({ props })}
             {#if isProminent}
                 <!-- 소모임 전용 강화 CTA: 라벨 + "멤버 N명" 노출로 구독을 멤버십처럼 -->
+                <!-- ⛔ min-w 는 장식이 아니라 **CLS 수정**이다. 이 버튼은 폭이 두 번 바뀐다:
+                     ① subscriberCount 가 0 → N 이 되며 「멤버 N명」이 생긴다(+64px)
+                     ② 라벨이 '소모임 구독' → '멤버' 로 줄어든다(isSubscribed 도 async)
+                     둘 다 /api/boards/<id>/subscribe 응답 뒤라 SSR 과 폭이 다르고,
+                     그 때문에 헤더 행이 한 줄 → 두 줄로 접히며 **목록 전체를 40px 밀었다**
+                     (2026-09-16 /car 실측: CLS 0.2843 = 그 페이지 합계의 99.7%).
+                     ⭐ 최종 폭을 처음부터 잡아두면 줄 수가 안 변하고, 그러면 밀림도 없다.
+                     11rem=176px 근거: 실측 최대 169px('소모임 구독' + '멤버 187명').
+                     구독자수는 소모임 92곳 중 최대 187명이라 3자리를 넘지 않는다. -->
                 <Button
                     {...props}
                     variant={isSubscribed ? 'secondary' : 'default'}
@@ -180,7 +189,7 @@
                     disabled={loading}
                     aria-label={isSubscribed ? '소모임 멤버 · 알림 설정' : '소모임 구독하기'}
                     title={subscribeCtaTitle(boardTitle, isSubscribed, subscriberCount)}
-                    class="h-8 gap-1.5 px-3"
+                    class="h-8 min-w-[11rem] justify-center gap-1.5 px-3"
                 >
                     {#if isSubscribed}
                         <Bell class="h-4 w-4" fill="currentColor" />

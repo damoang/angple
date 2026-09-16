@@ -1125,23 +1125,22 @@
             {/if}
 
             <!-- 헤더 -->
-            <!-- ⛔ flex-wrap 금지 — 이 행은 SSR 과 하이드레이션 후의 내용이 다르다.
-                 오른쪽 그룹의 검색 토글은 authStore.isAuthenticated 게이트인데,
-                 SSR 은 캐시 때문에 user 를 벗겨 보낸다(SSR_STRIP_USER=true).
-                 그래서 /api/auth/me 응답 뒤에 버튼이 하나 늘고, 폭이 모자라면
-                 flex-wrap 이 **두 줄로 접히며** 아래 목록을 통째로 밀었다.
+            <!-- ⛔ 이 행은 SSR 과 하이드레이션 후의 **내용 폭**이 다르다. 폭이 달라지면
+                 flex-wrap 이 한 줄 → 두 줄로 접히며 아래 목록을 통째로 민다.
 
                  실측(2026-09-16, /car 390×844, CPU 4배 스로틀):
-                   헤더 행  36px → 76px   목록 상단 234px → 274px (+40px)
-                   밀림 2회 중 이 한 번이 CLS 0.2843 (합계의 99.7%)
-                   ⛔ 같은 순간 배너(46px)와 롤링(28px)은 높이가 그대로였다 — 광고가 아니다.
+                   행 36px → 76px · 목록 상단 234 → 274px(+40) · CLS 0.2843(합계의 99.7%)
+                   범인은 왼쪽 그룹의 **구독 버튼 105 → 169px**(구독자수 fetch 후 「멤버 N명」).
+                   ⛔ 배너·롤링은 높이가 그대로였다 — 광고가 아니다.
 
-                 ⭐ 어느 자식이 늦게 나타나는지 몰라도 되게 **줄바꿈 자체를 없앤다.**
-                    버튼이 더 늘어도 안전하다. 대신 좁은 화면에서는 제목이 줄임표로 줄어든다.
-                 ⛔ 오른쪽 그룹에 shrink-0 이 없으면 버튼이 짓뭉개진다. -->
-            <div class="mb-3 flex min-w-0 flex-nowrap items-center justify-between gap-2">
+                 ⭐ 고친 곳은 여기가 아니라 **구독 버튼의 최소 폭**이다. 폭이 처음부터
+                    최종값이면 줄 수가 안 바뀌고, 그러면 세로 밀림도 없다.
+                 ⛔ flex-nowrap 으로 막으려다 되돌렸다 — 모자란 폭이 전부 제목에서 깎여
+                    「굴러간당」 84px 이 **61px 로 짓눌렸다.** 증상을 옮긴 것뿐이었다.
+                 ⛔ 오른쪽 그룹의 shrink-0 은 유지한다. 없으면 버튼이 짓뭉개진다. -->
+            <div class="mb-3 flex min-w-0 flex-wrap items-center justify-between gap-2">
                 <div class="flex min-w-0 shrink items-center gap-2">
-                    <h1 class="truncate text-2xl font-bold sm:text-3xl">
+                    <h1 class="text-2xl font-bold sm:text-3xl">
                         <a
                             href="/{boardId}"
                             class="text-foreground hover:text-primary transition-colors"
