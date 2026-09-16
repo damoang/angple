@@ -236,7 +236,10 @@ function ensureSlotListener() {
                 if (creativeHeight <= 1 && iframe) {
                     creativeHeight = iframe.offsetHeight || 0;
                 }
-                if (container && creativeHeight > 1) {
+                // bug/13942: 댓글 작성 중엔 확장(min-height 증가+scrollBy)이 에디터를 밀어
+                // 키보드를 내린다. 이 fill 이 미충전-재시도 가드를 뚫고 온 경우라도 확장은 미룬다
+                // (다음 fill/blur 후 반영). 잠깐의 creative 넘침은 키보드 하강보다 낫다.
+                if (container && creativeHeight > 1 && !shouldDeferForFocus(state.position)) {
                     const frame = container.closest('.dm-display-frame') as HTMLElement | null;
                     // #12632: 확장은 layout shift 를 만든다. Chrome/FF 는 scroll anchoring 으로
                     // 시야를 자동 보정하지만 Safari 는 미지원이라, 확장 순간 누르려던 글 행이
@@ -467,6 +470,16 @@ function isEditableElementFocused(): boolean {
     return tag === 'TEXTAREA' || tag === 'INPUT';
 }
 
+/**
+ * bug/13942: 댓글 영역 슬롯이고 편집 요소에 포커스가 있으면(=댓글 작성 중) refresh/확장을
+ * 미뤄야 한다. viewable refresh 뿐 아니라 미충전 재시도·remount·fill 확장도 같은 이유로
+ * 슬롯 iframe 교체/reflow 가 포커스된 에디터를 밀어내 모바일 소프트키보드를 내린다.
+ * 쿠팡 등 충전이 불규칙한 광고가 미충전 재시도로 이 경로를 타는 게 3중 제보(13942/13947/13950)의 원인.
+ */
+function shouldDeferForFocus(position: string): boolean {
+    return COMMENT_AREA_POSITIONS.has(position) && isEditableElementFocused();
+}
+
 function scheduleViewableRefresh(state: SlotState, intervalMs = 0) {
     if (state.refreshTimer || intervalMs <= 0) return;
     if (!state.slot || state.empty || state.mountCount <= 0 || !state.visible || !state.viewable)
@@ -558,11 +571,31 @@ function scheduleEmptyRetry(state: SlotState, delayMs: number, maxRetries: numbe
 
     state.emptyRetryTimer = setTimeout(() => {
         state.emptyRetryTimer = null;
-        state.emptyRetryCount += 1;
 
         queueGoogleTagCommand(() => {
             if (!state.slot || state.mountCount <= 0) return;
+
+            // bug/13942: 댓글 작성 중이면 미충전 재시도 refresh 를 미뤄 키보드 하강을 막는다.
+            // 재시도 횟수를 소비하지 않고(retry 유지) 재예약한다. 연속 상한 도달 시 폴백 refresh.
+            if (shouldDeferForFocus(state.position) && state.focusDeferCount < MAX_FOCUS_DEFERS) {
+                state.focusDeferCount += 1;
+                scheduleEmptyRetry(state, delayMs, maxRetries);
+                return;
+            }
+            state.focusDeferCount = 0;
+            state.emptyRetryCount += 1;
+
+            // CLS best practice: refresh 로 포커스가 빠지면 복원
+            const activeEl = document.activeElement as HTMLElement | null;
+            const hadFocus = activeEl && activeEl !== document.body;
             googletag.pubads().refresh([state.slot], { changeCorrelator: false });
+            if (hadFocus && activeEl) {
+                requestAnimationFrame(() => {
+                    if (document.activeElement === document.body && activeEl.isConnected) {
+                        activeEl.focus({ preventScroll: true });
+                    }
+                });
+            }
         });
     }, delayMs);
 }
@@ -641,7 +674,11 @@ export async function attachSlot(options: SlotAttachOptions) {
             if (!state!.slot) return;
             googletag.display(slotId);
         } else if (state!.loaded || state!.mountCount > 1) {
-            googletag.pubads().refresh([state!.slot], { changeCorrelator: false });
+            // bug/13942: 댓글 작성 중엔 remount refresh 도 미룬다(iframe 교체 reflow=키보드 하강).
+            // 스킵해도 viewable/empty-retry 경로가 이후 갱신하므로 광고 미노출 위험 없음.
+            if (!shouldDeferForFocus(state!.position)) {
+                googletag.pubads().refresh([state!.slot], { changeCorrelator: false });
+            }
         }
 
         scheduleViewableRefresh(state!, state!.refreshIntervalMs);
