@@ -160,7 +160,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
         // 다른 소셜로 로그인해 새 계정이 생긴 경우였다.
         // ⛔ 보여주는 것은 **제공자 이름뿐**이다. mb_id·닉네임·이메일은 말하지 않는다.
         //    DI 가 일치하므로 같은 사람의 계정이지만, 필요한 최소만 알린다.
-        const howToLogin = await describeLoginMethod(existingId);
+        const howToLogin = await describeLoginMethod(existingId, mbId);
         return certResultPage(
             false,
             '이전에 가입하신 계정이 있어 본인인증이 제한되었습니다.\n\n' +
@@ -221,6 +221,15 @@ const PROVIDER_LABEL: Record<string, string> = {
     apple: '애플'
 };
 
+/** 그 계정에 연결된 소셜 제공자 코드들. */
+async function providersOf(mbId: string): Promise<string[]> {
+    const [rows] = await readPool.query<RowDataPacket[]>(
+        'SELECT DISTINCT provider FROM g5_member_social_profiles WHERE mb_id = ?',
+        [mbId]
+    );
+    return rows.map((r) => String(r.provider));
+}
+
 /**
  * 기존 계정에 들어가는 방법을 회원이 읽을 문장으로 만든다.
  *
@@ -228,18 +237,32 @@ const PROVIDER_LABEL: Record<string, string> = {
  *    예전과 같은 일반 문구를 돌려준다. 안내를 못 해도 회원 흐름은 그대로 가야 한다.
  * ⛔ 제공자 이름만 말한다. mb_id·닉네임·이메일은 담지 않는다.
  */
-async function describeLoginMethod(existingId: string): Promise<string> {
+async function describeLoginMethod(existingId: string, currentId: string): Promise<string> {
     const generic = '기존에 쓰시던 계정으로 로그인해 주세요.';
     try {
-        const [rows] = await readPool.query<RowDataPacket[]>(
-            'SELECT DISTINCT provider FROM g5_member_social_profiles WHERE mb_id = ?',
-            [existingId]
-        );
-        const names = rows
-            .map((r) => PROVIDER_LABEL[String(r.provider)])
-            .filter((v): v is string => !!v);
+        const [oldProviders, curProviders] = await Promise.all([
+            providersOf(existingId),
+            providersOf(currentId)
+        ]);
+        const names = oldProviders.map((p) => PROVIDER_LABEL[p]).filter((v): v is string => !!v);
         if (names.length === 0) return generic;
         const joined = names.join(' 또는 ');
+
+        // ⛔ 같은 제공자를 **여러 개** 가진 경우 — 2026-09-15 에 실제로 겪었다.
+        //
+        //    한 회원이 네이버 계정을 둘 갖고 있었다. 기존 계정도 네이버, 새 계정도 네이버라
+        //    「네이버로 로그인해 주세요」가 아무 도움이 안 됐다. 이미 네이버로 하고 있었기
+        //    때문이다. 안내를 보고도 같은 계정에서 인증을 재시도했고 또 막혔다.
+        //
+        //    ⭐ 제공자가 겹치면 **「다른 계정일 수 있다」**까지 말해야 단서가 된다.
+        const overlap = oldProviders.some((p) => curProviders.includes(p));
+        if (overlap) {
+            return (
+                `그 계정은 ${joined}로 연결되어 있습니다.\n` +
+                `지금 로그인하신 ${joined} 계정과 다른 ${joined} 계정일 수 있습니다.\n` +
+                `${joined}에서 로그아웃하신 뒤, 예전에 쓰시던 아이디로 다시 로그인해 주세요.`
+            );
+        }
         return (
             `그 계정은 ${joined}로 로그인하시면 들어가실 수 있습니다.\n` +
             `로그인 화면에서 ${joined}를 선택해 주세요.`
