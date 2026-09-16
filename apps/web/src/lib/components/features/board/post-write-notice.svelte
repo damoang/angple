@@ -13,6 +13,7 @@
     let {
         html,
         boardId,
+        title,
         mode = 'banner',
         variant = 'info',
         dismissible = false,
@@ -21,6 +22,7 @@
     }: {
         html: string;
         boardId: string;
+        title?: string;
         mode?: 'banner' | 'blocking';
         variant?: 'info' | 'warning';
         dismissible?: boolean;
@@ -39,6 +41,13 @@
             : 'border-border bg-muted/40 text-foreground'
     );
 
+    // 차단형 헤더바(색) — bug 게시판 안내(BugWriteNotice)와 같은 룩. variant 에 따라 색을 맞춘다.
+    const headerClass = $derived(
+        variant === 'warning'
+            ? 'bg-amber-600 text-white dark:bg-amber-700'
+            : 'bg-slate-800 text-white dark:bg-slate-700'
+    );
+
     function handleContinue(): void {
         if (dismissible && skipToday) setWriteNoticeSkip(boardId);
         onContinue?.();
@@ -52,6 +61,10 @@
 {#if mode === 'blocking'}
     <div class="mx-auto max-w-xl">
         <div class="border-border bg-background overflow-hidden rounded-xl border shadow-sm">
+            {#if title}
+                <!-- 색 헤더바 — bug 게시판 안내와 같은 룩 -->
+                <div class="{headerClass} px-5 py-4 text-base font-semibold">{title}</div>
+            {/if}
             <div
                 class="prose prose-sm dark:prose-invert max-w-none px-5 py-4 text-sm {variantClass}"
             >
