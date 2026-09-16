@@ -13,6 +13,7 @@
     let {
         html,
         boardId,
+        title,
         mode = 'banner',
         variant = 'info',
         dismissible = false,
@@ -21,6 +22,7 @@
     }: {
         html: string;
         boardId: string;
+        title?: string;
         mode?: 'banner' | 'blocking';
         variant?: 'info' | 'warning';
         dismissible?: boolean;
@@ -39,6 +41,13 @@
             : 'border-border bg-muted/40 text-foreground'
     );
 
+    // 차단형 헤더바(색) — bug 게시판 안내(BugWriteNotice)와 같은 룩. variant 에 따라 색을 맞춘다.
+    const headerClass = $derived(
+        variant === 'warning'
+            ? 'bg-amber-600 text-white dark:bg-amber-700'
+            : 'bg-slate-800 text-white dark:bg-slate-700'
+    );
+
     function handleContinue(): void {
         if (dismissible && skipToday) setWriteNoticeSkip(boardId);
         onContinue?.();
@@ -52,6 +61,14 @@
 {#if mode === 'blocking'}
     <div class="mx-auto max-w-xl">
         <div class="border-border bg-background overflow-hidden rounded-xl border shadow-sm">
+            {#if title}
+                <!-- 색 헤더바 — bug 게시판 안내와 같은 룩 -->
+                <div class="{headerClass} px-5 py-4 text-base font-semibold">{title}</div>
+            {/if}
+            <!-- 전역 규칙(모든 게시판 공통) — 최상단 강조 -->
+            <div class="text-foreground border-border/60 border-b px-5 py-3 text-sm font-medium">
+                존댓말이 기본규칙입니다. 초성포함 욕설은 이용제한 대상입니다.
+            </div>
             <div
                 class="prose prose-sm dark:prose-invert max-w-none px-5 py-4 text-sm {variantClass}"
             >
@@ -77,6 +94,10 @@
     </div>
 {:else}
     <div class="mb-4 rounded-lg border px-4 py-3 text-sm {variantClass}">
+        <!-- 전역 규칙(모든 게시판 공통) — 최상단 강조 -->
+        <p class="text-foreground border-border/60 mb-2 border-b pb-2 font-medium">
+            존댓말이 기본규칙입니다. 초성포함 욕설은 이용제한 대상입니다.
+        </p>
         <div class="prose prose-sm dark:prose-invert max-w-none">
             <!-- eslint-disable-next-line svelte/no-at-html-tags -->
             {@html safeHtml}

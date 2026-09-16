@@ -108,6 +108,7 @@ export interface ExtendedSettings {
 export interface WriteNoticeSettings {
     enabled?: boolean;
     mode?: 'off' | 'banner' | 'blocking';
+    title?: string; // 차단형 색 헤더바 문구 (bug 안내 룩). 없으면 헤더바 미표시.
     html?: string;
     skipHours?: number;
     variant?: 'info' | 'warning';

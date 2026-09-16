@@ -876,6 +876,7 @@ export interface Board {
         // 게시판별 글쓰기 안내(확장설정) — 배너/차단형. 설정 없으면 키 자체가 없음.
         enabled?: boolean;
         mode?: 'off' | 'banner' | 'blocking';
+        title?: string; // 차단형 색 헤더바 문구 (bug 안내 룩). 없으면 헤더바 미표시.
         html?: string;
         skipHours?: number;
         variant?: 'info' | 'warning';

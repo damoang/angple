@@ -314,6 +314,7 @@
             <PostWriteNotice
                 mode="blocking"
                 {boardId}
+                title={writeNotice?.title}
                 html={writeNotice?.html ?? ''}
                 variant={writeNotice?.variant ?? 'info'}
                 skipHours={writeNotice?.skipHours}

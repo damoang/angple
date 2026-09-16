@@ -85,6 +85,12 @@
     let tags = $state<string[]>(post?.tags || []);
     let link1 = $state(post?.link1 || initialLink1 || '');
     const isClaimBoard = $derived(boardId === 'claim');
+    // write_notice(배너/차단형)가 실제로 뜨는 게시판인가 — inline insert_content 중복 숨김 판정용.
+    // write/+page.svelte 트리거와 동일 조건(enabled + mode in banner/blocking)으로 맞춘다.
+    const writeNoticeActive = $derived(
+        !!board?.write_notice?.enabled &&
+            (board?.write_notice?.mode === 'banner' || board?.write_notice?.mode === 'blocking')
+    );
     let link2 = $state(post?.link2 || initialLink2 || '');
     let errors = $state<{ title?: string; content?: string; category?: string }>({});
 
@@ -974,9 +980,13 @@
             <!-- 내용 입력 (WYSIWYG 에디터) -->
             <div class="space-y-2">
                 <Label for="content">내용 <span class="text-destructive">*</span></Label>
-                {#if board?.insert_content}
+                {#if board?.insert_content && !writeNoticeActive}
                     <!-- 게시판별 글쓰기 안내: 정상 문서 흐름 블록으로 렌더한다.
-                         (에디터 placeholder에 붙이면 height:0 ::before 라 아래 필드를 덮는다 — #13939) -->
+                         (에디터 placeholder에 붙이면 height:0 ::before 라 아래 필드를 덮는다 — #13939)
+                         write_notice(배너/차단형)가 켜진 게시판은 그쪽이 같은 안내를 담으므로
+                         중복 방지를 위해 이 inline 블록은 숨긴다. 미설정 게시판은 종전대로 표시.
+                         ⛔ enabled 만 보면 mode='off' 조합에서 안내가 양쪽 다 사라진다 —
+                         write/+page.svelte 의 배너/차단형 트리거와 동일 조건으로 맞춘다. -->
                     <p class="text-muted-foreground whitespace-pre-line text-sm">
                         {board.insert_content}
                     </p>
@@ -999,7 +1009,7 @@
                     bind:this={editorRef}
                     {content}
                     {contentFormat}
-                    placeholder={`/ 를 눌러 이미지와 앙티콘을 추가하세요\n\n경어체 사용은 필수이며, 초성 비속어도 이용제한 대상입니다.`}
+                    placeholder="/ 를 눌러 이미지와 앙티콘을 추가하세요"
                     disabled={isLoading}
                     onUpdate={(value) => (content = value)}
                     onImageUpload={handleEditorImageUpload}
