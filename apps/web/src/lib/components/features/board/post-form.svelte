@@ -85,12 +85,6 @@
     let tags = $state<string[]>(post?.tags || []);
     let link1 = $state(post?.link1 || initialLink1 || '');
     const isClaimBoard = $derived(boardId === 'claim');
-    // write_notice(배너/차단형)가 실제로 뜨는 게시판인가 — inline insert_content 중복 숨김 판정용.
-    // write/+page.svelte 트리거와 동일 조건(enabled + mode in banner/blocking)으로 맞춘다.
-    const writeNoticeActive = $derived(
-        !!board?.write_notice?.enabled &&
-            (board?.write_notice?.mode === 'banner' || board?.write_notice?.mode === 'blocking')
-    );
     let link2 = $state(post?.link2 || initialLink2 || '');
     let errors = $state<{ title?: string; content?: string; category?: string }>({});
 
@@ -980,17 +974,9 @@
             <!-- 내용 입력 (WYSIWYG 에디터) -->
             <div class="space-y-2">
                 <Label for="content">내용 <span class="text-destructive">*</span></Label>
-                {#if board?.insert_content && !writeNoticeActive}
-                    <!-- 게시판별 글쓰기 안내: 정상 문서 흐름 블록으로 렌더한다.
-                         (에디터 placeholder에 붙이면 height:0 ::before 라 아래 필드를 덮는다 — #13939)
-                         write_notice(배너/차단형)가 켜진 게시판은 그쪽이 같은 안내를 담으므로
-                         중복 방지를 위해 이 inline 블록은 숨긴다. 미설정 게시판은 종전대로 표시.
-                         ⛔ enabled 만 보면 mode='off' 조합에서 안내가 양쪽 다 사라진다 —
-                         write/+page.svelte 의 배너/차단형 트리거와 동일 조건으로 맞춘다. -->
-                    <p class="text-muted-foreground whitespace-pre-line text-sm">
-                        {board.insert_content}
-                    </p>
-                {/if}
+                <!-- 게시판별 안내(insert_content)의 에디터 위 inline 렌더는 제거했다.
+                     안내는 전부 글쓰기 진입 시 차단형/배너 인터스티셜(write_notice)로만 노출한다.
+                     (에디터 위에 글자가 겹쳐 보이던 문제 제거 — 사장님 요청 2026-09-19) -->
                 {#if showScorecardButton}
                     <!-- 앙티티 연결 상태에서만 — 미연결 시 DOM 무변화(옵트인 보장) -->
                     <div class="flex justify-end">
