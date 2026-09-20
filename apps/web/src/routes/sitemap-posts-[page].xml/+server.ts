@@ -40,6 +40,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
                         `SELECT wr_id, wr_datetime, wr_last, wr_7, LEFT(wr_content, 1000) AS content_head
                          FROM g5_write_${seg.board}${forceIndex ? ' FORCE INDEX (wr_is_comment)' : ''}
 					     WHERE wr_is_comment = 0
+					       AND (wr_deleted_at IS NULL OR wr_deleted_at = '0000-00-00 00:00:00')
 					     ORDER BY wr_id DESC
 					     LIMIT ? OFFSET ?`,
                         [seg.limit, seg.offset]
