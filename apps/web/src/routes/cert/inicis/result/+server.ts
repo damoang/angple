@@ -146,10 +146,10 @@ export const POST: RequestHandler = async ({ request, locals, cookies, getClient
     // 보조 DI — 2026-07-19 키 전환기(1,292명)와 대조하기 위한 값.
     // 보조 키 미설정이면 빈 문자열이고, 저장·조회에서 자동 제외된다.
     const mbDupinfoAlt = buildDupinfoAlt(userCi);
+    // ⛔ 생년월일은 로그에 남기지 않는다 — 파드 로그는 개인정보 저장소가 아니다.
     console.log('[Cert] dupinfo generated:', {
         dupinfoPrefix: mbDupinfo.slice(0, 16),
-        hasCi: !!userCi,
-        birthDay: userBirthday
+        hasCi: !!userCi
     });
 
     // 사용자 확인: 세션 → DB(mTxId) → 쿠키(백업) 순으로 시도
