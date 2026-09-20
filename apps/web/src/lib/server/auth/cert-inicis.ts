@@ -494,3 +494,57 @@ export async function checkDupinfo(
 
     return null;
 }
+
+/** 실명인증 시도 로그 한 행 (g5_da_cert_attempt_log). 개인정보(이름·생년·전화·CI) 없음. */
+export interface CertAttempt {
+    mb_id?: string;
+    tx_id?: string;
+    result:
+        | 'success'
+        | 'dup'
+        | 'provider_fail'
+        | 'invalid'
+        | 'decrypt_fail'
+        | 'no_session'
+        | 'id_mismatch'
+        | 'save_fail';
+    dupinfo?: string;
+    existing_mb_id?: string;
+    result_code?: string;
+    result_msg?: string;
+    ip?: string;
+    user_agent?: string;
+}
+
+/**
+ * 실명인증 시도를 영구 기록한다 (append-only, 삭제 경로 없음).
+ *
+ * 왜: 실패(특히 「이미 가입된 내역」 중복충돌)는 console.log 에만 남아 파드 재시작과 함께
+ * 사라졌다. 성공만 g5_member_cert_history 에 남았다. 이 로그가 있어야 「이 DI 가 누구 것인가」를
+ * 추측 없이 existing_mb_id 로 즉시 확정할 수 있다 (2026-09-19 소실 사고).
+ *
+ * ⛔ fail-open: 로그 실패가 인증 결과를 바꾸면 안 된다. 예외는 삼키고 console.error 만 남긴다.
+ * ⛔ 개인정보 미저장: 방침은 DI 만 보관한다. 이름·생년·전화·CI 는 절대 넣지 않는다.
+ */
+export async function logCertAttempt(row: CertAttempt): Promise<void> {
+    try {
+        await pool.query(
+            `INSERT INTO g5_da_cert_attempt_log
+               (mb_id, tx_id, result, provider, method, dupinfo, existing_mb_id, result_code, result_msg, ip, user_agent)
+             VALUES (?, ?, ?, 'inicis', 'simple', ?, ?, ?, ?, ?, ?)`,
+            [
+                (row.mb_id ?? '').slice(0, 20),
+                (row.tx_id ?? '').slice(0, 30),
+                row.result,
+                (row.dupinfo ?? '').slice(0, 64),
+                (row.existing_mb_id ?? '').slice(0, 20),
+                (row.result_code ?? '').slice(0, 8),
+                (row.result_msg ?? '').slice(0, 255),
+                (row.ip ?? '').slice(0, 45),
+                (row.user_agent ?? '').slice(0, 255)
+            ]
+        );
+    } catch (err) {
+        console.error('[Cert] attempt log failed:', err);
+    }
+}
