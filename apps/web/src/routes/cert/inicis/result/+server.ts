@@ -13,9 +13,12 @@ import {
     flagDupinfoCollision,
     verifySameIdentity,
     flagIdentityMismatch,
-    getCertPendingMbId
+    getCertPendingMbId,
+    logCertAttempt,
+    type CertAttempt
 } from '$lib/server/auth/cert-inicis.js';
 import { readPool } from '$lib/server/db.js';
+import { resolveClientIp } from '$lib/server/rate-limit.js';
 import type { RowDataPacket } from 'mysql2';
 
 type SeedCipher = {
@@ -38,7 +41,7 @@ async function getSeedCipher(): Promise<SeedCipher> {
     return cachedSeedCipher;
 }
 
-export const POST: RequestHandler = async ({ request, locals, cookies }) => {
+export const POST: RequestHandler = async ({ request, locals, cookies, getClientAddress }) => {
     const formData = await request.formData();
 
     const txId = (formData.get('txId') as string) || '';
@@ -47,13 +50,32 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
     const authRequestUrl = (formData.get('authRequestUrl') as string) || '';
     const seedKey = (formData.get('token') as string) || '';
 
+    // 시도 로그 공통값 — 모든 분기의 return 직전에 남긴다 (fail-open, 개인정보 없음)
+    // IP 는 rate-limit 과 같은 해석기(getClientAddress → XFF/x-real-ip 폴백) — 빈값이면 ''
+    const ip = resolveClientIp(getClientAddress, request) ?? '';
+    const userAgent = request.headers.get('user-agent') ?? '';
+    const log = (row: Omit<CertAttempt, 'tx_id' | 'ip' | 'user_agent'> & { mb_id?: string }) =>
+        logCertAttempt({
+            tx_id: txId,
+            ip,
+            user_agent: userAgent,
+            mb_id: row.mb_id ?? locals.user?.id ?? '',
+            ...row
+        });
+
     // 인증 실패
     if (resultCode !== '0000') {
+        await log({
+            result: 'provider_fail',
+            result_code: resultCode,
+            result_msg: decodeURIComponent(resultMsg || '')
+        });
         return certResultPage(false, `인증 실패: ${decodeURIComponent(resultMsg || resultCode)}`);
     }
 
     // URL 검증
     if (!isValidInicisUrl(authRequestUrl)) {
+        await log({ result: 'invalid', result_msg: 'invalid authRequestUrl' });
         return certResultPage(false, '잘못된 요청입니다.');
     }
 
@@ -71,10 +93,16 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
         resData = JSON.parse(resText);
     } catch {
         console.error('[Cert] JSON parse failed, raw:', resText);
+        await log({ result: 'invalid', result_msg: 'provider response parse failed' });
         return certResultPage(false, '인증 서버 응답을 처리할 수 없습니다.');
     }
 
     if (resData.resultCode !== '0000') {
+        await log({
+            result: 'provider_fail',
+            result_code: resData.resultCode || '',
+            result_msg: decodeURIComponent(resData.resultMsg || '')
+        });
         return certResultPage(
             false,
             `인증 실패: ${decodeURIComponent(resData.resultMsg || resData.resultCode)}`
@@ -91,6 +119,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
         const seedIV = getSeedIV();
         if (!seedIV) {
             console.error('[Cert] SEED IV is empty — check CERT_INICIS_SEED_IV env var');
+            await log({ result: 'invalid', result_msg: 'seed iv missing' });
             return certResultPage(false, '인증 서버 설정 오류입니다.');
         }
         try {
@@ -101,12 +130,14 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
             userCi = seedCipher.decrypt(seedKey, seedIV, userCi);
         } catch (err) {
             console.error('[Cert] SEED decrypt error:', err);
+            await log({ result: 'decrypt_fail', result_msg: 'seed decrypt error' });
             return certResultPage(false, '인증 데이터 복호화에 실패했습니다.');
         }
     }
 
     if (!userPhone) {
         console.error('[Cert] userPhone empty after processing');
+        await log({ result: 'invalid', result_msg: 'userPhone empty' });
         return certResultPage(false, '정상적인 인증이 아닙니다.');
     }
 
@@ -129,6 +160,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
     const mbId = sessionMbId || dbPendingMbId || certPendingMbId;
     if (!mbId) {
         console.error('[Cert] mbId not found');
+        await log({ result: 'no_session', dupinfo: mbDupinfo, result_msg: 'mbId not found' });
         return certResultPage(false, '인증 세션이 만료되었습니다. 다시 시도해주세요.');
     }
     // 쿠키 사용 후 삭제
@@ -160,6 +192,8 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
         // 다른 소셜로 로그인해 새 계정이 생긴 경우였다.
         // ⛔ 보여주는 것은 **제공자 이름뿐**이다. mb_id·닉네임·이메일은 말하지 않는다.
         //    DI 가 일치하므로 같은 사람의 계정이지만, 필요한 최소만 알린다.
+        // ★ 누가 막았는지 영구 기록 — 「이 DI 가 누구 것인가」를 나중에 추측 없이 확정한다.
+        await log({ result: 'dup', mb_id: mbId, dupinfo: mbDupinfo, existing_mb_id: existingId });
         const howToLogin = await describeLoginMethod(existingId, mbId);
         return certResultPage(
             false,
@@ -176,6 +210,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
         await flagIdentityMismatch(mbId).catch((e) => {
             console.error('[Cert] 명의 불일치 플래그 기록 실패:', e);
         });
+        await log({ result: 'id_mismatch', mb_id: mbId, dupinfo: mbDupinfo });
         return certResultPage(
             false,
             '기존에 본인인증하신 명의와 일치하지 않습니다. 본인 명의로 진행해 주세요. ' +
@@ -191,6 +226,13 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
         // 방어선이 막은 경우와 실제 저장 실패를 구분해 안내한다 —
         // "저장 실패"로 뭉뚱그리면 회원이 재시도만 반복하게 된다.
         const reason = err instanceof Error ? err.message : '';
+        // ⛔ 로그엔 원문 메시지를 넣지 않는다 — MySQL 1292/1366 류는 문제 값(생년 등)을 메시지에 포함한다.
+        //    내부 센티널이면 그대로, 아니면 드라이버 오류코드만.
+        const safeReason =
+            reason === 'IDENTITY_MISMATCH' || reason === 'DI_COLLISION_BLOCKED'
+                ? reason
+                : ((err as { code?: string })?.code ?? 'db_error');
+        await log({ result: 'save_fail', mb_id: mbId, dupinfo: mbDupinfo, result_msg: safeReason });
         if (reason === 'IDENTITY_MISMATCH') {
             return certResultPage(
                 false,
@@ -209,6 +251,7 @@ export const POST: RequestHandler = async ({ request, locals, cookies }) => {
         return certResultPage(false, '인증 정보 저장에 실패했습니다.');
     }
 
+    await log({ result: 'success', mb_id: mbId, dupinfo: mbDupinfo });
     return certResultPage(true, '본인인증이 완료되었습니다.');
 };
 
