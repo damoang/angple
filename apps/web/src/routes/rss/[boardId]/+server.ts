@@ -71,6 +71,7 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
             `SELECT wr_id, wr_subject, wr_content, wr_name, wr_datetime
 			 FROM g5_write_${boardId}
 			 WHERE wr_is_comment = 0
+			   AND (wr_deleted_at IS NULL OR wr_deleted_at = '0000-00-00 00:00:00')
 			 ORDER BY wr_datetime DESC LIMIT 20`
         );
 
