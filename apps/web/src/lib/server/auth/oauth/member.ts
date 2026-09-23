@@ -151,7 +151,7 @@ export async function getMemberLeaveStateLive(
  *    있어야 하기 때문. 글/댓글 작성 같은 활동 제한은 별도 ban-check 미들웨어가 담당.
  *  - 자동 복귀 없음(2026-09-23 결정). 탈퇴자는 운영 복원(recovery)만 — updateLoginTimestamp 는 mb_leave_date 를 건드리지 않는다.
  *  - 관리자 처리 탈퇴(admin / terms_violation / contract_withdrawal / account_abuse) 는
- *    PROTECTED_REASONS 가 mb_leave_date 를 보존 → 이 함수에서 false 반환 → 로그인 차단.
+ *    withdrawal.ts PROTECTED_LEAVE_REASONS 가 mb_leave_date 를 보존 → 이 함수에서 false 반환 → 로그인 차단.
  */
 export function isMemberActive(member: MemberRow): boolean {
     if (member.mb_leave_date) return false;

@@ -1,5 +1,5 @@
 -- 005_member_restore_trigger.sql — mb_leave_date 가 비워지는 모든 경로를 한 자리에서 기록한다.
--- 설계: docs/2026-09-22-voluntary-leaver-return-sprint.html §7-6 (D7)
+-- 설계: docs/2026-09-22-voluntary-leaver-return-sprint.html §8-2 (D7)
 --
 -- 왜: 2026-09-23 조사에서 세 주체(캐시창 재로그인·F3 재활성·운영자 수작업 SQL)가 같은 컬럼을
 --     기록 없이 비웠고, CF(회원 미식별)·ALB(CloudFront IP 만)·파드로그(4h) 어디서도 사후 재구성이
@@ -7,8 +7,13 @@
 --
 -- 원칙:
 --   ① fail-open — 트리거 안의 어떤 오류도 원본 UPDATE 를 막지 않는다 (CONTINUE HANDLER + INSERT IGNORE).
---   ② 주체 — CURRENT_USER()(DB 계정: web/backend/ops 구분) + 세션변수 @damoang_actor
---      (코드·운영 SQL 이 `SET @damoang_actor='ops:<이름>:<사유>'` 로 설정하면 reason 에 병기, 없으면 빈값).
+--   ② 주체 — 세션변수 @damoang_actor 가 유일한 식별 수단이다. 라이브는 web/backend/ops 가 모두 같은
+--      DB 계정·같은 호스트로 접속하므로 계정으로는 구분이 안 되고, 트리거 안의 CURRENT_USER() 는
+--      접속 계정이 아니라 DEFINER 를 돌려준다(저장 프로그램 규칙). USER() 로 접속 계정@호스트만 남기고,
+--      코드·운영 SQL 은 **같은 커넥션에서** `SET @damoang_actor='ops:<이름>:<사유>'; UPDATE …; SET @damoang_actor=NULL;`
+--      순서로 실행해야 reason 에 주체가 병기된다(풀 커넥션에서 세션변수가 다음 쿼리로 새는 것을 막기 위해 초기화 필수).
+--   ④ 핸들러가 못 잡는 것 — 트리거 본문 밖 오류: DEFINER 계정 삭제·권한 회수 시 1449(원본 UPDATE 실패),
+--      데드락 1213(InnoDB 가 트랜잭션 전체 롤백), leave_history DDL 중 메타데이터 락 대기. 낮은 확률이나 기재해 둔다.
 --   ③ 코드 경로가 이미 restore 를 직접 기록하는 경우 중복될 수 있다 — UNIQUE (mb_id,event,event_at) 가
 --      같은 초 안의 중복을 IGNORE 로 흡수한다. 다른 초면 2행 남는데 그건 「두 번 기록」이지 손실이 아니다.
 --
@@ -31,7 +36,7 @@ BEGIN
     VALUES
       (NEW.mb_id, 'restore', NOW(), OLD.mb_leave_date, IFNULL(NEW.mb_intercept_date,''),
        IF(IFNULL(OLD.mb_intercept_date,'')<>'',1,0), IFNULL(NEW.mb_level,0),
-       LEFT(CONCAT('trigger by ', CURRENT_USER(),
+       LEFT(CONCAT('trigger by ', USER(),
                    IF(@damoang_actor IS NULL OR @damoang_actor='', '', CONCAT(' / ', @damoang_actor)),
                    IF(IFNULL(OLD.mb_leave_reason,'')<>'', CONCAT(' / prev_reason=', OLD.mb_leave_reason), '')), 255),
        'trigger', NOW());

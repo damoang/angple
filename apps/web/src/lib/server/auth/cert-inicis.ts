@@ -203,8 +203,9 @@ export type DupCollisionKind = 'sanction' | 'withdrawn' | 'active';
  * 동일 DI 를 가진 다른 계정을 조회한다(주 DI + 보조 DI × mb_dupinfo + mb_dupinfo2 —
  * checkDupinfo 와 동일 범위). mb_dupinfo = 본인확인(CI)의 단방향 해시라
  * 충돌 = 동일인. 매칭 계정이 **제재중(mb_intercept_date≠'') 또는 탈퇴(mb_leave_date≠'')**면
- * 징계회피/다중이 재가입 정황 → durable 운영 플래그를 재인증 시도 계정 mb_memo 에 기록하고
- * `blocked=true` 를 반환한다(호출부가 본인인증 거부·dupinfo 미저장에 사용).
+ * durable 운영 플래그를 재인증 시도 계정 mb_memo 에 기록하고 `blocked=true` 를 반환한다
+ * (호출부가 본인인증 거부·dupinfo 미저장에 사용). 문구는 `kind` 로 갈린다 — 이용제한 중 탈퇴·운영자
+ * 처리 탈퇴(sanction)만 「징계회피 정황」, 단순 자진 탈퇴(withdrawn)는 5호 조문만 적는다.
  *
  * ⚠️ 밴/탈퇴 "유효" 판정은 코드베이스 관례와 일치 — 값이 비어있지 않으면 제재/탈퇴로 본다.
  *    (제재: api/members/search/+server.ts:49, admin/members/[mbId]/+page.svelte:187 /
@@ -296,13 +297,12 @@ export async function flagDupinfoCollision(
     // 조문별 분류 — 「다중이/징계회피」는 제재가 실재할 때만 쓴다.
     //   sanction : 이용제한 중(mb_intercept_date) 또는 운영자 처리 탈퇴(PROTECTED reason) → 약관 8조②4호·6호
     //   withdrawn: 단순 자진 탈퇴 → 8조②5호. 처분 이력 없는 사람이다 — 혐의 문구 금지
-    // 실측(2026-09-22): 이 메모가 찍힌 34명 중 처분 이력 없는 사람이 28명이었다.
+    //   (분류 전에는 두 경우가 한 문구로 찍혀 대다수가 없는 혐의를 달고 있었다)
+    // PROTECTED 목록은 withdrawal.ts PROTECTED_LEAVE_REASONS 와 같아야 한다.
     const PROTECTED = new Set(['admin', 'terms_violation', 'contract_withdrawal', 'account_abuse']);
     const isSanction = (r: DupCollisionRow) =>
         (r.mb_intercept_date ?? '') !== '' || PROTECTED.has(String(r.mb_leave_reason ?? ''));
-    const sanctionRows = blockingRows.filter(isSanction);
-    const withdrawnRows = blockingRows.filter((r) => !isSanction(r));
-    const kind: DupCollisionKind = sanctionRows.length > 0 ? 'sanction' : 'withdrawn';
+    const kind: DupCollisionKind = blockingRows.some(isSanction) ? 'sanction' : 'withdrawn';
     const detail = blockingRows
         .map((r) => `${r.mb_id}(${isSanction(r) ? '이용제한 중 탈퇴/제재' : '탈퇴'})`)
         .join(', ');
@@ -310,7 +310,6 @@ export async function flagDupinfoCollision(
         kind === 'sanction'
             ? `${flaggedAt} [DI충돌차단] 동일 본인확인정보의 이용제한 중 탈퇴·제재 계정 ${detail} 존재 — 재인증 거부(약관 8조②4호·6호, 징계회피 정황)`
             : `${flaggedAt} [DI충돌차단] 동일 본인확인정보의 탈퇴 계정 ${detail} 존재 — 재인증 거부(약관 8조②5호). 처분 이력 없음, 기존 계정 복구는 고객센터 문의`;
-    void withdrawnRows;
 
     // durable 운영 플래그: 재인증 시도 계정 mb_memo 앞줄에 기록(관리자 회원관리 화면 노출).
     // 실패해도 차단 판정 자체는 유지(로그만).
