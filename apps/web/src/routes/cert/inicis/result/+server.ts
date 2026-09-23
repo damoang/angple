@@ -181,8 +181,9 @@ export const POST: RequestHandler = async ({ request, locals, cookies, getClient
         // 플래그 기록 실패가 응답 흐름을 막지 않도록 방어적으로 처리한다.
         // ⛔ 보조 DI 도 넘긴다 — checkDupinfo 가 두 값으로 차단했는데 여기서 주 DI 만 보면
         //    키 전환기(2026-07-19~08-13) 계정과의 충돌이 기록되지 않는다.
-        await flagDupinfoCollision(mbId, mbDupinfo, mbDupinfoAlt).catch((e) => {
+        const collision = await flagDupinfoCollision(mbId, mbDupinfo, mbDupinfoAlt).catch((e) => {
             console.error('[Cert] DI 충돌 플래그 기록 실패:', e);
+            return null;
         });
         // ⭐ 어느 소셜로 들어가야 하는지 **알려준다**.
         // 예전 문구는 "기존 계정으로 로그인해 주시고" 로 끝났는데, 회원은 정작
@@ -193,7 +194,14 @@ export const POST: RequestHandler = async ({ request, locals, cookies, getClient
         // ⛔ 보여주는 것은 **제공자 이름뿐**이다. mb_id·닉네임·이메일은 말하지 않는다.
         //    DI 가 일치하므로 같은 사람의 계정이지만, 필요한 최소만 알린다.
         // ★ 누가 막았는지 영구 기록 — 「이 DI 가 누구 것인가」를 나중에 추측 없이 확정한다.
-        await log({ result: 'dup', mb_id: mbId, dupinfo: mbDupinfo, existing_mb_id: existingId });
+        // result_msg 에 조문 분류(sanction/withdrawn/active)를 남긴다 — 처분 없는 단순 탈퇴 충돌을 통계로 볼 수 있게.
+        await log({
+            result: 'dup',
+            mb_id: mbId,
+            dupinfo: mbDupinfo,
+            existing_mb_id: existingId,
+            result_msg: collision?.kind ?? ''
+        });
         const howToLogin = await describeLoginMethod(existingId, mbId);
         return certResultPage(
             false,

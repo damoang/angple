@@ -95,37 +95,52 @@ export async function findMemberByEmail(email: string): Promise<MemberRow | null
 
 /**
  * 로그인 시각/IP 업데이트.
- * - 본인 탈퇴(reason = 'self' 또는 빈 값) 후 재로그인 → mb_leave_date 클리어(자동 복귀).
- * - 관리자가 처리한 탈퇴(admin/terms_violation/contract_withdrawal/account_abuse) →
- *   mb_leave_date 보존, 재로그인으로 탈퇴 취소되지 않도록 보호.
+ *
+ * ⛔ mb_leave_date 는 건드리지 않는다. 예전엔 본인 탈퇴(self/빈값) 재로그인에서 여기서 탈퇴를
+ *    해제했다(자동 복귀). 2026-09-23 사장님 결정으로 자동 복귀를 없앴다 — 「복귀가 쉬우면
+ *    탈퇴하기도 쉽다」. 그리고 게이트가 캐시된 옛 회원(memberCache L1 60s)을 보고 통과한 뒤
+ *    이 UPDATE 가 탈퇴를 지워버리던 뒷문(탈퇴 9~41초 뒤 재로그인 4건, 기록 0)도 이걸로 닫힌다.
+ *    복귀는 운영 복원(recovery 서비스)만 한다. leaveReason 인자는 호출부 호환용으로 남기되
+ *    더 이상 판정에 쓰지 않는다.
  */
 export async function updateLoginTimestamp(
     mbId: string,
     ip: string,
-    leaveReason?: string
+    _leaveReason?: string
 ): Promise<void> {
-    const PROTECTED_REASONS = new Set([
-        'admin',
-        'terms_violation',
-        'contract_withdrawal',
-        'account_abuse'
-    ]);
-    const isAdminDeactivated = leaveReason && PROTECTED_REASONS.has(leaveReason);
-
-    if (isAdminDeactivated) {
-        // 관리자 처리 탈퇴: mb_leave_date 보존, 로그인 시각만 업데이트
-        await pool.query(
-            'UPDATE g5_member SET mb_today_login = NOW(), mb_login_ip = ? WHERE mb_id = ?',
-            [ip, mbId]
-        );
-    } else {
-        // 본인 탈퇴(또는 reason 없음): mb_leave_date 클리어 → 자동 복귀
-        await pool.query(
-            "UPDATE g5_member SET mb_today_login = NOW(), mb_login_ip = ?, mb_leave_date = '' WHERE mb_id = ?",
-            [ip, mbId]
-        );
-    }
+    await pool.query(
+        'UPDATE g5_member SET mb_today_login = NOW(), mb_login_ip = ? WHERE mb_id = ?',
+        [ip, mbId]
+    );
     await invalidateMemberCache(mbId);
+}
+
+/**
+ * 탈퇴/제재 상태를 **캐시 없이** DB(writer)에서 직접 읽는다 — 로그인 게이트 전용.
+ *
+ * 왜: memberCache 는 L1(Map 60s)→L2(Redis 300s) 인데, 탈퇴는 Go 백엔드(POST /me/leave)가 DB 에
+ * 쓴다. 백엔드가 L2 키는 지워도 각 파드의 L1 은 못 지운다 → 탈퇴 직후 60초 안에 같은 소셜로
+ * 재로그인하면 게이트가 옛 회원(활성)을 보고 통과했다(2026-09-23 실측 4건). 활성/탈퇴 판정만은
+ * 이 함수로 DB 를 직독한다. readPool(리플리카)이 아니라 pool(writer)을 쓰는 이유도 같다 — 복제 지연.
+ * 반환 null = 회원 없음.
+ */
+export async function getMemberLeaveStateLive(
+    mbId: string
+): Promise<{ leaveDate: string; leaveReason: string; interceptDate: string } | null> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+        `SELECT COALESCE(mb_leave_date, '')     AS mb_leave_date,
+                COALESCE(mb_leave_reason, '')   AS mb_leave_reason,
+                COALESCE(mb_intercept_date, '') AS mb_intercept_date
+           FROM g5_member WHERE mb_id = ? LIMIT 1`,
+        [mbId]
+    );
+    const r = rows[0];
+    if (!r) return null;
+    return {
+        leaveDate: String(r.mb_leave_date ?? ''),
+        leaveReason: String(r.mb_leave_reason ?? ''),
+        interceptDate: String(r.mb_intercept_date ?? '')
+    };
 }
 
 /** 로그인 차단 사유는 "탈퇴" 한 가지만. 이용제한(mb_intercept_date) 은 로그인 차단 사유가 아님.
@@ -134,7 +149,7 @@ export async function updateLoginTimestamp(
  *  - **탈퇴자(mb_leave_date set)만 OAuth 로그인 차단**.
  *  - 이용제한(mb_intercept_date 가 진짜 날짜) 회원도 로그인은 허용 — 본인이 소명할 수
  *    있어야 하기 때문. 글/댓글 작성 같은 활동 제한은 별도 ban-check 미들웨어가 담당.
- *  - 자발적 탈퇴(reason='self' 또는 빈 값) 의 자동 복귀는 updateLoginTimestamp 가 처리.
+ *  - 자동 복귀 없음(2026-09-23 결정). 탈퇴자는 운영 복원(recovery)만 — updateLoginTimestamp 는 mb_leave_date 를 건드리지 않는다.
  *  - 관리자 처리 탈퇴(admin / terms_violation / contract_withdrawal / account_abuse) 는
  *    PROTECTED_REASONS 가 mb_leave_date 를 보존 → 이 함수에서 false 반환 → 로그인 차단.
  */

@@ -13,8 +13,7 @@ import {
     isNicknameTaken,
     isMbIdTaken,
     createMember,
-    inspectSocialMbIdOccupant,
-    reactivateMember
+    inspectSocialMbIdOccupant
 } from '$lib/server/auth/register.js';
 import { upsertSocialProfile, findSocialProfile } from '$lib/server/auth/oauth/social-profile.js';
 import {
@@ -269,10 +268,15 @@ export const actions: Actions = {
             mbId = occupant.mbId;
             nickname = occupant.nick;
             if (occupant.withdrawn) {
-                await reactivateMember(
-                    mbId,
-                    '[계정복구] 동일 소셜 계정 재로그인으로 본인 확인 후 재활성(F3)'
-                );
+                // ⛔ 자동 재활성(F3) 중단 — 2026-09-23 사장님 결정 「복귀가 쉬우면 탈퇴하기도 쉽다」.
+                //    소셜 자기증명으로 본인은 확인되지만, 복귀는 운영 복원(고객센터)만 한다.
+                //    쿠키를 지워 재시도 루프를 끊는다. 이 mb_id 는 점유 상태라 새 계정도 못 만든다 →
+                //    고객센터가 유일한 출구이고, 그 문장을 로그인 차단 화면과 똑같이 쓴다.
+                cookies.delete('pending_social_register', { path: '/' });
+                return fail(400, {
+                    error: '탈퇴하신 계정입니다. 복구를 원하시면 고객센터(contact@damoang.net)로 문의해 주세요.',
+                    nickname
+                });
             }
         } else if (isInviteFlow) {
             nickname = await generateInviteTempNickname(socialProfile.provider);

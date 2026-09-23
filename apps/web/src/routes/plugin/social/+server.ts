@@ -16,7 +16,12 @@ import {
     upsertSocialProfile
 } from '$lib/server/auth/oauth/social-profile.js';
 import { observeBinding } from '$lib/server/auth/oauth/binding-observer.js';
-import { getMemberById, findMemberByEmail, isMemberActive } from '$lib/server/auth/oauth/member.js';
+import {
+    getMemberById,
+    findMemberByEmail,
+    getMemberLeaveStateLive,
+    invalidateMemberCache
+} from '$lib/server/auth/oauth/member.js';
 import { generateRefreshToken } from '$lib/server/auth/jwt.js';
 import {
     createSession,
@@ -155,8 +160,11 @@ async function handleCallback(
         }
 
         // 회원 정보 조회 및 활성 상태 확인
+        // ⛔ 탈퇴 판정은 캐시(memberCache L1 60s)가 아니라 DB 직독 — callback 과 같은 이유(2026-09-23 뒷문).
         const member = await getMemberById(mbId);
-        if (!member || !isMemberActive(member)) {
+        const liveState = await getMemberLeaveStateLive(mbId);
+        if (!member || !liveState || liveState.leaveDate !== '') {
+            await invalidateMemberCache(mbId);
             redirect(302, '/login?error=account_inactive');
         }
 

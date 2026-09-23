@@ -20,7 +20,7 @@ import { observeBinding } from '$lib/server/auth/oauth/binding-observer.js';
 import {
     getMemberById,
     findMemberByEmail,
-    isMemberActive,
+    getMemberLeaveStateLive,
     invalidateMemberCache
 } from '$lib/server/auth/oauth/member.js';
 import {
@@ -330,14 +330,21 @@ async function handleCallback(
 
         // 회원 정보 조회 및 활성 상태 확인
         let member = await getMemberById(mbId);
+        // ⛔ 활성/탈퇴 판정은 캐시로 하지 않는다. memberCache(L1 Map 60s)는 백엔드(POST /me/leave)의
+        //    탈퇴 쓰기를 못 본다(백엔드는 L2 Redis 키만 지울 수 있고 파드별 L1 은 못 지운다).
+        //    그래서 탈퇴 직후 같은 소셜로 재로그인하면 옛 회원(활성)으로 통과한 뒤 후처리가 탈퇴를
+        //    지우는 뒷문이 있었다(2026-09-23 실측: 9~41초 뒤 재로그인 4건, 기록 0). 게이트만은 DB 직독.
+        const liveState = await getMemberLeaveStateLive(mbId);
+        const activeLive = !!member && !!liveState && liveState.leaveDate === '';
 
         // 초대 플로우에서 캐시 무효화 후 재조회 (관리자가 복구한 계정의 캐시 지연 대응)
-        if (isInviteFlow(stateData.redirect) && member && !isMemberActive(member)) {
+        if (member && !activeLive) {
+            // 캐시에 옛 상태가 남아 있을 수 있다 — 비워서 이후 요청(hooks 세션 검사)도 정확히 보게 한다.
             await invalidateMemberCache(mbId);
             member = await getMemberById(mbId);
         }
 
-        if (!member || !isMemberActive(member)) {
+        if (!member || !activeLive) {
             if (isInviteFlow(stateData.redirect)) {
                 // 비활성 회원 → 임시 계정 생성 (ads 초대 패턴 동일)
                 const baseMbId = generateSocialMbId(providerName, profile.identifier);
