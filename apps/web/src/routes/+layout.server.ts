@@ -5,6 +5,7 @@ import { getCachedLogoData } from '$lib/server/logo';
 import { resolveLogoRequestLocale } from '$lib/utils/logo-schedule';
 import { getWidgetLayout, getSidebarWidgetLayout } from '$lib/server/settings/index';
 import { getCachedCelebrations } from '$lib/server/celebration';
+import { getCachedBannersByPositions } from '$lib/server/ads/banners';
 import { DEFAULT_WIDGETS, DEFAULT_SIDEBAR_WIDGETS } from '$lib/constants/default-widgets';
 
 import { hooks } from '@angple/hook-system';
@@ -86,7 +87,8 @@ export const load: LayoutServerLoad = async ({
     }
 
     // 병렬로 SSR 필수 데이터만 로드 (allSettled: 개별 실패 허용)
-    // celebration, banners, ga4는 /api/layout/init에서 클라이언트 로드 (비용 절감)
+    // ga4 는 /api/layout/init 에서 클라이언트 로드. celebration·상단 banners 는 화면 높이를
+    // 정하므로 SSR 에서 내린다(아래 주석 참조).
     const { getActivePlugins } = await import('$lib/server/plugins/index.js');
     const [
         themeResult,
@@ -96,7 +98,8 @@ export const load: LayoutServerLoad = async ({
         widgetLayoutResult,
         sidebarWidgetLayoutResult,
         celebrationResult,
-        tagNavResult
+        tagNavResult,
+        bannersResult
     ] = await Promise.allSettled([
         getActiveTheme(),
         isDataRequest ? Promise.resolve([]) : loadMenus(),
@@ -109,7 +112,16 @@ export const load: LayoutServerLoad = async ({
         //    후 81px 이 생기며 아래 위젯과 footer 를 밀었다(2026-08-20 실측).
         //    getCachedCelebrations 는 KST 날짜 키 서버 캐시라 페이지마다 재조회하지 않는다.
         isDataRequest ? Promise.resolve([]) : getCachedCelebrations(false),
-        isDataRequest ? Promise.resolve(null) : loadTagNavMenus()
+        isDataRequest ? Promise.resolve(null) : loadTagNavMenus(),
+        // ⛔ 자체 배너 유무를 SSR 이 알아야 상단 배너가 첫 페인트부터 맞는 높이로 그려진다.
+        //    지금까지는 클라이언트 onMount 가 /api/sidebar/items 를 부른 뒤 43px 플레이스홀더를
+        //    100px GAM 슬롯으로 **교체**해 tag-nav 이하 전부가 57px 밀렸다(2026-09-21~, 모바일 CLS
+        //    p75 0.002→0.076). 같은 함수를 /api/layout/init 이 이미 매 페이지 호출하므로 새 비용이
+        //    아니라 시점 이동이다(60초 캐시·singleflight·1.2초 타임아웃 내장). 데이터 요청(SPA
+        //    네비게이션)에서는 null 로 두어 클라이언트 캐시 경로를 그대로 탄다.
+        isDataRequest
+            ? Promise.resolve(null)
+            : getCachedBannersByPositions(['index-top', 'board-head'])
     ]);
     // 상단 tag-nav 메뉴 (menus.show_in_tagnav). null/실패면 프론트가 하드코딩 폴백.
     const tagNavMenus = tagNavResult.status === 'fulfilled' ? tagNavResult.value : null;
@@ -158,7 +170,8 @@ export const load: LayoutServerLoad = async ({
         ['Plugins', pluginsResult],
         ['WidgetLayout', widgetLayoutResult],
         ['SidebarWidgetLayout', sidebarWidgetLayoutResult],
-        ['Celebration', celebrationResult]
+        ['Celebration', celebrationResult],
+        ['Banners', bannersResult]
     ] as const) {
         if (r.status === 'rejected') {
             console.error(`[Layout] ${name} load failed:`, r.reason);
@@ -186,6 +199,9 @@ export const load: LayoutServerLoad = async ({
         tagNavMenus,
         // 마음메시지 위젯의 SSR 렌더용. 실패해도 빈 배열로 사이트는 정상 동작한다.
         celebration: celebrationResult.status === 'fulfilled' ? celebrationResult.value : [],
+        // 상단 자체 배너(position → 목록). null = 모름(실패·데이터 요청) → DamoangBanner 가
+        // 클라이언트 fetch 로 퇴화. 키가 있고 빈 배열이면 「없음이 확정」이라 GAM 폴백을 바로 그린다.
+        banners: bannersResult.status === 'fulfilled' ? bannersResult.value : null,
         // SSR_STRIP_USER=true 시 user 제거 → SSR 캐시 가능 (클라이언트 /api/auth/me로 로드)
         // 단, CSRF 필요 경로(/member, /admin, /my)는 stripUser=false로 토큰 유지
         user: stripUser ? null : (locals.user ?? null),
