@@ -119,9 +119,12 @@ export const load: LayoutServerLoad = async ({
         //    p75 0.002→0.076). 같은 함수를 /api/layout/init 이 이미 매 페이지 호출하므로 새 비용이
         //    아니라 시점 이동이다(60초 캐시·singleflight·1.2초 타임아웃 내장). 데이터 요청(SPA
         //    네비게이션)에서는 null 로 두어 클라이언트 캐시 경로를 그대로 탄다.
+        // ⛔ position 목록은 /api/layout/init 과 **같아야** 한다 — 캐시 키가 정렬 조인이라 다르면
+        //    서버 캐시 항목이 둘로 갈려 ads 서버 호출이 파드당 분당 2건 늘어난다. sidebar 는
+        //    컴포넌트가 시드를 읽지 않으므로 포함해도 동작 변화 없음.
         isDataRequest
             ? Promise.resolve(null)
-            : getCachedBannersByPositions(['index-top', 'board-head'])
+            : getCachedBannersByPositions(['index-top', 'board-head', 'sidebar'])
     ]);
     // 상단 tag-nav 메뉴 (menus.show_in_tagnav). null/실패면 프론트가 하드코딩 폴백.
     const tagNavMenus = tagNavResult.status === 'fulfilled' ? tagNavResult.value : null;

@@ -79,8 +79,8 @@
     // 레이아웃(+layout.server.ts)이 내려준 자체 배너 목록으로 **초기 상태를 여기서 확정**한다.
     // ⛔ $effect·onMount 는 서버에서 돌지 않는다. 여기서 정하지 않으면 SSR 은 항상 43px
     //    플레이스홀더(aspect 77/9)를 그리고, 클라이언트가 fetch 뒤 100px GAM 슬롯으로 **교체**하며
-    //    tag-nav 이하 전부를 57px 민다(2026-09-21~ 글 상세 모바일 CLS p75 0.002→0.076. 자체 배너가
-    //    끝난 날 시작됐다). 시드가 있으면 43/100 이 첫 페인트부터 맞고 onMount fetch 도 생략한다.
+    //    tag-nav 이하 전부를 57px 민다(글 상세 모바일 CLS p75 0.002→0.076, 자체 배너 0건 기간에
+    //    드러남). 시드가 있으면 43/100 이 첫 페인트부터 맞고 onMount fetch 도 생략한다.
     //    시드가 없으면(데이터 요청·ads 서버 실패) 예전 경로 그대로 — 악화 없음.
     // 사이드바는 min-height 예약이 있고 정상이라 손대지 않는다.
     const adsPositionInit = ADS_POSITION_MAP[position] || position;
@@ -111,22 +111,34 @@
     const seed = readSeed();
     const seedBanner = seed ? pickBanner(seed) : null;
     // 아래 $effect(showCelebration) / fetchBanners(그 외)와 **같은 규칙**으로 초기값을 계산한다.
-    const seedCelebrations = showCelebration ? getCelebrations() : [];
-    const seedCelebrationReady = showCelebration ? isCelebrationReady() : true;
+    // ⛔ 마음메시지 유무는 모듈 스토어(getCelebrations)가 아니라 **page.data.celebration** 으로 본다.
+    //    서버의 스토어는 요청 간에 남는 싱글턴이라(빈 배열로는 비워지지 않음) 어제 목록으로 SSR 을
+    //    그릴 수 있고, 클라이언트는 오늘 데이터로 다른 분기를 잡아 하이드레이션이 어긋난다.
+    //    page.data 는 SSR 과 클라이언트가 같은 값이다.
+    //    그리고 마음메시지가 있을 때 SSR 은 이미지를 **확정하지 않고** 플레이스홀더(같은 43px)를 그린다 —
+    //    롤링 인덱스가 무작위라 서버·클라가 다른 이미지를 고르기 때문. 높이는 같아 밀림이 없다.
+    const seedCelebrationData = showCelebration
+        ? (page.data?.celebration as unknown[] | null | undefined)
+        : [];
+    const seedCelebrationReady = Array.isArray(seedCelebrationData);
     const seedHasCelebration =
-        showCelebration && seedCelebrationReady && seedCelebrations.length > 0;
+        showCelebration && seedCelebrationReady && seedCelebrationData.length > 0;
     let initialLoading: boolean;
     let initialFallback: boolean;
     if (showCelebration) {
-        if (seedHasCelebration) {
+        if (seed === undefined) {
+            initialLoading = true;
+            initialFallback = false;
+        } else if (seedBanner) {
             initialLoading = false;
             initialFallback = false;
-        } else if (seed === undefined) {
+        } else if (seedHasCelebration) {
+            // 플레이스홀더 → 클라이언트 $effect 가 마음메시지로 전환(같은 비율)
             initialLoading = true;
             initialFallback = false;
         } else {
-            initialLoading = !seedBanner && !seedCelebrationReady;
-            initialFallback = !seedBanner && seedCelebrationReady && seedCelebrations.length === 0;
+            initialLoading = !seedCelebrationReady;
+            initialFallback = seedCelebrationReady;
         }
     } else {
         initialLoading = seed === undefined;
