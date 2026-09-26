@@ -597,7 +597,10 @@
         const celebration = data.celebration;
         const banners = data.banners;
         untrack(() => {
-            initAppData({ celebration: celebration || [], banners: banners || {} });
+            // ⛔ banners 가 null 이면 데이터 요청(SPA 네비게이션)이라 배너·마음메시지를 안 실어 온 것.
+            //    이때 {} 로 넘기면 5분 캐시가 만료된 첫 네비게이션에서 캐시를 빈 값으로 덮어써
+            //    상단 배너 시드가 사라지고 교체 밀림이 돌아온다. 실어 온 요청에서만 갱신한다.
+            if (banners) initAppData({ celebration: celebration || [], banners });
             // 빈 배열도 ready 상태로 초기화해야 모든 위치에서 fallback 문구가 즉시 보인다.
             initCelebrationFromData(celebration || []);
         });
