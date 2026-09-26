@@ -13,6 +13,7 @@
         type CelebrationBanner
     } from '$lib/stores/celebration.svelte';
     import { getCachedBanners } from '$lib/stores/app-init.svelte';
+    import { page } from '$app/state';
 
     interface Props {
         position: 'index' | 'board-list' | 'board-view' | 'sidebar';
@@ -51,18 +52,6 @@
     let storeCelebrations = $derived(getCelebrations());
     let storeIndex = $derived(getCurrentIndex());
     let celebrationReady = $derived(isCelebrationReady());
-    // 최종 선택된 배너 (마음메시지 or 프리미엄 광고)
-    let adsBanner = $state<AdsBanner | null>(null);
-    let loading = $state(true);
-    let useFallback = $state(false);
-    let adsResolved = $state(false);
-
-    // 텍스트 롤링과 동일한 인덱스 사용 (싱크)
-    let celebrationBanner = $derived.by<CelebrationBanner | null>(() => {
-        if (!showCelebration || useFallback || adsBanner) return null;
-        if (storeCelebrations.length === 0) return null;
-        return storeCelebrations[storeIndex % storeCelebrations.length] ?? null;
-    });
 
     // position → 다모앙 광고 서버 position 매핑
     // index → index-top (메인 페이지용, 현재 배너 0개 → GAM 폴백)
@@ -85,6 +74,89 @@
 
     const adsPosition = $derived(ADS_POSITION_MAP[position] || position);
     const gamPosition = $derived(gamPositionProp || GAM_POSITION_MAP[position] || 'board-head');
+
+    // ─── SSR 시드: 첫 페인트부터 맞는 높이로 ─────────────────────────────────────
+    // 레이아웃(+layout.server.ts)이 내려준 자체 배너 목록으로 **초기 상태를 여기서 확정**한다.
+    // ⛔ $effect·onMount 는 서버에서 돌지 않는다. 여기서 정하지 않으면 SSR 은 항상 43px
+    //    플레이스홀더(aspect 77/9)를 그리고, 클라이언트가 fetch 뒤 100px GAM 슬롯으로 **교체**하며
+    //    tag-nav 이하 전부를 57px 민다(글 상세 모바일 CLS p75 0.002→0.076, 자체 배너 0건 기간에
+    //    드러남). 시드가 있으면 43/100 이 첫 페인트부터 맞고 onMount fetch 도 생략한다.
+    //    시드가 없으면(데이터 요청·ads 서버 실패) 예전 경로 그대로 — 악화 없음.
+    // 사이드바는 min-height 예약이 있고 정상이라 손대지 않는다.
+    const adsPositionInit = ADS_POSITION_MAP[position] || position;
+
+    function readSeed(): AdsBanner[] | undefined {
+        if (position === 'sidebar') return undefined;
+        const layoutBanners = page.data?.banners as Record<string, AdsBanner[]> | null | undefined;
+        const fromLayout = layoutBanners?.[adsPositionInit];
+        if (Array.isArray(fromLayout)) return fromLayout;
+        // SPA 네비게이션: 레이아웃은 null 을 내리지만 app-init 캐시(첫 SSR 시드·/api/init)는 남아 있다.
+        if (browser) {
+            const cached = getCachedBanners(adsPositionInit);
+            if (Array.isArray(cached)) return cached as AdsBanner[];
+        }
+        return undefined;
+    }
+
+    // SSR 과 클라이언트가 **같은** 배너를 고르도록 경로 해시로 정한다(랜덤이면 하이드레이션 불일치).
+    // 페이지마다 다른 배너가 걸리므로 노출은 여전히 분산된다.
+    function pickBanner(list: AdsBanner[]): AdsBanner | null {
+        if (list.length === 0) return null;
+        const key = page.url?.pathname ?? '';
+        let h = 0;
+        for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+        return list[h % list.length] ?? null;
+    }
+
+    const seed = readSeed();
+    const seedBanner = seed ? pickBanner(seed) : null;
+    // 아래 $effect(showCelebration) / fetchBanners(그 외)와 **같은 규칙**으로 초기값을 계산한다.
+    // ⛔ 마음메시지 유무는 모듈 스토어(getCelebrations)가 아니라 **page.data.celebration** 으로 본다.
+    //    서버의 스토어는 요청 간에 남는 싱글턴이라(빈 배열로는 비워지지 않음) 어제 목록으로 SSR 을
+    //    그릴 수 있고, 클라이언트는 오늘 데이터로 다른 분기를 잡아 하이드레이션이 어긋난다.
+    //    page.data 는 SSR 과 클라이언트가 같은 값이다.
+    //    그리고 마음메시지가 있을 때 SSR 은 이미지를 **확정하지 않고** 플레이스홀더(같은 43px)를 그린다 —
+    //    롤링 인덱스가 무작위라 서버·클라가 다른 이미지를 고르기 때문. 높이는 같아 밀림이 없다.
+    const seedCelebrationData = showCelebration
+        ? (page.data?.celebration as unknown[] | null | undefined)
+        : [];
+    const seedCelebrationReady = Array.isArray(seedCelebrationData);
+    const seedHasCelebration =
+        showCelebration && seedCelebrationReady && seedCelebrationData.length > 0;
+    let initialLoading: boolean;
+    let initialFallback: boolean;
+    if (showCelebration) {
+        if (seed === undefined) {
+            initialLoading = true;
+            initialFallback = false;
+        } else if (seedBanner) {
+            initialLoading = false;
+            initialFallback = false;
+        } else if (seedHasCelebration) {
+            // 플레이스홀더 → 클라이언트 $effect 가 마음메시지로 전환(같은 비율)
+            initialLoading = true;
+            initialFallback = false;
+        } else {
+            initialLoading = !seedCelebrationReady;
+            initialFallback = seedCelebrationReady;
+        }
+    } else {
+        initialLoading = seed === undefined;
+        initialFallback = seed !== undefined && !seedBanner;
+    }
+
+    // 최종 선택된 배너 (마음메시지 or 프리미엄 광고)
+    let adsBanner = $state<AdsBanner | null>(seedBanner);
+    let loading = $state(initialLoading);
+    let useFallback = $state(initialFallback);
+    let adsResolved = $state(seed !== undefined);
+
+    // 텍스트 롤링과 동일한 인덱스 사용 (싱크)
+    let celebrationBanner = $derived.by<CelebrationBanner | null>(() => {
+        if (!showCelebration || useFallback || adsBanner) return null;
+        if (storeCelebrations.length === 0) return null;
+        return storeCelebrations[storeIndex % storeCelebrations.length] ?? null;
+    });
 
     $effect(() => {
         if (!showCelebration) return;
@@ -115,7 +187,8 @@
             cleanupCelebration = celebrationMount();
         }
 
-        fetchBanners();
+        // SSR 시드로 이미 확정됐으면 왕복하지 않는다 — 교체가 없어야 밀림이 없다.
+        if (!adsResolved) fetchBanners();
 
         return () => {
             cleanupCelebration?.();
