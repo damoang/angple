@@ -186,7 +186,16 @@ interface DupCollisionRow extends RowDataPacket {
     mb_level: number;
     mb_intercept_date: string;
     mb_leave_date: string;
+    mb_leave_reason: string;
 }
+
+/**
+ * DI 충돌 분류 — 조문별로 다른 문구·다른 취급을 위해 나눈다.
+ *  - sanction : 이용제한 중 탈퇴/제재 또는 운영자 처리 탈퇴(PROTECTED reason) → 약관 8조②4호·6호
+ *  - withdrawn: 단순 자진 탈퇴 → 8조②5호(차단은 유지, 혐의 문구 금지)
+ *  - active   : 활성 계정 존재 → 차단 안 함, 기존 계정 로그인 안내
+ */
+export type DupCollisionKind = 'sanction' | 'withdrawn' | 'active';
 
 /**
  * DI(mb_dupinfo) 충돌 하드닝(구멍②).
@@ -194,8 +203,9 @@ interface DupCollisionRow extends RowDataPacket {
  * 동일 DI 를 가진 다른 계정을 조회한다(주 DI + 보조 DI × mb_dupinfo + mb_dupinfo2 —
  * checkDupinfo 와 동일 범위). mb_dupinfo = 본인확인(CI)의 단방향 해시라
  * 충돌 = 동일인. 매칭 계정이 **제재중(mb_intercept_date≠'') 또는 탈퇴(mb_leave_date≠'')**면
- * 징계회피/다중이 재가입 정황 → durable 운영 플래그를 재인증 시도 계정 mb_memo 에 기록하고
- * `blocked=true` 를 반환한다(호출부가 본인인증 거부·dupinfo 미저장에 사용).
+ * durable 운영 플래그를 재인증 시도 계정 mb_memo 에 기록하고 `blocked=true` 를 반환한다
+ * (호출부가 본인인증 거부·dupinfo 미저장에 사용). 문구는 `kind` 로 갈린다 — 이용제한 중 탈퇴·운영자
+ * 처리 탈퇴(sanction)만 「징계회피 정황」, 단순 자진 탈퇴(withdrawn)는 5호 조문만 적는다.
  *
  * ⚠️ 밴/탈퇴 "유효" 판정은 코드베이스 관례와 일치 — 값이 비어있지 않으면 제재/탈퇴로 본다.
  *    (제재: api/members/search/+server.ts:49, admin/members/[mbId]/+page.svelte:187 /
@@ -213,7 +223,7 @@ export async function flagDupinfoCollision(
     mbId: string,
     dupinfo: string,
     dupinfoAlt = ''
-): Promise<{ matched: boolean; blocked: boolean }> {
+): Promise<{ matched: boolean; blocked: boolean; kind?: DupCollisionKind }> {
     // ⛔ checkDupinfo 와 **같은 범위**를 봐야 한다. 예전엔 주 DI(mb_dupinfo) 하나만 조회해서,
     //    보조 DI 로만 걸린 충돌은 차단은 되는데 mb_memo 에 기록이 남지 않았다 —
     //    2026-07-19~08-13 키 전환기 계정과의 매칭이 정확히 그 경우라, 재인증을 권장하면
@@ -231,13 +241,15 @@ export async function flagDupinfoCollision(
     const [rows] = await readPool.query<DupCollisionRow[]>(
         `SELECT mb_id, mb_level,
                 COALESCE(mb_intercept_date, '') AS mb_intercept_date,
-                COALESCE(mb_leave_date, '')     AS mb_leave_date
+                COALESCE(mb_leave_date, '')     AS mb_leave_date,
+                COALESCE(mb_leave_reason, '')   AS mb_leave_reason
            FROM g5_member
           WHERE mb_id <> ? AND mb_dupinfo IN (${ph})
          UNION
          SELECT mb_id, mb_level,
                 COALESCE(mb_intercept_date, '') AS mb_intercept_date,
-                COALESCE(mb_leave_date, '')     AS mb_leave_date
+                COALESCE(mb_leave_date, '')     AS mb_leave_date,
+                COALESCE(mb_leave_reason, '')   AS mb_leave_reason
            FROM g5_member
           WHERE mb_id <> ? AND mb_dupinfo2 IN (${ph})`,
         [mbId, ...candidates, mbId, ...candidates]
@@ -278,14 +290,26 @@ export async function flagDupinfoCollision(
             dupinfoPrefix: dupinfo.slice(0, 16),
             collisions: rows.map((r) => r.mb_id)
         });
-        return { matched: true, blocked: false };
+        return { matched: true, blocked: false, kind: 'active' };
     }
 
     const flaggedAt = formatLeaveDate();
+    // 조문별 분류 — 「다중이/징계회피」는 제재가 실재할 때만 쓴다.
+    //   sanction : 이용제한 중(mb_intercept_date) 또는 운영자 처리 탈퇴(PROTECTED reason) → 약관 8조②4호·6호
+    //   withdrawn: 단순 자진 탈퇴 → 8조②5호. 처분 이력 없는 사람이다 — 혐의 문구 금지
+    //   (분류 전에는 두 경우가 한 문구로 찍혀 대다수가 없는 혐의를 달고 있었다)
+    // PROTECTED 목록은 withdrawal.ts PROTECTED_LEAVE_REASONS 와 같아야 한다.
+    const PROTECTED = new Set(['admin', 'terms_violation', 'contract_withdrawal', 'account_abuse']);
+    const isSanction = (r: DupCollisionRow) =>
+        (r.mb_intercept_date ?? '') !== '' || PROTECTED.has(String(r.mb_leave_reason ?? ''));
+    const kind: DupCollisionKind = blockingRows.some(isSanction) ? 'sanction' : 'withdrawn';
     const detail = blockingRows
-        .map((r) => `${r.mb_id}(${(r.mb_leave_date ?? '') !== '' ? '탈퇴' : '제재'})`)
+        .map((r) => `${r.mb_id}(${isSanction(r) ? '이용제한 중 탈퇴/제재' : '탈퇴'})`)
         .join(', ');
-    const memo = `${flaggedAt} [DI충돌차단] 동일 본인확인정보 계정 ${detail} 존재 — 재인증 거부(다중이/징계회피 정황)`;
+    const memo =
+        kind === 'sanction'
+            ? `${flaggedAt} [DI충돌차단] 동일 본인확인정보의 이용제한 중 탈퇴·제재 계정 ${detail} 존재 — 재인증 거부(약관 8조②4호·6호, 징계회피 정황)`
+            : `${flaggedAt} [DI충돌차단] 동일 본인확인정보의 탈퇴 계정 ${detail} 존재 — 재인증 거부(약관 8조②5호). 처분 이력 없음, 기존 계정 복구는 고객센터 문의`;
 
     // durable 운영 플래그: 재인증 시도 계정 mb_memo 앞줄에 기록(관리자 회원관리 화면 노출).
     // 실패해도 차단 판정 자체는 유지(로그만).
@@ -303,6 +327,7 @@ export async function flagDupinfoCollision(
 
     console.warn('[Cert][DI-guard] blocked re-certification on DI collision', {
         mbId,
+        kind,
         dupinfoPrefix: dupinfo.slice(0, 16),
         collisions: blockingRows.map((r) => ({
             mb_id: r.mb_id,
@@ -312,7 +337,7 @@ export async function flagDupinfoCollision(
         }))
     });
 
-    return { matched: true, blocked: true };
+    return { matched: true, blocked: true, kind };
 }
 
 /**
