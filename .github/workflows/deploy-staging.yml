@@ -169,6 +169,16 @@ jobs:
             # 기존 secrets.GHCR_TOKEN 은 만료/철회로 4-24 부터 staging deploy 모두 실패
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
+            # 디스크 확보 — pull 전에 오래된 이미지·빌드 캐시 정리.
+            # 배포마다 staging-<sha> 태그가 쌓여 디스크가 차면 pull 이 "no space left on device" 로 죽는다.
+            # -a 는 어느 컨테이너도 쓰지 않는 이미지만 지우고(돌고 있는 angple-staging 은 유지),
+            # until=72h 로 최근 이미지는 남겨 롤백 여지를 둔다. 정리 실패가 배포를 막지 않도록 || true.
+            # ⛔ docker volume prune 은 넣지 않는다 — data-staging 은 데이터다.
+            df -h / || true
+            docker image prune -a -f --filter "until=72h" || true
+            docker builder prune -a -f || true
+            df -h / || true
+
             # 이미지 pull
             docker pull ${{ env.IMAGE_NAME }}:${{ steps.tags.outputs.image_tag }}
 
