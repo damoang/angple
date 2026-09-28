@@ -232,10 +232,16 @@
     let changingStatus = $state(false);
     // ⛔ 이 컴포넌트는 같은 게시판 안에서 글을 옮겨도 재마운트되지 않는다(ViewComponent 가 {#key} 밖).
     //    초기값만 캡처하면 이전 글의 「해결됨」이 다음 글에 남는다 → post 가 바뀌면 서버값으로 다시 맞춘다.
+    //    post 객체는 스트림 데이터(제휴 링크 등) 도착 때도 새로 만들어지므로, **글 번호가 바뀔 때만** 맞춘다 —
+    //    안 그러면 관리자가 방금 바꾼 값이 스트림 도착에 되돌아간다.
+    let syncedStatusPostId = post.id;
     $effect(() => {
+        const id = post.id;
         const s = (post.status as PostStatusValue | undefined) ?? '';
         const t = post.status_updated_at ?? '';
         untrack(() => {
+            if (id === syncedStatusPostId) return;
+            syncedStatusPostId = id;
             currentStatus = s;
             statusUpdatedAt = t;
         });
