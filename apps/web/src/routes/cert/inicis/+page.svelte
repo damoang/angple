@@ -8,6 +8,12 @@
     let errorDetail = $state('');
 
     onMount(() => {
+        // 이미 인증된 회원 — 인증 창을 열지 않는다(완료 건당 과금). 서버가 폼 데이터를 만들지 않았다.
+        if (data.alreadyCertified) {
+            status = '이미 본인확인이 완료된 계정입니다.';
+            return;
+        }
+
         // mid 값 검증
         if (!data.mid) {
             status = '오류: 상점 ID가 설정되지 않았습니다.';
@@ -53,6 +59,25 @@
 
 <div class="flex min-h-screen flex-col items-center justify-center gap-4">
     <p class="text-muted-foreground text-sm">{status}</p>
+    {#if data.alreadyCertified}
+        <p class="max-w-md text-center text-sm">
+            이 계정은 본인확인을 이미 마쳤습니다. 다시 인증할 필요가 없습니다.
+        </p>
+        <div class="flex gap-2">
+            <button
+                onclick={() => window.close()}
+                class="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium"
+            >
+                창 닫기
+            </button>
+            <a
+                href="/member/settings"
+                class="border-input hover:bg-muted rounded-md border px-4 py-2 text-sm font-medium"
+            >
+                설정으로
+            </a>
+        </div>
+    {/if}
     {#if errorDetail}
         <p class="max-w-md text-center text-xs text-red-500">{errorDetail}</p>
     {/if}
@@ -67,19 +92,21 @@
     {/if}
 </div>
 
-<form id="saForm" method="post" action="https://sa.inicis.com/auth">
-    <input type="hidden" name="mid" value={data.mid} />
-    <input type="hidden" name="reqSvcCd" value={data.reqSvcCd} />
-    <input type="hidden" name="mTxId" value={data.mTxId} />
-    <input type="hidden" name="authHash" value={data.authHash} />
-    <input type="hidden" name="flgFixedUser" value="N" />
-    <input type="hidden" name="userName" value="" />
-    <input type="hidden" name="userPhone" value="" />
-    <input type="hidden" name="userBirth" value="" />
-    <input type="hidden" name="userHash" value="" />
-    <input type="hidden" name="reservedMsg" value={data.reservedMsg} />
-    <input type="hidden" name="mbId" value={data.mbId} />
-    <input type="hidden" name="directAgency" value="" />
-    <input type="hidden" name="successUrl" value={data.successUrl} />
-    <input type="hidden" name="failUrl" value={data.failUrl} />
-</form>
+{#if !data.alreadyCertified}
+    <form id="saForm" method="post" action="https://sa.inicis.com/auth">
+        <input type="hidden" name="mid" value={data.mid} />
+        <input type="hidden" name="reqSvcCd" value={data.reqSvcCd} />
+        <input type="hidden" name="mTxId" value={data.mTxId} />
+        <input type="hidden" name="authHash" value={data.authHash} />
+        <input type="hidden" name="flgFixedUser" value="N" />
+        <input type="hidden" name="userName" value="" />
+        <input type="hidden" name="userPhone" value="" />
+        <input type="hidden" name="userBirth" value="" />
+        <input type="hidden" name="userHash" value="" />
+        <input type="hidden" name="reservedMsg" value={data.reservedMsg} />
+        <input type="hidden" name="mbId" value={data.mbId} />
+        <input type="hidden" name="directAgency" value="" />
+        <input type="hidden" name="successUrl" value={data.successUrl} />
+        <input type="hidden" name="failUrl" value={data.failUrl} />
+    </form>
+{/if}

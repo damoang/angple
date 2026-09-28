@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS g5_da_cert_attempt_log (
   id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   mb_id          VARCHAR(20)  NOT NULL DEFAULT '' COMMENT '시도 계정 (세션만료 분기는 빈값 가능)',
   tx_id          VARCHAR(30)  NOT NULL DEFAULT '' COMMENT 'Inicis txId/mTxId (g5_cert_pending 과 동일 키)',
-  result         VARCHAR(16)  NOT NULL COMMENT 'success|dup|provider_fail|invalid|decrypt_fail|no_session|id_mismatch|save_fail',
+  result         VARCHAR(16)  NOT NULL COMMENT 'success|dup|provider_fail|invalid|decrypt_fail|no_session|id_mismatch|save_fail|already_cert',
   provider       VARCHAR(12)  NOT NULL DEFAULT 'inicis',
   method         VARCHAR(12)  NOT NULL DEFAULT 'simple',
   dupinfo        VARCHAR(64)  NOT NULL DEFAULT '' COMMENT 'DI. success/dup/no_session/id_mismatch/save_fail 에서만',
