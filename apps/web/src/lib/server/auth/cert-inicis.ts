@@ -126,6 +126,29 @@ export async function buildCertRequest(): Promise<{
 }
 
 /** 인증 요청 시 mTxId → mbId 매핑 저장 (DB 기반, 5분 TTL) */
+/**
+ * 회원의 인증 상태를 **DB 에서 직접** 읽는다 — 인증 진입 게이트 전용.
+ *
+ * 왜 캐시(locals.user / memberCache)로 판정하지 않나: 웹 memberCache 는 L1 60s·L2 300s 라 방금
+ * 인증을 마친 회원이 옛 상태로 보일 수 있다(탈퇴 게이트 뒷문과 같은 함정). 실명인증은 **완료 건당
+ * 과금**이라 「이미 인증됨」 판정은 정확해야 한다.
+ * 판정 기준은 mb_dupinfo(DI) 보유 — mb_certify 문자열은 'abroad'(해외, DI 없음)·레거시 공백 등
+ * DI 없는 값이 있어 그것만으로는 못 가른다.
+ */
+export async function getMemberCertStateLive(
+    mbId: string
+): Promise<{ certify: string; hasDupinfo: boolean } | null> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+        `SELECT COALESCE(mb_certify, '') AS mb_certify,
+                (COALESCE(mb_dupinfo, '') <> '') AS has_dupinfo
+           FROM g5_member WHERE mb_id = ? LIMIT 1`,
+        [mbId]
+    );
+    const r = rows[0];
+    if (!r) return null;
+    return { certify: String(r.mb_certify ?? ''), hasDupinfo: Number(r.has_dupinfo) === 1 };
+}
+
 export async function storeCertPending(mTxId: string, mbId: string): Promise<void> {
     await pool.query(
         `INSERT INTO g5_cert_pending (cp_mtxid, cp_mb_id, cp_datetime) VALUES (?, ?, NOW())
@@ -532,7 +555,8 @@ export interface CertAttempt {
         | 'decrypt_fail'
         | 'no_session'
         | 'id_mismatch'
-        | 'save_fail';
+        | 'save_fail'
+        | 'already_certified'; // 진입 게이트가 인증 창을 열지 않고 돌려보낸 경우(과금 방지)
     dupinfo?: string;
     existing_mb_id?: string;
     result_code?: string;
