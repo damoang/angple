@@ -2567,6 +2567,7 @@
                 {boardId}
                 {isAuthor}
                 isAdmin={authStore.user?.mb_id === 'admin' || data.canManageBoard === true}
+                postStatusEnabled={data.postStatusEnabled === true}
                 {canViewSecret}
                 {promotionExpired}
                 initialScrapped={isScrapped}

@@ -102,6 +102,13 @@ export interface ExtendedSettings {
     skin?: SkinSettings;
     promotion?: PromotionSettings;
     write_notice?: WriteNoticeSettings;
+    post_status?: PostStatusSettings;
+}
+
+/** 글 처리 상태(해결됨/진행중/보류) 기능 — 버그 게시판처럼 「처리」 개념이 있는 게시판에서 켠다.
+ *  켜면 목록에 「해결됨 숨기기」 토글과 관리자 상태 변경 메뉴가 나온다. 배지 자체는 상태 행이 있으면 어디서나 표시. */
+export interface PostStatusSettings {
+    enabled?: boolean;
 }
 
 /** 게시판별 글쓰기 안내 (배너/차단형) */

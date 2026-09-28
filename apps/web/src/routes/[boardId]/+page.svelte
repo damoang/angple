@@ -814,6 +814,42 @@
 
     const selectedMessagePeriod = $derived(messagePeriod);
 
+    // 처리 상태 필터 — 「해결됨 숨기기」. 게시판 확장설정 post_status.enabled 인 곳(버그 게시판)만.
+    // 기본은 전체 보기(사장님 결정 D2). 선택은 브라우저에 기억해 다음 방문에도 유지.
+    const HIDE_RESOLVED_KEY = 'angple:hide-resolved';
+    const hideResolved = $derived($page.url.searchParams.get('exclude_status') === 'resolved');
+    function toggleHideResolved(): void {
+        const url = new URL(window.location.href);
+        if (hideResolved) {
+            url.searchParams.delete('exclude_status');
+        } else {
+            url.searchParams.set('exclude_status', 'resolved');
+        }
+        url.searchParams.set('page', '1');
+        try {
+            localStorage.setItem(`${HIDE_RESOLVED_KEY}:${boardId}`, hideResolved ? '0' : '1');
+        } catch {
+            /* 저장 실패는 무시 */
+        }
+        goto(url.pathname + url.search);
+    }
+    // 기억된 선택 복원: URL 에 지정이 없고 기억이 「숨기기」면 한 번 적용.
+    $effect(() => {
+        if (!data.postStatusEnabled) return;
+        if ($page.url.searchParams.has('exclude_status')) return;
+        let remembered = '0';
+        try {
+            remembered = localStorage.getItem(`${HIDE_RESOLVED_KEY}:${boardId}`) ?? '0';
+        } catch {
+            /* 읽기 실패는 기본값 */
+        }
+        if (remembered === '1') {
+            const url = new URL(window.location.href);
+            url.searchParams.set('exclude_status', 'resolved');
+            goto(url.pathname + url.search, { replaceState: true });
+        }
+    });
+
     // 카테고리 변경
     function changeCategory(category: string): void {
         const url = new URL(window.location.href);
@@ -1614,6 +1650,18 @@
                             {category}
                         </Badge>
                     {/each}
+                    {#if data.postStatusEnabled}
+                        <!-- 처리 상태 필터: 카테고리 탭과 독립. 해결된 글을 감춰 미해결 건만 훑어볼 때 켠다. -->
+                        <Badge
+                            variant={hideResolved ? 'default' : 'outline'}
+                            class="ml-auto cursor-pointer rounded-full px-4 py-2 text-sm"
+                            role="switch"
+                            aria-checked={hideResolved}
+                            onclick={toggleHideResolved}
+                        >
+                            {hideResolved ? '✅ 해결됨 숨김' : '해결됨 숨기기'}
+                        </Badge>
+                    {/if}
                 </div>
             {/if}
 

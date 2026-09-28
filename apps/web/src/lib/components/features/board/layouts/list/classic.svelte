@@ -6,6 +6,7 @@
         isRestrictedTitle
     } from '$lib/components/ui/restricted-badge/index.js';
     import { DisciplinedBadge } from '$lib/components/ui/discipline-related/index.js';
+    import PostStatusBadge from '$lib/components/features/board/post-status-badge.svelte';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Lock from '@lucide/svelte/icons/lock';
     import ImageIcon from '@lucide/svelte/icons/image';
@@ -234,11 +235,16 @@
                             {post.category}
                         </span>
                     {/if}
+                    {#if post.status}
+                        <PostStatusBadge status={post.status} />
+                    {/if}
                     <!-- 제목 + 부가 아이콘 wrapper: min-w-0으로 truncate 강제 -->
                     <span class="inline-flex min-w-0 flex-1 items-center gap-1">
+                        <!-- 해결된 글은 제목을 흐리게 — 훑어볼 때 미해결 건이 먼저 눈에 들어온다 -->
                         <span
                             class="truncate {readClass}"
                             class:font-semibold={uiSettingsStore.titleBold}
+                            class:text-muted-foreground={post.status === 'resolved'}
                             title={post.title}
                         >
                             {#if post.report_count === 'lock'}

@@ -1,54 +1,64 @@
 /**
- * 게시글 상태 변경 API (중고게시판)
- * PATCH /api/boards/[boardId]/posts/[postId]/status
- * 판매중 → 예약중 → 판매완료 상태 변경
+ * 게시글 처리 상태(해결됨·진행중·보류) 지정/해제 — 관리자 전용 프록시
+ * PUT    /api/boards/[boardId]/posts/[postId]/status   { status: 'resolved'|'in_progress'|'hold' }
+ * DELETE /api/boards/[boardId]/posts/[postId]/status
+ *
+ * 카테고리(ca_name)와 독립인 상태 배지. 저장·목록 캐시 무효화는 백엔드
+ * (PUT/DELETE /api/v1/boards/:slug/posts/:id/status, RequireAdmin)가 맡고,
+ * 여기서는 세션의 액세스 토큰을 붙여 넘긴다. 권한은 백엔드가 최종 판정한다.
+ * 설계: docs/2026-09-28-bug-status-badge-sprint.html
  */
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import type { RowDataPacket } from 'mysql2';
-import pool from '$lib/server/db';
-import { getAuthUser } from '$lib/server/auth';
+import { backendFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 
-const VALID_STATUSES = ['selling', 'reserved', 'sold'] as const;
+const ALLOWED = new Set(['resolved', 'in_progress', 'hold']);
 
-export const PATCH: RequestHandler = async ({ params, request, cookies }) => {
-    const { boardId, postId } = params;
+async function forward(
+    method: 'PUT' | 'DELETE',
+    boardId: string,
+    postId: string,
+    accessToken: string,
+    body?: unknown
+): Promise<Response> {
+    const res = await backendFetch(`/api/v1/boards/${boardId}/posts/${postId}/status`, {
+        method,
+        headers: {
+            ...createAuthHeaders(accessToken),
+            ...(body ? { 'Content-Type': 'application/json' } : {})
+        },
+        body: body ? JSON.stringify(body) : undefined
+    });
+    const text = await res.text();
+    return new Response(text, {
+        status: res.status,
+        headers: { 'Content-Type': 'application/json' }
+    });
+}
 
-    const user = await getAuthUser(cookies);
-    if (!user) {
-        return json({ success: false, error: '로그인이 필요합니다.' }, { status: 401 });
+export const PUT: RequestHandler = async ({ params, request, locals }) => {
+    if (!locals.accessToken || (locals.user?.level ?? 0) < 10) {
+        return json({ success: false, error: '권한이 없습니다.' }, { status: 403 });
     }
-
+    let status = '';
     try {
-        const body = await request.json();
-        const newStatus = body.status as string;
-
-        if (!VALID_STATUSES.includes(newStatus as (typeof VALID_STATUSES)[number])) {
-            return json({ success: false, error: '유효하지 않은 상태입니다.' }, { status: 400 });
-        }
-
-        // 글 작성자 확인
-        const tableName = `g5_write_${boardId}`;
-        const [rows] = await pool.query<RowDataPacket[]>(
-            `SELECT mb_id FROM ?? WHERE wr_id = ? AND wr_is_comment = 0`,
-            [tableName, postId]
-        );
-
-        if (!rows[0]) {
-            return json({ success: false, error: '게시글을 찾을 수 없습니다.' }, { status: 404 });
-        }
-
-        // 글 작성자 또는 관리자만 변경 가능
-        if (rows[0].mb_id !== user.mb_id && user.mb_level < 10) {
-            return json({ success: false, error: '권한이 없습니다.' }, { status: 403 });
-        }
-
-        // wr_2 필드에 상태 저장 (중고게시판은 extra_2 = status)
-        await pool.query(`UPDATE ?? SET wr_2 = ? WHERE wr_id = ?`, [tableName, newStatus, postId]);
-
-        return json({ success: true, data: { status: newStatus } });
-    } catch (error) {
-        console.error('Market status API error:', error);
-        return json({ success: false, error: '상태 변경에 실패했습니다.' }, { status: 500 });
+        const body = (await request.json()) as { status?: string };
+        status = String(body?.status ?? '');
+    } catch {
+        /* 아래에서 400 */
     }
+    if (!ALLOWED.has(status)) {
+        return json(
+            { success: false, error: 'status 는 resolved, in_progress, hold 중 하나여야 합니다.' },
+            { status: 400 }
+        );
+    }
+    return forward('PUT', params.boardId, params.postId, locals.accessToken, { status });
+};
+
+export const DELETE: RequestHandler = async ({ params, locals }) => {
+    if (!locals.accessToken || (locals.user?.level ?? 0) < 10) {
+        return json({ success: false, error: '권한이 없습니다.' }, { status: 403 });
+    }
+    return forward('DELETE', params.boardId, params.postId, locals.accessToken);
 };

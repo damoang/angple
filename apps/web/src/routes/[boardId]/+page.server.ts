@@ -26,6 +26,7 @@ import type { RowDataPacket } from 'mysql2';
 import { applyFilter } from '$lib/hooks/registry.js';
 import { buildHookContext } from '$lib/hooks/context.js';
 import { getBoardOwnerContext, getBoardIntro } from '$lib/server/board-owner';
+import { boardHasPostStatusFeature } from '$lib/server/post-status';
 import { sanitizeIntroHtml } from '$lib/server/sanitize';
 import { resolveClientIp } from '$lib/server/rate-limit.js';
 
@@ -225,6 +226,14 @@ export const load: PageServerLoad = async ({
     const searchSort = url.searchParams.get('sort') || null;
     const tag = url.searchParams.get('tag') || null;
     const category = url.searchParams.get('category') || null;
+    // 처리 상태 필터(「해결됨 숨기기」). 허용값만 백엔드로 넘긴다.
+    const excludeStatusRaw = url.searchParams.get('exclude_status');
+    const excludeStatus =
+        excludeStatusRaw === 'resolved' ||
+        excludeStatusRaw === 'in_progress' ||
+        excludeStatusRaw === 'hold'
+            ? excludeStatusRaw
+            : null;
     // #12975: 날짜 기반 아카이브 이동. before_date 로 시점 점프, 이후 '다음'은 커서로 이어감.
     const beforeDate = url.searchParams.get('before_date') || null;
     const cursorWrNumRaw = url.searchParams.get('cursor_wr_num');
@@ -346,6 +355,9 @@ export const load: PageServerLoad = async ({
         }
         if (category) {
             queryParams.set('category', category);
+        }
+        if (excludeStatus && !isSearching) {
+            queryParams.set('exclude_status', excludeStatus);
         }
         if (messagePeriod) {
             queryParams.set('celebration_period', messagePeriod);
@@ -900,6 +912,9 @@ export const load: PageServerLoad = async ({
         }
     }
 
+    // 처리 상태 기능(해결됨 숨기기 토글) 플래그 — 게시판 확장설정. 실패 시 false.
+    const postStatusEnabled = await boardHasPostStatusFeature(boardId);
+
     return {
         boardId,
         boardIntroHtml,
@@ -910,6 +925,7 @@ export const load: PageServerLoad = async ({
         postsData,
         promotionData,
         canManageBoard,
+        postStatusEnabled,
         streamed: {
             promotionData: promotionDataPromise ?? Promise.resolve([] as unknown[])
         }

@@ -1171,6 +1171,31 @@ class ApiClient {
     }
 
     /**
+     * 게시글 처리 상태 지정 (해결됨/진행중/보류) — 카테고리와 독립인 상태 배지.
+     * 🔒 관리자 전용
+     */
+    async setPostStatus(
+        boardId: string,
+        postId: number | string,
+        status: 'resolved' | 'in_progress' | 'hold'
+    ): Promise<void> {
+        await this.request<void>(`/boards/${boardId}/posts/${postId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ status })
+        });
+    }
+
+    /**
+     * 게시글 처리 상태 해제
+     * 🔒 관리자 전용
+     */
+    async clearPostStatus(boardId: string, postId: number | string): Promise<void> {
+        await this.request<void>(`/boards/${boardId}/posts/${postId}/status`, {
+            method: 'DELETE'
+        });
+    }
+
+    /**
      * 게시글 일괄 삭제
      * 🔒 관리자 전용
      */

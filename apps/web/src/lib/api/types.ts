@@ -26,6 +26,9 @@ export interface AnniversaryDrawResponse {
     created_at?: string | null;
 }
 
+/** 글 처리 상태 — 카테고리와 독립. g5_da_post_status(board_id, wr_id, status). */
+export type PostStatus = 'resolved' | 'in_progress' | 'hold';
+
 // 자유게시판 게시글 타입
 export interface FreePost {
     id: number;
@@ -53,6 +56,10 @@ export interface FreePost {
     has_video?: boolean;
     has_image?: boolean;
     category?: string; // 게시글 카테고리 (예: "일상", "음식", "맛집")
+    /** 처리 상태(버그 게시판 등). g5_da_post_status 에 행이 있을 때만 백엔드가 실어준다. 카테고리와 독립. */
+    status?: PostStatus;
+    /** 상태가 마지막으로 바뀐 시각 */
+    status_updated_at?: string;
     tags?: string[];
     images?: string[];
     videos?: { url: string; filename: string; size: number }[];
