@@ -1179,7 +1179,7 @@ class ApiClient {
         postId: number | string,
         status: 'resolved' | 'in_progress' | 'hold'
     ): Promise<void> {
-        await this.request<void>(`/boards/${boardId}/posts/${postId}/status`, {
+        await this.request<void>(`/boards/${boardId}/posts/${postId}/process-status`, {
             method: 'PUT',
             body: JSON.stringify({ status })
         });
@@ -1190,7 +1190,7 @@ class ApiClient {
      * 🔒 관리자 전용
      */
     async clearPostStatus(boardId: string, postId: number | string): Promise<void> {
-        await this.request<void>(`/boards/${boardId}/posts/${postId}/status`, {
+        await this.request<void>(`/boards/${boardId}/posts/${postId}/process-status`, {
             method: 'DELETE'
         });
     }

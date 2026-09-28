@@ -222,7 +222,8 @@
     }
 
     // 처리 상태(해결됨·진행중·보류) 변경 — 관리자 전용. 카테고리는 건드리지 않는다.
-    // 웹 프록시(/api/boards/.../status)가 세션 인증을 붙여 백엔드 PUT/DELETE 로 넘긴다.
+    // 웹 프록시(/api/boards/.../process-status)가 세션 인증을 붙여 백엔드 PUT/DELETE 로 넘긴다.
+    // (…/status 는 중고장터 판매 상태라 경로를 갈랐다.)
     type PostStatusValue = 'resolved' | 'in_progress' | 'hold';
     let currentStatus = $state<PostStatusValue | ''>(
         (post.status as PostStatusValue | undefined) ?? ''
@@ -240,7 +241,7 @@
         if (changingStatus || next === currentStatus) return;
         changingStatus = true;
         try {
-            const res = await fetch(`/api/boards/${boardId}/posts/${post.id}/status`, {
+            const res = await fetch(`/api/boards/${boardId}/posts/${post.id}/process-status`, {
                 method: next ? 'PUT' : 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: next ? JSON.stringify({ status: next }) : undefined,
