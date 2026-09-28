@@ -556,7 +556,7 @@ export interface CertAttempt {
         | 'no_session'
         | 'id_mismatch'
         | 'save_fail'
-        | 'already_certified'; // 진입 게이트가 인증 창을 열지 않고 돌려보낸 경우(과금 방지)
+        | 'already_cert'; // 진입 게이트가 인증 창을 열지 않고 돌려보낸 경우(과금 방지). ⛔result 컬럼 VARCHAR(16) — 16자 초과 시 비엄격 모드에서 조용히 잘린다
     dupinfo?: string;
     existing_mb_id?: string;
     result_code?: string;

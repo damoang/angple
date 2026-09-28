@@ -34,7 +34,7 @@ export const load: PageServerLoad = async ({ locals, url, request, cookies, getC
     if (certState?.hasDupinfo) {
         await logCertAttempt({
             mb_id: mbId,
-            result: 'already_certified',
+            result: 'already_cert', // ⛔ 컬럼 VARCHAR(16): 'already_certified'(17자)는 조용히 잘렸다
             result_msg: `entry gate pageType=${pageType} certify=${certState.certify}`,
             ip: resolveClientIp(getClientAddress, request) ?? '',
             user_agent: request.headers.get('user-agent') ?? ''
