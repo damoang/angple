@@ -16,6 +16,7 @@
         CardTitle
     } from '$lib/components/ui/card/index.js';
     import { Badge } from '$lib/components/ui/badge/index.js';
+    import PostStatusBadge from '$lib/components/features/board/post-status-badge.svelte';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Markdown } from '$lib/components/ui/markdown/index.js';
     import ExternalLink from '@lucide/svelte/icons/external-link';
@@ -78,7 +79,7 @@
     import { trackFileDownload, trackEvent } from '$lib/services/ga4.js';
     import PinOff from '@lucide/svelte/icons/pin-off';
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
-    import { onMount } from 'svelte';
+    import { onMount, untrack } from 'svelte';
     import {
         buildThumbnailSrcSet,
         isTransformableMediaImage,
@@ -91,6 +92,7 @@
         boardId,
         isAuthor,
         isAdmin,
+        postStatusEnabled = false,
         canViewSecret,
         initialScrapped = false,
         likeCount,
@@ -216,6 +218,62 @@
             toast.error('공지 설정에 실패했습니다.');
         } finally {
             togglingNotice = false;
+        }
+    }
+
+    // 처리 상태(해결됨·진행중·보류) 변경 — 관리자 전용. 카테고리는 건드리지 않는다.
+    // 웹 프록시(/api/boards/.../process-status)가 세션 인증을 붙여 백엔드 PUT/DELETE 로 넘긴다.
+    // (…/status 는 중고장터 판매 상태라 경로를 갈랐다.)
+    type PostStatusValue = 'resolved' | 'in_progress' | 'hold';
+    let currentStatus = $state<PostStatusValue | ''>(
+        (post.status as PostStatusValue | undefined) ?? ''
+    );
+    let statusUpdatedAt = $state<string>(post.status_updated_at ?? '');
+    let changingStatus = $state(false);
+    // ⛔ 이 컴포넌트는 같은 게시판 안에서 글을 옮겨도 재마운트되지 않는다(ViewComponent 가 {#key} 밖).
+    //    초기값만 캡처하면 이전 글의 「해결됨」이 다음 글에 남는다 → post 가 바뀌면 서버값으로 다시 맞춘다.
+    //    post 객체는 스트림 데이터(제휴 링크 등) 도착 때도 새로 만들어지므로, **글 번호가 바뀔 때만** 맞춘다 —
+    //    안 그러면 관리자가 방금 바꾼 값이 스트림 도착에 되돌아간다.
+    let syncedStatusPostId = post.id;
+    $effect(() => {
+        const id = post.id;
+        const s = (post.status as PostStatusValue | undefined) ?? '';
+        const t = post.status_updated_at ?? '';
+        untrack(() => {
+            if (id === syncedStatusPostId) return;
+            syncedStatusPostId = id;
+            currentStatus = s;
+            statusUpdatedAt = t;
+        });
+    });
+    const STATUS_OPTIONS: { value: PostStatusValue | ''; label: string }[] = [
+        { value: '', label: '상태 없음' },
+        { value: 'resolved', label: '✅ 해결됨' },
+        { value: 'in_progress', label: '🔧 진행중' },
+        { value: 'hold', label: '⏸ 보류' }
+    ];
+
+    async function changeStatus(next: PostStatusValue | ''): Promise<void> {
+        if (changingStatus || next === currentStatus) return;
+        changingStatus = true;
+        try {
+            const res = await fetch(`/api/boards/${boardId}/posts/${post.id}/process-status`, {
+                method: next ? 'PUT' : 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: next ? JSON.stringify({ status: next }) : undefined,
+                credentials: 'same-origin'
+            });
+            if (!res.ok) throw new Error(String(res.status));
+            currentStatus = next;
+            // 표시용 날짜는 KST(서버 저장값과 같은 기준). 새로고침하면 서버값으로 대체된다.
+            statusUpdatedAt = next
+                ? new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10)
+                : '';
+            toast.success(next ? '처리 상태를 바꿨습니다.' : '처리 상태를 해제했습니다.');
+        } catch {
+            toast.error('처리 상태 변경에 실패했습니다.');
+        } finally {
+            changingStatus = false;
         }
     }
 
@@ -363,13 +421,44 @@
          같은 축의 gap 으로 주면 tailwind-merge 가 gap-1.5 를 대체해 정확히 12px. -->
     <CardHeader class="gap-3">
         <div>
-            {#if post.category}
-                <div class="mb-2 flex flex-wrap gap-1.5">
-                    <span
-                        class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[13px] font-medium"
-                    >
-                        {post.category}
-                    </span>
+            {#if post.category || currentStatus || postStatusEnabled}
+                <div class="mb-2 flex flex-wrap items-center gap-1.5">
+                    {#if post.category}
+                        <span
+                            class="bg-primary/10 text-primary rounded-md px-2 py-0.5 text-[13px] font-medium"
+                        >
+                            {post.category}
+                        </span>
+                    {/if}
+                    {#if currentStatus}
+                        <PostStatusBadge status={currentStatus} size="md" />
+                        {#if statusUpdatedAt}
+                            <span class="text-muted-foreground text-xs">
+                                {currentStatus === 'resolved' ? '해결' : '변경'}
+                                {statusUpdatedAt.slice(0, 10)}
+                            </span>
+                        {/if}
+                    {/if}
+                    {#if postStatusEnabled}
+                        <!-- 관리자(mb_level 10) 전용 처리 상태 변경 — 부모가 게시판 기능 플래그 × 레벨을 합쳐 넘긴다.
+                             (isAdmin 은 당주도 true 라 여기선 쓰지 않는다: 당주는 프록시에서 403.) -->
+                        <select
+                            class="border-input bg-background text-foreground ml-1 h-7 rounded-md border px-1.5 text-xs"
+                            aria-label="처리 상태 변경"
+                            disabled={changingStatus}
+                            value={currentStatus}
+                            onchange={(e) =>
+                                changeStatus(
+                                    (e.currentTarget as HTMLSelectElement).value as
+                                        | PostStatusValue
+                                        | ''
+                                )}
+                        >
+                            {#each STATUS_OPTIONS as opt (opt.value)}
+                                <option value={opt.value}>{opt.label}</option>
+                            {/each}
+                        </select>
+                    {/if}
                 </div>
             {/if}
             <!-- 글 제목이 이 페이지의 주제목이다. 종전엔 CardTitle 이 div 라

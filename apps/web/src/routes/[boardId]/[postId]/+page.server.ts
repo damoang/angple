@@ -11,6 +11,7 @@ import {
     syncPostAffiliateLinks
 } from '$lib/server/affiliate-links.js';
 import { isLinkProcessingPluginEnabled } from '$lib/server/link-processing/runtime.js';
+import { boardHasPostStatusFeature } from '$lib/server/post-status';
 import { isScraped } from '$lib/server/scrap.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
 import { isRestrictedUser, type AuthUser } from '$lib/server/auth/index.js';
@@ -976,6 +977,8 @@ export const load: PageServerLoad = async ({
                 // locals.user 는 { id, level } 형태다 — 판정 함수가 쓰는 이름으로 옮긴다.
                 locals.user?.id ? { mb_id: locals.user.id, mb_level: locals.user.level ?? 0 } : null
             ).catch(() => null)),
+            /** 처리 상태 기능(관리자 상태 변경 메뉴 노출용) — 게시판 확장설정 post_status.enabled */
+            postStatusEnabled: await boardHasPostStatusFeature(boardId),
             /** 스트리밍: Promise로 반환 → 클라이언트에서 $effect로 수신 */
             streamed: {
                 auxiliaryData: auxiliaryDataPromise

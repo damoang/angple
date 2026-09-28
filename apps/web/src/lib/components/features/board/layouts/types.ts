@@ -70,6 +70,8 @@ export interface ViewLayoutProps {
     isAuthor: boolean;
     /** @deprecated 공개 페이지에서 관리자 분기 제거됨. 항상 false 전달. */
     isAdmin?: boolean;
+    /** 게시판 확장설정 post_status.enabled — 관리자 처리 상태(해결됨·진행중·보류) 변경 메뉴 노출 */
+    postStatusEnabled?: boolean;
     canViewSecret: boolean;
     promotionExpired?: boolean;
 

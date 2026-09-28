@@ -179,6 +179,8 @@
     let formWriteNoticeHtml = $state('');
     let formWriteNoticeSkipHours = $state(24);
     let formWriteNoticeVariant = $state<'info' | 'warning'>('info');
+    // 글 처리 상태(해결됨·진행중·보류) 기능 — 카테고리와 독립인 배지·숨기기 토글·관리자 상태 변경
+    let formPostStatusEnabled = $state(false);
 
     // 확장 기능 토글
     let formAutoEmbed = $state(false);
@@ -395,6 +397,7 @@
         formWriteNoticeHtml = es.write_notice?.html ?? '';
         formWriteNoticeSkipHours = es.write_notice?.skipHours ?? 24;
         formWriteNoticeVariant = es.write_notice?.variant ?? 'info';
+        formPostStatusEnabled = es.post_status?.enabled ?? false;
         formAutoEmbed = es.features?.autoEmbed ?? false;
         formCodeHighlighter = es.features?.codeHighlighter ?? false;
         formExternalImageSave = es.features?.externalImageSave ?? false;
@@ -609,6 +612,9 @@
                     html: formWriteNoticeHtml,
                     skipHours: formWriteNoticeSkipHours,
                     variant: formWriteNoticeVariant
+                },
+                post_status: {
+                    enabled: formPostStatusEnabled
                 }
             };
 
@@ -1041,6 +1047,22 @@
                                 <Switch
                                     checked={formWriteNoticeEnabled}
                                     onCheckedChange={(v: boolean) => (formWriteNoticeEnabled = v)}
+                                />
+                            </div>
+                            <div class="flex items-center justify-between border-t pt-4">
+                                <div>
+                                    <p class="text-sm font-medium">
+                                        글 처리 상태(해결됨·진행중·보류)
+                                    </p>
+                                    <p class="text-muted-foreground text-xs">
+                                        카테고리와 별도로 처리 상태 배지를 달고, 목록에 「해결됨
+                                        숨기기」 토글과 관리자 상태 변경 메뉴를 보입니다. 버그
+                                        게시판처럼 「처리」 개념이 있는 곳에서 켭니다.
+                                    </p>
+                                </div>
+                                <Switch
+                                    checked={formPostStatusEnabled}
+                                    onCheckedChange={(v: boolean) => (formPostStatusEnabled = v)}
                                 />
                             </div>
                             {#if formWriteNoticeEnabled}

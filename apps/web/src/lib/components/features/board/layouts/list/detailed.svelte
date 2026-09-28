@@ -5,6 +5,7 @@
         isRestrictedTitle
     } from '$lib/components/ui/restricted-badge/index.js';
     import { DisciplinedBadge } from '$lib/components/ui/discipline-related/index.js';
+    import PostStatusBadge from '$lib/components/features/board/post-status-badge.svelte';
     import ScheduledDeleteBadge from './_shared/scheduled-delete-badge.svelte';
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
@@ -112,6 +113,9 @@
                             >
                                 {post.category}
                             </span>
+                        {/if}
+                        {#if post.status}
+                            <PostStatusBadge status={post.status} size="md" />
                         {/if}
                         {#if post.tags && post.tags.length > 0}
                             {#each post.tags.slice(0, 3) as tag (tag)}

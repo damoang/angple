@@ -26,6 +26,7 @@ import type { RowDataPacket } from 'mysql2';
 import { applyFilter } from '$lib/hooks/registry.js';
 import { buildHookContext } from '$lib/hooks/context.js';
 import { getBoardOwnerContext, getBoardIntro } from '$lib/server/board-owner';
+import { boardHasPostStatusFeature } from '$lib/server/post-status';
 import { sanitizeIntroHtml } from '$lib/server/sanitize';
 import { resolveClientIp } from '$lib/server/rate-limit.js';
 
@@ -225,6 +226,14 @@ export const load: PageServerLoad = async ({
     const searchSort = url.searchParams.get('sort') || null;
     const tag = url.searchParams.get('tag') || null;
     const category = url.searchParams.get('category') || null;
+    // 처리 상태 필터(「해결됨 숨기기」). 허용값만 백엔드로 넘긴다.
+    const excludeStatusRaw = url.searchParams.get('exclude_status');
+    const excludeStatus =
+        excludeStatusRaw === 'resolved' ||
+        excludeStatusRaw === 'in_progress' ||
+        excludeStatusRaw === 'hold'
+            ? excludeStatusRaw
+            : null;
     // #12975: 날짜 기반 아카이브 이동. before_date 로 시점 점프, 이후 '다음'은 커서로 이어감.
     const beforeDate = url.searchParams.get('before_date') || null;
     const cursorWrNumRaw = url.searchParams.get('cursor_wr_num');
@@ -347,6 +356,9 @@ export const load: PageServerLoad = async ({
         if (category) {
             queryParams.set('category', category);
         }
+        if (excludeStatus && !isSearching) {
+            queryParams.set('exclude_status', excludeStatus);
+        }
         if (messagePeriod) {
             queryParams.set('celebration_period', messagePeriod);
         }
@@ -369,7 +381,12 @@ export const load: PageServerLoad = async ({
 
     // 비로그인 + 검색/태그 필터 없는 경우: 게시글 목록 캐시 사용 (15초)
     const usePostsCache = !locals.user && !isSearching && !isTagFiltering;
-    const postsCacheKey = `${boardId}:p${page}:l${limit}${category ? `:c${category}` : ''}${messagePeriod ? `:period:${messagePeriod}` : ''}${useSummaryListResponse ? ':summary1' : ''}`;
+    // ⛔ exclude_status(해결됨 숨기기)는 키의 한 차원이다 — 빠지면 필터된 목록이 전원에게 15초 배포되거나 토글이 헛돈다.
+    const postsCacheKey = `${boardId}:p${page}:l${limit}${category ? `:c${category}` : ''}${messagePeriod ? `:period:${messagePeriod}` : ''}${useSummaryListResponse ? ':summary1' : ''}${excludeStatus ? `:x${excludeStatus}` : ''}`;
+
+    // 처리 상태 기능(해결됨 숨기기 토글) 플래그 — 게시판 확장설정. 실패 시 false.
+    // 캐시 hit 경로에도 실어야 익명에게 토글이 깜빡이지 않는다(모든 return 이 같은 필드).
+    const postStatusEnabled = await boardHasPostStatusFeature(boardId);
 
     if (usePostsCache) {
         const cachedPosts = postsCache.get(postsCacheKey);
@@ -382,6 +399,7 @@ export const load: PageServerLoad = async ({
                 postsData: cachedPosts,
                 // 비로그인 목록 캐시 경로 — 당주일 수 없다(위 return 과 필드를 맞춘다).
                 canManageBoard: false,
+                postStatusEnabled,
                 streamed: { promotionData: Promise.resolve([] as unknown[]) }
             };
         }
@@ -910,6 +928,7 @@ export const load: PageServerLoad = async ({
         postsData,
         promotionData,
         canManageBoard,
+        postStatusEnabled,
         streamed: {
             promotionData: promotionDataPromise ?? Promise.resolve([] as unknown[])
         }

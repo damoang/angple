@@ -6,6 +6,7 @@
         isRestrictedTitle
     } from '$lib/components/ui/restricted-badge/index.js';
     import { DisciplinedBadge } from '$lib/components/ui/discipline-related/index.js';
+    import PostStatusBadge from '$lib/components/features/board/post-status-badge.svelte';
     import type { FreePost, BoardDisplaySettings } from '$lib/api/types.js';
     import Lock from '@lucide/svelte/icons/lock';
     import ImageIcon from '@lucide/svelte/icons/image';
@@ -234,11 +235,17 @@
                             {post.category}
                         </span>
                     {/if}
+                    {#if post.status}
+                        <PostStatusBadge status={post.status} />
+                    {/if}
                     <!-- 제목 + 부가 아이콘 wrapper: min-w-0으로 truncate 강제 -->
                     <span class="inline-flex min-w-0 flex-1 items-center gap-1">
+                        <!-- 해결된 글은 제목을 흐리게(아래 스코프 CSS) — 훑어볼 때 미해결 건이 먼저 눈에 들어온다.
+                             Tailwind 유틸리티는 스코프 .post-title 의 color 에 져서 속성 선택자로 건다. -->
                         <span
                             class="truncate {readClass}"
                             class:font-semibold={uiSettingsStore.titleBold}
+                            data-post-status={post.status ?? undefined}
                             title={post.title}
                         >
                             {#if post.report_count === 'lock'}
@@ -407,6 +414,11 @@
 
     .post-title {
         color: var(--color-foreground);
+    }
+
+    /* 처리 상태 「해결됨」 글 — 읽지 않았어도 제목을 흐리게(읽은 글 스타일과 같은 톤) */
+    .post-title[data-post-status='resolved'] {
+        color: var(--color-muted-foreground);
     }
 
     /* 읽은 글 스타일 옵션 — font-size 명시 (CSS 특이성 문제 방지) */
