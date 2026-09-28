@@ -94,7 +94,14 @@ export async function putPostAspects(
 }
 
 interface ExtendedSettingsRow {
-    settings: string | null;
+    // 컬럼이 JSON 타입이라 mysql2 가 **이미 객체로** 돌려준다. 문자열로 오는 경우까지 둘 다 받는다.
+    settings: string | Record<string, unknown> | null;
+}
+
+function parseSettings(raw: ExtendedSettingsRow['settings']): { features?: { rating?: boolean } } {
+    if (!raw) return {};
+    if (typeof raw === 'string') return JSON.parse(raw) as { features?: { rating?: boolean } };
+    return raw as { features?: { rating?: boolean } };
 }
 
 /**
@@ -109,8 +116,8 @@ export async function boardHasRatingFeature(boardId: string): Promise<boolean> {
     const row = (rows as ExtendedSettingsRow[])[0];
     if (!row?.settings) return false;
     try {
-        const parsed = JSON.parse(row.settings) as { features?: { rating?: boolean } };
-        return parsed.features?.rating === true;
+        // ⛔ 예전엔 객체에 JSON.parse 를 다시 걸어 항상 예외 → false 였다(2026-09-28 처리 상태 배지 작업 중 발견).
+        return parseSettings(row.settings).features?.rating === true;
     } catch {
         return false;
     }
