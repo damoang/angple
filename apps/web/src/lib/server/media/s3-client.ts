@@ -30,39 +30,39 @@ console.log(
         `direct=${S3_DIRECT_UPLOAD} cdn=${CDN_BASE} credentials=${hasStaticCredentials ? 'static' : 'iam-role/none'}`
 );
 
-// S3 호환 저장소(R2 등)는 IAM Role 이 없으므로 정적 자격증명이 반드시 필요하다.
-// AWS 기본 endpoint 는 EC2 IAM Role 로 동작할 수 있어 여기서 경고하지 않는다.
-if (S3_ENDPOINT && !hasStaticCredentials) {
+if (!S3_ENDPOINT && !hasStaticCredentials) {
     console.warn(
-        `[media/s3] S3_ENDPOINT(${S3_ENDPOINT}) 가 지정됐지만 AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY 가 없습니다. 모든 업로드가 실패합니다.`
+        '[media/s3] S3_ENDPOINT 와 AWS 자격증명이 모두 없습니다. IAM Role 이 없는 환경이면 모든 업로드가 실패합니다. ' +
+            '(S3_ENDPOINT / S3_BUCKET / AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY 확인)'
     );
 }
 
 export interface StorageHealth {
     ok: boolean;
-    bucket: string;
-    endpoint: string;
     latency_ms: number;
+    /** 실패 원인의 종류만 (AccessDenied, TimeoutError …). 호스트명·계정 정보는 로그에만 남긴다 */
     error?: string;
 }
 
-/** 저장소 접근 가능 여부 확인 (HeadBucket, 기본 3초 타임아웃) */
+/**
+ * 저장소 접근 가능 여부 확인 (HeadBucket, 기본 3초 타임아웃)
+ *
+ * 반환값은 /health 로 외부에 노출되므로 버킷·endpoint 같은 식별 정보를 담지 않는다.
+ * 상세 원인은 서버 로그([media/s3])에서 확인한다.
+ */
 export async function checkStorageHealth(timeoutMs = 3000): Promise<StorageHealth> {
     const started = Date.now();
-    const base = { bucket: S3_BUCKET, endpoint: S3_ENDPOINT || 'aws' };
     try {
         await s3.send(new HeadBucketCommand({ Bucket: S3_BUCKET }), {
             abortSignal: AbortSignal.timeout(timeoutMs)
         });
-        return { ok: true, ...base, latency_ms: Date.now() - started };
+        return { ok: true, latency_ms: Date.now() - started };
     } catch (err) {
         const name = err instanceof Error ? err.name : 'Error';
-        const message = err instanceof Error ? err.message : String(err);
-        return {
-            ok: false,
-            ...base,
-            latency_ms: Date.now() - started,
-            error: `${name}: ${message}`
-        };
+        console.error(
+            `[media/s3] storage health check failed (${name}) bucket=${S3_BUCKET} endpoint=${S3_ENDPOINT || '(aws default)'}:`,
+            err instanceof Error ? err.message : err
+        );
+        return { ok: false, latency_ms: Date.now() - started, error: name };
     }
 }
