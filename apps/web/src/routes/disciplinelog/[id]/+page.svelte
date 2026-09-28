@@ -346,7 +346,7 @@
             </Card.Root>
         {/if}
 
-        <!-- 기타 사유: 회원 공개용 (운영자가 입력한 경우에만 표시) -->
+        <!-- 처분 사유 안내: 회원 공개용 (운영자가 입력한 경우에만 표시). 「기타 사유」라 쓰면 제18호(기타사유)로 읽힌다. -->
         {#if log.member_reason && log.member_reason.trim()}
             <Card.Root class="mb-3">
                 <Card.Content>
@@ -354,7 +354,7 @@
                         class="text-muted-foreground mb-1.5 flex items-center gap-1.5 text-xs font-medium"
                     >
                         <Info class="h-3.5 w-3.5" />
-                        기타 사유
+                        처분 사유 안내
                     </div>
                     <p class="whitespace-pre-line text-sm">{log.member_reason}</p>
                 </Card.Content>
