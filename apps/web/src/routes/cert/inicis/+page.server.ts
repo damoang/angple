@@ -25,13 +25,17 @@ export const load: PageServerLoad = async ({ locals, url, request, cookies, getC
 
     const pageType = url.searchParams.get('pageType') || 'register';
 
-    // ⭐ 이미 인증된 회원(DI 보유)은 인증 창을 열지 않는다 — 실명인증은 **완료 건당 과금**이다.
-    //    설정 화면은 인증 완료 회원에게 버튼을 숨기지만 URL 직접 진입은 막지 못했고, 한 회원이
-    //    같은 DI 로 30일간 25회 완료한 이력이 있다. 판정은 캐시(locals.user)가 아니라 DB 직독.
-    //    정당한 재인증 경로는 없다: 명의가 바뀐 재인증은 결과 단계의 명의불일치 가드가 거부하고,
-    //    해외인증(abroad)·레거시 회원은 DI 가 없어 이 게이트에 걸리지 않는다.
+    // ⭐ 이미 인증된 회원은 인증 창을 열지 않는다 — 실명인증은 **완료 건당 과금**이다.
+    //    설정 화면은 인증 완료 회원에게 버튼을 숨기지만 URL 직접 진입은 막지 못했다.
+    //    판정은 캐시(locals.user)가 아니라 DB 직독.
+    //    「인증됨」 = DI 보유 **그리고** mb_certify 표시 있음. 둘을 함께 보는 이유:
+    //    - 탈퇴 처리가 mb_certify 를 비우고 DI 는 남기므로, 복귀한 회원은 「DI 있음·미인증」이 된다.
+    //      이들은 재인증으로 mb_certify 를 되살려야 인증 필수 게시판·쪽지·승급이 풀린다 → 열어 둔다
+    //      (같은 DI 라 명의불일치 가드를 통과하고, 결과 저장이 mb_certify 를 복구한다).
+    //    - 해외인증(abroad)·레거시 회원은 DI 가 없어 어차피 걸리지 않는다.
+    //    - 명의가 다른 재인증은 결과 단계의 명의불일치 가드가 거부한다.
     const certState = await getMemberCertStateLive(mbId);
-    if (certState?.hasDupinfo) {
+    if (certState?.hasDupinfo && certState.certify !== '') {
         await logCertAttempt({
             mb_id: mbId,
             result: 'already_cert', // ⛔ 컬럼 VARCHAR(16): 'already_certified'(17자)는 조용히 잘렸다

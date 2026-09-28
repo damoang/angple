@@ -125,15 +125,14 @@ export async function buildCertRequest(): Promise<{
     return { mid, apiKey, mTxId, authHash, reqSvcCd, reservedMsg };
 }
 
-/** 인증 요청 시 mTxId → mbId 매핑 저장 (DB 기반, 5분 TTL) */
 /**
  * 회원의 인증 상태를 **DB 에서 직접** 읽는다 — 인증 진입 게이트 전용.
  *
  * 왜 캐시(locals.user / memberCache)로 판정하지 않나: 웹 memberCache 는 L1 60s·L2 300s 라 방금
  * 인증을 마친 회원이 옛 상태로 보일 수 있다(탈퇴 게이트 뒷문과 같은 함정). 실명인증은 **완료 건당
  * 과금**이라 「이미 인증됨」 판정은 정확해야 한다.
- * 판정 기준은 mb_dupinfo(DI) 보유 — mb_certify 문자열은 'abroad'(해외, DI 없음)·레거시 공백 등
- * DI 없는 값이 있어 그것만으로는 못 가른다.
+ * 호출부는 DI 보유 **와** mb_certify 표시를 함께 본다 — 탈퇴·복귀 회원은 DI 만 남고 표시가 비어
+ * 재인증이 필요하고, 해외인증(abroad)은 표시만 있고 DI 가 없다. 어느 한쪽만으로는 못 가른다.
  */
 export async function getMemberCertStateLive(
     mbId: string
@@ -149,6 +148,7 @@ export async function getMemberCertStateLive(
     return { certify: String(r.mb_certify ?? ''), hasDupinfo: Number(r.has_dupinfo) === 1 };
 }
 
+/** 인증 요청 시 mTxId → mbId 매핑 저장 (DB 기반, 5분 TTL) */
 export async function storeCertPending(mTxId: string, mbId: string): Promise<void> {
     await pool.query(
         `INSERT INTO g5_cert_pending (cp_mtxid, cp_mb_id, cp_datetime) VALUES (?, ?, NOW())
