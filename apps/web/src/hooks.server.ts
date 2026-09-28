@@ -332,6 +332,25 @@ function rewriteImmutableAssetUrls(html: string, cacheBust = ''): string {
     return appendImmutableAssetCacheBust(nextHtml, cacheBust);
 }
 
+/**
+ * SvelteKit 은 SSR 응답의 modulepreload 힌트를 `Link` 응답 헤더로만 내보낸다(HTML <link> 태그는
+ * prerender 시에만). 이 헤더는 청크가 많으면 8KB 를 넘어 nginx proxy_buffer_size 를 초과하므로
+ * 아래에서 삭제하는데, 그러면 브라우저가 청크를 import 체인 깊이만큼 순차 발견하는 폭포수가 생긴다.
+ * 헤더의 힌트를 HTML <head> 의 <link rel="modulepreload"> 로 옮겨 병렬 다운로드를 복원한다.
+ * (SSR 캐시에도 HTML 본문째 저장되므로 캐시 응답에서도 유지된다)
+ */
+function injectModulePreloadTags(html: string, linkHeader: string | null, cacheBust = ''): string {
+    if (!linkHeader || !html.includes('</head>')) return html;
+    const hrefs: string[] = [];
+    for (const m of linkHeader.matchAll(/<([^>]+)>;\s*rel="?modulepreload"?/g)) hrefs.push(m[1]);
+    if (hrefs.length === 0) return html;
+    const tags = rewriteImmutableAssetUrls(
+        hrefs.map((href) => `<link rel="modulepreload" href="${href}">`).join(''),
+        cacheBust
+    );
+    return html.replace('</head>', `${tags}</head>`);
+}
+
 // SSR HTML 응답에서 cdn.damoang.net (CloudFront) → r2.damoang.net (Cloudflare R2) 치환.
 // dual-write 대상 prefix 만 (raw/tmp 제외, R2 에 없는 prefix 요청 시 404 방지).
 const CDN_TO_R2_HOSTS_REGEX =
@@ -1220,7 +1239,10 @@ const handleInner: Handle = async ({ event, resolve }) => {
             const isHtml = contentType.includes('text/html');
 
             if (response.status === 200 && isHtml) {
-                const body = await response.text();
+                const body = injectModulePreloadTags(
+                    await response.text(),
+                    response.headers.get('Link')
+                );
 
                 // 캐시 크기 제한: 오래된 항목 정리 + cap 강제
                 if (ssrCache.size >= MAX_SSR_CACHE_SIZE) {
@@ -1386,9 +1408,19 @@ const handleInner: Handle = async ({ event, resolve }) => {
         mergeVarySet(response, publicVaryHeader);
     }
 
-    // SvelteKit modulepreload Link 헤더 제거 (8KB+ → 응답 헤더 축소)
-    // HTML 내 <link> 태그로 이미 preload되므로 헤더는 불필요
+    // SvelteKit modulepreload Link 헤더 제거 (8KB+ → nginx proxy_buffer_size 초과 방지).
+    // 힌트는 HTML <head> 의 <link rel="modulepreload"> 태그로 옮겨 넣는다 (injectModulePreloadTags).
+    const linkHeader = response.headers.get('Link');
     response.headers.delete('Link');
+    if (
+        linkHeader &&
+        response.status === 200 &&
+        (response.headers.get('Content-Type') || '').includes('text/html')
+    ) {
+        const html = injectModulePreloadTags(await response.text(), linkHeader, assetRecoveryBust);
+        response.headers.delete('Content-Length');
+        return new Response(html, { status: response.status, headers: response.headers });
+    }
 
     return response;
 };
