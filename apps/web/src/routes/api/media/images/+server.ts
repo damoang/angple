@@ -1,21 +1,25 @@
 /**
- * POST /api/media/images — 파일 업로드 (S3, EC2 IAM Role 인증)
+ * POST /api/media/images — 파일 업로드 (AWS S3 또는 S3 호환 저장소)
  * 이미지 + 일반 파일 모두 지원
  * 인증: access_token / refresh_token / damoang_jwt 쿠키 (공유 인증)
+ *
+ * 저장 경로는 두 가지 모드가 있다 ($lib/server/media/s3-client 참고):
+ * - AWS (기본): raw/ 에 올리면 Lambda 가 data/ 로 변환 + 썸네일 생성 + R2 dual-write
+ * - 직접 업로드 (S3_ENDPOINT 지정 또는 S3_DIRECT_UPLOAD=true, 예: Cloudflare R2 단독 사이트):
+ *   Lambda 가 없으므로 data/ 최종 키에 바로 저장하고 변환 대기를 건너뛴다
  */
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { S3Client, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getAuthUser, verifyToken } from '$lib/server/auth/index.js';
-import { env } from '$env/dynamic/private';
 import crypto from 'node:crypto';
-
-const S3_REGION = env.S3_REGION || 'ap-northeast-2';
-const S3_BUCKET = env.S3_BUCKET || 'damoang-data-v1';
-const CDN_BASE = (env.CDN_URL || env.VITE_S3_URL || 'https://s3.damoang.net').replace(/\/$/, '');
-
-// S3 클라이언트 (EC2 IAM Role 자동 인증)
-const s3 = new S3Client({ region: S3_REGION });
+import {
+    s3,
+    S3_BUCKET,
+    S3_REGION,
+    S3_DIRECT_UPLOAD,
+    CDN_BASE
+} from '$lib/server/media/s3-client.js';
 
 const ALLOWED_EXTENSIONS = new Set([
     '.jpg',
@@ -229,25 +233,29 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     const posterRawKey = hasPoster ? rawKey.replace(/\.[a-z0-9]+$/i, '_poster.jpg') : null;
     const posterFinalKey = posterRawKey ? rawKeyToFinalKey(posterRawKey) : null;
 
+    // 직접 업로드 모드는 Lambda 가 없으므로 최종 키(data/)에 바로 저장한다
+    const uploadKey = S3_DIRECT_UPLOAD ? finalKey : rawKey;
+    const posterUploadKey = S3_DIRECT_UPLOAD ? posterFinalKey : posterRawKey;
+
     try {
         const buffer = Buffer.from(await file.arrayBuffer());
 
         await s3.send(
             new PutObjectCommand({
                 Bucket: S3_BUCKET,
-                Key: rawKey,
+                Key: uploadKey,
                 Body: buffer,
                 ContentType: contentType,
                 CacheControl: 'public, max-age=31536000, immutable'
             })
         );
 
-        if (hasPoster && posterRawKey) {
+        if (hasPoster && posterUploadKey) {
             const posterBuffer = Buffer.from(await (poster as File).arrayBuffer());
             await s3.send(
                 new PutObjectCommand({
                     Bucket: S3_BUCKET,
-                    Key: posterRawKey,
+                    Key: posterUploadKey,
                     Body: posterBuffer,
                     ContentType: 'image/jpeg',
                     CacheControl: 'public, max-age=31536000, immutable'
@@ -256,19 +264,24 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         }
 
         // Lambda 변환 완료 대기 — race condition 방지 (포스터는 소형이라 본 파일보다 먼저 끝남)
-        const [isReady, posterReady] = await Promise.all([
-            waitForProcessed(finalKey),
-            posterFinalKey ? waitForProcessed(posterFinalKey) : Promise.resolve(false)
-        ]);
+        // 직접 업로드 모드는 이미 최종 키에 저장됐으므로 대기하지 않는다
+        const [isReady, posterReady] = S3_DIRECT_UPLOAD
+            ? [true, Boolean(hasPoster && posterFinalKey)]
+            : await Promise.all([
+                  waitForProcessed(finalKey),
+                  posterFinalKey ? waitForProcessed(posterFinalKey) : Promise.resolve(false)
+              ]);
         if (!isReady) {
             console.warn(
                 `[media/images] Lambda processing not confirmed within timeout: ${finalKey}`
             );
         }
 
-        // Lambda가 raw/ → data/ 변환 후 최종 URL
+        // Lambda가 raw/ → data/ 변환 후 최종 URL (직접 업로드 모드는 CDN URL 이 곧 원본 URL)
         const cdnUrl = `${CDN_BASE}/${finalKey}`;
-        const originUrl = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${finalKey}`;
+        const originUrl = S3_DIRECT_UPLOAD
+            ? cdnUrl
+            : `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com/${finalKey}`;
 
         return json({
             success: true,
@@ -287,7 +300,13 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
             }
         });
     } catch (err) {
-        console.error('[media/images] S3 upload failed:', err);
-        error(500, '파일 업로드에 실패했습니다.');
+        // 에러 종류(AccessDenied, NoSuchBucket, CredentialsProviderError …)를 남겨
+        // 자격증명/버킷 설정 문제를 로그에서 바로 식별할 수 있게 한다
+        const name = err instanceof Error ? err.name : 'Error';
+        console.error(
+            `[media/images] S3 upload failed (${name}) bucket=${S3_BUCKET} key=${uploadKey} member=${memberId}:`,
+            err
+        );
+        error(500, `파일 업로드에 실패했습니다. (${name})`);
     }
 };
