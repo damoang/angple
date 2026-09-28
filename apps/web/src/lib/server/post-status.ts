@@ -8,7 +8,16 @@
 import { readPool } from '$lib/server/db.js';
 
 interface ExtendedSettingsRow {
-    settings: string | null;
+    // 컬럼이 JSON 타입이라 mysql2 가 **이미 객체로** 돌려준다(문자열이 아니다). 둘 다 받는다.
+    settings: string | Record<string, unknown> | null;
+}
+
+function parseSettings(raw: ExtendedSettingsRow['settings']): {
+    post_status?: { enabled?: boolean };
+} {
+    if (!raw) return {};
+    if (typeof raw === 'string') return JSON.parse(raw) as { post_status?: { enabled?: boolean } };
+    return raw as { post_status?: { enabled?: boolean } };
 }
 
 // 모든 게시판의 목록·상세 로드마다 부르므로 짧게 캐시한다(파드별, 60초). 설정 저장 뒤 최대 1분 지연.
@@ -26,10 +35,7 @@ export async function boardHasPostStatusFeature(boardId: string): Promise<boolea
             [boardId]
         );
         const row = (rows as ExtendedSettingsRow[])[0];
-        if (row?.settings) {
-            const parsed = JSON.parse(row.settings) as { post_status?: { enabled?: boolean } };
-            value = parsed.post_status?.enabled === true;
-        }
+        value = parseSettings(row?.settings ?? null).post_status?.enabled === true;
     } catch {
         // 조회 실패는 기능 꺼짐으로 — 목록 자체를 막지 않는다. (실패값은 캐시하지 않는다)
         return false;
