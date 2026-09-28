@@ -43,6 +43,50 @@ function extractFirstImage(content: string): string | null {
 }
 
 /**
+ * 마음메시지 이미지 URL 정본 빌더.
+ *
+ * ⛔ SSR(+layout.server.ts)과 API(/api/ads/celebration/today)가 **반드시 같은 문자열**을 내야 한다.
+ *    한 글자라도 다르면 브라우저는 다른 리소스로 보고 같은 파일을 두 번 받는다.
+ *    2026-09-28: SSR 은 `r2…/x.webp`, API 는 `cdn…/x.webp?t=…` 를 내보내
+ *    메인 LCP p75 가 1,104 → 1,931ms(+75%) 가 되었다(ETag 동일, 같은 파일).
+ *
+ * ⚠️ 정확히 적어 둔다 — 이 함수 하나만으로 「같은 문자열」이 보장되지는 **않는다.**
+ *    이 함수는 `CDN_BASE`(= cdn host) 기준 URL 을 만들고, SSR 쪽은 그 뒤 hooks.server.ts 의
+ *    `rewriteCdnToR2` 가 **HTML 응답에만** cdn→r2 로 바꾼다(JSON 응답은 안 바꾼다).
+ *    따라서 HTML=`r2…?t=N`, API JSON=`cdn…?t=N` 으로 **여전히 호스트가 다르다.**
+ *    지금 두 번 받지 않는 이유는 클라이언트가 첫 로드에 API 를 **부르지 않기** 때문이다
+ *    (stores/celebration.svelte.ts initFromData 가 시드로 확정한다).
+ *    🔴 그러므로 그 재요청을 되살리면 이 버그가 **조용히 복귀한다.** 되살리려면
+ *    JSON 응답에도 같은 rewrite 를 적용하거나 이 함수가 최종 호스트까지 확정해야 한다.
+ *
+ * 순서가 의미를 갖는다:
+ *   1) DB 값을 CDN_BASE 로 정규화 (s3 host 잔존 보정)
+ *   2) 원본 글이 있으면 그 글의 첫 이미지로 **교체** — 회원이 이미지를 바꾼 경우 최신을 쓴다
+ *   3) updated_at 기반 캐시버스터 부착 — 같은 경로로 이미지가 교체돼도 갱신되게
+ *
+ * ⚠️ 이 함수를 우회해 image_url 을 직접 만들지 마라. 그래서 이 버그가 생겼다.
+ */
+export function buildCelebrationImageUrl(
+    dbImageUrl: unknown,
+    sourceContent: unknown,
+    updatedAt: unknown
+): string {
+    let imageUrl = normalizeMediaUrl(dbImageUrl as string | null | undefined, CDN_BASE) ?? '';
+    if (sourceContent) {
+        const freshImage = extractFirstImage(String(sourceContent));
+        if (freshImage) imageUrl = freshImage;
+    }
+    if (imageUrl) {
+        const ts = new Date((updatedAt as string | Date | null) || 0).getTime();
+        // NaN 이면 붙이지 않는다 — `?t=NaN` 은 SSR/API 가 갈릴 여지를 다시 만든다.
+        if (Number.isFinite(ts)) {
+            imageUrl += `${imageUrl.includes('?') ? '&' : '?'}t=${ts}`;
+        }
+    }
+    return imageUrl;
+}
+
+/**
  * KST(Asia/Seoul) 기준 오늘 YYYY-MM-DD.
  *
  * RDS time_zone=SYSTEM (UTC) 이라 MySQL CURDATE()/NOW() 가 KST 새벽 0~9시 동안
@@ -66,24 +110,43 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
     try {
         // #12516: CURDATE() (RDS UTC) → KST today 파라미터화.
         const todayKST = getTodayKST();
-        const dateFilter = isRecent ? '' : 'AND cb.display_date = ?';
-        const dateParams = isRecent ? [] : [todayKST];
+        // ⛔ 2026-09-28: 이 질의는 /api/ads/celebration/today 가 자기 사본을 따로 갖고 있었고
+        //    네 곳이 어긋나 있었다 — yearly_repeat 누락 · updated_at(캐시버스터) 누락 ·
+        //    원본 글 최신 이미지 미반영 · ORDER BY 상이.
+        //    그래서 SSR 과 API 가 **같은 이미지를 다른 URL 로** 내보내 브라우저가 두 번 받았고,
+        //    메인 LCP p75 가 1,104 → 1,931ms(+75%) 가 되었다.
+        //    ⭐ 이 모듈이 정본이다. API 는 getCachedCelebrations() 를 쓴다 — 사본을 만들지 마라.
+        const dateFilter = isRecent
+            ? ''
+            : `AND (cb.display_date = ?
+                    OR (cb.yearly_repeat = 1
+                        AND MONTH(cb.display_date) = MONTH(?)
+                        AND DAY(cb.display_date) = DAY(?)))`;
+        const dateParams = isRecent ? [] : [todayKST, todayKST, todayKST];
+        // ORDER BY 는 경로별로 다르다.
+        //  · isRecent(최근 8건): 여러 날짜가 섞이므로 display_date DESC 가 의미를 갖는다(기존 유지).
+        //  · 오늘치: 정본을 API 와 맞춘다(sort_order ASC, id DESC). yearly_repeat 행은
+        //    display_date 가 과거라, display_date DESC 를 쓰면 올해 행이 먼저 와 순서가 흔들린다.
+        const orderBy = isRecent
+            ? 'cb.display_date DESC, cb.sort_order ASC, cb.id DESC'
+            : 'cb.sort_order ASC, cb.id DESC';
         const [rows] = await pool.execute<RowDataPacket[]>(
             `SELECT cb.id, cb.title, cb.content, cb.image_url, cb.link_url,
 					cb.external_url, cb.display_date, cb.target_member_id,
-					cb.is_anonymous,
+					cb.is_anonymous, cb.updated_at AS cb_updated_at,
 					cb.link_target, cb.sort_order, cb.display_type,
 					cb.source_wr_id,
 					m.mb_nick AS target_member_nick,
 					m.mb_image_url AS target_member_image_url,
-					wm.wr_name AS source_wr_name
+					wm.wr_name AS source_wr_name,
+					wm.wr_content AS source_content
 			 FROM celebration_banners cb
 			 LEFT JOIN g5_member m
 			   ON cb.target_member_id COLLATE utf8mb4_unicode_ci = m.mb_id COLLATE utf8mb4_unicode_ci
 			 LEFT JOIN g5_write_message wm
 			   ON cb.source_wr_id = wm.wr_id AND wm.wr_is_comment = 0
 			 WHERE cb.is_active = 1 ${dateFilter}
-			 ORDER BY cb.display_date DESC, cb.sort_order ASC, cb.id DESC
+			 ORDER BY ${orderBy}
 			 LIMIT 8`,
             dateParams
         );
@@ -100,8 +163,11 @@ export async function fetchCelebrations(isRecent: boolean = false): Promise<Cele
                 id: row.source_wr_id || row.id,
                 title: row.title,
                 content: row.content || '',
-                // DB 에 s3 host 로 저장된 배너 이미지도 CDN_URL(r2) 로 정규화 (홈 SSR s3 잔존 fix)
-                image_url: normalizeMediaUrl(row.image_url, CDN_BASE) ?? '',
+                image_url: buildCelebrationImageUrl(
+                    row.image_url,
+                    row.source_content,
+                    row.cb_updated_at
+                ),
                 link_url: linkUrl,
                 display_date: row.display_date,
                 is_active: true,
