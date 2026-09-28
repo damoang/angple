@@ -381,7 +381,12 @@ export const load: PageServerLoad = async ({
 
     // 비로그인 + 검색/태그 필터 없는 경우: 게시글 목록 캐시 사용 (15초)
     const usePostsCache = !locals.user && !isSearching && !isTagFiltering;
-    const postsCacheKey = `${boardId}:p${page}:l${limit}${category ? `:c${category}` : ''}${messagePeriod ? `:period:${messagePeriod}` : ''}${useSummaryListResponse ? ':summary1' : ''}`;
+    // ⛔ exclude_status(해결됨 숨기기)는 키의 한 차원이다 — 빠지면 필터된 목록이 전원에게 15초 배포되거나 토글이 헛돈다.
+    const postsCacheKey = `${boardId}:p${page}:l${limit}${category ? `:c${category}` : ''}${messagePeriod ? `:period:${messagePeriod}` : ''}${useSummaryListResponse ? ':summary1' : ''}${excludeStatus ? `:x${excludeStatus}` : ''}`;
+
+    // 처리 상태 기능(해결됨 숨기기 토글) 플래그 — 게시판 확장설정. 실패 시 false.
+    // 캐시 hit 경로에도 실어야 익명에게 토글이 깜빡이지 않는다(모든 return 이 같은 필드).
+    const postStatusEnabled = await boardHasPostStatusFeature(boardId);
 
     if (usePostsCache) {
         const cachedPosts = postsCache.get(postsCacheKey);
@@ -394,6 +399,7 @@ export const load: PageServerLoad = async ({
                 postsData: cachedPosts,
                 // 비로그인 목록 캐시 경로 — 당주일 수 없다(위 return 과 필드를 맞춘다).
                 canManageBoard: false,
+                postStatusEnabled,
                 streamed: { promotionData: Promise.resolve([] as unknown[]) }
             };
         }
@@ -911,9 +917,6 @@ export const load: PageServerLoad = async ({
             boardIntroHtml = '';
         }
     }
-
-    // 처리 상태 기능(해결됨 숨기기 토글) 플래그 — 게시판 확장설정. 실패 시 false.
-    const postStatusEnabled = await boardHasPostStatusFeature(boardId);
 
     return {
         boardId,

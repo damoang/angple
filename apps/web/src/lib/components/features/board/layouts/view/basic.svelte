@@ -79,7 +79,7 @@
     import { trackFileDownload, trackEvent } from '$lib/services/ga4.js';
     import PinOff from '@lucide/svelte/icons/pin-off';
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
-    import { onMount } from 'svelte';
+    import { onMount, untrack } from 'svelte';
     import {
         buildThumbnailSrcSet,
         isTransformableMediaImage,
@@ -230,6 +230,16 @@
     );
     let statusUpdatedAt = $state<string>(post.status_updated_at ?? '');
     let changingStatus = $state(false);
+    // ⛔ 이 컴포넌트는 같은 게시판 안에서 글을 옮겨도 재마운트되지 않는다(ViewComponent 가 {#key} 밖).
+    //    초기값만 캡처하면 이전 글의 「해결됨」이 다음 글에 남는다 → post 가 바뀌면 서버값으로 다시 맞춘다.
+    $effect(() => {
+        const s = (post.status as PostStatusValue | undefined) ?? '';
+        const t = post.status_updated_at ?? '';
+        untrack(() => {
+            currentStatus = s;
+            statusUpdatedAt = t;
+        });
+    });
     const STATUS_OPTIONS: { value: PostStatusValue | ''; label: string }[] = [
         { value: '', label: '상태 없음' },
         { value: 'resolved', label: '✅ 해결됨' },
@@ -249,7 +259,10 @@
             });
             if (!res.ok) throw new Error(String(res.status));
             currentStatus = next;
-            statusUpdatedAt = next ? new Date().toISOString().slice(0, 10) : '';
+            // 표시용 날짜는 KST(서버 저장값과 같은 기준). 새로고침하면 서버값으로 대체된다.
+            statusUpdatedAt = next
+                ? new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10)
+                : '';
             toast.success(next ? '처리 상태를 바꿨습니다.' : '처리 상태를 해제했습니다.');
         } catch {
             toast.error('처리 상태 변경에 실패했습니다.');
@@ -402,7 +415,7 @@
          같은 축의 gap 으로 주면 tailwind-merge 가 gap-1.5 를 대체해 정확히 12px. -->
     <CardHeader class="gap-3">
         <div>
-            {#if post.category || currentStatus || (isAdmin && postStatusEnabled)}
+            {#if post.category || currentStatus || postStatusEnabled}
                 <div class="mb-2 flex flex-wrap items-center gap-1.5">
                     {#if post.category}
                         <span
@@ -420,8 +433,9 @@
                             </span>
                         {/if}
                     {/if}
-                    {#if isAdmin && (postStatusEnabled || currentStatus)}
-                        <!-- 관리자: 처리 상태 변경. 게시판 확장설정 post_status.enabled 이거나 이미 상태가 있는 글. -->
+                    {#if postStatusEnabled}
+                        <!-- 관리자(mb_level 10) 전용 처리 상태 변경 — 부모가 게시판 기능 플래그 × 레벨을 합쳐 넘긴다.
+                             (isAdmin 은 당주도 true 라 여기선 쓰지 않는다: 당주는 프록시에서 403.) -->
                         <select
                             class="border-input bg-background text-foreground ml-1 h-7 rounded-md border px-1.5 text-xs"
                             aria-label="처리 상태 변경"
