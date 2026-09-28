@@ -56,7 +56,9 @@ const config = {
             // 광범위하게 발생했음(Chrome 데스크탑/모바일). 단일 번들은 청크 분할이
             // 없어 해당 캐스케이드를 원천 차단하므로 안정화를 위해 single 로 되돌림.
             // split 재도입은 별도 트랙에서 manualChunks/hydration 검증을 거친 뒤 진행.
-            bundleStrategy: 'single',
+            // 라우트별 코드 분할(기본값). 'single' 은 8MB 단일 번들을 만들어 모든 페이지가
+            // 악보 렌더러·HEIC 변환기 등 동적 import 대상까지 첫 방문에 전부 받게 했다 (muzia.net 실측).
+            bundleStrategy: 'split',
             // modulepreload: 브라우저 기본 동작에 위임하여 불필요한 prefetch 감소
             preloadStrategy: 'modulepreload'
         },
