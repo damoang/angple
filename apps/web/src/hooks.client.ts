@@ -189,9 +189,18 @@ function forceClearAllAndReload(): void {
             })
         );
     }
-    // 3. sessionStorage 정리 (리로드 카운터 등)
+    // 3. sessionStorage 정리 — ⛔ 복구 카운터는 남긴다.
+    //    예전엔 clear() 로 카운터까지 지워서, 리로드 뒤 청크가 또 실패하면 처음부터 다시 세어
+    //    무한 새로고침이 됐다(2026-09-28~29 회원 1,175명·52만 회, 코드 분할로 청크가 늘자 폭발).
+    //    가드 키만 보존하고 나머지를 비운다 — 두 번째 소진에서는 recover*Silently 가 false 를 돌려 멈춘다.
     try {
+        const keep: Record<string, string> = {};
+        for (const k of RECOVERY_GUARD_KEYS) {
+            const v = sessionStorage.getItem(k);
+            if (v !== null) keep[k] = v;
+        }
         sessionStorage.clear();
+        for (const [k, v] of Object.entries(keep)) sessionStorage.setItem(k, v);
     } catch (_) {}
     // 4. 쿼리 버스팅으로 완전 새 요청
     Promise.all(tasks).finally(() => {
@@ -230,6 +239,14 @@ function clearCachesAndReload(): void {
 const CHUNK_FORCE_CLEAR_KEY = '__angple_chunk_force_clear__';
 const STALE_CLIENT_RECOVERY_KEY = '__angple_stale_client_recovery__';
 const RECOVERY_PENDING_KEY = '__angple_recovery_pending__';
+// app.html 인라인 핸들러의 리로드 카운터 키. 여기 목록은 forceClearAllAndReload 의 clear 에서 살린다.
+const INLINE_CHUNK_ERROR_KEY = '__angple_chunk_error__';
+const RECOVERY_GUARD_KEYS = [
+    CHUNK_FORCE_CLEAR_KEY,
+    STALE_CLIENT_RECOVERY_KEY,
+    RECOVERY_PENDING_KEY,
+    INLINE_CHUNK_ERROR_KEY
+];
 
 function markRecoveryPending(type: 'chunk' | 'stale', reason: string, count: number): void {
     try {
