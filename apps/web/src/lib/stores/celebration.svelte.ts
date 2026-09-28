@@ -33,6 +33,8 @@ let currentIndex = $state(0);
 // 풀 로테이션이 끝나면 재셔플하여 모든 메시지가 균등하게 노출되도록 한다.
 let shuffledOrder: number[] = [];
 let position = 0; // shuffledOrder 내의 현재 위치
+// 첫 표시 순서를 이미 만들었는지. 첫 회전만 0번을 고정해 SSR/클라 첫 페인트를 일치시킨다.
+let firstOrderBuilt = false;
 let fetched = false;
 let ready = false;
 let fetchPromise: Promise<void> | null = null;
@@ -70,13 +72,31 @@ function reshuffleOrder(): void {
         shuffledOrder = [];
         position = 0;
         currentIndex = 0;
+        firstOrderBuilt = false;
         return;
     }
     const order = Array.from({ length: len }, (_, i) => i);
-    fisherYatesShuffle(order);
-    shuffledOrder = order;
+    // 🔴 서버에서는 **항상** 결정적 순서를 쓴다.
+    //    firstOrderBuilt 는 모듈 레벨 = 서버 싱글턴이라, 브라우저처럼 「한 번만」 취급하면
+    //    두 번째 SSR 요청부터 전체 셔플이 돌아 (ⓐ SSR/클라 첫 페인트가 다시 어긋나고
+    //    ⓑ 같은 URL 인데 요청마다 HTML 이 달라져 CF HTML 캐시가 흔들린다).
+    if (!browser || !firstOrderBuilt) {
+        // ⭐ 첫 화면만 결정적으로 0번(= sort_order 첫 항목)을 쓴다.
+        //    SSR 이 어떤 이미지를 그릴지 확정할 수 있어야 그 이미지를 preload 하고
+        //    LCP 를 SSR 페인트로 만들 수 있다. 무작위였을 때는 SSR/클라 src 가 어긋나
+        //    SSR 이 43px 플레이스홀더만 그렸고, 보이는 이미지는 하이드레이션 뒤에야 떴다.
+        //    (2026-09-28: 그 탓에 메인 LCP p75 1,104 → 1,931ms)
+        //    나머지는 셔플하고, 2회전부터는 전체를 셔플하므로 균등 노출은 유지된다.
+        const rest = order.slice(1);
+        fisherYatesShuffle(rest);
+        shuffledOrder = [0, ...rest];
+        if (browser) firstOrderBuilt = true;
+    } else {
+        fisherYatesShuffle(order);
+        shuffledOrder = order;
+    }
     position = 0;
-    currentIndex = order[0] ?? 0;
+    currentIndex = shuffledOrder[0] ?? 0;
 }
 
 /**
@@ -198,8 +218,20 @@ export function initFromData(data: CelebrationBanner[]): void {
         celebrations = [...data];
         reshuffleOrder();
         loadedDateKST = getTodayKST();
-        // fetched 는 설정하지 않는다 — mount()가 /api/celebration/today 로 1회 재검증해
-        // (yearly_repeat·최신 이미지·cache-bust 보정) 정확성을 맞춘다. 무감지 스왑.
+        // ⭐ 2026-09-28: 예전에는 여기서 fetched 를 세우지 않고 mount() 가
+        //    /api/celebration/today 로 1회 재검증했다(yearly_repeat·최신 이미지·cache-bust 보정).
+        //    주석에 「무감지 스왑」이라 적혀 있었지만 **무감지가 아니었다** —
+        //    SSR 시드와 API 응답의 image_url 이 갈려(호스트·쿼리) 브라우저가 같은 파일을
+        //    한 번 더 받았고 메인 LCP p75 가 1,104 → 1,931ms(+75%) 가 되었다.
+        //    이제 정본 빌더($lib/server/celebration.ts buildCelebrationImageUrl)가 세 보정을
+        //    **SSR 시드에 이미** 반영하므로 재검증이 필요 없다. 시드로 확정한다.
+        //
+        // 🔴 browser 전용이어야 한다. fetched 는 모듈 레벨 = **서버 싱글턴**이고
+        //    +layout.svelte 는 SSR 에서도 이 함수를 부른다(의도된 것 — 그래야 첫 페인트가 찬다).
+        //    서버에서 한 번 켜지면 이후 모든 SSR 요청이 위 `if (fetched) return` 으로 조기 반환해
+        //    **마음메시지가 영구히 고착**된다(멀티테넌트 누수). celebrations 는 매 요청 덮어써서
+        //    자가교정되지만 이 래치는 자가교정되지 않는다 — 성격이 다르다.
+        if (browser) fetched = true;
     }
     // 빈 시드여도 fallback 문구 렌더용으로 ready 만 올린다. celebrations·fetched·loadedDateKST 는
     // 건드리지 않아, 이미 시드된 데이터나 이후 실 fetch 를 막지 않는다(+layout 의 매 호출 무해화).

@@ -115,14 +115,23 @@
     //    서버의 스토어는 요청 간에 남는 싱글턴이라(빈 배열로는 비워지지 않음) 어제 목록으로 SSR 을
     //    그릴 수 있고, 클라이언트는 오늘 데이터로 다른 분기를 잡아 하이드레이션이 어긋난다.
     //    page.data 는 SSR 과 클라이언트가 같은 값이다.
-    //    그리고 마음메시지가 있을 때 SSR 은 이미지를 **확정하지 않고** 플레이스홀더(같은 43px)를 그린다 —
-    //    롤링 인덱스가 무작위라 서버·클라가 다른 이미지를 고르기 때문. 높이는 같아 밀림이 없다.
+    // ⭐ 2026-09-28: 예전에는 마음메시지가 있을 때 SSR 이 이미지를 **확정하지 않고** 43px
+    //    플레이스홀더만 그렸다 — 롤링 인덱스가 무작위라 서버·클라가 다른 이미지를 골랐기 때문이다.
+    //    높이는 같아 밀림(CLS)은 없었지만, **보이는 이미지가 하이드레이션 뒤에야 떴다.**
+    //    그 탓에 메인 페이지 LCP p75 가 1,104 → 1,931ms(+75%), 모바일은 +42% 가 되었다.
+    //    이제 스토어의 첫 표시 순서가 결정적(0번 고정)이므로 SSR 이 **같은 이미지를 확정**해 그린다.
+    //    (celebration.svelte.ts reshuffleOrder 참조 — 서버는 항상 결정적 순서)
     const seedCelebrationData = showCelebration
         ? (page.data?.celebration as unknown[] | null | undefined)
         : [];
     const seedCelebrationReady = Array.isArray(seedCelebrationData);
     const seedHasCelebration =
         showCelebration && seedCelebrationReady && seedCelebrationData.length > 0;
+    // 첫 페인트에 쓸 배너. ⛔ 모듈 스토어가 아니라 **요청 스코프인 page.data** 에서 꺼낸다 —
+    //    서버 스토어는 싱글턴이라 오늘이 비어도 어제 목록이 남아 있을 수 있다.
+    const seedCelebrationBanner = seedHasCelebration
+        ? ((seedCelebrationData as CelebrationBanner[])[0] ?? null)
+        : null;
     let initialLoading: boolean;
     let initialFallback: boolean;
     if (showCelebration) {
@@ -133,8 +142,9 @@
             initialLoading = false;
             initialFallback = false;
         } else if (seedHasCelebration) {
-            // 플레이스홀더 → 클라이언트 $effect 가 마음메시지로 전환(같은 비율)
-            initialLoading = true;
+            // ⭐ SSR 에서 마음메시지를 바로 그린다(플레이스홀더 없음).
+            //    인덱스가 결정적이라 클라이언트 첫 렌더와 같은 이미지가 나온다.
+            initialLoading = false;
             initialFallback = false;
         } else {
             initialLoading = !seedCelebrationReady;
@@ -154,7 +164,11 @@
     // 텍스트 롤링과 동일한 인덱스 사용 (싱크)
     let celebrationBanner = $derived.by<CelebrationBanner | null>(() => {
         if (!showCelebration || useFallback || adsBanner) return null;
-        if (storeCelebrations.length === 0) return null;
+        // ⛔ SSR 은 요청 스코프 시드로만 그린다 — 모듈 스토어(싱글턴)에 어제 목록이 남아 있으면
+        //    서버가 어제 이미지를 그리고 클라이언트는 오늘 것을 그려 하이드레이션이 어긋난다.
+        if (!browser) return seedCelebrationBanner;
+        // 하이드레이션 첫 렌더: 스토어가 아직 비어 있으면 시드로 SSR 과 같은 것을 그린다.
+        if (storeCelebrations.length === 0) return seedCelebrationBanner;
         return storeCelebrations[storeIndex % storeCelebrations.length] ?? null;
     });
 
@@ -301,13 +315,20 @@
             style:min-height={position === 'sidebar' ? height : undefined}
             style:height={position === 'sidebar' ? height : undefined}
         >
+            <!-- 🔴 loading: index/board 위치의 이 배너는 **화면 최상단**이다.
+                 예전에 `loading="lazy"` 가 붙어 있었는데, above-the-fold LCP 요소에 lazy 를 걸면
+                 브라우저가 레이아웃으로 가시성을 판정할 때까지 요청을 미뤄 LCP 가 그만큼 늦는다.
+                 2026-09-28 메인 LCP p75 1,931ms 의 한 축이 이것이다(다른 축은 SSR/API URL 불일치).
+                 sidebar(드로워)는 접혀 있어 lazy 가 맞으므로 위치별로 가른다. -->
             <img
                 src={celebrationBanner.image_url}
                 alt={celebrationBanner.alt_text || '마음메시지'}
                 class="dm-media-card__image w-full {position === 'sidebar'
                     ? 'object-contain'
                     : 'h-full object-cover'}"
-                loading="lazy"
+                loading={position === 'sidebar' ? 'lazy' : 'eager'}
+                fetchpriority={position === 'sidebar' ? 'auto' : 'high'}
+                decoding="async"
             />
         </a>
     {:else if adsBanner}
