@@ -191,7 +191,7 @@ function forceClearAllAndReload(): void {
     }
     // 3. sessionStorage 정리 — ⛔ 복구 카운터는 남긴다.
     //    예전엔 clear() 로 카운터까지 지워서, 리로드 뒤 청크가 또 실패하면 처음부터 다시 세어
-    //    무한 새로고침이 됐다(2026-09-28~29 회원 1,175명·52만 회, 코드 분할로 청크가 늘자 폭발).
+    //    무한 새로고침이 됐다(코드 분할로 청크가 늘자 드러났다).
     //    가드 키만 보존하고 나머지를 비운다 — 두 번째 소진에서는 recover*Silently 가 false 를 돌려 멈춘다.
     try {
         const keep: Record<string, string> = {};
