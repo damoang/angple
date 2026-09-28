@@ -50,6 +50,15 @@ function extractFirstImage(content: string): string | null {
  *    2026-09-28: SSR 은 `r2…/x.webp`, API 는 `cdn…/x.webp?t=…` 를 내보내
  *    메인 LCP p75 가 1,104 → 1,931ms(+75%) 가 되었다(ETag 동일, 같은 파일).
  *
+ * ⚠️ 정확히 적어 둔다 — 이 함수 하나만으로 「같은 문자열」이 보장되지는 **않는다.**
+ *    이 함수는 `CDN_BASE`(= cdn host) 기준 URL 을 만들고, SSR 쪽은 그 뒤 hooks.server.ts 의
+ *    `rewriteCdnToR2` 가 **HTML 응답에만** cdn→r2 로 바꾼다(JSON 응답은 안 바꾼다).
+ *    따라서 HTML=`r2…?t=N`, API JSON=`cdn…?t=N` 으로 **여전히 호스트가 다르다.**
+ *    지금 두 번 받지 않는 이유는 클라이언트가 첫 로드에 API 를 **부르지 않기** 때문이다
+ *    (stores/celebration.svelte.ts initFromData 가 시드로 확정한다).
+ *    🔴 그러므로 그 재요청을 되살리면 이 버그가 **조용히 복귀한다.** 되살리려면
+ *    JSON 응답에도 같은 rewrite 를 적용하거나 이 함수가 최종 호스트까지 확정해야 한다.
+ *
  * 순서가 의미를 갖는다:
  *   1) DB 값을 CDN_BASE 로 정규화 (s3 host 잔존 보정)
  *   2) 원본 글이 있으면 그 글의 첫 이미지로 **교체** — 회원이 이미지를 바꾼 경우 최신을 쓴다

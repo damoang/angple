@@ -167,8 +167,14 @@
         // ⛔ SSR 은 요청 스코프 시드로만 그린다 — 모듈 스토어(싱글턴)에 어제 목록이 남아 있으면
         //    서버가 어제 이미지를 그리고 클라이언트는 오늘 것을 그려 하이드레이션이 어긋난다.
         if (!browser) return seedCelebrationBanner;
-        // 하이드레이션 첫 렌더: 스토어가 아직 비어 있으면 시드로 SSR 과 같은 것을 그린다.
-        if (storeCelebrations.length === 0) return seedCelebrationBanner;
+        // 하이드레이션 첫 렌더(스토어 초기화 전)에서만 시드로 SSR 과 같은 것을 그린다.
+        // ⛔ 「스토어가 비어 있음」을 시드 폴백 조건으로 쓰면 안 된다 —
+        //    자정 롤오버로 **마음메시지가 없는 날**로 넘어가면 doFetch(true) 가 목록을 비우는데,
+        //    그때 시드(어제 page.data)를 돌려주면 **어제 이미지가 한 프레임 다시 뜬다.**
+        //    useFallback 을 세우는 아래 $effect 는 렌더 뒤에 돌아 이 프레임을 못 막는다.
+        //    그래서 「초기화 여부」로 가른다: 초기화됐고 비어 있으면 null 이 맞다.
+        if (!celebrationReady) return seedCelebrationBanner;
+        if (storeCelebrations.length === 0) return null;
         return storeCelebrations[storeIndex % storeCelebrations.length] ?? null;
     });
 
