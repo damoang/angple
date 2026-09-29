@@ -108,7 +108,15 @@ function trimFreeListPayload(post: FreePost): FreePost {
         lucky_point: post.lucky_point,
         // 처리 상태 배지(해결됨·진행중·보류) — 같은 이유로 화이트리스트에 포함(2026-09-28 카나리에서 누락 실측).
         status: post.status,
-        status_updated_at: post.status_updated_at
+        status_updated_at: post.status_updated_at,
+        // 아래 필드도 목록 레이아웃(classic·compact)이 읽는데 트림이 버려 표시가 사라졌다.
+        // - is_discipline_related: 「이용제한」 배지
+        // - is_comments_disabled: 댓글 비활성 글의 댓글수 숨김
+        // - is_left / scheduled_delete_at: 이 파일에서 트림 직전에 주입하는 탈퇴 표시·삭제예정 배지
+        is_discipline_related: post.is_discipline_related,
+        is_comments_disabled: post.is_comments_disabled,
+        is_left: post.is_left,
+        scheduled_delete_at: post.scheduled_delete_at
     } as FreePost;
 }
 
@@ -660,6 +668,13 @@ export const load: PageServerLoad = async ({
                                 title: disciplined ? DISCIPLINED_TITLE : r.title,
                                 content: masked ? '' : r.content,
                                 is_notice: noticeIds.has(Number(r.id)),
+                                // 목록(백엔드 v1 변환)과 같은 표시 필드 — 검색은 DB 직조회라
+                                // 직접 채워야 「이용제한」 배지·비밀글 자물쇠가 목록과 같게 나온다.
+                                is_discipline_related: disciplined,
+                                is_secret: String(r.wr_option ?? '').includes('secret'),
+                                is_comments_disabled: String(r.wr_option ?? '').includes(
+                                    'comments_disabled'
+                                ),
                                 thumbnail_raw: normalizedThumb,
                                 thumbnail: normalizedThumb
                                     ? toThumbnailUrl(normalizedThumb, '400x225')
