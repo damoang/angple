@@ -117,10 +117,10 @@
                     }}
                 >
                     {#if c.nick && c.nick !== c.mb_id}
-                        <span class="text-foreground min-w-0 truncate font-medium">{c.nick}</span>
+                        <span class="min-w-0 truncate font-medium">{c.nick}</span>
                         <span class="text-muted-foreground shrink-0 text-xs">({c.mb_id})</span>
                     {:else}
-                        <span class="text-foreground min-w-0 truncate">{c.mb_id}</span>
+                        <span class="min-w-0 truncate">{c.mb_id}</span>
                     {/if}
                 </li>
             {:else}
