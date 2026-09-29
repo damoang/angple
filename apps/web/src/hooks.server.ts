@@ -1,5 +1,6 @@
 // OpenTelemetry 초기화 (최상단 — 다른 import 전에 로드)
 import '$lib/server/telemetry.js';
+import { isClientRecoveryEnabled, injectRecoveryFlag } from '$lib/server/client-recovery-flag.js';
 import {
     trackInflightStart,
     trackInflightEnd,
@@ -1211,8 +1212,13 @@ const handleInner: Handle = async ({ event, resolve }) => {
         }
 
         const renderPromise = (async () => {
+            const recoveryEnabled = await isClientRecoveryEnabled();
             const response = await resolve(event, {
-                transformPageChunk: ({ html }) => rewriteCdnToR2(rewriteImmutableAssetUrls(html)),
+                transformPageChunk: ({ html }) =>
+                    injectRecoveryFlag(
+                        rewriteCdnToR2(rewriteImmutableAssetUrls(html)),
+                        recoveryEnabled
+                    ),
                 filterSerializedResponseHeaders: (name) => name.toLowerCase() === 'content-type'
             });
 
@@ -1297,15 +1303,19 @@ const handleInner: Handle = async ({ event, resolve }) => {
     const density = event.cookies.get('angple_ui_density') || 'balanced';
     const dPad = density === 'compact' ? '0px' : density === 'relaxed' ? '6px' : '3px';
 
+    const recoveryEnabled = await isClientRecoveryEnabled();
     const response = await resolve(event, {
         transformPageChunk: ({ html }) => {
             const cls = htmlClass ? ` class="${htmlClass}"` : '';
             const sty = ` style="--row-pad-extra:${dPad};--comment-pad-extra:${dPad}"`;
-            return rewriteCdnToR2(
-                rewriteImmutableAssetUrls(
-                    html.replace('<html lang="ko">', `<html lang="ko"${cls}${sty}>`),
-                    assetRecoveryBust
-                )
+            return injectRecoveryFlag(
+                rewriteCdnToR2(
+                    rewriteImmutableAssetUrls(
+                        html.replace('<html lang="ko">', `<html lang="ko"${cls}${sty}>`),
+                        assetRecoveryBust
+                    )
+                ),
+                recoveryEnabled
             );
         },
         filterSerializedResponseHeaders: (name) => name.toLowerCase() === 'content-type'

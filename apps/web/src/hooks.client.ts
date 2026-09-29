@@ -163,8 +163,7 @@ function isChunkLoadError(error: unknown): boolean {
         msg.includes('failed to fetch dynamically imported module') ||
         msg.includes('importing a module script failed') ||
         msg.includes('error loading dynamically imported module') ||
-        msg.includes('chunkloaderror') ||
-        (msg.includes('load') && msg.includes('chunk'))
+        msg.includes('chunkloaderror')
     );
 }
 
@@ -239,13 +238,12 @@ function clearCachesAndReload(): void {
 const CHUNK_FORCE_CLEAR_KEY = '__angple_chunk_force_clear__';
 const STALE_CLIENT_RECOVERY_KEY = '__angple_stale_client_recovery__';
 const RECOVERY_PENDING_KEY = '__angple_recovery_pending__';
-// app.html 인라인 핸들러의 리로드 카운터 키. 여기 목록은 forceClearAllAndReload 의 clear 에서 살린다.
-const INLINE_CHUNK_ERROR_KEY = '__angple_chunk_error__';
+// forceClearAllAndReload 의 sessionStorage.clear 에서 살리는 가드 키. (청크 복구 카운터는 app.html 인라인이
+// localStorage `__angple_chunk_recovery__` 에 두므로 clear 의 영향을 받지 않는다.)
 const RECOVERY_GUARD_KEYS = [
     CHUNK_FORCE_CLEAR_KEY,
     STALE_CLIENT_RECOVERY_KEY,
-    RECOVERY_PENDING_KEY,
-    INLINE_CHUNK_ERROR_KEY
+    RECOVERY_PENDING_KEY
 ];
 
 function markRecoveryPending(type: 'chunk' | 'stale', reason: string, count: number): void {
@@ -307,19 +305,6 @@ function flushRecoverySuccessIfNeeded(): void {
     }
 }
 
-function recoverChunkErrorSilently(): boolean {
-    try {
-        const count = Number(sessionStorage.getItem(CHUNK_FORCE_CLEAR_KEY) || '0');
-        if (count >= 1) return false;
-        sessionStorage.setItem(CHUNK_FORCE_CLEAR_KEY, String(count + 1));
-        markRecoveryPending('chunk', 'bootstrap-chunk-error', count + 1);
-    } catch {
-        return false;
-    }
-    forceClearAllAndReload();
-    return true;
-}
-
 function recoverStaleClientSilently(reason: string): boolean {
     try {
         const count = Number(sessionStorage.getItem(STALE_CLIENT_RECOVERY_KEY) || '0');
@@ -369,8 +354,9 @@ if (typeof window !== 'undefined') {
     if (recoveredWithCacheBust) {
         flushRecoverySuccessIfNeeded();
     }
-    if (currentUrl.searchParams.has('_v')) {
+    if (currentUrl.searchParams.has('_v') || currentUrl.searchParams.has('_r')) {
         currentUrl.searchParams.delete('_v');
+        currentUrl.searchParams.delete('_r'); // 저장 불가 환경에서 인라인 핸들러가 단계를 나르는 값 — 인라인이 이미 스냅샷을 떴다
         // ⛔ $app/navigation 의 replaceState 를 쓰면 안 된다. 라우터 초기화 전이라
         // 자리표시자 page.url 이 히스토리에 박히고(아래 healPoisonedHistoryPageUrl 참조),
         // 내부적으로 아직 없는 루트 컴포넌트를 건드려 이 파일의 나머지 초기화까지 중단시킨다.
@@ -380,22 +366,52 @@ if (typeof window !== 'undefined') {
     // ⛔ 반드시 _v 제거 뒤에 부른다. 먼저 부르면 치유값에 `?_v=` 가 섞여 남는다.
     healPoisonedHistoryPageUrl();
 
-    const chunkError = (window as any).__angpleChunkError;
-    if (chunkError) {
-        const state = chunkError.getState();
-        if (state.exhausted) {
-            recoverChunkErrorSilently();
-        }
-    }
-    window.addEventListener('angple:chunk-error-exhausted', () => {
-        if (!recoverChunkErrorSilently()) {
-            guardedSend({
-                type: 'chunk_error_exhausted',
-                message: 'Chunk error recovery exhausted after forced clear reload',
-                url: window.location.href,
-                userAgent: navigator.userAgent
-            });
-        }
+    // 청크 복구는 app.html 인라인 핸들러가 백오프로 리로드한다(0·3·10·30초·5분). 여기서는 관측만:
+    //  - 'angple:chunk-recovery'        복구 시작(단계·지연·사유). 킬스위치로 꺼진 경우 disabled=true 로 온다.
+    //                                   인라인이 직접 전송했으면 sent=true (진입 스크립트가 죽어 이 리스너가 없을 때를 위해).
+    //  - 'angple:chunk-recovery-healthy' 로드 후 15초 무오류 — 직전 복구가 있었으면 「성공」으로 보고.
+    //    (예전엔 `_v` 가 URL 에 있다는 것만으로 성공을 찍어 거짓 양성이었다.)
+    window.addEventListener('angple:chunk-recovery', (event) => {
+        const d = (event instanceof CustomEvent ? event.detail : null) as {
+            stage?: number;
+            delayMs?: number;
+            reason?: string;
+            disabled?: boolean;
+            sent?: boolean;
+        } | null;
+        // 인라인 핸들러가 keepalive 로 이미 보냈으면(sent) 중복 전송하지 않는다. 인라인 전송이 불가한 환경만 여기서.
+        if (d?.sent) return;
+        guardedSend({
+            type: d?.disabled ? 'chunk_recovery_disabled' : 'chunk_recovery_started',
+            message: `chunk recovery ${d?.disabled ? 'disabled' : 'started'}: ${d?.reason ?? 'unknown'}`,
+            reason: d?.reason ?? 'unknown',
+            count: d?.stage ?? 0,
+            delayMs: d?.delayMs ?? 0,
+            url: window.location.href,
+            userAgent: navigator.userAgent
+        });
+    });
+    window.addEventListener('angple:chunk-recovery-healthy', () => {
+        const chunkError = (window as any).__angpleChunkError as
+            | {
+                  getState: () => {
+                      stage: number;
+                      pending: { stage: number; reason: string; ts: number; from: string } | null;
+                  };
+              }
+            | undefined;
+        const pending = chunkError?.getState?.().pending;
+        if (!pending) return;
+        guardedSend({
+            type: 'chunk_recovery_succeeded',
+            message: `chunk recovery succeeded: ${pending.reason}`,
+            reason: pending.reason,
+            count: pending.stage,
+            recoveryLatencyMs: pending.ts ? Date.now() - pending.ts : null,
+            recoveredFrom: pending.from || '(unknown)',
+            url: window.location.href,
+            userAgent: navigator.userAgent
+        });
     });
     window.addEventListener('angple:stale-client-recovery', (event) => {
         const reason =
@@ -421,7 +437,7 @@ export const handleError: HandleClientError = ({ error, event, status }) => {
     if (isChunkLoadError(error)) {
         const chunkError = (window as any).__angpleChunkError;
         if (chunkError) {
-            chunkError.handle();
+            chunkError.handle('route-load');
         }
         return;
     }
