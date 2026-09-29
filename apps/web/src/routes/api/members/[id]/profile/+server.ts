@@ -82,6 +82,40 @@ function calculateLevelInfo(totalExp: number) {
     };
 }
 
+/** 기록 정정용 자리표시 대상으로 쓰인 계정 — 그 앞으로 된 기록은 본인 처분이 아니다. */
+const DISCIPLINE_PLACEHOLDER_TARGETS = new Set(['mistake']);
+
+/**
+ * 회원 한 명의 이용제한 기록(삭제·회수 제외, 최신순 최대 100건).
+ */
+async function queryDisciplineLogRows(mbId: string): Promise<DisciplineLogRow[]> {
+    const [rows] = await pool.query<DisciplineLogRow[]>(
+        `SELECT d.wr_id, d.wr_content, d.wr_datetime
+           FROM (
+                 SELECT wr_id FROM g5_write_disciplinelog
+                  WHERE penalty_mb_id = ?
+                 UNION
+                 SELECT wr_id FROM g5_write_disciplinelog
+                  WHERE penalty_mb_id IS NULL
+                    AND (wr_subject = ? OR wr_subject LIKE CONCAT(?, '(%'))
+                ) m
+           JOIN g5_write_disciplinelog d ON d.wr_id = m.wr_id
+          WHERE d.wr_is_comment = 0
+            AND d.wr_deleted_at IS NULL
+            AND NOT COALESCE(
+                  CASE WHEN JSON_VALID(d.wr_content) THEN
+                       CASE WHEN JSON_TYPE(JSON_EXTRACT(d.wr_content, '$.revoked_at')) = 'STRING'
+                            THEN JSON_UNQUOTE(JSON_EXTRACT(d.wr_content, '$.revoked_at')) <> ''
+                       END
+                  END, 0)
+          ORDER BY d.wr_datetime DESC
+          LIMIT 100`,
+        // #13780: 정본 mb_id — wr_subject 는 `mb_id(닉네임)` 형식이라 슬러그(닉)로는 안 잡힘
+        [mbId, mbId, mbId]
+    );
+    return rows;
+}
+
 export const GET: RequestHandler = async ({ params, locals }) => {
     // #12501: 비로그인 사용자의 타 회원 프로필 열람 차단 (개인정보 보호)
     if (!locals.user) {
@@ -214,30 +248,10 @@ export const GET: RequestHandler = async ({ params, locals }) => {
         let discipline: DisciplineEntry | null = null;
         let disciplineHistory: DisciplineEntry[] = [];
         try {
-            const [logRows] = await pool.query<DisciplineLogRow[]>(
-                `SELECT d.wr_id, d.wr_content, d.wr_datetime
-                   FROM (
-                         SELECT wr_id FROM g5_write_disciplinelog
-                          WHERE penalty_mb_id = ?
-                         UNION
-                         SELECT wr_id FROM g5_write_disciplinelog
-                          WHERE penalty_mb_id IS NULL
-                            AND (wr_subject = ? OR wr_subject LIKE CONCAT(?, '(%'))
-                        ) m
-                   JOIN g5_write_disciplinelog d ON d.wr_id = m.wr_id
-                  WHERE d.wr_is_comment = 0
-                    AND d.wr_deleted_at IS NULL
-                    AND NOT COALESCE(
-                          CASE WHEN JSON_VALID(d.wr_content) THEN
-                               CASE WHEN JSON_TYPE(JSON_EXTRACT(d.wr_content, '$.revoked_at')) = 'STRING'
-                                    THEN JSON_UNQUOTE(JSON_EXTRACT(d.wr_content, '$.revoked_at')) <> ''
-                               END
-                          END, 0)
-                  ORDER BY d.wr_datetime DESC
-                  LIMIT 100`,
-                // #13780: 정본 mb_id — wr_subject 는 `mb_id(닉네임)` 형식이라 슬러그(닉)로는 안 잡힘
-                [member.mb_id, member.mb_id, member.mb_id]
-            );
+            // 기록 정정용 자리표시 대상으로 쓰인 계정은 그 기록이 본인 처분이 아니므로 표시하지 않는다.
+            const logRows = DISCIPLINE_PLACEHOLDER_TARGETS.has(member.mb_id)
+                ? []
+                : await queryDisciplineLogRows(member.mb_id);
             for (const row of logRows) {
                 const entry = parseDisciplineLogContent(row);
                 // 소명 인용 등으로 회수(revoke)된 제재는 프로필 이력에서 제외 —
