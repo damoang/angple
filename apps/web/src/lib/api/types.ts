@@ -106,6 +106,8 @@ export interface FreePost {
     } | null;
     is_left?: boolean; // 작성자 탈퇴 여부 (SSR enrichment)
     report_count?: number | string; // wr_7 값: 숫자(신고수) 또는 "lock"(잠김)
+    /** 목록 응답의 신고잠금 여부(wr_7='lock') — 아이콘 표시용. 백엔드 미배포 시 undefined */
+    is_report_locked?: boolean;
     /** 신고잠금 글 (wr_7='lock'). be(#693)가 익명에게만 content='' 와 함께 내려준다. */
     is_restricted?: boolean;
     /**

@@ -114,6 +114,20 @@
                                     {#if post.is_secret}
                                         <Lock class="text-muted-foreground h-4 w-4 shrink-0" />
                                     {/if}
+                                    <!-- 신고잠금(wr_7='lock') 표시 — 아이콘만. 가림 동작은 바꾸지 않는다. 필드가 없으면(구 백엔드) 미표시 -->
+                                    {#if post.is_report_locked}
+                                        <span
+                                            class="inline-flex shrink-0"
+                                            title="신고잠금"
+                                            aria-label="신고잠금"
+                                            role="img"
+                                        >
+                                            <Lock
+                                                class="text-destructive h-4 w-4"
+                                                aria-hidden="true"
+                                            />
+                                        </span>
+                                    {/if}
                                     {#if post.report_count === 'lock'}
                                         <span class="text-muted-foreground italic"
                                             >신고에 의해 숨겨진 게시글입니다</span

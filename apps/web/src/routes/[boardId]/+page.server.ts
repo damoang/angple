@@ -114,6 +114,8 @@ function trimFreeListPayload(post: FreePost): FreePost {
         // - is_comments_disabled: 댓글 비활성 글의 댓글수 숨김
         // - is_left / scheduled_delete_at: 이 파일에서 트림 직전에 주입하는 탈퇴 표시·삭제예정 배지
         is_discipline_related: post.is_discipline_related,
+        // - is_report_locked: 신고잠금 자물쇠 아이콘(표시용)
+        is_report_locked: post.is_report_locked,
         is_comments_disabled: post.is_comments_disabled,
         is_left: post.is_left,
         scheduled_delete_at: post.scheduled_delete_at
@@ -677,6 +679,7 @@ export const load: PageServerLoad = async ({
                                 // 직접 채워야 「이용제한」 배지·비밀글 자물쇠가 목록과 같게 나온다.
                                 is_discipline_related: disciplined,
                                 is_secret: secret,
+                                is_report_locked: r.extra_7 === 'lock',
                                 is_comments_disabled: String(r.wr_option ?? '').includes(
                                     'comments_disabled'
                                 ),
