@@ -1,6 +1,6 @@
 // OpenTelemetry 초기화 (최상단 — 다른 import 전에 로드)
-import { isClientRecoveryEnabled, injectRecoveryFlag } from '$lib/server/client-recovery-flag.js';
 import '$lib/server/telemetry.js';
+import { isClientRecoveryEnabled, injectRecoveryFlag } from '$lib/server/client-recovery-flag.js';
 import {
     trackInflightStart,
     trackInflightEnd,

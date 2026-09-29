@@ -422,6 +422,8 @@
                 var KEY = '__angple_chunk_recovery__';
                 var DELAYS_MS = [0, 3000, 10000, 30000, 300000]; // 5회차부터 5분 고정
                 var HEALTHY_AFTER_MS = 15000;
+                var STALE_STATE_MS = 3600000; // 마지막 실패 뒤 1시간 지난 단계는 버린다 — 며칠 뒤 첫 복구가 5분 지연되는 일 방지
+                //   (실패마다 ts 가 갱신되므로 지속 실패 루프는 이 만료로 단계를 낮출 수 없다)
                 var scheduled = false;
                 var errorsThisLoad = 0;
 
@@ -430,7 +432,10 @@
                         var raw = localStorage.getItem(KEY);
                         if (raw) {
                             var s = JSON.parse(raw);
-                            if (s && typeof s.stage === 'number') return s;
+                            if (s && typeof s.stage === 'number') {
+                                if (s.ts && Date.now() - s.ts > STALE_STATE_MS) return { stage: 0, ts: 0, pending: null };
+                                return s;
+                            }
                         }
                     } catch (e) {}
                     return { stage: 0, ts: 0, pending: null };
@@ -575,7 +580,7 @@
                     }
                 }
 
-                // 정상 로드 확인 → 단계 리셋. hooks.client 가 pending 을 텔레메트리로 보낸 뒤 부른다.
+                // 정상 로드 확인 → 단계 리셋. 아래 load+15초 타이머가 healthy 이벤트(hooks.client 가 pending 을 보고)를 먼저 띄운 뒤 부른다.
                 function markHealthy() {
                     var s = read();
                     if (s.stage === 0 && !s.pending) return;
@@ -584,7 +589,7 @@
 
                 window.__angpleChunkError = { getState: getState, handle: handle, markHealthy: markHealthy };
 
-                // 진입 스크립트 실패만 센다 — <link>(modulepreload/stylesheet) 실패는 치명이 아니라 제외.
+                // 진입 스크립트(/_app/immutable/entry/) 실패만 센다 — <link>(modulepreload/stylesheet) 실패는 치명이 아니라 제외.
                 window.addEventListener(
                     'error',
                     function (e) {
@@ -592,7 +597,7 @@
                         if (
                             t &&
                             t.tagName === 'SCRIPT' &&
-                            (t.src || '').indexOf('/_app/immutable/') !== -1
+                            (t.src || '').indexOf('/_app/immutable/entry/') !== -1
                         ) {
                             handle('entry-script');
                         }

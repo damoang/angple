@@ -9,26 +9,36 @@
 import { readPool } from '$lib/server/db.js';
 
 const TTL_MS = 60_000;
+const FAIL_TTL_MS = 10_000; // 조회 실패도 잠깐 캐시 — SSR 캐시 미스 전 요청이 지나는 핫패스라 DB 장애 때 매 요청 쿼리를 막는다
 let cached: { value: boolean; expiresAt: number } | null = null;
+let inflight: Promise<boolean> | null = null; // 만료 순간 동시 요청이 전부 DB 를 치지 않게(singleflight)
 
 export async function isClientRecoveryEnabled(): Promise<boolean> {
     const now = Date.now();
     if (cached && cached.expiresAt > now) return cached.value;
-    let value = true;
-    try {
-        const [rows] = await readPool.query(
-            `SELECT settings_json FROM site_settings WHERE site_id = 'default' LIMIT 1`
-        );
-        const raw = (rows as { settings_json: string | Record<string, unknown> | null }[])[0]?.settings_json;
-        const parsed = !raw ? {} : typeof raw === 'string' ? JSON.parse(raw) : raw;
-        const flag = (parsed as { client_recovery?: { enabled?: unknown } }).client_recovery?.enabled;
-        if (flag === false || flag === 'false' || flag === 0) value = false;
-    } catch {
-        // 조회 실패는 켜짐 유지 — 실패값은 캐시하지 않는다
-        return true;
-    }
-    cached = { value, expiresAt: now + TTL_MS };
-    return value;
+    if (inflight) return inflight;
+    inflight = (async () => {
+        try {
+            const [rows] = await readPool.query(
+                `SELECT settings_json FROM site_settings WHERE site_id = 'default' LIMIT 1`
+            );
+            const raw = (rows as { settings_json: string | Record<string, unknown> | null }[])[0]
+                ?.settings_json;
+            const parsed = !raw ? {} : typeof raw === 'string' ? JSON.parse(raw) : raw;
+            const flag = (parsed as { client_recovery?: { enabled?: unknown } }).client_recovery
+                ?.enabled;
+            const value = !(flag === false || flag === 'false' || flag === 0);
+            cached = { value, expiresAt: Date.now() + TTL_MS };
+            return value;
+        } catch {
+            // 조회 실패는 켜짐 유지, 10초만 캐시
+            cached = { value: true, expiresAt: Date.now() + FAIL_TTL_MS };
+            return true;
+        } finally {
+            inflight = null;
+        }
+    })();
+    return inflight;
 }
 
 const PLACEHOLDER = '__ANGPLE_RECOVERY_ENABLED__';

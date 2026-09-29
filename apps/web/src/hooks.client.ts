@@ -163,8 +163,7 @@ function isChunkLoadError(error: unknown): boolean {
         msg.includes('failed to fetch dynamically imported module') ||
         msg.includes('importing a module script failed') ||
         msg.includes('error loading dynamically imported module') ||
-        msg.includes('chunkloaderror') ||
-        (msg.includes('load') && msg.includes('chunk'))
+        msg.includes('chunkloaderror')
     );
 }
 
