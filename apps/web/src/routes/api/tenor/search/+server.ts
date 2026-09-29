@@ -3,7 +3,7 @@
  * KLIPY_API_KEY를 서버 사이드에서만 사용하여 클라이언트 노출 방지.
  * Tenor API 종료(2026-06-30)에 따라 KLIPY(api.klipy.com)로 이관.
  *
- * KLIPY 계약: GET https://api.klipy.com/api/v1/{KEY}/gifs/search?q=&per_page=&page=&customer_id=
+ * KLIPY 계약: GET https://api.klipy.com/api/v1/{KEY}/gifs/search?q=&per_page=&page=&customer_id=&locale=&content_filter=
  * 키는 경로(path)에 포함, 응답은 data.data[] 에 항목, 각 항목은 file.{hd|md|sm|xs}.{gif|webp|mp4}.{url,width,height}.
  * 클라이언트 응답 형태({ results:[{id,title,url,preview_url,width,height}], next })는 기존 그대로 유지.
  */
@@ -14,6 +14,10 @@ const KLIPY_BASE = 'https://api.klipy.com/api/v1';
 // KLIPY 분석/식별용 customer_id (개인정보 아님, 고정값). 추후 사용자별 식별이 필요하면 교체.
 const CUSTOMER_ID = 'damoang-web';
 const PER_PAGE = 20;
+// KLIPY 공식 문서(GIF - Search/Trending API): locale = ISO 3166-1 alpha-2 국가 코드,
+// content_filter = off | low | medium | high. 커뮤니티 댓글용이므로 가장 엄격한 high 로 고정.
+const LOCALE = 'kr';
+const CONTENT_FILTER = 'high';
 
 interface KlipyGif {
     url?: string;
@@ -65,7 +69,9 @@ export const GET: RequestHandler = async ({ url }) => {
         q: query,
         per_page: String(PER_PAGE),
         page: String(page),
-        customer_id: CUSTOMER_ID
+        customer_id: CUSTOMER_ID,
+        locale: LOCALE,
+        content_filter: CONTENT_FILTER
     });
     const endpoint = `${KLIPY_BASE}/${apiKey}/gifs/search?${params.toString()}`;
 
