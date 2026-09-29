@@ -1,5 +1,7 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    import { onMount, untrack } from 'svelte';
+    import { page } from '$app/state';
+    import { replaceState } from '$app/navigation';
     import { SeoHead } from '$lib/seo/index.js';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card';
     import AdSlot from '$lib/components/ui/ad-slot/ad-slot.svelte';
@@ -30,10 +32,72 @@
 
     let { data }: { data: PageData } = $props();
 
-    let activeMode = $state<ExploreMode>('hot');
-    let topPeriod = $state<ExploreTopPeriod>('24h');
-    let viewMode = $state<'posts' | 'comments'>('posts');
-    let selectedBoard = $state<string>('all');
+    type ExploreViewMode = 'posts' | 'comments';
+
+    /**
+     * 탭·기간·보기·게시판 선택을 URL 쿼리(+ 히스토리 state)에 보관한다.
+     * 글을 열었다 뒤로 오거나 새로고침해도 같은 화면으로 돌아오게 하기 위함.
+     *
+     * - 기본값과 같은 키는 쿼리에서 뺀다 → 기본 화면의 주소는 그대로 `/explore`.
+     * - 초기값은 SSR·클라이언트 모두 같은 입력(`page.url`)에서 계산한다 → 서버가 처음부터
+     *   맞는 탭을 그리므로 깜빡임·밀림이 없고 하이드레이션 값도 일치한다.
+     * - 쿼리 변경은 load 를 다시 돌리지 않도록 shallow `replaceState` 로만 한다
+     *   (load 는 `url` 을 읽지 않는다).
+     * - shallow `replaceState` 는 `page.url` 을 바꾸지 않고, 뒤로가기 때 SvelteKit 은 그 항목의
+     *   원래 `page.url`(쿼리 없음)로 이동한다. 대신 같이 저장한 `page.state` 는 돌려주므로
+     *   뒤로가기 복원은 `page.state` 를, 새로고침·공유 링크는 쿼리를 쓴다.
+     */
+    const DEFAULT_MODE: ExploreMode = 'hot';
+    const DEFAULT_PERIOD: ExploreTopPeriod = '24h';
+    const DEFAULT_VIEW: ExploreViewMode = 'posts';
+    const DEFAULT_BOARD = 'all';
+
+    const MODE_VALUES: readonly ExploreMode[] = ['hot', 'new', 'rising', 'top'];
+    const PERIOD_VALUES: readonly ExploreTopPeriod[] = ['24h', '7d', '30d'];
+    const VIEW_VALUES: readonly ExploreViewMode[] = ['posts', 'comments'];
+    const BOARD_PATTERN = /^[A-Za-z0-9_-]{1,40}$/;
+
+    interface ExploreSelection {
+        mode: ExploreMode;
+        period: ExploreTopPeriod;
+        view: ExploreViewMode;
+        board: string;
+    }
+
+    function pick<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+        return typeof value === 'string' && (allowed as readonly string[]).includes(value)
+            ? (value as T)
+            : fallback;
+    }
+
+    function pickBoard(value: unknown): string {
+        return typeof value === 'string' && BOARD_PATTERN.test(value) ? value : DEFAULT_BOARD;
+    }
+
+    function readInitialSelection(): ExploreSelection {
+        // 뒤로가기(popstate)로 돌아온 경우: 히스토리 state 가 최신 선택을 들고 있다.
+        const saved = (page.state as { explore?: Partial<ExploreSelection> } | undefined)?.explore;
+        const params = page.url.searchParams;
+        const source = saved ?? {
+            mode: params.get('mode'),
+            period: params.get('period'),
+            view: params.get('view'),
+            board: params.get('board')
+        };
+        return {
+            mode: pick(source.mode, MODE_VALUES, DEFAULT_MODE),
+            period: pick(source.period, PERIOD_VALUES, DEFAULT_PERIOD),
+            view: pick(source.view, VIEW_VALUES, DEFAULT_VIEW),
+            board: pickBoard(source.board)
+        };
+    }
+
+    const initialSelection = readInitialSelection();
+
+    let activeMode = $state<ExploreMode>(initialSelection.mode);
+    let topPeriod = $state<ExploreTopPeriod>(initialSelection.period);
+    let viewMode = $state<ExploreViewMode>(initialSelection.view);
+    let selectedBoard = $state<string>(initialSelection.board);
     let showReadState = $state(false);
 
     onMount(() => {
@@ -134,6 +198,54 @@
         );
     });
 
+    // 초기값 보정 — SSR 에서도 같은 결과가 나오도록 스크립트 본문에서 동기로 한다
+    // ($effect 는 SSR 에서 돌지 않아, 여기서 안 고치면 서버가 빈 목록을 그린 뒤 바뀐다).
+    untrack(() => {
+        if (viewMode === 'comments' && !hasComments) viewMode = DEFAULT_VIEW;
+        if (!availableBoards.some((board) => board.id === selectedBoard)) {
+            selectedBoard = DEFAULT_BOARD;
+        }
+    });
+
+    /** 선택을 바꾸고 URL 쿼리·히스토리 state 에 반영한다. 클릭 핸들러에서만 부른다. */
+    function updateSelection(patch: Partial<ExploreSelection>) {
+        if (patch.mode !== undefined) activeMode = patch.mode;
+        if (patch.period !== undefined) topPeriod = patch.period;
+        if (patch.view !== undefined) viewMode = patch.view;
+        if (patch.board !== undefined) selectedBoard = patch.board;
+        // 탭을 바꿔 선택한 게시판이 목록에서 사라지면 전체로 (아래 $effect 와 같은 규칙).
+        if (!availableBoards.some((board) => board.id === selectedBoard)) {
+            selectedBoard = DEFAULT_BOARD;
+        }
+        syncSelectionToUrl();
+    }
+
+    function syncSelectionToUrl() {
+        const selection: ExploreSelection = {
+            mode: activeMode,
+            period: topPeriod,
+            view: viewMode,
+            board: selectedBoard
+        };
+        try {
+            // 뒤로가기로 돌아온 뒤에는 page.url 에 쿼리가 없으므로 주소창 기준으로 만든다.
+            const url = new URL(window.location.href);
+            const entries: [string, string, string][] = [
+                ['mode', selection.mode, DEFAULT_MODE],
+                ['period', selection.period, DEFAULT_PERIOD],
+                ['view', selection.view, DEFAULT_VIEW],
+                ['board', selection.board, DEFAULT_BOARD]
+            ];
+            for (const [key, value, fallback] of entries) {
+                if (value === fallback) url.searchParams.delete(key);
+                else url.searchParams.set(key, value);
+            }
+            replaceState(url, { ...page.state, explore: selection });
+        } catch {
+            // 라우터 초기화 전 등 — URL 반영만 건너뛰고 화면 전환은 유지
+        }
+    }
+
     $effect(() => {
         if (!availableBoards.some((board) => board.id === selectedBoard)) {
             selectedBoard = 'all';
@@ -207,7 +319,7 @@
                 <div class="hidden items-center gap-0.5 sm:flex">
                     {#each modes as mode (mode.id)}
                         <button
-                            onclick={() => (activeMode = mode.id)}
+                            onclick={() => updateSelection({ mode: mode.id })}
                             class="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm transition-all duration-200 ease-out {activeMode ===
                             mode.id
                                 ? 'bg-primary text-primary-foreground font-medium'
@@ -224,7 +336,7 @@
             <div class="mt-3 flex items-center gap-1 overflow-x-auto sm:hidden">
                 {#each modes as mode (mode.id)}
                     <button
-                        onclick={() => (activeMode = mode.id)}
+                        onclick={() => updateSelection({ mode: mode.id })}
                         class="flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm transition-all duration-200 ease-out {activeMode ===
                         mode.id
                             ? 'bg-primary text-primary-foreground font-medium'
@@ -241,7 +353,7 @@
                 <div class="mt-2 flex items-center gap-1">
                     {#each topPeriods as period (period.id)}
                         <button
-                            onclick={() => (topPeriod = period.id)}
+                            onclick={() => updateSelection({ period: period.id })}
                             class="rounded-md px-2.5 py-1 text-xs transition-all duration-200 ease-out {topPeriod ===
                             period.id
                                 ? 'bg-accent text-accent-foreground font-medium'
@@ -258,7 +370,7 @@
                     {#each availableBoards as board (board.id)}
                         <button
                             type="button"
-                            onclick={() => (selectedBoard = board.id)}
+                            onclick={() => updateSelection({ board: board.id })}
                             class="shrink-0 rounded-md px-2.5 py-1 text-xs transition-all duration-200 ease-out {selectedBoard ===
                             board.id
                                 ? 'bg-accent text-accent-foreground font-medium'
@@ -279,7 +391,7 @@
                         'posts'
                             ? 'bg-primary text-primary-foreground'
                             : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
-                        onclick={() => (viewMode = 'posts')}
+                        onclick={() => updateSelection({ view: 'posts' })}
                     >
                         글
                     </button>
@@ -289,7 +401,7 @@
                         'comments'
                             ? 'bg-primary text-primary-foreground'
                             : 'text-muted-foreground hover:bg-muted hover:text-foreground'}"
-                        onclick={() => (viewMode = 'comments')}
+                        onclick={() => updateSelection({ view: 'comments' })}
                     >
                         댓글
                     </button>
