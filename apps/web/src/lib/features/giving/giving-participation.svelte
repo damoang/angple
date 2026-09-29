@@ -6,6 +6,8 @@
     import { parseBidNumbers } from './pure/lowest-unique.js';
     import MethodSelect from './method-select.svelte';
     import DrawResult from './draw-result.svelte';
+    import WinnerCombobox from './winner-combobox.svelte';
+    import { toWinnerCandidates } from './pure/winner-candidates.js';
 
     let { post, boardId }: { post: { id: number | string }; boardId?: string } = $props();
 
@@ -56,6 +58,8 @@
     const isEnded = $derived(detail?.status === 'ended');
     const isActive = $derived(detail?.status === 'active');
     const drawn = $derived(!!detail?.draw);
+    // 당첨자 지정 후보. 주최자에게만 오는 candidates(닉네임 포함)가 정본, 구 응답이면 참가자 ID.
+    const winnerCandidates = $derived(toWinnerCandidates(detail?.candidates, detail?.participants));
 
     // N-3: 당첨 수령 확인 — 당첨자 본인 + 수령창(claim_due) 존재 + 미확인일 때만 노출.
     const myMbId = $derived(authStore.user?.mb_id ?? null);
@@ -494,18 +498,11 @@
                         <label for="giving-winner" class="text-foreground block text-sm font-medium"
                             >당첨자 지정</label
                         >
-                        <input
+                        <WinnerCombobox
                             id="giving-winner"
-                            list="giving-participant-list"
+                            candidates={winnerCandidates}
                             bind:value={designateWinner}
-                            placeholder="참가자 또는 댓글 작성자 mb_id"
-                            class="border-border bg-background text-foreground w-full rounded-md border px-3 py-2 text-sm"
                         />
-                        <datalist id="giving-participant-list">
-                            {#each detail.participants as p (p)}
-                                <option value={p}></option>
-                            {/each}
-                        </datalist>
                         {#if method === 'curation'}
                             <textarea
                                 bind:value={designateReason}

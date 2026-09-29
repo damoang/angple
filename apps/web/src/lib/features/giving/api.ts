@@ -74,6 +74,11 @@ export interface GivingDetail {
     giving_end: string | null;
     participant_count: number;
     participants: string[];
+    /**
+     * 주최자 지정형(큐레이션·직접 지정) 미개표 글에서 주최자·관리자에게만 오는 당첨자
+     * 후보(참가자 + 댓글 작성자). nick 은 표시용, 제출은 mb_id. 구 응답에는 없다.
+     */
+    candidates?: Array<{ mb_id: string; nick: string }>;
     total_numbers: number;
     total_bids: number;
     is_host: boolean;
