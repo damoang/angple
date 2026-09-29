@@ -159,9 +159,14 @@ function resetAuth(): void {
 
 /**
  * 로그인 페이지로 이동
+ * 로그인 후 원래 화면으로 돌아오도록 경로와 쿼리(예: `?kind=send`)를 함께 넘긴다.
+ *
+ * ⚠️ 페이지 진입 시(onMount/$effect) 부르는 경우 `isLoading` 이 끝난 뒤에만 불러야 한다.
+ * 인증 상태는 루트 레이아웃 onMount 에서 확정되며 자식 페이지가 그보다 먼저 돈다.
  */
 function redirectToLogin(): void {
-    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+    const currentPath =
+        typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/';
     window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
 }
 

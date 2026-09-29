@@ -10,7 +10,7 @@
     import { apiClient } from '$lib/api/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import type { Message, MessageListResponse, MessageKind } from '$lib/api/types.js';
-    import { onMount } from 'svelte';
+    import { onMount, untrack } from 'svelte';
     import { toast } from 'svelte-sonner';
     import Mail from '@lucide/svelte/icons/mail';
     import Send from '@lucide/svelte/icons/send';
@@ -79,10 +79,8 @@
 
     // 쪽지 목록 로드
     async function loadMessages(): Promise<void> {
-        if (!authStore.isAuthenticated) {
-            authStore.redirectToLogin();
-            return;
-        }
+        // 로그인 판정은 아래 $effect 가 인증 확인이 끝난 뒤 한 곳에서 한다.
+        if (!authStore.isAuthenticated) return;
 
         isLoading = true;
         error = null;
@@ -209,9 +207,7 @@
         showSendDialog = true;
     }
 
-    // 초기 로드
     onMount(() => {
-        loadMessages();
         // URL에 to 파라미터가 있으면 쪽지 보내기 다이얼로그 자동 오픈
         if (data.to) {
             sendTo = data.to;
@@ -219,11 +215,22 @@
         }
     });
 
-    // kind 변경 시 다시 로드
+    // 초기 진입·탭/페이지 이동(data 변경) 모두 이 $effect 한 곳에서 로드한다.
+    // 인증 상태는 루트 레이아웃 onMount 에서 확정되는데, 자식 페이지의 onMount 가
+    // 그보다 먼저 돈다. 확인 중(isLoading)에 판정하면 로그인 상태에서도 전체
+    // 새로고침 시 로그인 화면으로 보내게 되므로, 확인이 끝난 뒤에만 판정한다.
+    // 같은 data 로는 한 번만 불러온다(인증 상태 재확정으로 인한 중복 요청 방지).
+    let loadedFor: typeof data | null = null;
     $effect(() => {
-        if (data.kind) {
-            loadMessages();
+        const current = data;
+        if (authStore.isLoading) return;
+        if (!authStore.isAuthenticated) {
+            authStore.redirectToLogin();
+            return;
         }
+        if (loadedFor === current) return;
+        loadedFor = current;
+        untrack(() => loadMessages());
     });
 </script>
 
