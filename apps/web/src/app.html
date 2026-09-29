@@ -426,6 +426,7 @@
                 //   (실패마다 ts 가 갱신되므로 지속 실패 루프는 이 만료로 단계를 낮출 수 없다)
                 var DANTRY_URL = 'https://aplog.damoang.net/api/v1/dantry';
                 var scheduled = false;
+                var pendingStage = 0; // 이번 로드에서 예약된 복구 단계 — 「지금 새로고침」 링크가 승계한다
                 var errorsThisLoad = 0;
                 var sentDisabled = false;
 
@@ -462,7 +463,10 @@
                 // 이 스크립트(<head> 동기 실행)가 먼저 스냅샷을 떠 두고 저장 불가 환경에선 그 사본을 쓴다.
                 var URL_STATE = readFromUrl();
                 function read() {
-                    if (!storageOk)
+                    if (!storageOk) {
+                        // 스냅샷도 마지막 실패로부터 1시간이 지나면 버린다(SPA 로 오래 머문 탭이 옛 단계로 5분 대기하지 않게)
+                        if (!URL_STATE.ts || Date.now() - URL_STATE.ts > STALE_STATE_MS)
+                            return fresh();
                         return {
                             stage: URL_STATE.stage,
                             ts: URL_STATE.ts,
@@ -470,6 +474,7 @@
                             last: null,
                             cycleStart: URL_STATE.ts
                         };
+                    }
                     try {
                         var raw = localStorage.getItem(KEY);
                         if (raw) {
@@ -586,7 +591,7 @@
                                 'color:#ffd866;text-decoration:underline;font-weight:600';
                             a.addEventListener('click', function (ev) {
                                 ev.preventDefault();
-                                reloadNow(read().stage);
+                                reloadNow(pendingStage || read().stage);
                             });
                             bar.appendChild(txt);
                             bar.appendChild(a);
@@ -669,6 +674,7 @@
                     };
                     s.last = null;
                     s.cycleStart = cycleStart;
+                    pendingStage = s.stage;
                     write(s);
                     var sent = beacon({
                         type: 'chunk_recovery_started',
