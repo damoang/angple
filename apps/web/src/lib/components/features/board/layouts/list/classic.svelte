@@ -228,6 +228,17 @@
                     {#if post.is_secret}
                         <Lock class="text-muted-foreground h-3.5 w-3.5 shrink-0" />
                     {/if}
+                    <!-- 신고잠금(wr_7='lock') 표시 — 아이콘만. 가림 동작은 바꾸지 않는다. 필드가 없으면(구 백엔드) 미표시 -->
+                    {#if post.is_report_locked}
+                        <span
+                            class="inline-flex shrink-0"
+                            title="신고잠금"
+                            aria-label="신고잠금"
+                            role="img"
+                        >
+                            <Lock class="text-destructive h-3.5 w-3.5" aria-hidden="true" />
+                        </span>
+                    {/if}
                     {#if post.category}
                         <span
                             class="bg-primary/10 text-primary shrink-0 rounded px-1.5 py-0 text-xs font-medium"
