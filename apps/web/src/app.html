@@ -407,7 +407,7 @@
             (function () {
                 var noop = {
                     getState: function () {
-                        return { stage: 0, ts: 0, pending: null, enabled: false };
+                        return { stage: 0, ts: 0, pending: null, last: null, enabled: false };
                     },
                     handle: function () {},
                     markHealthy: function () {}
@@ -424,27 +424,78 @@
                 var HEALTHY_AFTER_MS = 15000;
                 var STALE_STATE_MS = 3600000; // 마지막 실패 뒤 1시간 지난 단계는 버린다 — 며칠 뒤 첫 복구가 5분 지연되는 일 방지
                 //   (실패마다 ts 가 갱신되므로 지속 실패 루프는 이 만료로 단계를 낮출 수 없다)
+                var DANTRY_URL = 'https://aplog.damoang.net/api/v1/dantry';
                 var scheduled = false;
                 var errorsThisLoad = 0;
+                var sentDisabled = false;
 
+                // localStorage 가 막힌 환경(iOS 「모든 쿠키 차단」·시크릿·quota)에서는 write 가 조용히 실패해
+                // 단계가 늘 0 → 지연 0 → 즉시 리로드 무한루프가 된다. 쓰고-되읽기로 확인하고, 안 되면
+                // 리로드 URL 의 `_r`(단계)·`_v`(시각)로 단계를 넘긴다.
+                var storageOk = false;
+                try {
+                    localStorage.setItem(KEY + '_probe', '1');
+                    storageOk = localStorage.getItem(KEY + '_probe') === '1';
+                    localStorage.removeItem(KEY + '_probe');
+                } catch (e) {}
+
+                function fresh() {
+                    return { stage: 0, ts: 0, pending: null, last: null };
+                }
+                function readFromUrl() {
+                    try {
+                        var q = new URL(location.href).searchParams;
+                        var stage = parseInt(q.get('_r') || '0', 10) || 0;
+                        var ts = parseInt(q.get('_v') || '0', 10) || 0;
+                        if (stage > 0 && ts && Date.now() - ts <= STALE_STATE_MS)
+                            return { stage: stage, ts: ts, pending: null, last: null };
+                    } catch (e) {}
+                    return fresh();
+                }
                 function read() {
+                    if (!storageOk) return readFromUrl();
                     try {
                         var raw = localStorage.getItem(KEY);
                         if (raw) {
                             var s = JSON.parse(raw);
                             if (s && typeof s.stage === 'number') {
-                                if (s.ts && Date.now() - s.ts > STALE_STATE_MS)
-                                    return { stage: 0, ts: 0, pending: null };
+                                if (s.ts && Date.now() - s.ts > STALE_STATE_MS) return fresh();
+                                if (typeof s.last === 'undefined') s.last = null;
                                 return s;
                             }
                         }
                     } catch (e) {}
-                    return { stage: 0, ts: 0, pending: null };
+                    return fresh();
                 }
                 function write(s) {
+                    if (!storageOk) return; // URL 이 단계를 나른다(reloadNow)
                     try {
                         localStorage.setItem(KEY, JSON.stringify(s));
                     } catch (e) {}
+                }
+
+                // 관측 전송 — 진입 스크립트가 죽으면 hooks.client 리스너가 없으므로 인라인이 직접 보낸다.
+                // keepalive 로 리로드(location.replace) 뒤에도 요청이 살아남는다. 전송 성공 여부와 무관하게 detail.sent 로 중복 방지.
+                function beacon(payload) {
+                    try {
+                        payload.url = location.href;
+                        payload.userAgent = navigator.userAgent;
+                        payload.source = 'inline';
+                        var body = JSON.stringify(payload);
+                        if (typeof fetch === 'function') {
+                            fetch(DANTRY_URL, {
+                                method: 'POST',
+                                mode: 'cors',
+                                credentials: 'include',
+                                keepalive: true,
+                                headers: { 'Content-Type': 'application/json' },
+                                body: body
+                            }).catch(function () {});
+                            return true;
+                        }
+                        if (navigator.sendBeacon) return navigator.sendBeacon(DANTRY_URL, body);
+                    } catch (e) {}
+                    return false;
                 }
                 function getState() {
                     var s = read();
@@ -490,9 +541,11 @@
                     Promise.all(tasks).then(cb, cb);
                 }
 
-                function reloadNow() {
+                function reloadNow(stage) {
                     var url = new URL(location.href);
                     url.searchParams.set('_v', String(Date.now()));
+                    if (!storageOk && stage > 0) url.searchParams.set('_r', String(stage));
+                    else url.searchParams.delete('_r');
                     location.replace(url.toString());
                 }
 
@@ -517,7 +570,7 @@
                                 'color:#ffd866;text-decoration:underline;font-weight:600';
                             a.addEventListener('click', function (ev) {
                                 ev.preventDefault();
-                                reloadNow();
+                                reloadNow(read().stage);
                             });
                             bar.appendChild(txt);
                             bar.appendChild(a);
@@ -544,15 +597,26 @@
 
                 function handle(reason) {
                     errorsThisLoad++;
+                    reason = reason || 'unknown';
                     if (!ENABLED) {
+                        if (sentDisabled) return;
+                        sentDisabled = true;
+                        var sentOff = beacon({
+                            type: 'chunk_recovery_disabled',
+                            message: 'chunk recovery disabled: ' + reason,
+                            reason: reason,
+                            count: -1,
+                            delayMs: 0
+                        });
                         try {
                             window.dispatchEvent(
                                 new CustomEvent('angple:chunk-recovery', {
                                     detail: {
                                         stage: -1,
                                         delayMs: 0,
-                                        reason: reason || 'unknown',
-                                        disabled: true
+                                        reason: reason,
+                                        disabled: true,
+                                        sent: sentOff
                                     }
                                 })
                             );
@@ -563,31 +627,53 @@
                     scheduled = true;
                     var s = read();
                     var stage = s.stage;
+                    // 직전에 「건강」으로 리셋됐더라도 1시간 안에 다시 실패하면 그 단계에서 하나만 낮춰 이어간다.
+                    // (로드 성공 → 15초 뒤 지연 import 실패 → 리셋 → 즉시 리로드 … 15~20초 주기 루프 방지)
+                    if (
+                        stage === 0 &&
+                        s.last &&
+                        s.last.ts &&
+                        Date.now() - s.last.ts <= STALE_STATE_MS
+                    )
+                        stage = Math.max(0, s.last.stage - 1);
                     var delay = DELAYS_MS[Math.min(stage, DELAYS_MS.length - 1)];
                     s.stage = stage + 1;
                     s.ts = Date.now();
                     s.pending = {
                         stage: s.stage,
-                        reason: reason || 'unknown',
+                        reason: reason,
                         ts: s.ts,
                         from: location.href
                     };
+                    s.last = null;
                     write(s);
+                    var sent = beacon({
+                        type: 'chunk_recovery_started',
+                        message: 'chunk recovery started: ' + reason,
+                        reason: reason,
+                        count: s.stage,
+                        delayMs: delay,
+                        storage: storageOk ? 'local' : 'url'
+                    });
                     try {
                         window.dispatchEvent(
                             new CustomEvent('angple:chunk-recovery', {
                                 detail: {
                                     stage: s.stage,
                                     delayMs: delay,
-                                    reason: reason || 'unknown'
+                                    reason: reason,
+                                    sent: sent
                                 }
                             })
                         );
                     } catch (e) {}
                     var go = function () {
+                        var reload = function () {
+                            reloadNow(s.stage);
+                        };
                         // 2회차부터는 SW·Cache Storage 를 비운 뒤 리로드
-                        if (s.stage >= 2) clearCachesThen(reloadNow);
-                        else reloadNow();
+                        if (s.stage >= 2) clearCachesThen(reload);
+                        else reload();
                     };
                     if (delay > 0) {
                         if (document.body) showBar(delay);
@@ -605,7 +691,12 @@
                 function markHealthy() {
                     var s = read();
                     if (s.stage === 0 && !s.pending) return;
-                    write({ stage: 0, ts: Date.now(), pending: null });
+                    write({
+                        stage: 0,
+                        ts: Date.now(),
+                        pending: null,
+                        last: { stage: s.stage, ts: s.ts || Date.now() }
+                    });
                 }
 
                 window.__angpleChunkError = {
@@ -635,18 +726,23 @@
                     }
                 });
 
-                // 로드 후 15초 동안 오류가 없으면 정상으로 본다.
+                // 로드 후 15초 동안 오류가 없고 **앱이 하이드레이션까지 마쳤을 때**만 정상으로 본다.
+                // (+layout.svelte 가 window.__angpleHydrateAt 을 찍는다.) 15초에 아직이면 5초 간격으로 60초까지만 더 본다 —
+                // 하이드레이션이 끝내 안 되면 리셋하지 않고 단계를 유지한다.
                 window.addEventListener('load', function () {
-                    setTimeout(function () {
-                        if (errorsThisLoad === 0 && !scheduled) {
-                            try {
-                                window.dispatchEvent(
-                                    new CustomEvent('angple:chunk-recovery-healthy')
-                                );
-                            } catch (e) {}
-                            markHealthy();
+                    var deadline = Date.now() + 60000;
+                    function check() {
+                        if (errorsThisLoad !== 0 || scheduled) return;
+                        if (typeof window.__angpleHydrateAt === 'undefined') {
+                            if (Date.now() < deadline) setTimeout(check, 5000);
+                            return;
                         }
-                    }, HEALTHY_AFTER_MS);
+                        try {
+                            window.dispatchEvent(new CustomEvent('angple:chunk-recovery-healthy'));
+                        } catch (e) {}
+                        markHealthy();
+                    }
+                    setTimeout(check, HEALTHY_AFTER_MS);
                 });
             })();
         </script>

@@ -367,6 +367,7 @@ if (typeof window !== 'undefined') {
 
     // 청크 복구는 app.html 인라인 핸들러가 백오프로 리로드한다(0·3·10·30초·5분). 여기서는 관측만:
     //  - 'angple:chunk-recovery'        복구 시작(단계·지연·사유). 킬스위치로 꺼진 경우 disabled=true 로 온다.
+    //                                   인라인이 직접 전송했으면 sent=true (진입 스크립트가 죽어 이 리스너가 없을 때를 위해).
     //  - 'angple:chunk-recovery-healthy' 로드 후 15초 무오류 — 직전 복구가 있었으면 「성공」으로 보고.
     //    (예전엔 `_v` 가 URL 에 있다는 것만으로 성공을 찍어 거짓 양성이었다.)
     window.addEventListener('angple:chunk-recovery', (event) => {
@@ -375,7 +376,10 @@ if (typeof window !== 'undefined') {
             delayMs?: number;
             reason?: string;
             disabled?: boolean;
+            sent?: boolean;
         } | null;
+        // 인라인 핸들러가 keepalive 로 이미 보냈으면(sent) 중복 전송하지 않는다. 인라인 전송이 불가한 환경만 여기서.
+        if (d?.sent) return;
         guardedSend({
             type: d?.disabled ? 'chunk_recovery_disabled' : 'chunk_recovery_started',
             message: `chunk recovery ${d?.disabled ? 'disabled' : 'started'}: ${d?.reason ?? 'unknown'}`,
