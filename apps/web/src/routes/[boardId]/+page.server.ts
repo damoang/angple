@@ -21,7 +21,6 @@ import { getCachedBoard, resolveCanonicalBoardId } from '$lib/server/board-cache
 import { resolveGivingMeta } from '$lib/features/giving/model.js';
 import { searchByBoard } from '$lib/server/sphinx-search.js';
 import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-mask.js';
-import { isSecretOption } from '$lib/server/secret-option.js';
 import { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import { applyFilter } from '$lib/hooks/registry.js';
@@ -610,9 +609,7 @@ export const load: PageServerLoad = async ({
                     rows.map((r): [unknown, Record<string, unknown>] => {
                         const deleted = Number(r.is_deleted_parent) === 1;
                         const disciplined = disciplinedIds.has(Number(r.id));
-                        // 비밀글은 목록(백엔드)과 같이 본문·본문 파생 썸네일을 싣지 않는다. 제목은 유지.
-                        const secret = isSecretOption(r.wr_option);
-                        const masked = deleted || disciplined || secret;
+                        const masked = deleted || disciplined;
 
                         // 썸네일 파생 — Go 의 TransformToV1Post(transform.go:203-243) 와 같은 규칙.
                         //
