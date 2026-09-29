@@ -354,8 +354,9 @@ if (typeof window !== 'undefined') {
     if (recoveredWithCacheBust) {
         flushRecoverySuccessIfNeeded();
     }
-    if (currentUrl.searchParams.has('_v')) {
+    if (currentUrl.searchParams.has('_v') || currentUrl.searchParams.has('_r')) {
         currentUrl.searchParams.delete('_v');
+        currentUrl.searchParams.delete('_r'); // 저장 불가 환경에서 인라인 핸들러가 단계를 나르는 값 — 인라인이 이미 스냅샷을 떴다
         // ⛔ $app/navigation 의 replaceState 를 쓰면 안 된다. 라우터 초기화 전이라
         // 자리표시자 page.url 이 히스토리에 박히고(아래 healPoisonedHistoryPageUrl 참조),
         // 내부적으로 아직 없는 루트 컴포넌트를 건드려 이 파일의 나머지 초기화까지 중단시킨다.

@@ -440,7 +440,7 @@
                 } catch (e) {}
 
                 function fresh() {
-                    return { stage: 0, ts: 0, pending: null, last: null };
+                    return { stage: 0, ts: 0, pending: null, last: null, cycleStart: 0 };
                 }
                 function readFromUrl() {
                     try {
@@ -448,12 +448,28 @@
                         var stage = parseInt(q.get('_r') || '0', 10) || 0;
                         var ts = parseInt(q.get('_v') || '0', 10) || 0;
                         if (stage > 0 && ts && Date.now() - ts <= STALE_STATE_MS)
-                            return { stage: stage, ts: ts, pending: null, last: null };
+                            return {
+                                stage: stage,
+                                ts: ts,
+                                pending: null,
+                                last: null,
+                                cycleStart: ts
+                            };
                     } catch (e) {}
                     return fresh();
                 }
+                // hooks.client 가 부팅 직후 주소창의 `_v`·`_r` 을 history.replaceState 로 지우므로,
+                // 이 스크립트(<head> 동기 실행)가 먼저 스냅샷을 떠 두고 저장 불가 환경에선 그 사본을 쓴다.
+                var URL_STATE = readFromUrl();
                 function read() {
-                    if (!storageOk) return readFromUrl();
+                    if (!storageOk)
+                        return {
+                            stage: URL_STATE.stage,
+                            ts: URL_STATE.ts,
+                            pending: null,
+                            last: null,
+                            cycleStart: URL_STATE.ts
+                        };
                     try {
                         var raw = localStorage.getItem(KEY);
                         if (raw) {
@@ -627,15 +643,21 @@
                     scheduled = true;
                     var s = read();
                     var stage = s.stage;
-                    // 직전에 「건강」으로 리셋됐더라도 1시간 안에 다시 실패하면 그 단계에서 하나만 낮춰 이어간다.
-                    // (로드 성공 → 15초 뒤 지연 import 실패 → 리셋 → 즉시 리로드 … 15~20초 주기 루프 방지)
+                    // 직전에 「건강」으로 리셋됐더라도 사이클 첫 실패로부터 1시간 안에 다시 실패하면 **같은 단계**에서 이어간다.
+                    // (로드 성공 → 15초 뒤 지연 import 실패 → 리셋 → 즉시 리로드 … 반복을 막는다: 실패-건강이 반복될수록
+                    //  단계가 올라가 5분 간격에 수렴하고, 첫 실패 시각은 건강 사이클에도 갱신되지 않아 1시간 뒤엔 실제로 만료된다)
+                    var cycleStart = Date.now();
                     if (
                         stage === 0 &&
                         s.last &&
                         s.last.ts &&
                         Date.now() - s.last.ts <= STALE_STATE_MS
-                    )
-                        stage = Math.max(0, s.last.stage - 1);
+                    ) {
+                        stage = s.last.stage;
+                        cycleStart = s.last.ts;
+                    } else if (stage > 0 && s.cycleStart) {
+                        cycleStart = s.cycleStart;
+                    }
                     var delay = DELAYS_MS[Math.min(stage, DELAYS_MS.length - 1)];
                     s.stage = stage + 1;
                     s.ts = Date.now();
@@ -646,6 +668,7 @@
                         from: location.href
                     };
                     s.last = null;
+                    s.cycleStart = cycleStart;
                     write(s);
                     var sent = beacon({
                         type: 'chunk_recovery_started',
@@ -695,7 +718,8 @@
                         stage: 0,
                         ts: Date.now(),
                         pending: null,
-                        last: { stage: s.stage, ts: s.ts || Date.now() }
+                        last: { stage: s.stage, ts: s.cycleStart || s.ts || Date.now() },
+                        cycleStart: 0
                     });
                 }
 
