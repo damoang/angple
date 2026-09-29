@@ -6,7 +6,7 @@
     import { apiClient } from '$lib/api/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import type { GroupedNotificationListResponse, GroupedNotification } from '$lib/api/types.js';
-    import { onMount } from 'svelte';
+    import { onMount, untrack } from 'svelte';
     import Bell from '@lucide/svelte/icons/bell';
     import Check from '@lucide/svelte/icons/check';
     // 알림 종류 표시는 두 화면(드롭다운·알림함)이 같은 모듈을 쓴다 — bug/13242
@@ -72,10 +72,8 @@
     }
 
     async function loadNotifications(): Promise<void> {
-        if (!authStore.isAuthenticated) {
-            authStore.redirectToLogin();
-            return;
-        }
+        // 로그인 판정은 아래 $effect 가 인증 확인이 끝난 뒤 한 곳에서 한다.
+        if (!authStore.isAuthenticated) return;
 
         isLoading = true;
         error = null;
@@ -99,8 +97,8 @@
     }
 
     function setFilter(key: string): void {
+        // 로드는 activeFilter 를 보는 $effect 가 한 번 한다(여기서 또 부르면 중복 요청).
         activeFilter = key;
-        loadNotifications();
     }
 
     async function handleNotificationClick(notification: GroupedNotification): Promise<void> {
@@ -232,10 +230,23 @@
     // 초기 진입·페이지네이션(data.page 변경) 모두 이 $effect 한 곳에서 로드한다.
     // (기존엔 onMount 도 loadNotifications 를 불러 진입 시 무거운 grouped 쿼리가 2번 나갔다 —
     //  4초 프록시 타임아웃을 더 자주 넘겨 스피너·유령 뱃지를 악화시켰다. bug/13089)
+    // 인증 상태는 루트 레이아웃 onMount 에서 확정되는데, 자식 페이지가 그보다 먼저 돈다.
+    // 확인 중(isLoading)에 판정하면 로그인 상태에서도 전체 새로고침 시 로그인 화면으로
+    // 보내게 되므로, 확인이 끝난 뒤에만 판정한다. 같은 data·필터로는 한 번만 불러온다.
+    let loadedFor: typeof data | null = null;
+    let loadedFilter: string | null = null;
     $effect(() => {
-        if (data.page) {
-            loadNotifications();
+        const current = data;
+        const filter = activeFilter;
+        if (authStore.isLoading) return;
+        if (!authStore.isAuthenticated) {
+            authStore.redirectToLogin();
+            return;
         }
+        if (loadedFor === current && loadedFilter === filter) return;
+        loadedFor = current;
+        loadedFilter = filter;
+        untrack(() => loadNotifications());
     });
 </script>
 
