@@ -6,6 +6,7 @@ import { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import { TieredCache } from '$lib/server/cache.js';
 import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-mask.js';
+import { isSecretOption, SECRET_COMMENT_PLACEHOLDER } from '$lib/server/secret-option.js';
 
 export interface NewPostItem {
     bn_id: number;
@@ -53,9 +54,10 @@ const MAJOR_BOARD = 'free';
  *
  * ⛔ 네임스페이스가 'feed2' 인 이유: 삭제글을 거르면서 **같은 키의 내용이 바뀌었다.**
  *    구 'feed' 엔트리가 살아 있으면 배포 직후 삭제글이 그대로 나온다. 구키는 TTL 로 소멸한다.
+ * 'feed3': 비밀글·비밀댓글 본문 미리보기를 비우면서 같은 키의 내용이 바뀌어 한 번 더 올렸다.
  * maxSize 는 scope 만큼 키가 늘어나므로 200 → 400.
  */
-const feedCache = new TieredCache<NewPostsResult>('feed2', 30_000, 60, 400);
+const feedCache = new TieredCache<NewPostsResult>('feed3', 30_000, 60, 400);
 
 /** COUNT(*) 캐시: key = "view:grId:scope", TTL 10분 */
 const countCache = new Map<string, { total: number; expiry: number }>();
@@ -294,12 +296,14 @@ export async function getNewPosts(
 
     const batchPromises = Array.from(grouped.entries()).map(async ([boTable, tableRows]) => {
         const wrIds = tableRows.map((r) => r.wr_id);
+        // 댓글행은 원글이 비밀글인지도 봐야 한다 — 원글 wr_option 을 함께 읽는다.
+        const lookupIds = Array.from(new Set([...wrIds, ...tableRows.map((r) => r.wr_parent)]));
         try {
             const [writeRows] = await readPool.query<RowDataPacket[]>(
-                `SELECT wr_id, wr_subject, wr_content, wr_name, wr_comment, wr_hit, wr_deleted_at
+                `SELECT wr_id, wr_subject, wr_content, wr_option, wr_name, wr_comment, wr_hit, wr_deleted_at
 				 FROM \`g5_write_${boTable}\`
 				 WHERE wr_id IN (?)`,
-                [wrIds]
+                [lookupIds]
             );
             for (const wr of writeRows) {
                 writeDataMap.set(`${boTable}:${wr.wr_id}`, wr);
@@ -324,6 +328,25 @@ export async function getNewPosts(
             if (isDeleted(writeData.wr_deleted_at)) continue;
 
             const isDisciplined = disciplinedSet.has(`${row.bo_table}:${row.wr_id}`);
+            // 비밀글·비밀댓글(또는 비밀글에 달린 댓글)은 본문 미리보기를 싣지 않는다.
+            const isCommentRow = row.wr_id !== row.wr_parent;
+            const parentData = isCommentRow
+                ? writeDataMap.get(`${row.bo_table}:${row.wr_parent}`)
+                : writeData;
+            const isSecret =
+                isSecretOption(writeData.wr_option) ||
+                (isCommentRow && isSecretOption(parentData?.wr_option));
+            let preview = '';
+            if (!isDisciplined) {
+                if (isSecret) {
+                    preview = isCommentRow ? SECRET_COMMENT_PLACEHOLDER : '';
+                } else if (isCommentRow && !parentData) {
+                    // 원글을 확인하지 못하면 비밀 여부를 알 수 없으므로 싣지 않는다.
+                    preview = '';
+                } else {
+                    preview = extractContentPreview(writeData.wr_content || '');
+                }
+            }
             items.push({
                 bn_id: row.bn_id,
                 bo_table: row.bo_table,
@@ -332,7 +355,7 @@ export async function getNewPosts(
                 bn_datetime: row.bn_datetime,
                 bo_subject: row.bo_subject,
                 wr_subject: isDisciplined ? DISCIPLINED_TITLE : writeData.wr_subject,
-                wr_content: isDisciplined ? '' : extractContentPreview(writeData.wr_content || ''),
+                wr_content: preview,
                 mb_id: row.mb_id,
                 wr_name: writeData.wr_name,
                 wr_comment: writeData.wr_comment,

@@ -32,6 +32,7 @@ import {
     getLastSupportAction
 } from '$lib/server/board-support';
 import { resolveClientIp } from '$lib/server/rate-limit.js';
+import { isSecretOption, SECRET_COMMENT_PLACEHOLDER } from '$lib/server/secret-option.js';
 
 const REASON_MAX = 200;
 /** 보드당 동시 잠금 상한 — 남용(무더기 잠금) 1차 방어선 */
@@ -45,7 +46,13 @@ interface TargetRow extends RowDataPacket {
     wr_name: string;
     wr_subject: string;
     wr_content: string;
+    wr_option: string;
     wr_7: string;
+}
+
+interface ParentRow extends RowDataPacket {
+    mb_id: string;
+    wr_option: string;
 }
 
 export const POST: RequestHandler = async ({ params, request, cookies, getClientAddress }) => {
@@ -83,7 +90,7 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
         `SELECT wr_id, wr_parent, wr_is_comment, COALESCE(mb_id,'') AS mb_id,
                 COALESCE(wr_name,'') AS wr_name, COALESCE(wr_subject,'') AS wr_subject,
                 LEFT(COALESCE(wr_content,''), 80) AS wr_content,
-                COALESCE(wr_7,'') AS wr_7
+                COALESCE(wr_option,'') AS wr_option, COALESCE(wr_7,'') AS wr_7
            FROM ?? WHERE wr_id = ? AND wr_deleted_at IS NULL`,
         [table, targetId]
     );
@@ -100,12 +107,31 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
         );
     }
 
+    // 비밀댓글(또는 비밀글에 달린 댓글) 본문은 글 상세와 같은 기준으로만 보여준다:
+    // 댓글 작성자 · 원글 작성자 · 사이트 관리자. 당주라는 이유만으로는 열람하지 않는다.
+    let commentSubject = target.wr_content;
+    if (isComment) {
+        const [parentRows] = await pool.query<ParentRow[]>(
+            `SELECT COALESCE(mb_id,'') AS mb_id, COALESCE(wr_option,'') AS wr_option
+               FROM ?? WHERE wr_id = ?`,
+            [table, parsed.postId]
+        );
+        const parent = parentRows[0];
+        const isSecret =
+            isSecretOption(target.wr_option) || !parent || isSecretOption(parent.wr_option);
+        const viewerId = user?.mb_id ?? '';
+        const canViewSecret =
+            ctx.isSiteAdmin ||
+            (!!viewerId && (viewerId === target.mb_id || viewerId === parent?.mb_id));
+        if (isSecret && !canViewSecret) commentSubject = SECRET_COMMENT_PLACEHOLDER;
+    }
+
     const summary = {
         target_id: target.wr_id,
         post_id: parsed.postId,
         is_comment: isComment,
         author: target.wr_name,
-        subject: isComment ? target.wr_content : target.wr_subject,
+        subject: isComment ? commentSubject : target.wr_subject,
         locked: target.wr_7 === 'lock'
     };
 

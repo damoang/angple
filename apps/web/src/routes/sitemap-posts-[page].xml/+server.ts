@@ -2,6 +2,7 @@ import type { RequestHandler } from './$types';
 import pool from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import { getSitemapPageSegments } from '$lib/server/sitemap.js';
+import { isSecretOption } from '$lib/server/secret-option.js';
 
 /**
  * 게시글 Sitemap (분할)
@@ -37,7 +38,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
                 //    인덱스가 없는 테이블(165개 중 4개)은 catch 에서 힌트 없이 재시도한다.
                 const sitemapQuery = (forceIndex: boolean) =>
                     pool.query<RowDataPacket[]>(
-                        `SELECT wr_id, wr_datetime, wr_last, wr_7, LEFT(wr_content, 1000) AS content_head
+                        `SELECT wr_id, wr_datetime, wr_last, wr_7, wr_option, LEFT(wr_content, 1000) AS content_head
                          FROM g5_write_${seg.board}${forceIndex ? ' FORCE INDEX (wr_is_comment)' : ''}
 					     WHERE wr_is_comment = 0
 					       AND (wr_deleted_at IS NULL OR wr_deleted_at = '0000-00-00 00:00:00')
@@ -61,8 +62,13 @@ export const GET: RequestHandler = async ({ params, url }) => {
                     wr_datetime: string;
                     wr_last: string;
                     wr_7: string | null;
+                    wr_option: string | null;
                     content_head: string;
                 }>) {
+                    // 비밀글은 sitemap 에서 제외한다 — 작성자·관리자 외에는 열람할 수 없어 색인 대상이
+                    // 아니고, 본문에서 뽑는 이미지 주소도 싣지 않아야 한다. WHERE 가 아닌 여기서 거르는
+                    // 이유는 위 FORCE INDEX 실행계획을 건드리지 않기 위해서다(A형 잠금과 같은 방식).
+                    if (isSecretOption(post.wr_option)) continue;
                     // 신고잠금(A형) free 글은 sitemap 에서 제외한다 — 비로그인이 볼 수 없어
                     // 색인 가치가 없다. 근거글·B형까지 포괄하는 최종 방어는 상세의 noindex 헤더이고
                     // (+page.server.ts), 여기선 인덱스 스캔에 영향 없는 값싼 A형만 걸러낸다.
