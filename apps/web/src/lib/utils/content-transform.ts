@@ -6,6 +6,7 @@
  */
 
 import { embedUrl } from '$lib/plugins/auto-embed';
+import { youtubeWatchLinkHtml } from './youtube-watch-link';
 
 const EMOTICON_PATTERN = /\{(이모티콘|emo):([^}]*)\}/gi;
 const VIDEO_PATTERN = /\{(동영상|video)\s*:\s*([\s\S]*?)\}/gi;
@@ -210,7 +211,12 @@ export function youtubeUrlToEmbedHtml(url: string): string | null {
     const platform = isShorts ? 'youtube-shorts' : 'youtube';
     const aspectRatio = isShorts ? '177.78%' : '56.25%';
     const maxWidth = isShorts ? '400px' : '560px';
-    return `<div class="embed-container" data-platform="${platform}" style="--aspect-ratio: ${aspectRatio}; --max-width: ${maxWidth};"><iframe src="${embedSrc}" frameborder="0" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; picture-in-picture" style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe></div>`;
+    // 플레이어 아래 「YouTube에서 보기 ↗」 — 원본 링크가 사라져 유튜브로 이동할 수 없던 문제 대응
+    const watchLink = youtubeWatchLinkHtml(ytMatch[1], {
+        isShorts,
+        start: timeMatch ? timeMatch[1] : null
+    });
+    return `<div class="embed-container" data-platform="${platform}" style="--aspect-ratio: ${aspectRatio}; --max-width: ${maxWidth};"><iframe src="${embedSrc}" frameborder="0" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; picture-in-picture" style="position:absolute;top:0;left:0;width:100%;height:100%;"></iframe></div>${watchLink}`;
 }
 
 /**

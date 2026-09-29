@@ -631,6 +631,16 @@
         text-decoration: none;
     }
 
+    /* 유튜브 「YouTube에서 보기 ↗」 — 본문 링크 색(primary·밑줄) 대신 작고 흐리게 (styles/components.css) */
+    .prose :global(.embed-source-link a) {
+        color: var(--color-muted-foreground);
+        text-decoration: none;
+    }
+
+    .prose :global(.embed-source-link a:hover) {
+        text-decoration: underline;
+    }
+
     /* 링크 텍스트/URL 불일치 경고 */
     .prose :global(a.has-link-warning) {
         position: relative;

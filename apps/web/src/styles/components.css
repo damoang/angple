@@ -417,6 +417,22 @@ img[src*='/emoticons/']:not([width]) {
     border-radius: 0.5rem;
 }
 
+/* 유튜브 플레이어 아래 「YouTube에서 보기 ↗」 (bug#13909) — 플레이어와 같은 HTML 로 함께 삽입 */
+.embed-source-link {
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+}
+
+.embed-source-link a {
+    color: var(--color-muted-foreground);
+    text-decoration: none;
+}
+
+.embed-source-link a:hover {
+    text-decoration: underline;
+}
+
 /* Twitter/X 임베드: 높이 가변적 — aspect-ratio 패딩 비활성화 */
 .embed-container[data-platform='twitter'] {
     height: var(--twitter-embed-height, auto);
