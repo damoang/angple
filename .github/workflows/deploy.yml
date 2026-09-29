@@ -440,6 +440,33 @@ jobs:
           echo "Timeout"
           exit 1
 
+      # D3: 실제 브라우저(모바일 384px·CPU 4배·4Mbps)로 카나리 3페이지를 열어
+      #     재내비게이션·/_app/immutable 청크 오류·하이드레이션을 판정한다. 실패하면 승격(deploy-production)이 열리지 않는다.
+      - name: Checkout (browser check script)
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            apps/web/scripts/canary-browser-check.mjs
+          sparse-checkout-cone-mode: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright (chromium)
+        run: |
+          mkdir -p /tmp/pw && cd /tmp/pw
+          npm init -y >/dev/null
+          npm i --no-audit --no-fund playwright@1.58.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify canary in a real browser
+        env:
+          PW_MODULE: /tmp/pw/node_modules/playwright/index.mjs
+        run: |
+          node apps/web/scripts/canary-browser-check.mjs https://canary.damoang.net 384 780 45 4000 100
+
       - name: Notify Telegram (Approval)
         if: success()
         env:
