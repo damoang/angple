@@ -32,14 +32,27 @@
     // 또 외부 도메인 등 의도하지 않은 redirect 방어 (invite 흐름 제외).
     function sanitizeRedirect(raw: string | null): string {
         if (!raw) return '/';
-        // 절대 URL: invite 흐름만 허용, 그 외 외부 도메인 차단
-        if (/^https?:\/\//.test(raw)) {
-            return raw.includes('ads.damoang.net/invite/') ? raw : '/';
+        // 절대 URL: invite 흐름만 허용, 그 외 외부 도메인 차단.
+        // ⛔ 문자열 포함 검사는 `https://외부/?x=ads.damoang.net/invite/` 도 통과시키므로 호스트·경로를 파싱해 본다.
+        if (/^https?:\/\//i.test(raw)) {
+            try {
+                const u = new URL(raw);
+                return u.protocol === 'https:' &&
+                    u.hostname === 'ads.damoang.net' &&
+                    u.pathname.startsWith('/invite/')
+                    ? u.href
+                    : '/';
+            } catch {
+                return '/';
+            }
         }
+        // 같은 사이트 상대 경로만 허용. `//host`·`/\host` 는 브라우저가 외부 주소로 해석하므로 차단,
+        // 제어 문자(탭·개행 등 — 브라우저가 제거한 뒤 해석)도 차단.
+        if (!raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/\\')) return '/';
+        if (/[\u0000-\u001f\u007f]/.test(raw)) return '/';
         // /login 시작 = 자기 자신 → 루프 차단
         if (raw.startsWith('/login')) return '/';
-        // 상대 경로만 허용
-        return raw.startsWith('/') ? raw : '/';
+        return raw;
     }
 
     const redirectUrl = $derived(sanitizeRedirect($page.url.searchParams.get('redirect')));
