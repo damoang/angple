@@ -10,6 +10,7 @@
     import AlertTriangle from '@lucide/svelte/icons/alert-triangle';
     import { Button } from '$lib/components/ui/button/index.js';
     import { trackEvent } from '$lib/services/ga4.js';
+    import { askBlurForTitle } from '$lib/utils/blur-confirm.js';
 
     let { data }: { data: PageData } = $props();
 
@@ -42,7 +43,14 @@
         error = null;
 
         try {
-            await apiClient.updatePost(boardId, String(postId), formData);
+            // 부끄앙(가림) 확인 — 글쓰기와 동일 조건·동일 문구 (#13717).
+            // 수정은 요청이 하나라 선택값을 같은 PUT 에 실어 보낸다.
+            // 키워드가 없으면 is_blur 를 보내지 않아 기존 가림 설정을 건드리지 않는다.
+            const wantBlur = askBlurForTitle(formData.title ?? data.post?.title ?? '');
+            const request: UpdatePostRequest =
+                wantBlur === undefined ? formData : { ...formData, is_blur: wantBlur };
+
+            await apiClient.updatePost(boardId, String(postId), request);
             trackEvent('post_edit', { board_id: boardId, post_id: String(postId) });
 
             // 앙지도: 수정으로 지도 링크가 채워졌을 수 있으므로 좌표를 다시 해소한다.
