@@ -6,6 +6,7 @@
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import ChevronUp from '@lucide/svelte/icons/chevron-up';
+    import Lock from '@lucide/svelte/icons/lock';
     import { formatDate } from '$lib/utils/format-date.js';
     import {
         getPostLabel,
@@ -23,6 +24,8 @@
         wr_datetime: string;
         href: string;
         deleted_at?: string | null;
+        /** 신고잠금 글(제목은 백엔드가 가려 보냄) — 백엔드 미배포 시 undefined */
+        is_locked?: boolean;
     }
 
     interface RecentComment {
@@ -37,6 +40,8 @@
         post_deleted_at?: string | null;
         /** 백엔드가 내려주는 콘텐츠 종류 — 미배포 시 undefined 라 유틸이 폴백한다 */
         content_kind?: ContentKind | null;
+        /** 부모 글이 신고잠금(내용은 백엔드가 가려 보냄) — 백엔드 미배포 시 undefined */
+        is_locked?: boolean;
     }
 
     interface Props {
@@ -289,52 +294,75 @@
     });
 </script>
 
+<!-- 신고잠금 배지 — 제목·내용은 백엔드가 이미 가려 보낸다. 한 줄이 잘려도 보이도록 앞에 둔다 -->
+{#snippet lockBadge()}
+    <span
+        class="text-destructive bg-destructive/10 inline-flex shrink-0 items-center gap-0.5 rounded px-1 text-[10px] leading-4"
+    >
+        <Lock class="h-2.5 w-2.5" />
+        신고잠금
+    </span>
+{/snippet}
+
 <!-- 최근 글/댓글 한 줄 렌더 정본 — 삭제 항목(linkable:false)은 링크 없이 표시 (#13174) -->
 {#snippet postItem(p: RecentPost)}
     {@const label = getPostLabel(p)}
-    {#if label.linkable}
-        <a href={p.href} class="text-foreground hover:text-primary block min-w-0 truncate text-xs">
-            {label.text}
-        </a>
-    {:else}
-        <span class="text-muted-foreground block min-w-0 truncate text-xs">{label.text}</span>
-    {/if}
+    <div class="flex min-w-0 items-center gap-1">
+        {#if p.is_locked === true}
+            {@render lockBadge()}
+        {/if}
+        {#if label.linkable}
+            <a
+                href={p.href}
+                class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
+            >
+                {label.text}
+            </a>
+        {:else}
+            <span class="text-muted-foreground block min-w-0 truncate text-xs">{label.text}</span>
+        {/if}
+    </div>
 {/snippet}
 
 {#snippet commentItem(c: RecentComment)}
     {@const label = getCommentLabel(c)}
-    {#if label.linkable}
-        <a
-            href={c.href}
-            class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
-            onclick={(e) => {
-                const hash = c.href.split('#')[1];
-                if (hash && window.location.pathname === c.href.split('#')[0]) {
-                    e.preventDefault();
-                    const el = document.getElementById(hash);
-                    if (el) {
-                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        el.style.transition = 'background-color 0.3s ease';
-                        el.style.backgroundColor = 'hsl(var(--primary) / 0.1)';
-                        el.style.borderRadius = '0.5rem';
-                        setTimeout(() => {
-                            el.style.backgroundColor = '';
+    <div class="flex min-w-0 items-center gap-1">
+        {#if c.is_locked === true}
+            {@render lockBadge()}
+        {/if}
+        {#if label.linkable}
+            <a
+                href={c.href}
+                class="text-foreground hover:text-primary block min-w-0 truncate text-xs"
+                onclick={(e) => {
+                    const hash = c.href.split('#')[1];
+                    if (hash && window.location.pathname === c.href.split('#')[0]) {
+                        e.preventDefault();
+                        const el = document.getElementById(hash);
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            el.style.transition = 'background-color 0.3s ease';
+                            el.style.backgroundColor = 'hsl(var(--primary) / 0.1)';
+                            el.style.borderRadius = '0.5rem';
                             setTimeout(() => {
-                                el.style.transition = '';
-                                el.style.borderRadius = '';
-                            }, 300);
-                        }, 2000);
+                                el.style.backgroundColor = '';
+                                setTimeout(() => {
+                                    el.style.transition = '';
+                                    el.style.borderRadius = '';
+                                }, 300);
+                            }, 2000);
+                        }
                     }
-                }
-            }}
-        >
-            {commentText(label)}
-        </a>
-    {:else}
-        <span class="text-muted-foreground block min-w-0 truncate text-xs">
-            {commentText(label)}
-        </span>
-    {/if}
+                }}
+            >
+                {commentText(label)}
+            </a>
+        {:else}
+            <span class="text-muted-foreground block min-w-0 truncate text-xs">
+                {commentText(label)}
+            </span>
+        {/if}
+    </div>
 {/snippet}
 
 {#if post.author_id && !post.deleted_at}
