@@ -20,6 +20,17 @@ import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-ma
 import { isSecretOption } from '$lib/server/secret-option.js';
 import type { RowDataPacket } from 'mysql2';
 
+/** 본문(wr_content)을 매칭하지 않는 검색 필드 — sphinx-search.ts buildMatchExpr 와 일치 */
+const NON_BODY_FIELDS = new Set([
+    'title',
+    'author',
+    'author_nick',
+    'author_id',
+    'comment_author',
+    'comment_nick',
+    'comment_id'
+]);
+
 interface BoardRow extends RowDataPacket {
     bo_table: string;
     bo_subject: string;
@@ -67,7 +78,9 @@ export const GET: RequestHandler = async ({ url, locals }) => {
             field === 'comment_id';
         // 본문을 대상으로 매칭하는 검색 — 비밀글·비밀댓글은 결과에서 아예 뺀다
         // (발췌를 비워도 「이 단어가 들어 있다」는 사실 자체가 드러나므로).
-        const matchesBody = field === 'content' || field === 'title_content' || field === 'comment';
+        // ⛔ 허용 목록 방식: buildMatchExpr 는 모르는 sfl 을 제목+본문으로 보내므로,
+        //    본문을 보지 않는 필드만 명시하고 나머지(알 수 없는 값 포함)는 본문 매칭으로 본다.
+        const matchesBody = !NON_BODY_FIELDS.has(field);
 
         // 1) Sphinx에서 검색 (최대 200건)
         const { rows: sphinxRows } = await searchAllBoards(field, query, 200);
