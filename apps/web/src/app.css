@@ -28,6 +28,8 @@ html {
 @source '../../../custom-themes/**/*.{svelte,html,js,ts}';
 @source '../../../widgets/**/*.{svelte,html,js,ts}';
 @source '../../../custom-widgets/**/*.{svelte,html,js,ts}';
+@source '../../../plugins/**/*.{svelte,ts}';
+@source '../../../custom-plugins/**/*.{svelte,ts}';
 
 @import 'tw-animate-css';
 @import './styles/base.css';
