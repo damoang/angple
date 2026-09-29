@@ -45,5 +45,7 @@ const PLACEHOLDER = '__ANGPLE_RECOVERY_ENABLED__';
 
 /** app.html 인라인 핸들러의 플레이스홀더를 실제 값으로 치환 */
 export function injectRecoveryFlag(html: string, enabled: boolean): string {
-    return html.includes(PLACEHOLDER) ? html.replace(PLACEHOLDER, enabled ? 'true' : 'false') : html;
+    return html.includes(PLACEHOLDER)
+        ? html.replace(PLACEHOLDER, enabled ? 'true' : 'false')
+        : html;
 }

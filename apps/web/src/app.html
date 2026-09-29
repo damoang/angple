@@ -433,7 +433,8 @@
                         if (raw) {
                             var s = JSON.parse(raw);
                             if (s && typeof s.stage === 'number') {
-                                if (s.ts && Date.now() - s.ts > STALE_STATE_MS) return { stage: 0, ts: 0, pending: null };
+                                if (s.ts && Date.now() - s.ts > STALE_STATE_MS)
+                                    return { stage: 0, ts: 0, pending: null };
                                 return s;
                             }
                         }
@@ -512,7 +513,8 @@
                             var a = document.createElement('a');
                             a.href = '#';
                             a.textContent = '지금 새로고침';
-                            a.style.cssText = 'color:#ffd866;text-decoration:underline;font-weight:600';
+                            a.style.cssText =
+                                'color:#ffd866;text-decoration:underline;font-weight:600';
                             a.addEventListener('click', function (ev) {
                                 ev.preventDefault();
                                 reloadNow();
@@ -527,7 +529,9 @@
                             if (!txtEl) return;
                             txtEl.textContent =
                                 left > 0
-                                    ? '새 버전을 불러오지 못했습니다. ' + left + '초 뒤 다시 시도합니다.'
+                                    ? '새 버전을 불러오지 못했습니다. ' +
+                                      left +
+                                      '초 뒤 다시 시도합니다.'
                                     : '새 버전을 불러오는 중…';
                             if (left > 0) {
                                 left--;
@@ -544,7 +548,12 @@
                         try {
                             window.dispatchEvent(
                                 new CustomEvent('angple:chunk-recovery', {
-                                    detail: { stage: -1, delayMs: 0, reason: reason || 'unknown', disabled: true }
+                                    detail: {
+                                        stage: -1,
+                                        delayMs: 0,
+                                        reason: reason || 'unknown',
+                                        disabled: true
+                                    }
                                 })
                             );
                         } catch (e) {}
@@ -557,12 +566,21 @@
                     var delay = DELAYS_MS[Math.min(stage, DELAYS_MS.length - 1)];
                     s.stage = stage + 1;
                     s.ts = Date.now();
-                    s.pending = { stage: s.stage, reason: reason || 'unknown', ts: s.ts, from: location.href };
+                    s.pending = {
+                        stage: s.stage,
+                        reason: reason || 'unknown',
+                        ts: s.ts,
+                        from: location.href
+                    };
                     write(s);
                     try {
                         window.dispatchEvent(
                             new CustomEvent('angple:chunk-recovery', {
-                                detail: { stage: s.stage, delayMs: delay, reason: reason || 'unknown' }
+                                detail: {
+                                    stage: s.stage,
+                                    delayMs: delay,
+                                    reason: reason || 'unknown'
+                                }
                             })
                         );
                     } catch (e) {}
@@ -573,7 +591,10 @@
                     };
                     if (delay > 0) {
                         if (document.body) showBar(delay);
-                        else document.addEventListener('DOMContentLoaded', function () { showBar(delay); });
+                        else
+                            document.addEventListener('DOMContentLoaded', function () {
+                                showBar(delay);
+                            });
                         setTimeout(go, delay);
                     } else {
                         go();
@@ -587,7 +608,11 @@
                     write({ stage: 0, ts: Date.now(), pending: null });
                 }
 
-                window.__angpleChunkError = { getState: getState, handle: handle, markHealthy: markHealthy };
+                window.__angpleChunkError = {
+                    getState: getState,
+                    handle: handle,
+                    markHealthy: markHealthy
+                };
 
                 // 진입 스크립트(/_app/immutable/entry/) 실패만 센다 — <link>(modulepreload/stylesheet) 실패는 치명이 아니라 제외.
                 window.addEventListener(
@@ -615,7 +640,9 @@
                     setTimeout(function () {
                         if (errorsThisLoad === 0 && !scheduled) {
                             try {
-                                window.dispatchEvent(new CustomEvent('angple:chunk-recovery-healthy'));
+                                window.dispatchEvent(
+                                    new CustomEvent('angple:chunk-recovery-healthy')
+                                );
                             } catch (e) {}
                             markHealthy();
                         }

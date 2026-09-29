@@ -240,7 +240,11 @@ const STALE_CLIENT_RECOVERY_KEY = '__angple_stale_client_recovery__';
 const RECOVERY_PENDING_KEY = '__angple_recovery_pending__';
 // forceClearAllAndReload 의 sessionStorage.clear 에서 살리는 가드 키. (청크 복구 카운터는 app.html 인라인이
 // localStorage `__angple_chunk_recovery__` 에 두므로 clear 의 영향을 받지 않는다.)
-const RECOVERY_GUARD_KEYS = [CHUNK_FORCE_CLEAR_KEY, STALE_CLIENT_RECOVERY_KEY, RECOVERY_PENDING_KEY];
+const RECOVERY_GUARD_KEYS = [
+    CHUNK_FORCE_CLEAR_KEY,
+    STALE_CLIENT_RECOVERY_KEY,
+    RECOVERY_PENDING_KEY
+];
 
 function markRecoveryPending(type: 'chunk' | 'stale', reason: string, count: number): void {
     try {
@@ -366,9 +370,12 @@ if (typeof window !== 'undefined') {
     //  - 'angple:chunk-recovery-healthy' 로드 후 15초 무오류 — 직전 복구가 있었으면 「성공」으로 보고.
     //    (예전엔 `_v` 가 URL 에 있다는 것만으로 성공을 찍어 거짓 양성이었다.)
     window.addEventListener('angple:chunk-recovery', (event) => {
-        const d = (event instanceof CustomEvent ? event.detail : null) as
-            | { stage?: number; delayMs?: number; reason?: string; disabled?: boolean }
-            | null;
+        const d = (event instanceof CustomEvent ? event.detail : null) as {
+            stage?: number;
+            delayMs?: number;
+            reason?: string;
+            disabled?: boolean;
+        } | null;
         guardedSend({
             type: d?.disabled ? 'chunk_recovery_disabled' : 'chunk_recovery_started',
             message: `chunk recovery ${d?.disabled ? 'disabled' : 'started'}: ${d?.reason ?? 'unknown'}`,
@@ -381,7 +388,12 @@ if (typeof window !== 'undefined') {
     });
     window.addEventListener('angple:chunk-recovery-healthy', () => {
         const chunkError = (window as any).__angpleChunkError as
-            | { getState: () => { stage: number; pending: { stage: number; reason: string; ts: number; from: string } | null } }
+            | {
+                  getState: () => {
+                      stage: number;
+                      pending: { stage: number; reason: string; ts: number; from: string } | null;
+                  };
+              }
             | undefined;
         const pending = chunkError?.getState?.().pending;
         if (!pending) return;

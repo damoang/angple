@@ -1215,7 +1215,10 @@ const handleInner: Handle = async ({ event, resolve }) => {
             const recoveryEnabled = await isClientRecoveryEnabled();
             const response = await resolve(event, {
                 transformPageChunk: ({ html }) =>
-                    injectRecoveryFlag(rewriteCdnToR2(rewriteImmutableAssetUrls(html)), recoveryEnabled),
+                    injectRecoveryFlag(
+                        rewriteCdnToR2(rewriteImmutableAssetUrls(html)),
+                        recoveryEnabled
+                    ),
                 filterSerializedResponseHeaders: (name) => name.toLowerCase() === 'content-type'
             });
 
