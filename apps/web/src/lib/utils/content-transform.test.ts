@@ -13,6 +13,7 @@ import {
     transformStandaloneYoutubeLinks,
     transformBracketImages
 } from './content-transform';
+import { embedUrl, processContent } from '$lib/plugins/auto-embed/embedder';
 
 describe('transformCodeBlocks', () => {
     it('기본 [code]...[/code] 변환', () => {
@@ -254,7 +255,12 @@ describe('transformStandaloneYoutubeLinks - 단독 문단 유튜브 링크 자�
         expect(result).toContain('class="embed-container"');
         expect(result).toContain('data-platform="youtube"');
         expect(result).toContain('youtube-nocookie.com/embed/QSWsno8FsC4');
-        expect(result).not.toContain('<a ');
+        // 원래 앵커는 사라지고, 플레이어 아래 「YouTube에서 보기」 링크 하나만 남는다
+        expect(result).not.toContain('rel="nofollow noreferrer noopener"');
+        expect(result.match(/<a /g)).toHaveLength(1);
+        expect(result).toContain(
+            '<div class="embed-source-link"><a href="https://www.youtube.com/watch?v=QSWsno8FsC4" target="_blank" rel="noopener noreferrer">YouTube에서 보기 ↗</a></div>'
+        );
         expect(result).not.toContain('</p>');
     });
 
@@ -291,7 +297,9 @@ describe('transformStandaloneYoutubeLinks - 단독 문단 유튜브 링크 자�
             '<p>&nbsp;<br><a href="https://youtu.be/dQw4w9WgXcQ">영상 제목입니다</a><br /> </p>';
         const result = transformStandaloneYoutubeLinks(input);
         expect(result).toContain('youtube-nocookie.com/embed/dQw4w9WgXcQ');
-        expect(result).not.toContain('<a ');
+        expect(result).not.toContain('영상 제목입니다');
+        expect(result.match(/<a /g)).toHaveLength(1);
+        expect(result).toContain('href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"');
     });
 
     it('여러 문단 중 단독 유튜브 문단만 변환, 주변 콘텐츠 보존', () => {
@@ -322,6 +330,75 @@ describe('transformStandaloneYoutubeLinks - 단독 문단 유튜브 링크 자�
     it('빈/null 입력', () => {
         expect(transformStandaloneYoutubeLinks('')).toBe('');
         expect(transformStandaloneYoutubeLinks(null as unknown as string)).toBe(null);
+    });
+});
+
+describe('YouTube에서 보기 링크 (bug#13909)', () => {
+    const LABEL = 'YouTube에서 보기 ↗';
+
+    it('플레이어 뒤(컨테이너 밖)에 새 창 링크를 붙인다', () => {
+        const input =
+            '<p><a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">https://www.youtube.com/watch?v=dQw4w9WgXcQ</a></p>';
+        const result = transformStandaloneYoutubeLinks(input);
+        expect(result).toContain(
+            '</iframe></div><div class="embed-source-link"><a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" target="_blank" rel="noopener noreferrer">' +
+                LABEL +
+                '</a></div>'
+        );
+    });
+
+    it('시작 시간 t= 를 유지하고 list= 는 붙이지 않는다', () => {
+        const input =
+            '<p><a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ&amp;t=90s&amp;list=PLxyz_-123">https://www.youtube.com/watch?v=dQw4w9WgXcQ&amp;t=90s&amp;list=PLxyz_-123</a></p>';
+        const result = transformStandaloneYoutubeLinks(input);
+        expect(result).toContain('href="https://www.youtube.com/watch?v=dQw4w9WgXcQ&amp;t=90s"');
+    });
+
+    it('youtu.be 의 ?t= 도 유지', () => {
+        const result = transformStandaloneYoutubeLinks(
+            '<p><a href="https://youtu.be/dQw4w9WgXcQ?t=42">https://youtu.be/dQw4w9WgXcQ?t=42</a></p>'
+        );
+        expect(result).toContain('href="https://www.youtube.com/watch?v=dQw4w9WgXcQ&amp;t=42s"');
+    });
+
+    it('shorts 는 /shorts/<ID> 로 연결', () => {
+        const result = transformStandaloneYoutubeLinks(
+            '<p><a href="https://www.youtube.com/shorts/dQw4w9WgXcQ">https://www.youtube.com/shorts/dQw4w9WgXcQ</a></p>'
+        );
+        expect(result).toContain('href="https://www.youtube.com/shorts/dQw4w9WgXcQ"');
+    });
+
+    it('변환을 두 번 돌려도 링크·플레이어가 중복되지 않는다', () => {
+        const input =
+            '<p><a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">https://www.youtube.com/watch?v=dQw4w9WgXcQ</a></p>';
+        const once = transformStandaloneYoutubeLinks(input);
+        const twice = transformStandaloneYoutubeLinks(once);
+        expect(twice).toBe(once);
+        expect(twice.split(LABEL)).toHaveLength(2);
+        expect(twice.match(/<iframe/g)).toHaveLength(1);
+    });
+
+    it('{video: 유튜브} 마커에도 링크를 붙인다', () => {
+        const result = transformVideos('{video: https://www.youtube.com/watch?v=dQw4w9WgXcQ}');
+        expect(result).toContain('youtube-nocookie.com/embed/dQw4w9WgXcQ');
+        expect(result).toContain(LABEL);
+    });
+
+    it('auto-embed(댓글·본문 URL 자동 임베드)도 유튜브에만 링크를 붙이고, 재실행해도 중복 없음', () => {
+        const yt = embedUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=15');
+        expect(yt).toContain('youtube.com/embed/dQw4w9WgXcQ');
+        expect(yt).toContain('href="https://www.youtube.com/watch?v=dQw4w9WgXcQ&amp;t=15s"');
+        expect(yt).toContain(LABEL);
+
+        const html =
+            '<p><a href="https://youtu.be/dQw4w9WgXcQ">https://youtu.be/dQw4w9WgXcQ</a></p>';
+        const once = processContent(html);
+        expect(once.split(LABEL)).toHaveLength(2);
+        expect(processContent(once)).toBe(once);
+
+        const vimeo = embedUrl('https://vimeo.com/123456789');
+        expect(vimeo).not.toBeNull();
+        expect(vimeo).not.toContain(LABEL);
     });
 });
 

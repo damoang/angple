@@ -4,6 +4,19 @@
 
 import type { EmbedInfo, EmbedResult } from './types.js';
 import { platforms } from './platforms/index.js';
+import { youtubeWatchLinkHtml } from '../../utils/youtube-watch-link.js';
+
+/**
+ * 유튜브 플레이어 아래 「YouTube에서 보기 ↗」 링크 (그 외 플랫폼은 빈 문자열)
+ * 컨테이너(.embed-container)는 비율 패딩·absolute iframe 구조라 링크는 컨테이너 밖 형제로 둔다.
+ */
+function youtubeSourceLink(info: EmbedInfo): string {
+    if (info.platform !== 'youtube' && info.platform !== 'youtube-shorts') return '';
+    return youtubeWatchLinkHtml(info.id, {
+        isShorts: info.platform === 'youtube-shorts',
+        start: info.params?.start ?? null
+    });
+}
 
 /**
  * URL에서 임베드 정보 추출
@@ -55,7 +68,7 @@ export function wrapEmbedHtml(info: EmbedInfo, innerHtml: string): string {
 export function embedUrl(url: string): string | null {
     const result = getEmbed(url);
     if (result.success && result.info && result.html) {
-        return wrapEmbedHtml(result.info, result.html);
+        return wrapEmbedHtml(result.info, result.html) + youtubeSourceLink(result.info);
     }
     return null;
 }
