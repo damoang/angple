@@ -17,7 +17,7 @@
     import { sendMentionNotifications } from '$lib/utils/mention-notify.js';
     import { checkPermission, getPermissionMessage } from '$lib/utils/board-permissions.js';
     import { trackEvent } from '$lib/services/ga4.js';
-    import { uiSettingsStore } from '$lib/stores/ui-settings.svelte.js';
+    import { askBlurForTitle } from '$lib/utils/blur-confirm.js';
     import type { FreePost } from '$lib/api/types.js';
     import FileText from '@lucide/svelte/icons/file-text';
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
@@ -205,12 +205,9 @@
 
             // 부끄앙(가림) 통제 — 게시 완료 후 팝업(#13571 Phase3).
             // 작성 제출 흐름은 건드리지 않고, 제목에 블러 키워드가 있을 때만
-            // 확인 팝업으로 강제 흐림 여부를 작성자가 직접 고른다.
-            // matchesBlurKeyword 는 리더 contentBlur 토글과 무관하게 키워드만 본다.
-            if (browser && uiSettingsStore.matchesBlurKeyword(request.title || '')) {
-                const wantBlur = window.confirm(
-                    '제목에 가림 키워드가 있습니다. 이 글을 부끄앙(가림) 처리할까요?\n\n확인 = 가림 / 취소 = 안 가림'
-                );
+            // 확인 팝업으로 강제 흐림 여부를 작성자가 직접 고른다. (글수정과 공통 헬퍼)
+            const wantBlur = askBlurForTitle(request.title || '');
+            if (wantBlur !== undefined) {
                 try {
                     await apiClient.updatePost(boardId, String(newPost.id), { is_blur: wantBlur });
                 } catch (blurErr) {
