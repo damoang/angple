@@ -21,6 +21,7 @@
     import Clock from '@lucide/svelte/icons/clock';
     import FileText from '@lucide/svelte/icons/file-text';
     import MessageSquare from '@lucide/svelte/icons/message-square';
+    import Lock from '@lucide/svelte/icons/lock';
     import Ban from '@lucide/svelte/icons/ban';
     import Mail from '@lucide/svelte/icons/mail';
     import Link from '@lucide/svelte/icons/link';
@@ -148,6 +149,8 @@
         wr_datetime: string;
         href: string;
         deleted_at?: string | null;
+        /** 신고잠금 글(제목은 백엔드가 가려 보냄) — 백엔드 미배포 시 undefined */
+        is_locked?: boolean;
     }
     interface RecentComment {
         bo_table: string;
@@ -162,6 +165,8 @@
         content_kind?: ContentKind | null;
         /** 이 댓글에 달린 답글(대댓글) 수 — 백엔드 미배포 시 undefined (makeang/88) */
         reply_count?: number;
+        /** 부모 글이 신고잠금(내용은 백엔드가 가려 보냄) — 백엔드 미배포 시 undefined */
+        is_locked?: boolean;
     }
     interface LikedPost {
         bo_table: string;
@@ -938,9 +943,19 @@
                                             {label.text}
                                         </span>
                                     {/if}
-                                    <div class="text-muted-foreground mt-0.5 flex gap-2 text-xs">
+                                    <div
+                                        class="text-muted-foreground mt-0.5 flex items-center gap-2 text-xs"
+                                    >
                                         <span class="text-primary/70">{post.bo_subject}</span>
                                         <span>{formatDate(post.wr_datetime)}</span>
+                                        {#if post.is_locked === true}
+                                            <span
+                                                class="text-destructive bg-destructive/10 inline-flex items-center gap-0.5 rounded px-1 py-px"
+                                            >
+                                                <Lock class="h-3 w-3" />
+                                                신고잠금
+                                            </span>
+                                        {/if}
                                     </div>
                                 </li>
                             {/each}
@@ -984,6 +999,15 @@
                                     >
                                         <span class="text-primary/70">{comment.bo_subject}</span>
                                         <span>{formatDate(comment.wr_datetime)}</span>
+                                        {#if comment.is_locked === true}
+                                            <span
+                                                class="text-destructive bg-destructive/10 inline-flex items-center gap-0.5 rounded px-1 py-px"
+                                                title="신고로 잠긴 글에 단 댓글"
+                                            >
+                                                <Lock class="h-3 w-3" />
+                                                신고잠금
+                                            </span>
+                                        {/if}
                                         <!-- makeang/88: 내 댓글에 달린 답글 수. 알림과 별개로 목록에서 바로 보이게 -->
                                         {#if (comment.reply_count ?? 0) > 0}
                                             <span
