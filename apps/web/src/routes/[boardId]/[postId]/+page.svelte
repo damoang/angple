@@ -33,6 +33,7 @@
         goToCertification
     } from '$lib/utils/certification-gate.js';
     import { apiClient } from '$lib/api/index.js';
+    import { toast } from 'svelte-sonner';
     import DeleteConfirmDialog from '$lib/components/features/board/delete-confirm-dialog.svelte';
     import CommentForm from '$lib/components/features/board/comment-form.svelte';
     import CommentList from '$lib/components/features/board/comment-list.svelte';
@@ -1869,7 +1870,13 @@
                 try {
                     await apiClient.putPostRating(boardId, String(newComment.id), rating);
                 } catch (ratingErr) {
+                    // 댓글은 이미 저장됨 — 별점만 실패했음을 사용자에게 알린다(조용한 실패 방지).
                     console.error('리뷰 별점 저장 실패(댓글은 작성됨):', ratingErr);
+                    const reason =
+                        ratingErr instanceof Error && ratingErr.message
+                            ? ` (${ratingErr.message})`
+                            : '';
+                    toast.error(`댓글은 등록됐지만 별점은 저장하지 못했어요.${reason}`);
                 }
             }
 
