@@ -442,11 +442,17 @@ jobs:
 
       # D3: 실제 브라우저(모바일 384px·CPU 4배·4Mbps)로 카나리 3페이지를 열어
       #     재내비게이션·/_app/immutable 청크 오류·하이드레이션을 판정한다. 실패하면 승격(deploy-production)이 열리지 않는다.
+      #     레인 2개 — 청크(9월 #2303 모드 혼용) / 하이드레이션(6월 #1685 $set·HierarchyRequestError).
+      #     목록→글 클릭(SPA)·뒤로가기 복귀·셸/본문 존재까지 본다(#12836 #12842 #12844 지문).
       - name: Checkout (browser check script)
         uses: actions/checkout@v4
         with:
+          # ⛔ 검사기가 import 하는 파일을 빠뜨리면 CI 에서 모듈을 못 찾아 승격이 막힌다.
+          #    canary-browser-check.mjs 는 canary-error-lanes.mjs 를 import 한다.
           sparse-checkout: |
             apps/web/scripts/canary-browser-check.mjs
+            apps/web/scripts/canary-error-lanes.mjs
+            apps/web/scripts/canary-error-lanes.test.mjs
           sparse-checkout-cone-mode: false
 
       - name: Setup Node
@@ -460,6 +466,11 @@ jobs:
           npm init -y >/dev/null
           npm i --no-audit --no-fund playwright@1.58.0
           npx playwright install --with-deps chromium
+
+      # D3-0: 오류 분류기 자체 단언. ⛔ 이것이 실패하면 브라우저 검사가 **6월 지문을 놓치는 상태**다
+      #       (1차 split 실패 2026-06-29 #1691 의 $set·HierarchyRequestError). 의존성 없이 node 로 돈다.
+      - name: Verify error lane classifier
+        run: node apps/web/scripts/canary-error-lanes.test.mjs
 
       - name: Verify canary in a real browser
         env:

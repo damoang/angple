@@ -10,11 +10,17 @@
  *   - 청크 오류 콘솔 메시지 0
  *   - window.__angpleChunkError.getState().stage === 0, pending 없음, 복구 상태줄(#angple-recovery-bar) 없음
  *   - 하이드레이션 완료(window.__angpleHydrateAt) — 25초 안
+ *   - 🔴 하이드레이션 레인 오류 0 — `$set` undefined · HierarchyRequestError · Failed to hydrate
+ *        (1차 split 실패 2026-06-29 #1691 의 지문. 기존 검사는 청크 레인만 봐서 이걸 놓쳤다)
+ *   - 🔴 셸·본문 존재 — 콘솔 오류 없이도 화면이 빌 수 있다(#12836: 좌측 메뉴·로그인 메뉴바 미출력)
+ *   - 🔴 목록→글 **클릭 이동(SPA)** 과 뒤로가기 복귀 — #12842 는 「클릭하면 안 열리고, 두 번째에 열리는데
+ *        목록이 안 나온다」였다. 직접 이동(goto)만으로는 그 경로를 한 번도 밟지 않는다
  * 조건: 모바일 384×780 · CPU 4배 스로틀 · 네트워크 기본 4Mbps/RTT 100ms(일반 4G). 빠른 망에선 재현이 안 된다.
  *   ⛔ Slow 4G(400kbps)는 현재 단일 번들 6MB 가 2분 넘게 걸려 게이트로 못 쓴다 — 코드 분할 뒤 낮춘다.
  * 안전: 브라우저 1개·페이지 순차. 실행 호스트 1분 부하 8 초과면 60초 대기 ×3 후 실패.
  */
 import { readFileSync } from 'node:fs';
+import { classify } from './canary-error-lanes.mjs';
 
 // playwright 모듈 경로: CI 러너는 PW_MODULE 로 넘긴다(예: /tmp/pw/node_modules/playwright/index.mjs). 없으면 로컬 pnpm 스토어 경로.
 const PW =
@@ -28,8 +34,6 @@ const KBPS = Number(process.argv[6] || 4000),
     RTT = Number(process.argv[7] || 100);
 const UA =
     'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36 angple-canary-check';
-const CHUNK_RE =
-    /(failed to fetch dynamically imported module|importing a module script failed|error loading dynamically imported module|chunkloaderror|blocked by CORS policy|net::ERR_|failed to load resource)/i;
 
 function load1() {
     try {
@@ -90,55 +94,88 @@ async function latestPostPath() {
 }
 const targets = ['/', '/free', await latestPostPath()].filter(Boolean);
 
-const results = [];
-for (const path of targets) {
-    const url = `${base}${path}`;
-    let navs = 0,
-        initialDone = false;
-    const consoleErrors = [];
-    const navUrls = [];
-    // ⛔ framenavigated 는 history.replaceState(같은 문서)에도 발화한다 — 문서 요청만 센다
+// ⛔ 우리 자산에 관한 것만 센다 — 서드파티(turnstile·광고) 경고는 판정에서 제외.
+//    단 하이드레이션 레인은 메시지에 URL 이 없어 **스택·소스 URL** 로 판별한다(canary-error-lanes).
+function attach(page) {
+    const st = { navs: 0, navUrls: [], initialDone: false, chunk: [], hydrate: [] };
+    const push = (lane, t) => (lane === 'chunk' ? st.chunk : st.hydrate).push(t.slice(0, 160));
+    // ⛔ framenavigated 는 history.replaceState(같은 문서)에도 발화한다 — 문서 요청만 센다.
+    //    SvelteKit 의 정상 SPA 이동은 문서 요청이 아니므로 클릭으로는 올라가지 않는다.
     const onNav = (req) => {
         if (
-            initialDone &&
+            st.initialDone &&
             req.isNavigationRequest() &&
             req.resourceType() === 'document' &&
             req.frame() === page.mainFrame()
         ) {
-            navs++;
-            navUrls.push(req.url().slice(0, 120));
+            st.navs++;
+            st.navUrls.push(req.url().slice(0, 120));
         }
     };
-    // 우리 자산(/_app/immutable/)에 관한 것만 센다 — 서드파티(터ンstile·광고) CORS 경고는 판정에서 제외
-    const ours = (t) => /_app\/immutable\//.test(t);
     const onConsole = (m) => {
-        const t = m.text();
-        if (CHUNK_RE.test(t) && ours(t)) consoleErrors.push(t.slice(0, 160));
+        const lane = classify(m.text(), '', m.location()?.url || '');
+        if (lane) push(lane, m.text());
     };
     const onErr = (e) => {
-        const t = String(e?.message);
-        if (CHUNK_RE.test(t) && ours(t)) consoleErrors.push(t.slice(0, 160));
+        const lane = classify(e?.message, e?.stack, '');
+        if (lane) push(lane, String(e?.message));
     };
     const onReqFail = (r) => {
-        if (ours(r.url()))
-            consoleErrors.push(
-                `requestfailed ${r.url().split('/').pop()} :: ${r.failure()?.errorText}`
-            );
+        if (/_app\/immutable\//.test(r.url()))
+            push('chunk', `requestfailed ${r.url().split('/').pop()} :: ${r.failure()?.errorText}`);
     };
     page.on('request', onNav);
     page.on('console', onConsole);
     page.on('pageerror', onErr);
     page.on('requestfailed', onReqFail);
+    st.detach = () => {
+        page.off('request', onNav);
+        page.off('console', onConsole);
+        page.off('pageerror', onErr);
+        page.off('requestfailed', onReqFail);
+    };
+    return st;
+}
+
+// 🔴 G3: 셸·본문이 실제로 그려졌는지. 콘솔 오류 없이도 화면은 빌 수 있다.
+//    ⛔ 384px 모바일에서 돌기 때문에 좌측 사이드바는 없을 수 있다 — 폭에 무관한 것만 단언한다.
+const shellProbe = () => {
+    const vis = (el) => !!(el && el.offsetParent !== null);
+    const links = [...document.querySelectorAll('a[href^="/free/"]')].filter(vis).length;
+    const prose = document.querySelector('.prose');
+    return {
+        header: !!document.querySelector('header'),
+        appRoot: !!document.getElementById('app-root'),
+        postLinks: links,
+        proseLen: prose ? (prose.textContent || '').trim().length : 0
+    };
+};
+
+function shellFails(path, sh) {
+    const f = [];
+    if (!sh.header) f.push('header 없음');
+    if (!sh.appRoot) f.push('#app-root 없음');
+    if (path === '/free' && sh.postLinks < 5) f.push(`목록 링크 ${sh.postLinks}개(<5)`);
+    if (/^\/free\/\d+/.test(path) && sh.proseLen < 20) f.push(`본문 ${sh.proseLen}자(<20)`);
+    return f;
+}
+
+const results = [];
+for (const path of targets) {
+    const url = `${base}${path}`;
+    const col = attach(page);
     const t0 = Date.now();
     let status = 0;
     try {
         const resp = await page.goto(url, { waitUntil: 'commit', timeout: 60000 });
         status = resp?.status() ?? 0;
     } catch (e) {
-        consoleErrors.push(`goto: ${String(e.message).slice(0, 120)}`);
+        col.chunk.push(`goto: ${String(e.message).slice(0, 120)}`);
     }
-    initialDone = true;
+    col.initialDone = true;
     await page.waitForTimeout(OBSERVE_MS);
+    // ⛔ eval 로 프로브를 넘기지 않는다 — 페이지 CSP 에 unsafe-eval 이 없으면 막힌다.
+    //    Playwright 는 함수를 그대로 직렬화하므로 evaluate(fn) 으로 넘긴다.
     const st = await page
         .evaluate(() => {
             const g =
@@ -155,38 +192,131 @@ for (const path of targets) {
             };
         })
         .catch((e) => ({ evalError: String(e.message).slice(0, 120) }));
-    page.off('request', onNav);
-    page.off('console', onConsole);
-    page.off('pageerror', onErr);
-    page.off('requestfailed', onReqFail);
+    st.shell = await page.evaluate(shellProbe).catch((e) => ({
+        evalError: String(e.message).slice(0, 120)
+    }));
+    col.detach();
     const fails = [];
     if (status !== 200) fails.push(`status ${status}`);
-    if (navs > 0) fails.push(`재내비게이션 ${navs}회`);
-    if (consoleErrors.length) fails.push(`청크 오류 ${consoleErrors.length}건`);
+    if (col.navs > 0) fails.push(`재내비게이션 ${col.navs}회`);
+    if (col.chunk.length) fails.push(`청크 오류 ${col.chunk.length}건`);
+    // 🔴 6월 지문 — 레인을 나눠 보고한다. 고칠 곳이 청크 레인과 다르다.
+    if (col.hydrate.length) fails.push(`하이드레이션 오류 ${col.hydrate.length}건`);
     if (st.evalError) fails.push(`evaluate 실패: ${st.evalError}`);
     if (st.hydrated === false) fails.push('하이드레이션 미완료');
     if (st.stage && st.stage > 0) fails.push(`복구 단계 ${st.stage}`);
     if (st.pending) fails.push('복구 pending 잔존');
     if (st.bar) fails.push('복구 상태줄 표시됨');
+    if (st.shell?.evalError) fails.push(`셸 프로브 실패: ${st.shell.evalError}`);
+    else if (st.shell) fails.push(...shellFails(path, st.shell));
     results.push({
         path,
         status,
         ms: Date.now() - t0,
-        navs,
-        navUrls,
-        consoleErrors: consoleErrors.slice(0, 3),
+        navs: col.navs,
+        navUrls: col.navUrls,
+        chunkErrors: col.chunk.slice(0, 3),
+        hydrateErrors: col.hydrate.slice(0, 3),
         ...st,
         fails
     });
     console.log(
-        `${fails.length ? 'FAIL' : 'PASS'} ${path.padEnd(16)} status=${status} 재내비=${navs} 청크오류=${consoleErrors.length} hydrated=${st.hydrated} stage=${st.stage} bar=${st.bar} enabled=${st.enabled} ${fails.join(' · ')}`
+        `${fails.length ? 'FAIL' : 'PASS'} ${path.padEnd(16)} status=${status} 재내비=${col.navs} 청크=${col.chunk.length} 하이드=${col.hydrate.length} hydrated=${st.hydrated} stage=${st.stage} bar=${st.bar} shell=${JSON.stringify(st.shell || null)} ${fails.join(' · ')}`
     );
 }
+
+// ── 🔴 G2: 목록 → 글 **클릭 이동(SPA)** → 뒤로가기 복귀 ──────────────────────
+// #12842(2026-06-29): 「게시물을 클릭하면 열리지 않고 깨진 모양 → 다시 클릭하면 들어가지는데
+// 목록이 안 나타나서 뒤로가기로 나가야 한다」. 직접 이동(goto)은 이 경로를 밟지 않는다.
+// split 에서 라우트 청크는 **클릭 시점에** 비동기로 불린다 — 거기가 6월에 깨진 자리다.
+{
+    const col = attach(page);
+    const t0 = Date.now();
+    const fails = [];
+    let clickedHref = null;
+    let listBefore = 0,
+        listAfterBack = 0;
+    let sh = null;
+    try {
+        const resp = await page.goto(`${base}/free`, { waitUntil: 'commit', timeout: 60000 });
+        if ((resp?.status() ?? 0) !== 200) fails.push(`목록 status ${resp?.status()}`);
+        col.initialDone = true;
+        // 하이드레이션을 기다린다 — 클릭이 SPA 이동이 되려면 먼저 붙어 있어야 한다
+        await page
+            .waitForFunction(() => typeof window.__angpleHydrateAt !== 'undefined', {
+                timeout: 25000
+            })
+            .catch(() => fails.push('목록 하이드레이션 25초 초과'));
+        const link = page.locator('a[href^="/free/"]:visible').first();
+        listBefore = await page.locator('a[href^="/free/"]:visible').count();
+        if (listBefore < 5) fails.push(`클릭 전 목록 링크 ${listBefore}개(<5)`);
+        clickedHref = await link.getAttribute('href').catch(() => null);
+        if (!clickedHref) {
+            fails.push('클릭할 글 링크를 찾지 못함');
+        } else {
+            await link.click({ timeout: 15000 });
+            await page
+                .waitForURL((u) => /\/free\/\d+/.test(u.pathname), { timeout: 20000 })
+                .catch(() => fails.push(`클릭 후 ${clickedHref} 로 이동하지 않음`));
+            await page.waitForTimeout(8000);
+            sh = await page
+                .evaluate(shellProbe)
+                .catch((e) => ({ evalError: String(e.message).slice(0, 120) }));
+            if (sh?.evalError) fails.push(`글 evaluate 실패: ${sh.evalError}`);
+            else fails.push(...shellFails('/free/1', sh));
+            // 뒤로가기로 목록이 돌아오는가 (#12842 의 「목록이 안 나타나서」)
+            await page.goBack({ timeout: 20000 }).catch(() => fails.push('뒤로가기 실패'));
+            await page.waitForTimeout(5000);
+            listAfterBack = await page.locator('a[href^="/free/"]:visible').count();
+            if (listAfterBack < 5) fails.push(`뒤로가기 후 목록 링크 ${listAfterBack}개(<5)`);
+        }
+    } catch (e) {
+        fails.push(`SPA 시나리오 예외: ${String(e.message).slice(0, 120)}`);
+    }
+    col.detach();
+    if (col.navs > 0) fails.push(`SPA 중 문서 재내비게이션 ${col.navs}회`);
+    if (col.chunk.length) fails.push(`청크 오류 ${col.chunk.length}건`);
+    if (col.hydrate.length) fails.push(`하이드레이션 오류 ${col.hydrate.length}건`);
+    results.push({
+        path: 'SPA:/free→글→뒤로',
+        status: 200,
+        ms: Date.now() - t0,
+        navs: col.navs,
+        navUrls: col.navUrls,
+        chunkErrors: col.chunk.slice(0, 3),
+        hydrateErrors: col.hydrate.slice(0, 3),
+        clickedHref,
+        listBefore,
+        listAfterBack,
+        shell: sh,
+        fails
+    });
+    console.log(
+        `${fails.length ? 'FAIL' : 'PASS'} ${'SPA 클릭'.padEnd(16)} 클릭=${clickedHref} 목록 ${listBefore}→${listAfterBack} 재내비=${col.navs} 청크=${col.chunk.length} 하이드=${col.hydrate.length} ${fails.join(' · ')}`
+    );
+}
+
 await browser.close();
 const failed = results.filter((r) => r.fails.length);
+const laneTotals = results.reduce(
+    (a, r) => ({
+        chunk: a.chunk + (r.chunkErrors?.length || 0),
+        hydrate: a.hydrate + (r.hydrateErrors?.length || 0)
+    }),
+    { chunk: 0, hydrate: 0 }
+);
+// ⭐ 레인을 구별해 찍는다 — 청크 레인은 9월(모드 혼용), 하이드레이션 레인은 6월($set) 계열이다.
+console.log(`레인 합계  청크=${laneTotals.chunk}  하이드레이션=${laneTotals.hydrate}`);
 console.log(
     JSON.stringify(
-        { base, viewport: `${W}x${H}`, observeMs: OBSERVE_MS, failed: failed.length, results },
+        {
+            base,
+            viewport: `${W}x${H}`,
+            observeMs: OBSERVE_MS,
+            failed: failed.length,
+            laneTotals,
+            results
+        },
         null,
         0
     )
