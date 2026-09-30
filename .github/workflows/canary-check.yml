@@ -65,6 +65,8 @@ jobs:
             apps/web/scripts/canary-browser-check.mjs
             apps/web/scripts/canary-error-lanes.mjs
             apps/web/scripts/canary-error-lanes.test.mjs
+            apps/web/scripts/canary-shell-verdict.mjs
+            apps/web/scripts/canary-shell-verdict.test.mjs
           sparse-checkout-cone-mode: false
 
       - uses: actions/setup-node@v4
@@ -74,6 +76,11 @@ jobs:
       # ⛔ 이것이 실패하면 브라우저 검사가 6월 지문($set·HierarchyRequestError)을 놓치는 상태다
       - name: Verify error lane classifier
         run: node apps/web/scripts/canary-error-lanes.test.mjs
+
+      # ⛔ 「200 이고 셸도 있는데 스타일만 안 먹은 화면」은 9/30 bug/14049 의 지문이다.
+      #    판정을 순수 함수로 뽑아 여기서 먼저 시험한다.
+      - name: Verify shell/CSS verdict
+        run: node apps/web/scripts/canary-shell-verdict.test.mjs
 
       - name: Skip non-mobile combos when mobile-only
         id: gate

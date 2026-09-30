@@ -21,6 +21,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { classify } from './canary-error-lanes.mjs';
+import { shellFails } from './canary-shell-verdict.mjs';
 
 // playwright 모듈 경로: CI 러너는 PW_MODULE 로 넘긴다(예: /tmp/pw/node_modules/playwright/index.mjs). 없으면 로컬 pnpm 스토어 경로.
 const PW =
@@ -168,22 +169,40 @@ const shellProbe = () => {
     const vis = (el) => !!(el && el.offsetParent !== null);
     const links = [...document.querySelectorAll('a[href^="/free/"]')].filter(vis).length;
     const prose = document.querySelector('.prose');
+
+    // ⛔ 2026-09-30: **CSS 가 적용됐는지**를 따로 본다. 이 축이 비어 있어서 실제 피해를 놓쳤다.
+    //    코드 분할 반영 후 회원이 bug/14049 로 「목록이 스타일 덜 먹은 표 형태」를 신고했는데,
+    //    셸 요소(header·app-root)는 다 있고 콘솔 오류도 없어 검사는 PASS 였다.
+    //    재로드율 지표에도 안 잡혔다(재로드 없이 깨진 화면이므로).
+    // ⭐ 탐지 원리: **로드에 실패한 `<link rel=stylesheet>` 는 `document.styleSheets` 에 들어가지 않는다.**
+    //    그래서 「HTML 의 우리 CSS 링크 수」와 「실제로 올라온 스타일시트 수」의 차이가 곧 그 증상이다.
+    //    ⛔ 교차 출처 스타일시트는 `cssRules` 접근이 throw 하지만 `href` 는 읽을 수 있다.
+    const ourCss = (u) => typeof u === 'string' && u.indexOf('/_app/immutable/') !== -1;
+    const cssLinks = [...document.querySelectorAll('link[rel="stylesheet"]')].filter((l) =>
+        ourCss(l.href)
+    ).length;
+    let cssLoaded = 0;
+    try {
+        cssLoaded = [...document.styleSheets].filter((sh) => {
+            try {
+                return ourCss(sh.href);
+            } catch {
+                return false;
+            }
+        }).length;
+    } catch {
+        cssLoaded = -1; // 접근 자체가 막히면 -1 로 표시해 판정에서 제외한다
+    }
+
     return {
         header: !!document.querySelector('header'),
         appRoot: !!document.getElementById('app-root'),
         postLinks: links,
-        proseLen: prose ? (prose.textContent || '').trim().length : 0
+        proseLen: prose ? (prose.textContent || '').trim().length : 0,
+        cssLinks,
+        cssLoaded
     };
 };
-
-function shellFails(path, sh) {
-    const f = [];
-    if (!sh.header) f.push('header 없음');
-    if (!sh.appRoot) f.push('#app-root 없음');
-    if (path === '/free' && sh.postLinks < 5) f.push(`목록 링크 ${sh.postLinks}개(<5)`);
-    if (/^\/free\/\d+/.test(path) && sh.proseLen < 20) f.push(`본문 ${sh.proseLen}자(<20)`);
-    return f;
-}
 
 const results = [];
 for (const path of targets) {
