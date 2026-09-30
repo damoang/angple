@@ -1,6 +1,7 @@
 // OpenTelemetry 초기화 (최상단 — 다른 import 전에 로드)
 import '$lib/server/telemetry.js';
 import { isClientRecoveryEnabled, injectRecoveryFlag } from '$lib/server/client-recovery-flag.js';
+import { addAssetCrossorigin } from '$lib/server/asset-crossorigin.js';
 import {
     trackInflightStart,
     trackInflightEnd,
@@ -330,6 +331,12 @@ function rewriteImmutableAssetUrls(html: string, cacheBust = ''): string {
             `$1${ASSET_BASE_URL}/_app/immutable/`
         );
     }
+    // ⭐ 모드 통일은 **이 함수 안에서** 한다. SSR 경로가 둘(일반·테마) 인데 둘 다 이 함수를
+    //    지나므로, 여기 넣으면 새 경로가 생겨도 빠지지 않는다. transformPageChunk 체인에
+    //    따로 추가하면 다음 사람이 세 번째 경로에서 잊는다.
+    //    ⛔ 왜 필요한지는 asset-crossorigin.ts 주석에 있다 — split 후 CSS 링크가 1개→34개로
+    //       늘어 모드 혼용 표면이 34배가 되고, Firefox·iOS WebKit 에서 청크 로드가 깨졌다.
+    nextHtml = addAssetCrossorigin(nextHtml, ASSET_BASE_URL);
     return appendImmutableAssetCacheBust(nextHtml, cacheBust);
 }
 
