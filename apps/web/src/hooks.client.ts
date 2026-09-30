@@ -1,5 +1,7 @@
 import type { HandleClientError } from '@sveltejs/kit';
 import { loadAllPluginClientHooks } from '$lib/client/plugin-client-loader';
+import { goto } from '$app/navigation';
+import { shouldRetryChunk, CHUNK_RETRY_DELAY_MS } from '$lib/client/chunk-retry.js';
 
 // Phase 11 (open-core plugin loader) — client hooks 자동 활성화.
 // Fire-and-forget: 실패해도 앱 부팅에 영향 없음. 모듈 load 시점 1회 실행.
@@ -433,13 +435,39 @@ if (typeof window !== 'undefined') {
 export const handleError: HandleClientError = ({ error, event, status }) => {
     const err = error instanceof Error ? error : new Error(String(error));
 
-    // 배포 후 chunk 로드 실패 → app.html 통합 핸들러에 위임
+    // 배포 후 chunk 로드 실패
     if (isChunkLoadError(error)) {
         const chunkError = (window as any).__angpleChunkError;
+        const target = event.url.href;
+
+        // ⭐ 2026-09-30: **재시도 1회를 먼저 한다.** 그전에는 첫 실패에 지연 0ms 로
+        //    전체 페이지 재로드였고(DELAYS_MS[0]=0), 스크롤·입력 상태를 잃어 「깨진 것처럼」 보였다.
+        //    코드 분할 반영 후 이 일이 사람 페이지 로드의 약 4%(평시 2.2%)에서 났다.
+        //    ⛔ 근본 원인은 못 좁혔다(가설 넷 다 측정으로 기각 — chunk-retry.ts 주석 참조).
+        //       그러나 **일회성**임은 확정됐다(1명당 1.1~1.4 · 복구 성공 · 실패 URL 은 200·ACAO *).
+        //       그러면 원인을 몰라도 재시도가 맞는 대응이다.
+        //    ⭐ 하방이 막혀 있다 — 재시도가 실패하면 아래 기존 경로로 위임한다(최악이 현 상태와 동일).
+        if (shouldRetryChunk(target, location.href)) {
+            guardedSend({
+                type: 'chunk_retry',
+                message: `chunk retry: route-load | ${err.message.slice(0, 180)}`,
+                url: target,
+                userAgent: navigator.userAgent
+            });
+            setTimeout(() => {
+                // ⛔ 에러 처리 문맥에서 바로 이동하지 않는다 — setTimeout 으로 빠져나온다.
+                goto(target, { replaceState: true }).catch(() => {
+                    chunkError?.handle('route-load', `${err.message} [retry-nav-failed]`);
+                });
+            }, CHUNK_RETRY_DELAY_MS);
+            return;
+        }
+
         if (chunkError) {
             // ⛔ err.message 를 버리면 안 된다 — 어느 청크가 왜 실패했는지가 여기에만 있다.
             //    2026-09-30 코드 분할 반영 후 이걸 버려서 404/네트워크 구별이 불가능했다.
-            chunkError.handle('route-load', err.message);
+            //    ⭐ [retry-failed] 는 「재시도했는데도 안 됐다」는 뜻 — 일회성이 아닌 건을 센다.
+            chunkError.handle('route-load', `${err.message} [retry-failed]`);
         }
         return;
     }
