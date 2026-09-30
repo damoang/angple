@@ -734,7 +734,9 @@ function buildCsp(): string {
         "frame-src 'self' https://calendar.google.com https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com https://platform.twitter.com https://player.vimeo.com https://clips.twitch.tv https://player.twitch.tv https://www.tiktok.com https://www.instagram.com https://www.redditmedia.com https://embed.reddit.com https://embed.bsky.app https://googleads.g.doubleclick.net https://securepubads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://*.googlesyndication.com https://*.doubleclick.net https://*.adtrafficquality.google https://t1.kakaocdn.net https://t1.daumcdn.net",
         "frame-ancestors 'self'",
         "base-uri 'self'",
-        "form-action 'self' https://appleid.apple.com https://sa.inicis.com"
+        // bug/13991: 카카오 공유 SDK 는 팝업을 sharer.kakao.com/picker/link 로 연 뒤 앱키·템플릿을
+        // form POST 로 그 팝업에 보낸다. 여기 없으면 POST 가 막혀 팝업이 빈 요청만 받아 「요청 실패」.
+        "form-action 'self' https://appleid.apple.com https://sa.inicis.com https://sharer.kakao.com"
     ];
 
     return directives.join('; ');

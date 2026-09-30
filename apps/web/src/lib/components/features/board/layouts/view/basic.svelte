@@ -133,6 +133,13 @@
         originalPostLink
     }: ViewLayoutProps = $props();
 
+    // bug/13991: 공유 대표 이미지(썸네일 → 첫 첨부 이미지). 없으면 undefined 로 두고
+    // share.ts 가 사이트 아이콘으로 대체한다.
+    const shareImageUrl = $derived.by(() => {
+        const src = post.thumbnail || post.images?.[0];
+        return src ? toThumbnailUrl(src, '835x626') : undefined;
+    });
+
     let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
 
     // 이용제한 근거 글: 제목·본문 인스턴스가 이 상태를 공유해 어느 "보기"를 눌러도 함께 공개.
@@ -1014,7 +1021,14 @@
                      → 하단본을 initialScrapped 와 함께 복원(정확 표시 + 익숙한 위치 둘 다 충족). -->
                 <div class="ml-auto flex flex-wrap items-center justify-end gap-1">
                     {#if board?.use_sns}
-                        <ShareButton {boardId} postId={post.id} title={post.title || ''} />
+                        <!-- bug/13991: 카카오 피드 공유는 대표 이미지가 필수라 글 이미지를 넘긴다
+                             (없으면 share.ts 가 사이트 아이콘으로 대체). og:image 와 같은 835×626 변형본. -->
+                        <ShareButton
+                            {boardId}
+                            postId={post.id}
+                            title={post.title || ''}
+                            imageUrl={shareImageUrl}
+                        />
                     {/if}
                     <!-- 스크랩: 최종 순서 공유 → 스크랩 → 신고 → 화나요(사장님 확정). 종전엔 아이콘만
                          이라 옆의 공유·신고(아이콘+문구)와 어긋났는데, size="sm" 이면 컴포넌트가

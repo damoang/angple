@@ -11,7 +11,8 @@
         shareToNaver,
         shareToPinterest,
         shareToTumblr,
-        copyUrl
+        copyUrl,
+        preloadKakaoSdk
     } from '$lib/utils/share.js';
 
     interface Props {
@@ -33,6 +34,8 @@
 
     function handleShare() {
         open = !open;
+        // 카카오 SDK 를 메뉴 열 때 미리 받아 둔다(클릭 후 새 창 차단 방지).
+        if (open) preloadKakaoSdk();
     }
 
     function handleClickOutside(e: MouseEvent) {
@@ -55,9 +58,18 @@
 
     async function handleKakao() {
         trackEvent('share', { method: 'kakao', board_id: boardId });
-        const success = await shareToKakao(title, getShareUrl(), imageUrl);
+        const url = getShareUrl();
+        const success = await shareToKakao(title, url, imageUrl);
         if (!success) {
-            toast.error('카카오톡 공유를 불러올 수 없습니다.');
+            // bug/13991: 실패를 조용히 삼키지 않는다. 주소라도 복사해 직접 붙여 넣게 한다.
+            const copied = await copyUrl(url);
+            if (copied) {
+                toast.error(
+                    '카카오톡 공유를 열 수 없어 주소를 복사했습니다. 카카오톡에 붙여 넣어 주세요.'
+                );
+            } else {
+                toast.error('카카오톡 공유를 열 수 없습니다. 잠시 후 다시 시도해 주세요.');
+            }
         }
         open = false;
     }
