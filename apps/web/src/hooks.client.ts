@@ -437,7 +437,9 @@ export const handleError: HandleClientError = ({ error, event, status }) => {
     if (isChunkLoadError(error)) {
         const chunkError = (window as any).__angpleChunkError;
         if (chunkError) {
-            chunkError.handle('route-load');
+            // ⛔ err.message 를 버리면 안 된다 — 어느 청크가 왜 실패했는지가 여기에만 있다.
+            //    2026-09-30 코드 분할 반영 후 이걸 버려서 404/네트워크 구별이 불가능했다.
+            chunkError.handle('route-load', err.message);
         }
         return;
     }

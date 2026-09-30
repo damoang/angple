@@ -616,15 +616,22 @@
                     } catch (e) {}
                 }
 
-                function handle(reason) {
+                // ⛔ 2026-09-30: `reason` 만 받던 탓에 **왜 실패했는지를 기록하지 않았다.**
+                //    코드 분할 운영 반영 후 route-load 실패가 2배로 늘었는데,
+                //    404(구 HTML → 재로드가 맞는 대응)인지 네트워크 순간 실패(재시도가 맞는 대응)인지
+                //    가릴 수 없어 판단이 막혔다. 호출 지점엔 원인이 있는데 버렸던 것이다.
+                //    ⭐ `reason` 은 그룹핑용으로 그대로 두고 `message` 뒤에만 덧붙인다 —
+                //       기존 `message LIKE '%route-load%'` 질의·감시기가 그대로 동작한다.
+                function handle(reason, detail) {
                     errorsThisLoad++;
                     reason = reason || 'unknown';
+                    var why = detail ? ' | ' + String(detail).slice(0, 180) : '';
                     if (!ENABLED) {
                         if (sentDisabled) return;
                         sentDisabled = true;
                         var sentOff = beacon({
                             type: 'chunk_recovery_disabled',
-                            message: 'chunk recovery disabled: ' + reason,
+                            message: 'chunk recovery disabled: ' + reason + why,
                             reason: reason,
                             count: -1,
                             delayMs: 0
@@ -678,7 +685,7 @@
                     write(s);
                     var sent = beacon({
                         type: 'chunk_recovery_started',
-                        message: 'chunk recovery started: ' + reason,
+                        message: 'chunk recovery started: ' + reason + why,
                         reason: reason,
                         count: s.stage,
                         delayMs: delay,
@@ -745,14 +752,14 @@
                             t.tagName === 'SCRIPT' &&
                             (t.src || '').indexOf('/_app/immutable/entry/') !== -1
                         ) {
-                            handle('entry-script');
+                            handle('entry-script', t.src || '');
                         }
                     },
                     true
                 );
                 window.addEventListener('unhandledrejection', function (e) {
                     if (e.reason && isChunkError(e.reason.message)) {
-                        handle('dynamic-import');
+                        handle('dynamic-import', e.reason.message || '');
                     }
                 });
 
