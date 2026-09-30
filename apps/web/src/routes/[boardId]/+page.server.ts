@@ -615,14 +615,10 @@ export const load: PageServerLoad = async ({
                 // 이미 제외되므로 영향 없음.
                 // 콜백 반환을 명시 튜플로 표기 — tombstone 분기와 ...r 분기의 객체 모양이
                 // 달라 TS 가 Map 생성자 유니온 추론에 실패한다(런타임 무관, 타입 표기용).
-                // wr_7 은 게시판마다 뜻이 다르다 — 나눔(진행 상태)·중고장터(가격 협상)는 표시에 쓰고,
+                // wr_7 은 게시판마다 뜻이 다르다 — 나눔은 진행 상태로 목록 표시에 쓰고,
                 // 그 밖의 게시판에서는 신고 수(관리자 전용 값)다. 표시에 쓰지 않는 게시판에서는
                 // 검색 결과에 싣지 않는다(잠금 여부는 is_report_locked 로만 전달).
-                const keepExtra7 =
-                    boardId === 'giving' ||
-                    listLayoutId === 'giving' ||
-                    listLayoutId === 'trade' ||
-                    listLayoutId === 'market-card';
+                const keepExtra7 = boardId === 'giving' || listLayoutId === 'giving';
                 const rowMap = new Map(
                     rows.map((r): [unknown, Record<string, unknown>] => {
                         const deleted = Number(r.is_deleted_parent) === 1;
