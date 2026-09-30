@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeLoginRedirect } from './login-redirect';
+import { sanitizeLoginRedirect, sanitizeAdminRedirect } from './login-redirect';
 
 describe('sanitizeLoginRedirect — 상대 경로', () => {
     it('빈 값은 루트', () => {
@@ -123,6 +123,12 @@ describe('sanitizeLoginRedirect — 로그인 루프 차단', () => {
         expect(sanitizeLoginRedirect('/login-help')).toBe('/');
     });
 
+    it('관리자 로그인 경로도 루프다', () => {
+        expect(sanitizeLoginRedirect('/admin/login')).toBe('/');
+        expect(sanitizeLoginRedirect('/admin/login?redirect=/admin')).toBe('/');
+        expect(sanitizeLoginRedirect('https://damoang.net/admin/login')).toBe('/');
+    });
+
     // ⛔ 절대 주소로 쓴 로그인 화면은 상대 경로 검사가 못 잡는다. 따로 막아야 한다.
     it('절대 주소 /login 도 차단', () => {
         expect(sanitizeLoginRedirect('https://damoang.net/login')).toBe('/');
@@ -133,5 +139,57 @@ describe('sanitizeLoginRedirect — 로그인 루프 차단', () => {
         expect(sanitizeLoginRedirect('https://ops.damoang.net/login')).toBe(
             'https://ops.damoang.net/login'
         );
+    });
+});
+
+describe('sanitizeLoginRedirect — fallback 인자', () => {
+    it('거부된 값은 fallback 으로 간다', () => {
+        expect(sanitizeLoginRedirect(null, '/admin')).toBe('/admin');
+        expect(sanitizeLoginRedirect('', '/admin')).toBe('/admin');
+        expect(sanitizeLoginRedirect('https://evil.com/', '/admin')).toBe('/admin');
+        expect(sanitizeLoginRedirect('//evil.com', '/admin')).toBe('/admin');
+        expect(sanitizeLoginRedirect('javascript:alert(1)', '/admin')).toBe('/admin');
+    });
+
+    it('통과한 값은 fallback 과 무관하다', () => {
+        expect(sanitizeLoginRedirect('/free', '/admin')).toBe('/free');
+    });
+});
+
+describe('sanitizeAdminRedirect', () => {
+    // ⛔ 2026-10-01 까지 관리자 로그인 화면은 이 값을 검증 없이 `window.location.href` 에 넣었다.
+    it('외부로 관리자를 내보내지 않는다', () => {
+        expect(sanitizeAdminRedirect('https://evil.com/')).toBe('/admin');
+        expect(sanitizeAdminRedirect('//evil.com')).toBe('/admin');
+        expect(sanitizeAdminRedirect('/\\evil.com')).toBe('/admin');
+        expect(sanitizeAdminRedirect('https://damoang.net.evil.com/admin')).toBe('/admin');
+        expect(sanitizeAdminRedirect('https://evil.com/?x=damoang.net')).toBe('/admin');
+    });
+
+    it('`javascript:` 가 location.href 에 도달하지 않는다', () => {
+        expect(sanitizeAdminRedirect('javascript:alert(1)')).toBe('/admin');
+        expect(sanitizeAdminRedirect('data:text/html,<script>1</script>')).toBe('/admin');
+    });
+
+    it('관리자 경로는 그대로 통과', () => {
+        expect(sanitizeAdminRedirect('/admin')).toBe('/admin');
+        expect(sanitizeAdminRedirect('/admin/members?page=2')).toBe('/admin/members?page=2');
+        expect(sanitizeAdminRedirect('/admin/ads/promotion')).toBe('/admin/ads/promotion');
+    });
+
+    it('빈 값은 /admin — 루트로 보내면 관리자가 다시 들어와야 한다', () => {
+        expect(sanitizeAdminRedirect(null)).toBe('/admin');
+        expect(sanitizeAdminRedirect(undefined)).toBe('/admin');
+        expect(sanitizeAdminRedirect('')).toBe('/admin');
+    });
+
+    it('관리자 로그인 화면으로 되돌리는 루프 차단', () => {
+        expect(sanitizeAdminRedirect('/admin/login')).toBe('/admin');
+        expect(sanitizeAdminRedirect('/admin/login?login=success')).toBe('/admin');
+    });
+
+    it('제어 문자 차단', () => {
+        expect(sanitizeAdminRedirect('/admin\u0000')).toBe('/admin');
+        expect(sanitizeAdminRedirect('/\tadmin')).toBe('/admin');
     });
 });

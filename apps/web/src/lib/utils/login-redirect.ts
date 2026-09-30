@@ -40,29 +40,50 @@ const ALLOWED_ABSOLUTE_HOSTS = new Set([
 /** 이 호스트들의 `/login` 은 자기 자신이라 무한 루프가 된다. */
 const SELF_HOSTS = new Set(['damoang.net', 'www.damoang.net']);
 
-export function sanitizeLoginRedirect(raw: string | null | undefined): string {
-    if (!raw) return '/';
+/** 로그인 화면 자신으로 돌아가면 무한 루프다. 관리자 화면은 경로가 달라 따로 적는다. */
+const LOGIN_PATHS = ['/login', '/admin/login'];
+
+function isLoginPath(path: string): boolean {
+    return LOGIN_PATHS.some((p) => path.startsWith(p));
+}
+
+export function sanitizeLoginRedirect(raw: string | null | undefined, fallback = '/'): string {
+    if (!raw) return fallback;
 
     if (raw.startsWith('/')) {
         // `//host`·`/\host` 는 브라우저가 프로토콜 상대 주소, 즉 외부 주소로 해석한다.
-        if (raw.startsWith('//') || raw.startsWith('/\\')) return '/';
+        if (raw.startsWith('//') || raw.startsWith('/\\')) return fallback;
         // 제어 문자(탭·개행 등)는 브라우저가 **제거한 뒤** 해석하므로 우회로가 된다.
-        if (/[\u0000-\u001f\u007f]/.test(raw)) return '/';
-        // `/login` 으로 되돌리면 무한 루프가 된다.
-        if (raw.startsWith('/login')) return '/';
+        if (/[\u0000-\u001f\u007f]/.test(raw)) return fallback;
+        // 로그인 화면으로 되돌리면 무한 루프가 된다.
+        if (isLoginPath(raw)) return fallback;
         return raw;
     }
 
     // 다모앙 호스트의 절대 주소만 허용한다. 서버 `safeRedirectUrl` 과 같은 정책이다.
     try {
         const u = new URL(raw);
-        if (u.protocol !== 'https:' && u.protocol !== 'http:') return '/';
-        if (!ALLOWED_ABSOLUTE_HOSTS.has(u.hostname)) return '/';
+        if (u.protocol !== 'https:' && u.protocol !== 'http:') return fallback;
+        if (!ALLOWED_ABSOLUTE_HOSTS.has(u.hostname)) return fallback;
         // 절대 주소로 쓴 **우리** 로그인 화면도 루프다 — 상대 경로 쪽 검사가 이건 못 잡는다.
         // ⛔ 서브도메인의 `/login` 은 우리 루프가 아니다. ops 는 자기 로그인 화면이 따로 있다.
-        if (SELF_HOSTS.has(u.hostname) && u.pathname.startsWith('/login')) return '/';
+        if (SELF_HOSTS.has(u.hostname) && isLoginPath(u.pathname)) return fallback;
         return u.toString();
     } catch {
-        return '/';
+        return fallback;
     }
+}
+
+/**
+ * 관리자 로그인 후 복귀 주소 검사.
+ *
+ * ⛔ 2026-10-01 까지 `lib/components/admin/auth/login-form.svelte` 는 `?redirect=` 를
+ *    **검증 없이** `window.location.href` 에 넣었다. `/admin/login?redirect=https://외부` 로
+ *    관리자를 외부로 내보낼 수 있었고 `javascript:` 값도 그대로 도달했다.
+ *    서버(`admin/+layout.server.ts`)는 `safeRedirectUrl` 을 쓰고 있어 **화면만** 뚫려 있었다.
+ *
+ * 거부되면 `/admin` 으로 보낸다 — 루트로 보내면 관리자가 매번 다시 들어와야 한다.
+ */
+export function sanitizeAdminRedirect(raw: string | null | undefined): string {
+    return sanitizeLoginRedirect(raw, '/admin');
 }

@@ -12,6 +12,7 @@
     import { onMount } from 'svelte';
     import Loader2 from '@lucide/svelte/icons/loader-2';
     import ExternalLink from '@lucide/svelte/icons/external-link';
+    import { sanitizeAdminRedirect } from '$lib/utils/login-redirect.js';
 
     interface Props extends HTMLAttributes<HTMLDivElement> {
         class?: string;
@@ -26,7 +27,9 @@
     let errorMessage = $state('');
     let isExchanging = $state(false);
 
-    const redirectTo = $derived($page.url.searchParams.get('redirect') || '/admin');
+    // ⛔ 검증 없이 `window.location.href` 에 넣으면 `?redirect=https://외부` 로 관리자를
+    //    외부로 내보낼 수 있다(`javascript:` 도 도달한다). 거부되면 `/admin` 으로 간다.
+    const redirectTo = $derived(sanitizeAdminRedirect($page.url.searchParams.get('redirect')));
 
     // 레거시 시스템 로그인 후 리다이렉트된 경우 자동 토큰 교환
     // (레거시 SSO 쿠키는 httpOnly라서 JS에서 읽을 수 없음 → URL 파라미터로 판단)
