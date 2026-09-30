@@ -51,14 +51,29 @@ if (load1() > 8) {
     process.exit(1);
 }
 
-const { chromium } = await import(PW);
-const browser = await chromium.launch({ args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+// ⛔ 브라우저 1종·1뷰포트로는 부족하다. 2026-06 1차 split 실패 신고가 그 증거다 —
+//    #12836 은 **Firefox PC**, #12842 는 **Chrome 데스크탑**이었다. 모바일 Chromium 만
+//    통과시키고 운영에 올리면 6월을 반복한다.
+//    PW_BROWSER=chromium|firefox · 뷰포트는 argv 3·4 로 받는다(기존과 호환).
+const BROWSER = (process.env.PW_BROWSER || 'chromium').toLowerCase();
+const pw = await import(PW);
+const engine = pw[BROWSER];
+if (!engine) {
+    console.log(`FAIL: 알 수 없는 브라우저 ${BROWSER}`);
+    process.exit(1);
+}
+const browser = await engine.launch(
+    BROWSER === 'chromium' ? { args: ['--no-sandbox', '--disable-dev-shm-usage'] } : {}
+);
+// ⛔ isMobile/deviceScaleFactor 는 Firefox 가 지원하지 않는다(launch 시 예외) — 엔진별로 가른다.
+//    데스크탑 뷰포트(폭 >= 1024)면 모바일 플래그를 끈다.
+const MOBILE = W < 1024;
 const ctx = await browser.newContext({
     viewport: { width: W, height: H },
-    isMobile: true,
-    hasTouch: true,
-    deviceScaleFactor: 2,
-    userAgent: UA
+    userAgent: UA,
+    ...(BROWSER === 'chromium' && MOBILE
+        ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 }
+        : {})
 });
 // ⛔ extraHTTPHeaders 로 x-real-ip 를 전역에 붙이면 static.damoang.net 모듈 import 가 비단순 CORS 요청이 되어
 //    OPTIONS 준비요청 → R2 가 403 → 「CORS 차단」 오탐(9/29 3/3 FAIL 이 이것). 헤더는 카나리 호스트에만 붙인다.
@@ -70,15 +85,25 @@ await ctx.route('**/*', (route) => {
     return route.continue();
 });
 const page = await ctx.newPage();
-const cdp = await ctx.newCDPSession(page);
-await cdp.send('Network.enable');
-await cdp.send('Network.emulateNetworkConditions', {
-    offline: false,
-    latency: RTT,
-    downloadThroughput: (KBPS * 1024) / 8,
-    uploadThroughput: (KBPS * 1024) / 8
-});
-await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+// ⛔ CDP 는 **Chromium 전용**이다. Firefox 에서 호출하면 예외로 검사가 통째로 죽는다 —
+//    스로틀 없이라도 돌리는 편이 낫다(6월 지문은 스로틀과 무관한 컴포넌트·하이드레이션 오류다).
+let throttled = false;
+if (BROWSER === 'chromium') {
+    const cdp = await ctx.newCDPSession(page);
+    await cdp.send('Network.enable');
+    await cdp.send('Network.emulateNetworkConditions', {
+        offline: false,
+        latency: RTT,
+        downloadThroughput: (KBPS * 1024) / 8,
+        uploadThroughput: (KBPS * 1024) / 8
+    });
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    throttled = true;
+}
+console.log(
+    `엔진 ${BROWSER} · 뷰포트 ${W}x${H} (${MOBILE ? '모바일' : '데스크탑'})` +
+        ` · 스로틀 ${throttled ? `${KBPS}kbps/RTT${RTT}ms/CPU4x` : '없음(Chromium 전용)'}`
+);
 
 async function latestPostPath() {
     try {
