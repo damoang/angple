@@ -1,0 +1,72 @@
+# 카나리 브라우저 검사를 **배포 없이** 돌린다.
+#
+# ⛔ 왜 따로 두는가: 이 검사는 `deploy.yml` 의 `verify-canary` 에서만 돌고, 그 워크플로는
+#    main 푸시로만 켜진다. 그래서 검사기를 고칠 때 **대조군(현행 번들에서 통과하는지)** 을
+#    받을 방법이 없었다. 검증 안 된 게이트를 main 에 넣으면 오탐 하나로 모든 승격이 막힌다.
+#    여기서 먼저 확인하고 넣는다.
+#
+# ⛔ 운영 노드에 헤드리스를 띄우지 않는다 — GitHub 러너에서 공개 주소로만 검사한다.
+#    (자산 static.damoang.net 은 CORS 대상이라 실제 브라우저·실제 Origin 이어야 한다)
+name: Canary browser check
+
+on:
+  # 검사기 자체를 고치는 PR 에서는 자동으로 돈다 — 대조군이 이 자리다
+  pull_request:
+    paths:
+      - 'apps/web/scripts/canary-browser-check.mjs'
+      - 'apps/web/scripts/canary-error-lanes.mjs'
+      - 'apps/web/scripts/canary-error-lanes.test.mjs'
+      - '.github/workflows/canary-check.yml'
+  workflow_dispatch:
+    inputs:
+      base:
+        description: '검사할 주소'
+        default: 'https://canary.damoang.net'
+      observe_sec:
+        description: '페이지별 관찰 초'
+        default: '45'
+      kbps:
+        description: '다운로드 kbps (4000=일반 4G)'
+        default: '4000'
+
+concurrency:
+  # 동시에 두 개가 같은 카나리를 두드리지 않게 한다
+  group: canary-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            apps/web/scripts/canary-browser-check.mjs
+            apps/web/scripts/canary-error-lanes.mjs
+            apps/web/scripts/canary-error-lanes.test.mjs
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # ⛔ 이것이 실패하면 브라우저 검사가 6월 지문($set·HierarchyRequestError)을 놓치는 상태다
+      - name: Verify error lane classifier
+        run: node apps/web/scripts/canary-error-lanes.test.mjs
+
+      - name: Install Playwright (chromium)
+        run: |
+          mkdir -p /tmp/pw && cd /tmp/pw
+          npm init -y >/dev/null
+          npm i --no-audit --no-fund playwright@1.58.0
+          npx playwright install --with-deps chromium
+
+      - name: Browser check
+        env:
+          PW_MODULE: /tmp/pw/node_modules/playwright/index.mjs
+          BASE: ${{ github.event.inputs.base || 'https://canary.damoang.net' }}
+          OBSERVE: ${{ github.event.inputs.observe_sec || '45' }}
+          KBPS: ${{ github.event.inputs.kbps || '4000' }}
+        run: |
+          node apps/web/scripts/canary-browser-check.mjs "$BASE" 384 780 "$OBSERVE" "$KBPS" 100
