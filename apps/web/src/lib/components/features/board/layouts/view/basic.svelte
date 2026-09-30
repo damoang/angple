@@ -133,6 +133,25 @@
         originalPostLink
     }: ViewLayoutProps = $props();
 
+    // bug/13991: 공유 대표 이미지는 **원본** URL 만 쓴다. -400x225/-835x626 변형본은
+    // 없는 경우가 있어(실측) 카카오가 이미지를 못 가져온다. 순서: 원본 썸네일 → 첫 첨부 →
+    // 본문 첫 이미지. 없으면 undefined 로 두고 share.ts 가 사이트 아이콘으로 대체한다.
+    // (9/30 실측: 최근 글 원본 jpg/png/gif 전부 200, 같은 글의 변형본은 응답 없음)
+    const ORIGINAL_MEDIA_IMAGE_REGEX =
+        /^https?:\/\/(?:cdn|s3|r2)\.damoang\.net\/data\/(?:file|editor)\/.+\.(?:jpe?g|png|gif|webp)$/i;
+    const RESIZED_VARIANT_REGEX = /-\d+x\d+\.webp$/i;
+    const isOriginalMediaImage = (url: string | undefined | null): url is string =>
+        !!url && ORIGINAL_MEDIA_IMAGE_REGEX.test(url) && !RESIZED_VARIANT_REGEX.test(url);
+    const shareImageUrl = $derived.by(() => {
+        const candidates = [post.thumbnail_raw, post.images?.[0]];
+        // 본문은 HTML 또는 마크다운이라 <img src> 와 ![](url) 둘 다 본다.
+        const imgPattern = /<img\b[^>]*\bsrc=["']([^"']+)["']|!\[[^\]]*\]\(\s*<?([^)\s>]+)/gi;
+        for (const match of (postContent ?? '').matchAll(imgPattern)) {
+            candidates.push(match[1] ?? match[2]);
+        }
+        return candidates.find(isOriginalMediaImage);
+    });
+
     let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
 
     // 이용제한 근거 글: 제목·본문 인스턴스가 이 상태를 공유해 어느 "보기"를 눌러도 함께 공개.
@@ -1014,7 +1033,14 @@
                      → 하단본을 initialScrapped 와 함께 복원(정확 표시 + 익숙한 위치 둘 다 충족). -->
                 <div class="ml-auto flex flex-wrap items-center justify-end gap-1">
                     {#if board?.use_sns}
-                        <ShareButton {boardId} postId={post.id} title={post.title || ''} />
+                        <!-- bug/13991: 카카오 피드 공유는 대표 이미지가 필수라 글 이미지를 넘긴다
+                             (원본 URL, 없으면 share.ts 가 사이트 아이콘으로 대체). -->
+                        <ShareButton
+                            {boardId}
+                            postId={post.id}
+                            title={post.title || ''}
+                            imageUrl={shareImageUrl}
+                        />
                     {/if}
                     <!-- 스크랩: 최종 순서 공유 → 스크랩 → 신고 → 화나요(사장님 확정). 종전엔 아이콘만
                          이라 옆의 공유·신고(아이콘+문구)와 어긋났는데, size="sm" 이면 컴포넌트가

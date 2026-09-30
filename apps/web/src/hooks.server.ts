@@ -729,12 +729,15 @@ function buildCsp(): string {
         `img-src 'self' data: blob: https:${assetOrigin}`,
         "worker-src 'self' blob:",
         // API 및 광고 서버 연결 허용
-        `connect-src 'self' http://localhost:* ws://localhost:* https://*.damoang.net https://damoang.net${legacyHost}${adsHost}${assetOrigin} https://pagead2.googlesyndication.com https://securepubads.g.doubleclick.net https://www.google-analytics.com https://cdn.jsdelivr.net https://*.google.com https://*.googlesyndication.com https://*.doubleclick.net https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://*.adtrafficquality.google https://*.gstatic.com https://cdn.ampproject.org https://t1.daumcdn.net https://t1.kakaocdn.net https://serv.ds.kakao.com https://aem-kakao-collector.onkakao.net https://*.adnxs.com https://*.criteo.com https://*.criteo.net https://*.clarity.ms https://c.bing.com`,
+        `connect-src 'self' http://localhost:* ws://localhost:* https://*.damoang.net https://damoang.net${legacyHost}${adsHost}${assetOrigin} https://pagead2.googlesyndication.com https://securepubads.g.doubleclick.net https://www.google-analytics.com https://cdn.jsdelivr.net https://*.google.com https://*.googlesyndication.com https://*.doubleclick.net https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://*.adtrafficquality.google https://*.gstatic.com https://cdn.ampproject.org https://t1.daumcdn.net https://t1.kakaocdn.net https://kapi.kakao.com https://serv.ds.kakao.com https://aem-kakao-collector.onkakao.net https://*.adnxs.com https://*.criteo.com https://*.criteo.net https://*.clarity.ms https://c.bing.com`,
         // YouTube, 임베드 플랫폼, Google 광고, Turnstile iframe 허용
         "frame-src 'self' https://calendar.google.com https://challenges.cloudflare.com https://www.youtube.com https://www.youtube-nocookie.com https://platform.twitter.com https://player.vimeo.com https://clips.twitch.tv https://player.twitch.tv https://www.tiktok.com https://www.instagram.com https://www.redditmedia.com https://embed.reddit.com https://embed.bsky.app https://googleads.g.doubleclick.net https://securepubads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://*.googlesyndication.com https://*.doubleclick.net https://*.adtrafficquality.google https://t1.kakaocdn.net https://t1.daumcdn.net",
         "frame-ancestors 'self'",
         "base-uri 'self'",
-        "form-action 'self' https://appleid.apple.com https://sa.inicis.com"
+        // bug/13991: 카카오 공유 SDK(PC)는 팝업을 sharer.kakao.com/picker/link 로 연 뒤 앱키·템플릿을
+        // form POST 로 그 팝업에 보낸다. 여기 없으면 POST 가 막혀 팝업이 빈 요청만 받아 「요청 실패」.
+        // 모바일은 kapi.kakao.com 으로 XHR 검증을 하므로 connect-src 에 kapi 가 필요하다(위).
+        "form-action 'self' https://appleid.apple.com https://sa.inicis.com https://sharer.kakao.com"
     ];
 
     return directives.join('; ');
