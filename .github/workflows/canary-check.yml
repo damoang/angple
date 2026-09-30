@@ -10,104 +10,103 @@
 name: Canary browser check
 
 on:
-    # 검사기 자체를 고치는 PR 에서는 자동으로 돈다 — 대조군이 이 자리다
-    pull_request:
-        paths:
-            - 'apps/web/scripts/canary-browser-check.mjs'
-            - 'apps/web/scripts/canary-error-lanes.mjs'
-            - 'apps/web/scripts/canary-error-lanes.test.mjs'
-            - '.github/workflows/canary-check.yml'
-    workflow_dispatch:
-        inputs:
-            base:
-                description: '검사할 주소'
-                default: 'https://canary.damoang.net'
-            observe_sec:
-                description: '페이지별 관찰 초'
-                default: '45'
-            kbps:
-                description: '다운로드 kbps (4000=일반 4G · Chromium 에서만 적용)'
-                default: '4000'
-            matrix:
-                description: '검사 조합'
-                type: choice
-                default: full
-                options:
-                    - full # 모바일 Chromium + 데스크탑 Chromium + 데스크탑 Firefox
-                    - mobile-only # deploy.yml 의 게이트와 동일 조건
+  # 검사기 자체를 고치는 PR 에서는 자동으로 돈다 — 대조군이 이 자리다
+  pull_request:
+    paths:
+      - 'apps/web/scripts/canary-browser-check.mjs'
+      - 'apps/web/scripts/canary-error-lanes.mjs'
+      - 'apps/web/scripts/canary-error-lanes.test.mjs'
+      - '.github/workflows/canary-check.yml'
+  workflow_dispatch:
+    inputs:
+      base:
+        description: '검사할 주소'
+        default: 'https://canary.damoang.net'
+      observe_sec:
+        description: '페이지별 관찰 초'
+        default: '45'
+      kbps:
+        description: '다운로드 kbps (4000=일반 4G · Chromium 에서만 적용)'
+        default: '4000'
+      matrix:
+        description: '검사 조합'
+        type: choice
+        default: full
+        options:
+          - full          # 모바일 Chromium + 데스크탑 Chromium + 데스크탑 Firefox
+          - mobile-only   # deploy.yml 의 게이트와 동일 조건
 
 concurrency:
-    # 동시에 두 개가 같은 카나리를 두드리지 않게 한다
-    group: canary-check
-    cancel-in-progress: false
+  # 동시에 두 개가 같은 카나리를 두드리지 않게 한다
+  group: canary-check
+  cancel-in-progress: false
 
 jobs:
-    check:
-        runs-on: ubuntu-latest
-        timeout-minutes: 25
-        # ⛔ 브라우저 1종·1뷰포트로는 부족하다. 2026-06 1차 split 실패 신고가 그 증거다 —
-        #    #12836 은 **Firefox PC**, #12842 는 **Chrome 데스크탑**이었다.
-        #    ⛔ deploy.yml 의 verify-canary 게이트는 **모바일 Chromium 만** 본다(빠른 관문 유지).
-        #       매트릭스는 여기서만 돈다 — Firefox 설치가 매 배포 승격을 늦추거나
-        #       플레이크 하나로 막는 일을 만들지 않기 위해서다.
-        strategy:
-            fail-fast: false
-            matrix:
-                include:
-                    - { engine: chromium, w: 384, h: 780, label: '모바일 Chromium' }
-                    - { engine: chromium, w: 1440, h: 900, label: '데스크탑 Chromium' }
-                    - { engine: firefox, w: 1440, h: 900, label: '데스크탑 Firefox' }
-        name: ${{ matrix.label }}
-        steps:
-            - uses: actions/checkout@v4
-              with:
-                  sparse-checkout: |
-                      apps/web/scripts/canary-browser-check.mjs
-                      apps/web/scripts/canary-error-lanes.mjs
-                      apps/web/scripts/canary-error-lanes.test.mjs
-                      apps/web/scripts/canary-shell-verdict.mjs
-                      apps/web/scripts/canary-shell-verdict.test.mjs
-                  sparse-checkout-cone-mode: false
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    # ⛔ 브라우저 1종·1뷰포트로는 부족하다. 2026-06 1차 split 실패 신고가 그 증거다 —
+    #    #12836 은 **Firefox PC**, #12842 는 **Chrome 데스크탑**이었다.
+    #    ⛔ deploy.yml 의 verify-canary 게이트는 **모바일 Chromium 만** 본다(빠른 관문 유지).
+    #       매트릭스는 여기서만 돈다 — Firefox 설치가 매 배포 승격을 늦추거나
+    #       플레이크 하나로 막는 일을 만들지 않기 위해서다.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { engine: chromium, w: 384, h: 780, label: '모바일 Chromium' }
+          - { engine: chromium, w: 1440, h: 900, label: '데스크탑 Chromium' }
+          - { engine: firefox, w: 1440, h: 900, label: '데스크탑 Firefox' }
+    name: ${{ matrix.label }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            apps/web/scripts/canary-browser-check.mjs
+            apps/web/scripts/canary-error-lanes.mjs
+            apps/web/scripts/canary-error-lanes.test.mjs
+            apps/web/scripts/canary-shell-verdict.mjs
+            apps/web/scripts/canary-shell-verdict.test.mjs
+          sparse-checkout-cone-mode: false
 
-            - uses: actions/setup-node@v4
-              with:
-                  node-version: 22
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
-            # ⛔ 이것이 실패하면 브라우저 검사가 6월 지문($set·HierarchyRequestError)을 놓치는 상태다
-            - name: Verify error lane classifier
-              run: node apps/web/scripts/canary-error-lanes.test.mjs
+      # ⛔ 이것이 실패하면 브라우저 검사가 6월 지문($set·HierarchyRequestError)을 놓치는 상태다
+      - name: Verify error lane classifier
+        run: node apps/web/scripts/canary-error-lanes.test.mjs
 
-            # ⛔ 이것이 실패하면 카나리 검사가 **bug/14049 형태(스타일 덜 먹은 화면)를 놓치는 상태**다.
-            #    셸 요소는 다 있고 콘솔 오류도 없는데 CSS 만 빠지는 경우 — 재로드율에도 안 잡힌다.
-            - name: Verify shell/CSS verdict
-              if: steps.gate.outputs.skip != '1'
-              run: node apps/web/scripts/canary-shell-verdict.test.mjs
+      # ⛔ 「200 이고 셸도 있는데 스타일만 안 먹은 화면」은 9/30 bug/14049 의 지문이다.
+      #    판정을 순수 함수로 뽑아 여기서 먼저 시험한다.
+      - name: Verify shell/CSS verdict
+        run: node apps/web/scripts/canary-shell-verdict.test.mjs
 
-            - name: Skip non-mobile combos when mobile-only
-              id: gate
-              run: |
-                  if [ "${{ github.event.inputs.matrix }}" = "mobile-only" ] \
-                     && [ "${{ matrix.engine }}-${{ matrix.w }}" != "chromium-384" ]; then
-                    echo "skip=1" >> "$GITHUB_OUTPUT"
-                    echo "mobile-only 지정 — ${{ matrix.label }} 생략"
-                  fi
+      - name: Skip non-mobile combos when mobile-only
+        id: gate
+        run: |
+          if [ "${{ github.event.inputs.matrix }}" = "mobile-only" ] \
+             && [ "${{ matrix.engine }}-${{ matrix.w }}" != "chromium-384" ]; then
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+            echo "mobile-only 지정 — ${{ matrix.label }} 생략"
+          fi
 
-            - name: Install Playwright (${{ matrix.engine }})
-              if: steps.gate.outputs.skip != '1'
-              run: |
-                  mkdir -p /tmp/pw && cd /tmp/pw
-                  npm init -y >/dev/null
-                  npm i --no-audit --no-fund playwright@1.58.0
-                  npx playwright install --with-deps ${{ matrix.engine }}
+      - name: Install Playwright (${{ matrix.engine }})
+        if: steps.gate.outputs.skip != '1'
+        run: |
+          mkdir -p /tmp/pw && cd /tmp/pw
+          npm init -y >/dev/null
+          npm i --no-audit --no-fund playwright@1.58.0
+          npx playwright install --with-deps ${{ matrix.engine }}
 
-            - name: Browser check (${{ matrix.label }})
-              if: steps.gate.outputs.skip != '1'
-              env:
-                  PW_MODULE: /tmp/pw/node_modules/playwright/index.mjs
-                  PW_BROWSER: ${{ matrix.engine }}
-                  BASE: ${{ github.event.inputs.base || 'https://canary.damoang.net' }}
-                  OBSERVE: ${{ github.event.inputs.observe_sec || '45' }}
-                  KBPS: ${{ github.event.inputs.kbps || '4000' }}
-              run: |
-                  node apps/web/scripts/canary-browser-check.mjs \
-                    "$BASE" ${{ matrix.w }} ${{ matrix.h }} "$OBSERVE" "$KBPS" 100
+      - name: Browser check (${{ matrix.label }})
+        if: steps.gate.outputs.skip != '1'
+        env:
+          PW_MODULE: /tmp/pw/node_modules/playwright/index.mjs
+          PW_BROWSER: ${{ matrix.engine }}
+          BASE: ${{ github.event.inputs.base || 'https://canary.damoang.net' }}
+          OBSERVE: ${{ github.event.inputs.observe_sec || '45' }}
+          KBPS: ${{ github.event.inputs.kbps || '4000' }}
+        run: |
+          node apps/web/scripts/canary-browser-check.mjs \
+            "$BASE" ${{ matrix.w }} ${{ matrix.h }} "$OBSERVE" "$KBPS" 100
