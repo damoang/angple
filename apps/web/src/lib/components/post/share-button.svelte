@@ -62,6 +62,8 @@
         const success = await shareToKakao(title, url, imageUrl);
         if (!success) {
             // bug/13991: 실패를 조용히 삼키지 않는다. 주소라도 복사해 직접 붙여 넣게 한다.
+            // SDK 로드·초기화·호출 예외(주로 PC)만 여기로 온다. 모바일에서 카카오 측 검증이
+            // 실패하면 SDK 가 sharer.kakao.com/picker/failed 로 페이지를 옮기므로 잡을 수 없다.
             const copied = await copyUrl(url);
             if (copied) {
                 toast.error(

@@ -133,11 +133,23 @@
         originalPostLink
     }: ViewLayoutProps = $props();
 
-    // bug/13991: 공유 대표 이미지(썸네일 → 첫 첨부 이미지). 없으면 undefined 로 두고
-    // share.ts 가 사이트 아이콘으로 대체한다.
+    // bug/13991: 공유 대표 이미지는 **원본** URL 만 쓴다. -400x225/-835x626 변형본은
+    // 없는 경우가 있어(실측) 카카오가 이미지를 못 가져온다. 순서: 원본 썸네일 → 첫 첨부 →
+    // 본문 첫 이미지. 없으면 undefined 로 두고 share.ts 가 사이트 아이콘으로 대체한다.
+    // (9/30 실측: 최근 글 원본 jpg/png/gif 전부 200, 같은 글의 변형본은 응답 없음)
+    const ORIGINAL_MEDIA_IMAGE_REGEX =
+        /^https?:\/\/(?:cdn|s3)\.damoang\.net\/data\/(?:file|editor)\/.+\.(?:jpe?g|png|gif|webp)$/i;
+    const RESIZED_VARIANT_REGEX = /-\d+x\d+\.webp$/i;
+    const isOriginalMediaImage = (url: string | undefined | null): url is string =>
+        !!url && ORIGINAL_MEDIA_IMAGE_REGEX.test(url) && !RESIZED_VARIANT_REGEX.test(url);
     const shareImageUrl = $derived.by(() => {
-        const src = post.thumbnail || post.images?.[0];
-        return src ? toThumbnailUrl(src, '835x626') : undefined;
+        const candidates = [post.thumbnail_raw, post.images?.[0]];
+        // 본문은 HTML 또는 마크다운이라 <img src> 와 ![](url) 둘 다 본다.
+        const imgPattern = /<img\b[^>]*\bsrc=["']([^"']+)["']|!\[[^\]]*\]\(\s*<?([^)\s>]+)/gi;
+        for (const match of (postContent ?? '').matchAll(imgPattern)) {
+            candidates.push(match[1] ?? match[2]);
+        }
+        return candidates.find(isOriginalMediaImage);
     });
 
     let hasAffiliateLinks = $derived(postContent?.includes('data-affiliate') ?? false);
@@ -1022,7 +1034,7 @@
                 <div class="ml-auto flex flex-wrap items-center justify-end gap-1">
                     {#if board?.use_sns}
                         <!-- bug/13991: 카카오 피드 공유는 대표 이미지가 필수라 글 이미지를 넘긴다
-                             (없으면 share.ts 가 사이트 아이콘으로 대체). og:image 와 같은 835×626 변형본. -->
+                             (원본 URL, 없으면 share.ts 가 사이트 아이콘으로 대체). -->
                         <ShareButton
                             {boardId}
                             postId={post.id}
