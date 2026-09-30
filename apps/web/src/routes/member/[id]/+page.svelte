@@ -1002,7 +1002,7 @@
                                         {#if comment.is_locked === true}
                                             <span
                                                 class="text-destructive bg-destructive/10 inline-flex items-center gap-0.5 rounded px-1 py-px"
-                                                title="신고로 잠긴 글에 단 댓글"
+                                                title="신고로 잠긴 댓글"
                                             >
                                                 <Lock class="h-3 w-3" />
                                                 신고잠금
