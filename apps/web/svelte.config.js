@@ -50,13 +50,30 @@ const config = {
             trustedOrigins: ['*']
         },
         output: {
-            // 단일 번들 전략 유지. split(코드 분할) 전환 시 게시글 진입·목록에서
-            // 청크 비동기 로딩이 컴포넌트 undefined($set 오류) 및 하이드레이션 실패
-            // (HierarchyRequestError)를 유발해 "글이 안 열리고 화면이 깨지는" 회귀가
-            // 광범위하게 발생했음(Chrome 데스크탑/모바일). 단일 번들은 청크 분할이
-            // 없어 해당 캐스케이드를 원천 차단하므로 안정화를 위해 single 로 되돌림.
-            // split 재도입은 별도 트랙에서 manualChunks/hydration 검증을 거친 뒤 진행.
-            bundleStrategy: 'single',
+            // ── 코드 분할 이력 (지우지 말 것. 두 번 실패했고 원인이 서로 다르다) ──
+            //
+            // 1차 b82ce66b 2026-06-28(#1685) → 58c10665 **6/29**(#1691) 롤백 — 하루 만에
+            //   게시글 진입·목록에서 청크 비동기 로딩이 컴포넌트 undefined($set 오류) 및
+            //   하이드레이션 실패(HierarchyRequestError)를 유발해 "글이 안 열리고 화면이
+            //   깨지는" 회귀가 광범위하게 발생(Chrome 데스크탑/모바일).
+            //   회원 신고 #12836(좌측 메뉴·로그인 메뉴바 미출력) #12842(클릭하면 안 열리고,
+            //   두 번째에 열리는데 목록이 안 나타남) #12844.
+            //   ⭐ `?_v=`(자산복구) 적용 상태에서도 재현 → 단순 캐시 아님.
+            // 2차 3b8a7a45 2026-09-28(#2303) → 3beefee1 9/29(#2305) 롤백
+            //   CORS 모드 혼용 — `<link rel="modulepreload">` 를 `crossorigin` 없이 HTML 에
+            //   주입 → 청크 로드 실패 → 복구 리로드 무한루프.
+            //
+            // ── 3차 재시도 (2026-09-30) ──
+            // 재시도 조건을 먼저 갖췄다. 없이 켜면 세 번째로 실패한다.
+            //   ✅ 관측: 카나리 브라우저 검사가 **레인 2개**를 본다(#2324) —
+            //      청크 레인(2차 지문) + 하이드레이션 레인($set·HierarchyRequestError·
+            //      Failed to hydrate = 1차 지문). 목록→글 **클릭 이동(SPA)** 과 뒤로가기
+            //      복귀, 셸·본문 존재까지 단언한다. 현행 single 에서 전부 통과함(대조군).
+            //   ✅ 설정: R2 자산 CORS `AllowedOrigins: ["*"]`, `acao_watch.py` 가 감시(크론).
+            //   ⛔ 2차 원인인 `modulepreload` HTML 주입은 **넣지 않는다**(#2303 에서 제거된 채 유지).
+            //   ⛔ 자산 업로드는 `aws s3 sync` 로 디렉터리 전체 — 청크 수가 늘어도 누락 없음(확인).
+            // 카나리에서 실패하면 즉시 single 로 되돌리고 원인을 규명한다.
+            bundleStrategy: 'split',
             // modulepreload: 브라우저 기본 동작에 위임하여 불필요한 prefetch 감소
             preloadStrategy: 'modulepreload'
         },
