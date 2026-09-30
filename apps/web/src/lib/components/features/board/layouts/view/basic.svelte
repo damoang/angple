@@ -138,7 +138,7 @@
     // 본문 첫 이미지. 없으면 undefined 로 두고 share.ts 가 사이트 아이콘으로 대체한다.
     // (9/30 실측: 최근 글 원본 jpg/png/gif 전부 200, 같은 글의 변형본은 응답 없음)
     const ORIGINAL_MEDIA_IMAGE_REGEX =
-        /^https?:\/\/(?:cdn|s3)\.damoang\.net\/data\/(?:file|editor)\/.+\.(?:jpe?g|png|gif|webp)$/i;
+        /^https?:\/\/(?:cdn|s3|r2)\.damoang\.net\/data\/(?:file|editor)\/.+\.(?:jpe?g|png|gif|webp)$/i;
     const RESIZED_VARIANT_REGEX = /-\d+x\d+\.webp$/i;
     const isOriginalMediaImage = (url: string | undefined | null): url is string =>
         !!url && ORIGINAL_MEDIA_IMAGE_REGEX.test(url) && !RESIZED_VARIANT_REGEX.test(url);
