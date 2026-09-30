@@ -1,691 +1,698 @@
 name: Deploy
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-    inputs:
-      release_mode:
-        description: 'Deploy mode. canary_only runs a single-pod canary gate. Use full only after canary verification.'
-        required: true
-        type: choice
-        default: canary_only
-        options:
-          - canary_only
-          - full
-      image_tag:
-        description: 'Existing sha-* image tag to promote without rebuild. Leave empty to build from current commit.'
-        required: false
-        type: string
+    push:
+        branches: [main]
+    workflow_dispatch:
+        inputs:
+            release_mode:
+                description: 'Deploy mode. canary_only runs a single-pod canary gate. Use full only after canary verification.'
+                required: true
+                type: choice
+                default: canary_only
+                options:
+                    - canary_only
+                    - full
+            image_tag:
+                description: 'Existing sha-* image tag to promote without rebuild. Leave empty to build from current commit.'
+                required: false
+                type: string
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/damoang/angple-web
-  STATIC_ASSET_BASE_ROOT: https://static.damoang.net/releases
-  MEDIA_CDN_BASE: https://cdn.damoang.net
-  DEPLOY_SITE_URL: https://damoang.net
-  DEPLOY_PURGE_PATHS: /,/free,/hot,/best,/new
+    REGISTRY: ghcr.io
+    IMAGE_NAME: ghcr.io/damoang/angple-web
+    STATIC_ASSET_BASE_ROOT: https://static.damoang.net/releases
+    MEDIA_CDN_BASE: https://cdn.damoang.net
+    DEPLOY_SITE_URL: https://damoang.net
+    DEPLOY_PURGE_PATHS: /,/free,/hot,/best,/new
 
 run-name: >-
-  Deploy
-  ${{ inputs.image_tag && format('promote {0}', inputs.image_tag) || format('{0}', github.sha) }}
-  (${{ github.event_name == 'workflow_dispatch' && inputs.release_mode || 'canary_only' }})
+    Deploy
+    ${{ inputs.image_tag && format('promote {0}', inputs.image_tag) || format('{0}', github.sha) }}
+    (${{ github.event_name == 'workflow_dispatch' && inputs.release_mode || 'canary_only' }})
 
 jobs:
-  resolve-release:
-    runs-on: ubuntu-latest
-    outputs:
-      release_mode: ${{ steps.release.outputs.release_mode }}
-      sha_tag: ${{ steps.release.outputs.sha_tag }}
-      should_build: ${{ steps.release.outputs.should_build }}
-      pr_title: ${{ steps.pr.outputs.pr_title }}
-      pr_title_b64: ${{ steps.pr.outputs.pr_title_b64 }}
-      pr_url: ${{ steps.pr.outputs.pr_url }}
-    permissions:
-      contents: read
-      pull-requests: read
-    steps:
-      # Premium SHA를 IMAGE_TAG에 포함하기 위해 resolve 단계에서도 premium checkout
-      # 2026-04-19 incident: premium-only 변경 시 web git SHA 동일 → IMAGE_TAG 동일 → K8s rollout no-op
-      - name: Checkout premium (for SHA only)
-        if: ${{ !inputs.image_tag }}
-        uses: actions/checkout@v6
-        with:
-          repository: damoang/angple-premium
-          token: ${{ secrets.PREMIUM_REPO_TOKEN }}
-          path: _premium_sha
-          fetch-depth: 1
+    resolve-release:
+        runs-on: ubuntu-latest
+        outputs:
+            release_mode: ${{ steps.release.outputs.release_mode }}
+            sha_tag: ${{ steps.release.outputs.sha_tag }}
+            should_build: ${{ steps.release.outputs.should_build }}
+            pr_title: ${{ steps.pr.outputs.pr_title }}
+            pr_title_b64: ${{ steps.pr.outputs.pr_title_b64 }}
+            pr_url: ${{ steps.pr.outputs.pr_url }}
+        permissions:
+            contents: read
+            pull-requests: read
+        steps:
+            # Premium SHA를 IMAGE_TAG에 포함하기 위해 resolve 단계에서도 premium checkout
+            # 2026-04-19 incident: premium-only 변경 시 web git SHA 동일 → IMAGE_TAG 동일 → K8s rollout no-op
+            - name: Checkout premium (for SHA only)
+              if: ${{ !inputs.image_tag }}
+              uses: actions/checkout@v6
+              with:
+                  repository: damoang/angple-premium
+                  token: ${{ secrets.PREMIUM_REPO_TOKEN }}
+                  path: _premium_sha
+                  fetch-depth: 1
 
-      - name: Resolve release mode
-        id: release
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          INPUT_RELEASE_MODE: ${{ inputs.release_mode }}
-          INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
-        run: |
-          echo "Deploy standard: dev -> single-pod canary gate -> verify -> same artifact prod"
-          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
-            EFFECTIVE_RELEASE_MODE="${INPUT_RELEASE_MODE}"
-          else
-            EFFECTIVE_RELEASE_MODE="canary_only"
-          fi
+            - name: Resolve release mode
+              id: release
+              env:
+                  EVENT_NAME: ${{ github.event_name }}
+                  INPUT_RELEASE_MODE: ${{ inputs.release_mode }}
+                  INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
+              run: |
+                  echo "Deploy standard: dev -> single-pod canary gate -> verify -> same artifact prod"
+                  if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+                    EFFECTIVE_RELEASE_MODE="${INPUT_RELEASE_MODE}"
+                  else
+                    EFFECTIVE_RELEASE_MODE="canary_only"
+                  fi
 
-          if [ "${EFFECTIVE_RELEASE_MODE}" = "full" ] && [ -z "${INPUT_IMAGE_TAG}" ]; then
-            echo "full 승격은 검증된 sha-* image_tag가 필요합니다."
-            exit 1
-          fi
+                  if [ "${EFFECTIVE_RELEASE_MODE}" = "full" ] && [ -z "${INPUT_IMAGE_TAG}" ]; then
+                    echo "full 승격은 검증된 sha-* image_tag가 필요합니다."
+                    exit 1
+                  fi
 
-          echo "release_mode=${EFFECTIVE_RELEASE_MODE}" >> "$GITHUB_OUTPUT"
-          if [ -n "${INPUT_IMAGE_TAG}" ]; then
-            echo "sha_tag=${INPUT_IMAGE_TAG}" >> "$GITHUB_OUTPUT"
-            echo "should_build=false" >> "$GITHUB_OUTPUT"
-          else
-            WEB_SHA="${GITHUB_SHA:0:7}"
-            PREM_SHA=$(git -C _premium_sha rev-parse --short=7 HEAD 2>/dev/null || echo "none")
-            SHA_TAG="sha-${WEB_SHA}-p${PREM_SHA}"
-            echo "Computed IMAGE_TAG: ${SHA_TAG} (web=${WEB_SHA}, premium=${PREM_SHA})"
-            echo "sha_tag=${SHA_TAG}" >> "$GITHUB_OUTPUT"
-            echo "should_build=true" >> "$GITHUB_OUTPUT"
-          fi
+                  echo "release_mode=${EFFECTIVE_RELEASE_MODE}" >> "$GITHUB_OUTPUT"
+                  if [ -n "${INPUT_IMAGE_TAG}" ]; then
+                    echo "sha_tag=${INPUT_IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+                    echo "should_build=false" >> "$GITHUB_OUTPUT"
+                  else
+                    WEB_SHA="${GITHUB_SHA:0:7}"
+                    PREM_SHA=$(git -C _premium_sha rev-parse --short=7 HEAD 2>/dev/null || echo "none")
+                    SHA_TAG="sha-${WEB_SHA}-p${PREM_SHA}"
+                    echo "Computed IMAGE_TAG: ${SHA_TAG} (web=${WEB_SHA}, premium=${PREM_SHA})"
+                    echo "sha_tag=${SHA_TAG}" >> "$GITHUB_OUTPUT"
+                    echo "should_build=true" >> "$GITHUB_OUTPUT"
+                  fi
 
-      - name: Resolve PR info
-        id: pr
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          pr_json=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" -H "Accept: application/vnd.github+json" 2>/dev/null || echo '[]')
-          pr_title=$(printf '%s' "$pr_json" | jq -r '.[0].title // empty')
-          pr_url=$(printf '%s' "$pr_json" | jq -r '.[0].html_url // empty')
+            - name: Resolve PR info
+              id: pr
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  pr_json=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" -H "Accept: application/vnd.github+json" 2>/dev/null || echo '[]')
+                  pr_title=$(printf '%s' "$pr_json" | jq -r '.[0].title // empty')
+                  pr_url=$(printf '%s' "$pr_json" | jq -r '.[0].html_url // empty')
 
-          {
-            echo "pr_title<<EOF"
-            printf '%s\n' "$pr_title"
-            echo "EOF"
-            echo "pr_url=${pr_url}"
-            echo "pr_title_b64=$(printf '%s' "$pr_title" | base64 -w0)"
-          } >> "$GITHUB_OUTPUT"
+                  {
+                    echo "pr_title<<EOF"
+                    printf '%s\n' "$pr_title"
+                    echo "EOF"
+                    echo "pr_url=${pr_url}"
+                    echo "pr_title_b64=$(printf '%s' "$pr_title" | base64 -w0)"
+                  } >> "$GITHUB_OUTPUT"
 
-  build:
-    needs: resolve-release
-    if: needs.resolve-release.outputs.should_build == 'true'
-    runs-on: ubuntu-24.04-arm
-    outputs:
-      sha_tag: ${{ needs.resolve-release.outputs.sha_tag }}
-      image_repo: ${{ env.IMAGE_NAME }}
-      image_digest: ${{ steps.build_image.outputs.digest }}
-      pr_title: ${{ needs.resolve-release.outputs.pr_title }}
-      pr_title_b64: ${{ needs.resolve-release.outputs.pr_title_b64 }}
-      pr_url: ${{ needs.resolve-release.outputs.pr_url }}
-    permissions:
-      contents: read
-      packages: write
-      pull-requests: read
-    steps:
-      - uses: actions/checkout@v6
+    build:
+        needs: resolve-release
+        if: needs.resolve-release.outputs.should_build == 'true'
+        runs-on: ubuntu-24.04-arm
+        outputs:
+            sha_tag: ${{ needs.resolve-release.outputs.sha_tag }}
+            image_repo: ${{ env.IMAGE_NAME }}
+            image_digest: ${{ steps.build_image.outputs.digest }}
+            pr_title: ${{ needs.resolve-release.outputs.pr_title }}
+            pr_title_b64: ${{ needs.resolve-release.outputs.pr_title_b64 }}
+            pr_url: ${{ needs.resolve-release.outputs.pr_url }}
+        permissions:
+            contents: read
+            packages: write
+            pull-requests: read
+        steps:
+            - uses: actions/checkout@v6
 
-      - name: Checkout premium
-        uses: actions/checkout@v6
-        with:
-          repository: damoang/angple-premium
-          token: ${{ secrets.PREMIUM_REPO_TOKEN }}
-          path: _premium
+            - name: Checkout premium
+              uses: actions/checkout@v6
+              with:
+                  repository: damoang/angple-premium
+                  token: ${{ secrets.PREMIUM_REPO_TOKEN }}
+                  path: _premium
 
-      - name: Check premium plugin conflicts
-        run: |
-          chmod +x scripts/check-premium-plugin-conflicts.sh
-          scripts/check-premium-plugin-conflicts.sh . _premium
+            - name: Check premium plugin conflicts
+              run: |
+                  chmod +x scripts/check-premium-plugin-conflicts.sh
+                  scripts/check-premium-plugin-conflicts.sh . _premium
 
-      - name: Install premium assets
-        run: |
-          chmod +x _premium/deploy/install.sh
-          _premium/deploy/install.sh .
+            - name: Install premium assets
+              run: |
+                  chmod +x _premium/deploy/install.sh
+                  _premium/deploy/install.sh .
 
-      - name: Setup directories
-        run: mkdir -p custom-themes custom-widgets extensions plugins widgets
+            - name: Setup directories
+              run: mkdir -p custom-themes custom-widgets extensions plugins widgets
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v6
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-          cache: 'pnpm'
-          cache-dependency-path: pnpm-lock.yaml
+            - name: Setup Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version: '22'
+                  cache: 'pnpm'
+                  cache-dependency-path: pnpm-lock.yaml
 
-      - name: Install dependencies
-        run: |
-          pnpm fetch --frozen-lockfile
-          pnpm install --frozen-lockfile --prefer-offline
+            - name: Install dependencies
+              run: |
+                  pnpm fetch --frozen-lockfile
+                  pnpm install --frozen-lockfile --prefer-offline
 
-      - name: Build
-        env:
-          VITE_USE_MOCK: 'false'
-          VITE_GAM_NETWORK_CODE: '23338387889'
-          VITE_GAM_SITE_NAME: 'damoang'
-          VITE_S3_URL: ${{ env.MEDIA_CDN_BASE }}
-          ASSET_BASE_URL: ${{ env.STATIC_ASSET_BASE_ROOT }}/${{ needs.resolve-release.outputs.sha_tag }}
-        run: |
-          pnpm --filter "./packages/*" build
-          echo "VITE_GAM_NETWORK_CODE=23338387889" > apps/web/.env
-          echo "VITE_GAM_SITE_NAME=damoang" >> apps/web/.env
-          echo "VITE_S3_URL=${VITE_S3_URL}" >> apps/web/.env
-          pnpm --filter web build
+            - name: Build
+              env:
+                  VITE_USE_MOCK: 'false'
+                  VITE_GAM_NETWORK_CODE: '23338387889'
+                  VITE_GAM_SITE_NAME: 'damoang'
+                  VITE_S3_URL: ${{ env.MEDIA_CDN_BASE }}
+                  ASSET_BASE_URL: ${{ env.STATIC_ASSET_BASE_ROOT }}/${{ needs.resolve-release.outputs.sha_tag }}
+              run: |
+                  pnpm --filter "./packages/*" build
+                  echo "VITE_GAM_NETWORK_CODE=23338387889" > apps/web/.env
+                  echo "VITE_GAM_SITE_NAME=damoang" >> apps/web/.env
+                  echo "VITE_S3_URL=${VITE_S3_URL}" >> apps/web/.env
+                  pnpm --filter web build
 
-      - name: Upload immutable assets to R2
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: auto
-          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
-          R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
-          SHA_TAG: ${{ needs.resolve-release.outputs.sha_tag }}
-        run: |
-          for name in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY R2_ACCOUNT_ID R2_BUCKET SHA_TAG; do
-            if [ -z "${!name}" ]; then
-              echo "Missing required R2 variable: $name"
-              exit 1
-            fi
-          done
+            - name: Upload immutable assets to R2
+              env:
+                  AWS_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+                  AWS_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+                  AWS_DEFAULT_REGION: auto
+                  R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
+                  R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
+                  SHA_TAG: ${{ needs.resolve-release.outputs.sha_tag }}
+              run: |
+                  for name in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY R2_ACCOUNT_ID R2_BUCKET SHA_TAG; do
+                    if [ -z "${!name}" ]; then
+                      echo "Missing required R2 variable: $name"
+                      exit 1
+                    fi
+                  done
 
-          aws s3 sync apps/web/build/client/_app/immutable/ \
-            "s3://${R2_BUCKET}/releases/${SHA_TAG}/_app/immutable/" \
-            --endpoint-url "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" \
-            --cache-control "public, max-age=31536000, immutable" \
-            --no-progress
+                  aws s3 sync apps/web/build/client/_app/immutable/ \
+                    "s3://${R2_BUCKET}/releases/${SHA_TAG}/_app/immutable/" \
+                    --endpoint-url "https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" \
+                    --cache-control "public, max-age=31536000, immutable" \
+                    --no-progress
 
-      # three(+OrbitControls)는 bundleStrategy:'single' 에서 앱 번들에 인라인되지 않도록
-      # 자체호스팅 vendor 번들(static.damoang.net/vendor/three/...)로 분리해 brickang 만 로드.
-      # 버전 파일명 고정(immutable) → 이미 있으면 스킵(idempotent). 실패해도 배포는 비차단.
-      - name: Build & upload three vendor bundle to R2 (idempotent)
-        continue-on-error: true
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: auto
-          R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
-          R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
-        run: |
-          set -uo pipefail
-          cd apps/web
-          THREE_VER=$(node -e "console.log(JSON.parse(require('fs').readFileSync('node_modules/three/package.json','utf8')).version)")
-          KEY="vendor/three/three-vendor.${THREE_VER}.js"
-          ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
-          if aws s3 ls "s3://${R2_BUCKET}/${KEY}" --endpoint-url "$ENDPOINT" >/dev/null 2>&1; then
-            echo "three vendor already present: ${KEY} — skip"
-            exit 0
-          fi
-          echo "building three vendor (three@${THREE_VER})..."
-          node scripts/build-three-vendor.mjs
-          aws s3 cp "build-vendor/three-vendor.${THREE_VER}.js" \
-            "s3://${R2_BUCKET}/${KEY}" \
-            --endpoint-url "$ENDPOINT" \
-            --content-type application/javascript \
-            --cache-control "public, max-age=31536000, immutable" \
-            --no-progress
-          echo "uploaded ${KEY}"
+            # three(+OrbitControls)는 bundleStrategy:'single' 에서 앱 번들에 인라인되지 않도록
+            # 자체호스팅 vendor 번들(static.damoang.net/vendor/three/...)로 분리해 brickang 만 로드.
+            # 버전 파일명 고정(immutable) → 이미 있으면 스킵(idempotent). 실패해도 배포는 비차단.
+            - name: Build & upload three vendor bundle to R2 (idempotent)
+              continue-on-error: true
+              env:
+                  AWS_ACCESS_KEY_ID: ${{ secrets.CLOUDFLARE_R2_ACCESS_KEY_ID }}
+                  AWS_SECRET_ACCESS_KEY: ${{ secrets.CLOUDFLARE_R2_SECRET_ACCESS_KEY }}
+                  AWS_DEFAULT_REGION: auto
+                  R2_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_R2_ACCOUNT_ID }}
+                  R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
+              run: |
+                  set -uo pipefail
+                  cd apps/web
+                  THREE_VER=$(node -e "console.log(JSON.parse(require('fs').readFileSync('node_modules/three/package.json','utf8')).version)")
+                  KEY="vendor/three/three-vendor.${THREE_VER}.js"
+                  ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+                  if aws s3 ls "s3://${R2_BUCKET}/${KEY}" --endpoint-url "$ENDPOINT" >/dev/null 2>&1; then
+                    echo "three vendor already present: ${KEY} — skip"
+                    exit 0
+                  fi
+                  echo "building three vendor (three@${THREE_VER})..."
+                  node scripts/build-three-vendor.mjs
+                  aws s3 cp "build-vendor/three-vendor.${THREE_VER}.js" \
+                    "s3://${R2_BUCKET}/${KEY}" \
+                    --endpoint-url "$ENDPOINT" \
+                    --content-type application/javascript \
+                    --cache-control "public, max-age=31536000, immutable" \
+                    --no-progress
+                  echo "uploaded ${KEY}"
 
-      - name: Prepare deploy package
-        run: |
-          pnpm --filter web deploy --prod --legacy apps/web/deploy
-          cp -r apps/web/build apps/web/deploy/
-          rm -rf apps/web/deploy/{plugins,widgets,themes,custom-themes,custom-widgets,extensions}
-          for dir in plugins widgets themes custom-themes custom-widgets extensions; do
-            [ -d "$dir" ] && cp -r "$dir" apps/web/deploy/
-          done
+            - name: Prepare deploy package
+              run: |
+                  pnpm --filter web deploy --prod --legacy apps/web/deploy
+                  cp -r apps/web/build apps/web/deploy/
+                  rm -rf apps/web/deploy/{plugins,widgets,themes,custom-themes,custom-widgets,extensions}
+                  for dir in plugins widgets themes custom-themes custom-widgets extensions; do
+                    [ -d "$dir" ] && cp -r "$dir" apps/web/deploy/
+                  done
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v4
 
-      - name: Log in to GHCR
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+            - name: Log in to GHCR
+              uses: docker/login-action@v4
+              with:
+                  registry: ghcr.io
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
-        id: build_image
-        uses: docker/build-push-action@v7
-        with:
-          context: apps/web/deploy
-          file: apps/web/Dockerfile.prod
-          push: true
-          platforms: linux/arm64
-          tags: |
-            ${{ env.IMAGE_NAME }}:${{ needs.resolve-release.outputs.sha_tag }}
-            ${{ env.IMAGE_NAME }}:latest
-          cache-from: type=gha,scope=web
-          cache-to: type=gha,mode=max,scope=web
+            - name: Build and push
+              id: build_image
+              uses: docker/build-push-action@v7
+              with:
+                  context: apps/web/deploy
+                  file: apps/web/Dockerfile.prod
+                  push: true
+                  platforms: linux/arm64
+                  tags: |
+                      ${{ env.IMAGE_NAME }}:${{ needs.resolve-release.outputs.sha_tag }}
+                      ${{ env.IMAGE_NAME }}:latest
+                  cache-from: type=gha,scope=web
+                  cache-to: type=gha,mode=max,scope=web
 
-  deploy-canary:
-    needs: [resolve-release, build]
-    if: always() && needs.resolve-release.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped')
-    runs-on: ubuntu-latest
-    concurrency:
-      group: deploy-main-web-canary
-      cancel-in-progress: true
-    environment:
-      name: canary
-      url: https://canary.damoang.net
-    permissions:
-      id-token: write
-      contents: read
-      packages: read
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
-          aws-region: ap-northeast-2
+    deploy-canary:
+        needs: [resolve-release, build]
+        if: always() && needs.resolve-release.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped')
+        runs-on: ubuntu-latest
+        concurrency:
+            group: deploy-main-web-canary
+            cancel-in-progress: true
+        environment:
+            name: canary
+            url: https://canary.damoang.net
+        permissions:
+            id-token: write
+            contents: read
+            packages: read
+        steps:
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v6
+              with:
+                  role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
+                  aws-region: ap-northeast-2
 
-      - name: Deploy canary via SSM (single-pod gate)
-        env:
-          IMAGE_TAG: ${{ needs.resolve-release.outputs.sha_tag }}
-          APPROVAL_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          ASSET_BASE_URL: ${{ env.STATIC_ASSET_BASE_ROOT }}/${{ needs.resolve-release.outputs.sha_tag }}
-          PR_URL: ${{ needs.resolve-release.outputs.pr_url }}
-          PR_TITLE_B64: ${{ needs.resolve-release.outputs.pr_title_b64 }}
-        run: |
-          COMMAND_ID=$(aws ssm send-command \
-            --instance-ids "i-038a1d1f00798d94b" \
-            --document-name "AWS-RunShellScript" \
-            --parameters "{
-              \"commands\": [
-                \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' TELEGRAM_DEPLOY_CHAT_ID='${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}' DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}' APPROVAL_URL='${APPROVAL_URL}' ASSET_BASE_URL='${ASSET_BASE_URL}' PR_URL='${PR_URL}' PR_TITLE_B64='${PR_TITLE_B64}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --canary-only\"
-              ]
-            }" \
-            --timeout-seconds 600 \
-            --query "Command.CommandId" \
-            --output text 2>&1)
+            - name: Deploy canary via SSM (single-pod gate)
+              env:
+                  IMAGE_TAG: ${{ needs.resolve-release.outputs.sha_tag }}
+                  APPROVAL_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+                  ASSET_BASE_URL: ${{ env.STATIC_ASSET_BASE_ROOT }}/${{ needs.resolve-release.outputs.sha_tag }}
+                  PR_URL: ${{ needs.resolve-release.outputs.pr_url }}
+                  PR_TITLE_B64: ${{ needs.resolve-release.outputs.pr_title_b64 }}
+              run: |
+                  COMMAND_ID=$(aws ssm send-command \
+                    --instance-ids "i-038a1d1f00798d94b" \
+                    --document-name "AWS-RunShellScript" \
+                    --parameters "{
+                      \"commands\": [
+                        \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' TELEGRAM_DEPLOY_CHAT_ID='${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}' DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}' APPROVAL_URL='${APPROVAL_URL}' ASSET_BASE_URL='${ASSET_BASE_URL}' PR_URL='${PR_URL}' PR_TITLE_B64='${PR_TITLE_B64}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --canary-only\"
+                      ]
+                    }" \
+                    --timeout-seconds 600 \
+                    --query "Command.CommandId" \
+                    --output text 2>&1)
 
-          if [ -z "$COMMAND_ID" ] || [[ "$COMMAND_ID" == *"error"* ]]; then
-            echo "❌ SSM send-command failed: $COMMAND_ID"
-            exit 1
-          fi
+                  if [ -z "$COMMAND_ID" ] || [[ "$COMMAND_ID" == *"error"* ]]; then
+                    echo "❌ SSM send-command failed: $COMMAND_ID"
+                    exit 1
+                  fi
 
-          echo "SSM Command ID: $COMMAND_ID"
-          echo "Canary mode: single-pod gate"
+                  echo "SSM Command ID: $COMMAND_ID"
+                  echo "Canary mode: single-pod gate"
 
-          for i in $(seq 1 90); do
-            STATUS=$(aws ssm get-command-invocation \
-              --command-id "$COMMAND_ID" \
-              --instance-id "i-038a1d1f00798d94b" \
-              --query "Status" \
-              --output text 2>/dev/null || echo "Pending")
+                  for i in $(seq 1 90); do
+                    STATUS=$(aws ssm get-command-invocation \
+                      --command-id "$COMMAND_ID" \
+                      --instance-id "i-038a1d1f00798d94b" \
+                      --query "Status" \
+                      --output text 2>/dev/null || echo "Pending")
 
-            if [ "$STATUS" = "Success" ]; then
-              echo "✅ Canary deployed"
-              exit 0
-            elif [ "$STATUS" = "Failed" ]; then
-              echo "----- SSM STDOUT -----"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "i-038a1d1f00798d94b" \
-                --query "StandardOutputContent" \
-                --output text || true
-              echo "----- SSM STDERR -----"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "i-038a1d1f00798d94b" \
-                --query "StandardErrorContent" \
-                --output text || true
-              exit 1
-            fi
-            sleep 10
-          done
-          echo "Timeout waiting for single-pod canary gate"
-          exit 1
+                    if [ "$STATUS" = "Success" ]; then
+                      echo "✅ Canary deployed"
+                      exit 0
+                    elif [ "$STATUS" = "Failed" ]; then
+                      echo "----- SSM STDOUT -----"
+                      aws ssm get-command-invocation \
+                        --command-id "$COMMAND_ID" \
+                        --instance-id "i-038a1d1f00798d94b" \
+                        --query "StandardOutputContent" \
+                        --output text || true
+                      echo "----- SSM STDERR -----"
+                      aws ssm get-command-invocation \
+                        --command-id "$COMMAND_ID" \
+                        --instance-id "i-038a1d1f00798d94b" \
+                        --query "StandardErrorContent" \
+                        --output text || true
+                      exit 1
+                    fi
+                    sleep 10
+                  done
+                  echo "Timeout waiting for single-pod canary gate"
+                  exit 1
 
-      - name: Notify Discord (Canary)
-        if: always()
-        run: |
-          STATUS="${{ job.status }}"
-          COLOR=$([[ "$STATUS" == "success" ]] && echo "3066993" || echo "15158332")
-          curl -X POST "https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}" -H "Content-Type: application/json" -d "{
-            \"embeds\": [{
-              \"title\": \"🚀 Canary Deploy $STATUS\",
-              \"color\": $COLOR,
-              \"fields\": [
-                {\"name\": \"Tag\", \"value\": \"\`${{ needs.resolve-release.outputs.sha_tag }}\`\"},
-                {\"name\": \"URL\", \"value\": \"https://canary.damoang.net\"}
-              ]
-            }]
-          }"
+            - name: Notify Discord (Canary)
+              if: always()
+              run: |
+                  STATUS="${{ job.status }}"
+                  COLOR=$([[ "$STATUS" == "success" ]] && echo "3066993" || echo "15158332")
+                  curl -X POST "https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}" -H "Content-Type: application/json" -d "{
+                    \"embeds\": [{
+                      \"title\": \"🚀 Canary Deploy $STATUS\",
+                      \"color\": $COLOR,
+                      \"fields\": [
+                        {\"name\": \"Tag\", \"value\": \"\`${{ needs.resolve-release.outputs.sha_tag }}\`\"},
+                        {\"name\": \"URL\", \"value\": \"https://canary.damoang.net\"}
+                      ]
+                    }]
+                  }"
 
-  verify-canary:
-    needs: [resolve-release, build, deploy-canary]
-    if: always() && needs.deploy-canary.result == 'success'
-    runs-on: ubuntu-latest
-    concurrency:
-      group: deploy-main-web-canary
-      cancel-in-progress: true
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
-          aws-region: ap-northeast-2
+    verify-canary:
+        needs: [resolve-release, build, deploy-canary]
+        if: always() && needs.deploy-canary.result == 'success'
+        runs-on: ubuntu-latest
+        concurrency:
+            group: deploy-main-web-canary
+            cancel-in-progress: true
+        permissions:
+            id-token: write
+            contents: read
+        steps:
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v6
+              with:
+                  role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
+                  aws-region: ap-northeast-2
 
-      - name: Verify canary endpoints (via SSM)
-        run: |
-          cat > /tmp/web-canary-verify-params.json <<'JSON'
-          {
-            "commands": [
-              "set -eu",
-              "BASE='http://127.0.0.1:30082'",
-              "HDR='x-real-ip: 127.0.0.1'",
-              "for i in 1 2 3 4 5 6; do",
-              "  echo \"VERIFY ROUND ${i}\"",
-              "  code=$(curl -sS -H \"${HDR}\" -o /tmp/canary-health.out -w \"%{http_code}\" --max-time 10 \"${BASE}/health\")",
-              "  echo \"CHECK /health -> ${code}\"",
-              "  [ \"${code}\" = \"200\" ] || { cat /tmp/canary-health.out; exit 1; }",
-              "  code=$(curl -sS -H \"${HDR}\" -o /tmp/canary-root.out -w \"%{http_code}\" --max-time 10 \"${BASE}/\")",
-              "  echo \"CHECK / -> ${code}\"",
-              "  [ \"${code}\" = \"200\" ] || { cat /tmp/canary-root.out; exit 1; }",
-              "  code=$(curl -sS -H \"${HDR}\" -o /tmp/canary-free.out -w \"%{http_code}\" --max-time 10 \"${BASE}/free\")",
-              "  echo \"CHECK /free -> ${code}\"",
-              "  [ \"${code}\" = \"200\" ] || { cat /tmp/canary-free.out; exit 1; }",
-              "  code=$(curl -sS -H \"${HDR}\" -o /tmp/canary-free-page2.out -w \"%{http_code}\" --max-time 10 \"${BASE}/free?page=2\")",
-              "  echo \"CHECK /free?page=2 -> ${code}\"",
-              "  [ \"${code}\" = \"200\" ] || { cat /tmp/canary-free-page2.out; exit 1; }",
-              "  sleep 5",
-              "done"
-            ]
-          }
-          JSON
+            - name: Verify canary endpoints (via SSM)
+              run: |
+                  cat > /tmp/web-canary-verify-params.json <<'JSON'
+                  {
+                    "commands": [
+                      "set -eu",
+                      "BASE='http://127.0.0.1:30082'",
+                      "HDR='x-real-ip: 127.0.0.1'",
+                      "for i in 1 2 3 4 5 6; do",
+                      "  echo \"VERIFY ROUND ${i}\"",
+                      "  code=$(curl -sS -H \"${HDR}\" -o /tmp/canary-health.out -w \"%{http_code}\" --max-time 10 \"${BASE}/health\")",
+                      "  echo \"CHECK /health -> ${code}\"",
+                      "  [ \"${code}\" = \"200\" ] || { cat /tmp/canary-health.out; exit 1; }",
+                      "  code=$(curl -sS -H \"${HDR}\" -o /tmp/canary-root.out -w \"%{http_code}\" --max-time 10 \"${BASE}/\")",
+                      "  echo \"CHECK / -> ${code}\"",
+                      "  [ \"${code}\" = \"200\" ] || { cat /tmp/canary-root.out; exit 1; }",
+                      "  code=$(curl -sS -H \"${HDR}\" -o /tmp/canary-free.out -w \"%{http_code}\" --max-time 10 \"${BASE}/free\")",
+                      "  echo \"CHECK /free -> ${code}\"",
+                      "  [ \"${code}\" = \"200\" ] || { cat /tmp/canary-free.out; exit 1; }",
+                      "  code=$(curl -sS -H \"${HDR}\" -o /tmp/canary-free-page2.out -w \"%{http_code}\" --max-time 10 \"${BASE}/free?page=2\")",
+                      "  echo \"CHECK /free?page=2 -> ${code}\"",
+                      "  [ \"${code}\" = \"200\" ] || { cat /tmp/canary-free-page2.out; exit 1; }",
+                      "  sleep 5",
+                      "done"
+                    ]
+                  }
+                  JSON
 
-          COMMAND_ID=$(aws ssm send-command \
-            --instance-ids "i-038a1d1f00798d94b" \
-            --document-name "AWS-RunShellScript" \
-            --parameters file:///tmp/web-canary-verify-params.json \
-            --timeout-seconds 180 \
-            --query "Command.CommandId" \
-            --output text)
+                  COMMAND_ID=$(aws ssm send-command \
+                    --instance-ids "i-038a1d1f00798d94b" \
+                    --document-name "AWS-RunShellScript" \
+                    --parameters file:///tmp/web-canary-verify-params.json \
+                    --timeout-seconds 180 \
+                    --query "Command.CommandId" \
+                    --output text)
 
-          for i in $(seq 1 36); do
-            STATUS=$(aws ssm get-command-invocation \
-              --command-id "$COMMAND_ID" \
-              --instance-id "i-038a1d1f00798d94b" \
-              --query "Status" \
-              --output text 2>/dev/null || echo "Pending")
+                  for i in $(seq 1 36); do
+                    STATUS=$(aws ssm get-command-invocation \
+                      --command-id "$COMMAND_ID" \
+                      --instance-id "i-038a1d1f00798d94b" \
+                      --query "Status" \
+                      --output text 2>/dev/null || echo "Pending")
 
-            if [ "$STATUS" = "Success" ]; then
-              echo "✅ Canary verification passed"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "i-038a1d1f00798d94b" \
-                --query "StandardOutputContent" \
-                --output text || true
-              exit 0
-            elif [ "$STATUS" = "Failed" ]; then
-              echo "❌ Canary verification failed"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "i-038a1d1f00798d94b" \
-                --query "StandardOutputContent" \
-                --output text || true
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "i-038a1d1f00798d94b" \
-                --query "StandardErrorContent" \
-                --output text || true
-              exit 1
-            fi
-            sleep 5
-          done
-          echo "Timeout"
-          exit 1
+                    if [ "$STATUS" = "Success" ]; then
+                      echo "✅ Canary verification passed"
+                      aws ssm get-command-invocation \
+                        --command-id "$COMMAND_ID" \
+                        --instance-id "i-038a1d1f00798d94b" \
+                        --query "StandardOutputContent" \
+                        --output text || true
+                      exit 0
+                    elif [ "$STATUS" = "Failed" ]; then
+                      echo "❌ Canary verification failed"
+                      aws ssm get-command-invocation \
+                        --command-id "$COMMAND_ID" \
+                        --instance-id "i-038a1d1f00798d94b" \
+                        --query "StandardOutputContent" \
+                        --output text || true
+                      aws ssm get-command-invocation \
+                        --command-id "$COMMAND_ID" \
+                        --instance-id "i-038a1d1f00798d94b" \
+                        --query "StandardErrorContent" \
+                        --output text || true
+                      exit 1
+                    fi
+                    sleep 5
+                  done
+                  echo "Timeout"
+                  exit 1
 
-      # D3: 실제 브라우저(모바일 384px·CPU 4배·4Mbps)로 카나리 3페이지를 열어
-      #     재내비게이션·/_app/immutable 청크 오류·하이드레이션을 판정한다. 실패하면 승격(deploy-production)이 열리지 않는다.
-      #     레인 2개 — 청크(9월 #2303 모드 혼용) / 하이드레이션(6월 #1685 $set·HierarchyRequestError).
-      #     목록→글 클릭(SPA)·뒤로가기 복귀·셸/본문 존재까지 본다(#12836 #12842 #12844 지문).
-      - name: Checkout (browser check script)
-        uses: actions/checkout@v4
-        with:
-          # ⛔ 검사기가 import 하는 파일을 빠뜨리면 CI 에서 모듈을 못 찾아 승격이 막힌다.
-          #    canary-browser-check.mjs 는 canary-error-lanes.mjs 를 import 한다.
-          sparse-checkout: |
-            apps/web/scripts/canary-browser-check.mjs
-            apps/web/scripts/canary-error-lanes.mjs
-            apps/web/scripts/canary-error-lanes.test.mjs
-          sparse-checkout-cone-mode: false
+            # D3: 실제 브라우저(모바일 384px·CPU 4배·4Mbps)로 카나리 3페이지를 열어
+            #     재내비게이션·/_app/immutable 청크 오류·하이드레이션을 판정한다. 실패하면 승격(deploy-production)이 열리지 않는다.
+            #     레인 2개 — 청크(9월 #2303 모드 혼용) / 하이드레이션(6월 #1685 $set·HierarchyRequestError).
+            #     목록→글 클릭(SPA)·뒤로가기 복귀·셸/본문 존재까지 본다(#12836 #12842 #12844 지문).
+            - name: Checkout (browser check script)
+              uses: actions/checkout@v4
+              with:
+                  # ⛔ 검사기가 import 하는 파일을 빠뜨리면 CI 에서 모듈을 못 찾아 승격이 막힌다.
+                  #    canary-browser-check.mjs 는 canary-error-lanes.mjs 를 import 한다.
+                  sparse-checkout: |
+                      apps/web/scripts/canary-browser-check.mjs
+                      apps/web/scripts/canary-error-lanes.mjs
+                      apps/web/scripts/canary-error-lanes.test.mjs
+                      apps/web/scripts/canary-shell-verdict.mjs
+                      apps/web/scripts/canary-shell-verdict.test.mjs
+                  sparse-checkout-cone-mode: false
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
 
-      - name: Install Playwright (chromium)
-        run: |
-          mkdir -p /tmp/pw && cd /tmp/pw
-          npm init -y >/dev/null
-          npm i --no-audit --no-fund playwright@1.58.0
-          npx playwright install --with-deps chromium
+            - name: Install Playwright (chromium)
+              run: |
+                  mkdir -p /tmp/pw && cd /tmp/pw
+                  npm init -y >/dev/null
+                  npm i --no-audit --no-fund playwright@1.58.0
+                  npx playwright install --with-deps chromium
 
-      # D3-0: 오류 분류기 자체 단언. ⛔ 이것이 실패하면 브라우저 검사가 **6월 지문을 놓치는 상태**다
-      #       (1차 split 실패 2026-06-29 #1691 의 $set·HierarchyRequestError). 의존성 없이 node 로 돈다.
-      - name: Verify error lane classifier
-        run: node apps/web/scripts/canary-error-lanes.test.mjs
+            # D3-0: 오류 분류기 자체 단언. ⛔ 이것이 실패하면 브라우저 검사가 **6월 지문을 놓치는 상태**다
+            #       (1차 split 실패 2026-06-29 #1691 의 $set·HierarchyRequestError). 의존성 없이 node 로 돈다.
+            - name: Verify error lane classifier
+              run: node apps/web/scripts/canary-error-lanes.test.mjs
 
-      - name: Verify canary in a real browser
-        env:
-          PW_MODULE: /tmp/pw/node_modules/playwright/index.mjs
-        run: |
-          node apps/web/scripts/canary-browser-check.mjs https://canary.damoang.net 384 780 45 4000 100
+            # ⛔ 이것이 실패하면 카나리 검사가 **bug/14049 형태(스타일 덜 먹은 화면)를 놓치는 상태**다.
+            #    셸 요소는 다 있고 콘솔 오류도 없는데 CSS 만 빠지는 경우 — 재로드율에도 안 잡힌다.
+            - name: Verify shell/CSS verdict
+              run: node apps/web/scripts/canary-shell-verdict.test.mjs
 
-      - name: Notify Telegram (Approval)
-        if: success()
-        env:
-          PR_TITLE: ${{ needs.resolve-release.outputs.pr_title }}
-          PR_URL: ${{ needs.resolve-release.outputs.pr_url }}
-        run: |
-          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          TEXT="✅ angple web canary verified%0A%0ARepo: ${{ github.repository }}%0ACommit: ${{ github.sha }}%0ATag: \`${{ needs.resolve-release.outputs.sha_tag }}\`"
-          if [ -n "${{ needs.build.outputs.image_digest }}" ]; then
-            TEXT="${TEXT}%0ADigest: \`${{ needs.build.outputs.image_digest }}\`"
-          fi
-          if [ -n "${PR_URL}" ]; then
-            SAFE_TITLE=$(echo "${PR_TITLE}" | sed 's/[()]/\\&/g')
-            TEXT="${TEXT}%0APR: ${SAFE_TITLE}%0ALink: ${PR_URL}"
-          fi
-          TEXT="${TEXT}%0ACanary: https://canary.damoang.net%0AGate Approval: ${RUN_URL}%0A%0A승인 전 체크:%0A- 상세 500 없음%0A- 목록으로 정상%0A- 댓글 목록/에디터 정상%0A- 뒤로가기/재진입 정상%0A- same artifact 승격 확인"
-          BUTTONS='[[{"text":"Canary 열기","url":"https://canary.damoang.net"},{"text":"Gate Approval","url":"'"${RUN_URL}"'"}]]'
-          if [ -n "${{ needs.resolve-release.outputs.pr_url }}" ]; then
-            BUTTONS='[[{"text":"Canary 열기","url":"https://canary.damoang.net"},{"text":"Gate Approval","url":"'"${RUN_URL}"'"},{"text":"PR 보기","url":"${{ needs.resolve-release.outputs.pr_url }}"}]]'
-          fi
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
-            -d "text=${TEXT}" \
-            -d "reply_markup={\"inline_keyboard\":${BUTTONS}}"
+            - name: Verify canary in a real browser
+              env:
+                  PW_MODULE: /tmp/pw/node_modules/playwright/index.mjs
+              run: |
+                  node apps/web/scripts/canary-browser-check.mjs https://canary.damoang.net 384 780 45 4000 100
 
-  deploy-production:
-    needs: [resolve-release, build, deploy-canary, verify-canary]
-    if: always() && needs.verify-canary.result == 'success' && needs.resolve-release.outputs.release_mode == 'full'
-    runs-on: ubuntu-latest
-    concurrency:
-      group: deploy-main-web-production
-      cancel-in-progress: false
-    environment:
-      name: production
-      url: https://damoang.net
-    permissions:
-      id-token: write
-      contents: read
-      packages: read
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
-          aws-region: ap-northeast-2
+            - name: Notify Telegram (Approval)
+              if: success()
+              env:
+                  PR_TITLE: ${{ needs.resolve-release.outputs.pr_title }}
+                  PR_URL: ${{ needs.resolve-release.outputs.pr_url }}
+              run: |
+                  RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                  TEXT="✅ angple web canary verified%0A%0ARepo: ${{ github.repository }}%0ACommit: ${{ github.sha }}%0ATag: \`${{ needs.resolve-release.outputs.sha_tag }}\`"
+                  if [ -n "${{ needs.build.outputs.image_digest }}" ]; then
+                    TEXT="${TEXT}%0ADigest: \`${{ needs.build.outputs.image_digest }}\`"
+                  fi
+                  if [ -n "${PR_URL}" ]; then
+                    SAFE_TITLE=$(echo "${PR_TITLE}" | sed 's/[()]/\\&/g')
+                    TEXT="${TEXT}%0APR: ${SAFE_TITLE}%0ALink: ${PR_URL}"
+                  fi
+                  TEXT="${TEXT}%0ACanary: https://canary.damoang.net%0AGate Approval: ${RUN_URL}%0A%0A승인 전 체크:%0A- 상세 500 없음%0A- 목록으로 정상%0A- 댓글 목록/에디터 정상%0A- 뒤로가기/재진입 정상%0A- same artifact 승격 확인"
+                  BUTTONS='[[{"text":"Canary 열기","url":"https://canary.damoang.net"},{"text":"Gate Approval","url":"'"${RUN_URL}"'"}]]'
+                  if [ -n "${{ needs.resolve-release.outputs.pr_url }}" ]; then
+                    BUTTONS='[[{"text":"Canary 열기","url":"https://canary.damoang.net"},{"text":"Gate Approval","url":"'"${RUN_URL}"'"},{"text":"PR 보기","url":"${{ needs.resolve-release.outputs.pr_url }}"}]]'
+                  fi
+                  curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+                    -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
+                    -d "text=${TEXT}" \
+                    -d "reply_markup={\"inline_keyboard\":${BUTTONS}}"
 
-      - name: Deploy production via SSM
-        env:
-          IMAGE_TAG: ${{ needs.resolve-release.outputs.sha_tag }}
-          ASSET_BASE_URL: ${{ env.STATIC_ASSET_BASE_ROOT }}/${{ needs.resolve-release.outputs.sha_tag }}
-          DEPLOY_SITE_URL: ${{ env.DEPLOY_SITE_URL }}
-          DEPLOY_PURGE_PATHS: ${{ env.DEPLOY_PURGE_PATHS }}
-          PR_URL: ${{ needs.resolve-release.outputs.pr_url }}
-          PR_TITLE_B64: ${{ needs.resolve-release.outputs.pr_title_b64 }}
-        run: |
-          COMMAND_ID=$(aws ssm send-command \
-            --instance-ids "i-038a1d1f00798d94b" \
-            --document-name "AWS-RunShellScript" \
-            --parameters "{
-              \"commands\": [
-                \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' TELEGRAM_DEPLOY_CHAT_ID='${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}' DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}' ASSET_BASE_URL='${ASSET_BASE_URL}' DEPLOY_SITE_URL='${DEPLOY_SITE_URL}' DEPLOY_PURGE_PATHS='${DEPLOY_PURGE_PATHS}' PR_URL='${PR_URL}' PR_TITLE_B64='${PR_TITLE_B64}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --skip-canary\"
-              ]
-            }" \
-            --timeout-seconds 600 \
-            --query "Command.CommandId" \
-            --output text 2>&1)
+    deploy-production:
+        needs: [resolve-release, build, deploy-canary, verify-canary]
+        if: always() && needs.verify-canary.result == 'success' && needs.resolve-release.outputs.release_mode == 'full'
+        runs-on: ubuntu-latest
+        concurrency:
+            group: deploy-main-web-production
+            cancel-in-progress: false
+        environment:
+            name: production
+            url: https://damoang.net
+        permissions:
+            id-token: write
+            contents: read
+            packages: read
+        steps:
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v6
+              with:
+                  role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
+                  aws-region: ap-northeast-2
 
-          if [ -z "$COMMAND_ID" ] || [[ "$COMMAND_ID" == *"error"* ]]; then
-            echo "❌ SSM send-command failed: $COMMAND_ID"
-            exit 1
-          fi
+            - name: Deploy production via SSM
+              env:
+                  IMAGE_TAG: ${{ needs.resolve-release.outputs.sha_tag }}
+                  ASSET_BASE_URL: ${{ env.STATIC_ASSET_BASE_ROOT }}/${{ needs.resolve-release.outputs.sha_tag }}
+                  DEPLOY_SITE_URL: ${{ env.DEPLOY_SITE_URL }}
+                  DEPLOY_PURGE_PATHS: ${{ env.DEPLOY_PURGE_PATHS }}
+                  PR_URL: ${{ needs.resolve-release.outputs.pr_url }}
+                  PR_TITLE_B64: ${{ needs.resolve-release.outputs.pr_title_b64 }}
+              run: |
+                  COMMAND_ID=$(aws ssm send-command \
+                    --instance-ids "i-038a1d1f00798d94b" \
+                    --document-name "AWS-RunShellScript" \
+                    --parameters "{
+                      \"commands\": [
+                        \"export GHCR_TOKEN='${{ secrets.GITHUB_TOKEN }}' TELEGRAM_BOT_TOKEN='${{ secrets.TELEGRAM_BOT_TOKEN }}' TELEGRAM_DEPLOY_CHAT_ID='${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}' DISCORD_WEBHOOK_URL='https://discord.com/api/webhooks/1435940653375815730/${{ secrets.DISCORD_WEBHOOK_TOKEN_WEB }}' ASSET_BASE_URL='${ASSET_BASE_URL}' DEPLOY_SITE_URL='${DEPLOY_SITE_URL}' DEPLOY_PURGE_PATHS='${DEPLOY_PURGE_PATHS}' PR_URL='${PR_URL}' PR_TITLE_B64='${PR_TITLE_B64}' && /home/angple/k8s/prod/deploy.sh web $IMAGE_TAG --skip-canary\"
+                      ]
+                    }" \
+                    --timeout-seconds 600 \
+                    --query "Command.CommandId" \
+                    --output text 2>&1)
 
-          echo "SSM Command ID: $COMMAND_ID"
+                  if [ -z "$COMMAND_ID" ] || [[ "$COMMAND_ID" == *"error"* ]]; then
+                    echo "❌ SSM send-command failed: $COMMAND_ID"
+                    exit 1
+                  fi
 
-          for i in $(seq 1 90); do
-            STATUS=$(aws ssm get-command-invocation \
-              --command-id "$COMMAND_ID" \
-              --instance-id "i-038a1d1f00798d94b" \
-              --query "Status" \
-              --output text 2>/dev/null || echo "Pending")
+                  echo "SSM Command ID: $COMMAND_ID"
 
-            if [ "$STATUS" = "Success" ]; then
-              echo "✅ Production deployed"
-              exit 0
-            elif [ "$STATUS" = "Failed" ]; then
-              echo "----- SSM STDOUT -----"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "i-038a1d1f00798d94b" \
-                --query "StandardOutputContent" \
-                --output text || true
-              echo "----- SSM STDERR -----"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "i-038a1d1f00798d94b" \
-                --query "StandardErrorContent" \
-                --output text || true
-              exit 1
-            fi
-            sleep 10
-          done
-          echo "Timeout"
-          exit 1
+                  for i in $(seq 1 90); do
+                    STATUS=$(aws ssm get-command-invocation \
+                      --command-id "$COMMAND_ID" \
+                      --instance-id "i-038a1d1f00798d94b" \
+                      --query "Status" \
+                      --output text 2>/dev/null || echo "Pending")
 
-      - name: Notify Telegram (Production)
-        if: always()
-        env:
-          PR_TITLE: ${{ needs.resolve-release.outputs.pr_title }}
-          PR_URL: ${{ needs.resolve-release.outputs.pr_url }}
-        run: |
-          STATUS="${{ job.status }}"
-          EMOJI=$([[ "$STATUS" == "success" ]] && echo "🎉" || echo "❌")
-          TEXT="${EMOJI} angple web production ${STATUS}%0A%0ATag: \`${{ needs.resolve-release.outputs.sha_tag }}\`"
-          if [ -n "${{ needs.build.outputs.image_digest }}" ]; then
-            TEXT="${TEXT}%0ADigest: \`${{ needs.build.outputs.image_digest }}\`"
-          fi
-          if [ -n "${PR_URL}" ]; then
-            SAFE_TITLE=$(echo "${PR_TITLE}" | sed 's/[()]/\\&/g')
-            TEXT="${TEXT}%0APR: ${SAFE_TITLE}%0ALink: ${PR_URL}"
-          fi
-          TEXT="${TEXT}%0AURL: https://damoang.net"
-          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
-            -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
-            -d "text=${TEXT}"
+                    if [ "$STATUS" = "Success" ]; then
+                      echo "✅ Production deployed"
+                      exit 0
+                    elif [ "$STATUS" = "Failed" ]; then
+                      echo "----- SSM STDOUT -----"
+                      aws ssm get-command-invocation \
+                        --command-id "$COMMAND_ID" \
+                        --instance-id "i-038a1d1f00798d94b" \
+                        --query "StandardOutputContent" \
+                        --output text || true
+                      echo "----- SSM STDERR -----"
+                      aws ssm get-command-invocation \
+                        --command-id "$COMMAND_ID" \
+                        --instance-id "i-038a1d1f00798d94b" \
+                        --query "StandardErrorContent" \
+                        --output text || true
+                      exit 1
+                    fi
+                    sleep 10
+                  done
+                  echo "Timeout"
+                  exit 1
 
-  verify-production:
-    needs: [resolve-release, build, deploy-production]
-    if: always() && needs.deploy-production.result == 'success'
-    runs-on: ubuntu-latest
-    concurrency:
-      group: deploy-main-web-production
-      cancel-in-progress: false
-    permissions:
-      id-token: write
-      contents: read
-    steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
-          aws-region: ap-northeast-2
+            - name: Notify Telegram (Production)
+              if: always()
+              env:
+                  PR_TITLE: ${{ needs.resolve-release.outputs.pr_title }}
+                  PR_URL: ${{ needs.resolve-release.outputs.pr_url }}
+              run: |
+                  STATUS="${{ job.status }}"
+                  EMOJI=$([[ "$STATUS" == "success" ]] && echo "🎉" || echo "❌")
+                  TEXT="${EMOJI} angple web production ${STATUS}%0A%0ATag: \`${{ needs.resolve-release.outputs.sha_tag }}\`"
+                  if [ -n "${{ needs.build.outputs.image_digest }}" ]; then
+                    TEXT="${TEXT}%0ADigest: \`${{ needs.build.outputs.image_digest }}\`"
+                  fi
+                  if [ -n "${PR_URL}" ]; then
+                    SAFE_TITLE=$(echo "${PR_TITLE}" | sed 's/[()]/\\&/g')
+                    TEXT="${TEXT}%0APR: ${SAFE_TITLE}%0ALink: ${PR_URL}"
+                  fi
+                  TEXT="${TEXT}%0AURL: https://damoang.net"
+                  curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+                    -d "chat_id=${{ secrets.TELEGRAM_DEPLOY_CHAT_ID }}" \
+                    -d "text=${TEXT}"
 
-      - name: Verify production endpoints (via SSM)
-        run: |
-          cat > /tmp/web-production-verify-params.json <<'JSON'
-          {
-            "commands": [
-              "set -eu",
-              "BASE='http://127.0.0.1:30080'",
-              "HDR='x-real-ip: 127.0.0.1'",
-              "for i in 1 2 3 4 5 6; do",
-              "  echo \"VERIFY ROUND ${i}\"",
-              "  code=$(curl -sS -H \"${HDR}\" -o /tmp/prod-health.out -w \"%{http_code}\" --max-time 10 \"${BASE}/health\")",
-              "  echo \"CHECK /health -> ${code}\"",
-              "  [ \"${code}\" = \"200\" ] || { cat /tmp/prod-health.out; exit 1; }",
-              "  code=$(curl -sS -H \"${HDR}\" -o /tmp/prod-root.out -w \"%{http_code}\" --max-time 10 \"${BASE}/\")",
-              "  echo \"CHECK / -> ${code}\"",
-              "  [ \"${code}\" = \"200\" ] || { cat /tmp/prod-root.out; exit 1; }",
-              "  code=$(curl -sS -H \"${HDR}\" -o /tmp/prod-free.out -w \"%{http_code}\" --max-time 10 \"${BASE}/free\")",
-              "  echo \"CHECK /free -> ${code}\"",
-              "  [ \"${code}\" = \"200\" ] || { cat /tmp/prod-free.out; exit 1; }",
-              "  code=$(curl -sS -H \"${HDR}\" -o /tmp/prod-free-page2.out -w \"%{http_code}\" --max-time 10 \"${BASE}/free?page=2\")",
-              "  echo \"CHECK /free?page=2 -> ${code}\"",
-              "  [ \"${code}\" = \"200\" ] || { cat /tmp/prod-free-page2.out; exit 1; }",
-              "  sleep 5",
-              "done"
-            ]
-          }
-          JSON
+    verify-production:
+        needs: [resolve-release, build, deploy-production]
+        if: always() && needs.deploy-production.result == 'success'
+        runs-on: ubuntu-latest
+        concurrency:
+            group: deploy-main-web-production
+            cancel-in-progress: false
+        permissions:
+            id-token: write
+            contents: read
+        steps:
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@v6
+              with:
+                  role-to-assume: arn:aws:iam::891376997084:role/GitHubActionsDeployRole
+                  aws-region: ap-northeast-2
 
-          COMMAND_ID=$(aws ssm send-command \
-            --instance-ids "i-038a1d1f00798d94b" \
-            --document-name "AWS-RunShellScript" \
-            --parameters file:///tmp/web-production-verify-params.json \
-            --timeout-seconds 180 \
-            --query "Command.CommandId" \
-            --output text)
+            - name: Verify production endpoints (via SSM)
+              run: |
+                  cat > /tmp/web-production-verify-params.json <<'JSON'
+                  {
+                    "commands": [
+                      "set -eu",
+                      "BASE='http://127.0.0.1:30080'",
+                      "HDR='x-real-ip: 127.0.0.1'",
+                      "for i in 1 2 3 4 5 6; do",
+                      "  echo \"VERIFY ROUND ${i}\"",
+                      "  code=$(curl -sS -H \"${HDR}\" -o /tmp/prod-health.out -w \"%{http_code}\" --max-time 10 \"${BASE}/health\")",
+                      "  echo \"CHECK /health -> ${code}\"",
+                      "  [ \"${code}\" = \"200\" ] || { cat /tmp/prod-health.out; exit 1; }",
+                      "  code=$(curl -sS -H \"${HDR}\" -o /tmp/prod-root.out -w \"%{http_code}\" --max-time 10 \"${BASE}/\")",
+                      "  echo \"CHECK / -> ${code}\"",
+                      "  [ \"${code}\" = \"200\" ] || { cat /tmp/prod-root.out; exit 1; }",
+                      "  code=$(curl -sS -H \"${HDR}\" -o /tmp/prod-free.out -w \"%{http_code}\" --max-time 10 \"${BASE}/free\")",
+                      "  echo \"CHECK /free -> ${code}\"",
+                      "  [ \"${code}\" = \"200\" ] || { cat /tmp/prod-free.out; exit 1; }",
+                      "  code=$(curl -sS -H \"${HDR}\" -o /tmp/prod-free-page2.out -w \"%{http_code}\" --max-time 10 \"${BASE}/free?page=2\")",
+                      "  echo \"CHECK /free?page=2 -> ${code}\"",
+                      "  [ \"${code}\" = \"200\" ] || { cat /tmp/prod-free-page2.out; exit 1; }",
+                      "  sleep 5",
+                      "done"
+                    ]
+                  }
+                  JSON
 
-          for i in $(seq 1 36); do
-            STATUS=$(aws ssm get-command-invocation \
-              --command-id "$COMMAND_ID" \
-              --instance-id "i-038a1d1f00798d94b" \
-              --query "Status" \
-              --output text 2>/dev/null || echo "Pending")
+                  COMMAND_ID=$(aws ssm send-command \
+                    --instance-ids "i-038a1d1f00798d94b" \
+                    --document-name "AWS-RunShellScript" \
+                    --parameters file:///tmp/web-production-verify-params.json \
+                    --timeout-seconds 180 \
+                    --query "Command.CommandId" \
+                    --output text)
 
-            if [ "$STATUS" = "Success" ]; then
-              echo "✅ Production verification passed"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "i-038a1d1f00798d94b" \
-                --query "StandardOutputContent" \
-                --output text || true
-              exit 0
-            elif [ "$STATUS" = "Failed" ]; then
-              echo "❌ Production verification failed"
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "i-038a1d1f00798d94b" \
-                --query "StandardOutputContent" \
-                --output text || true
-              aws ssm get-command-invocation \
-                --command-id "$COMMAND_ID" \
-                --instance-id "i-038a1d1f00798d94b" \
-                --query "StandardErrorContent" \
-                --output text || true
-              exit 1
-            fi
-            sleep 5
-          done
-          echo "Timeout"
-          exit 1
+                  for i in $(seq 1 36); do
+                    STATUS=$(aws ssm get-command-invocation \
+                      --command-id "$COMMAND_ID" \
+                      --instance-id "i-038a1d1f00798d94b" \
+                      --query "Status" \
+                      --output text 2>/dev/null || echo "Pending")
+
+                    if [ "$STATUS" = "Success" ]; then
+                      echo "✅ Production verification passed"
+                      aws ssm get-command-invocation \
+                        --command-id "$COMMAND_ID" \
+                        --instance-id "i-038a1d1f00798d94b" \
+                        --query "StandardOutputContent" \
+                        --output text || true
+                      exit 0
+                    elif [ "$STATUS" = "Failed" ]; then
+                      echo "❌ Production verification failed"
+                      aws ssm get-command-invocation \
+                        --command-id "$COMMAND_ID" \
+                        --instance-id "i-038a1d1f00798d94b" \
+                        --query "StandardOutputContent" \
+                        --output text || true
+                      aws ssm get-command-invocation \
+                        --command-id "$COMMAND_ID" \
+                        --instance-id "i-038a1d1f00798d94b" \
+                        --query "StandardErrorContent" \
+                        --output text || true
+                      exit 1
+                    fi
+                    sleep 5
+                  done
+                  echo "Timeout"
+                  exit 1
