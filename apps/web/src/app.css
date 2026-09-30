@@ -4,6 +4,10 @@
 html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    /* 더블탭 확대 대기 제거: iOS WebKit 은 글자 영역을 한 번 누르면 두 번째 탭(확대)을 기다린 뒤에야
+       클릭을 처리해 탭 반응이 약 0.5초 늦었다. manipulation 은 스크롤·두 손가락 확대는 그대로 두고
+       더블탭 확대만 끈다. 자식이 따로 지정한 값(none·pinch-zoom 등)과는 교집합으로 적용된다. */
+    touch-action: manipulation;
 }
 
 /* 폰트 swap CLS 방지: 시스템 폰트 fallback의 metric을 Wanted Sans에 맞춤 */
