@@ -6,6 +6,7 @@ import {
     formatLuckyMeta,
     formatLuckyTitle,
     luckyFields,
+    luckyTierNamesFromConfig,
     parseLuckyTier,
     toKstIso
 } from './lucky-badge';
@@ -39,19 +40,56 @@ describe('formatLuckyBadge', () => {
 });
 
 describe('parseLuckyTier', () => {
-    it('회차명 + 공백으로 시작할 때만', () => {
+    it('기본 회차명 + 「 럭키 」로 시작할 때만', () => {
         expect(parseLuckyTier('앙복타임 럭키 당첨')).toBe('앙복타임');
         expect(parseLuckyTier('앙팡타임 럭키 당첨')).toBe('앙팡타임');
-        expect(parseLuckyTier('앙팡팡타임 럭키 당첨')).toBe('앙팡팡타임');
+        expect(parseLuckyTier('앙팡팡타임 럭키 포인트(댓글)')).toBe('앙팡팡타임');
     });
 
     it('레거시·불일치는 undefined', () => {
         expect(parseLuckyTier('럭키 포인트 당첨')).toBeUndefined();
+        expect(parseLuckyTier('나리야 럭키 포인트')).toBeUndefined();
         expect(parseLuckyTier('앙팡팡타임')).toBeUndefined();
+        expect(parseLuckyTier('앙팡타임 당첨')).toBeUndefined();
         expect(parseLuckyTier('[앙팡타임] 당첨')).toBeUndefined();
-        expect(parseLuckyTier(' 앙팡타임 당첨')).toBeUndefined();
+        expect(parseLuckyTier(' 앙팡타임 럭키 당첨')).toBeUndefined();
         expect(parseLuckyTier(null)).toBeUndefined();
         expect(parseLuckyTier(undefined)).toBeUndefined();
+    });
+
+    it('설정 이름은 목록에 있을 때만 인정한다', () => {
+        expect(parseLuckyTier('새벽타임 럭키 포인트', ['새벽타임'])).toBe('새벽타임');
+        expect(parseLuckyTier('새벽타임 럭키 포인트')).toBeUndefined();
+        expect(parseLuckyTier('새벽타임 럭키 포인트', ['다른이름'])).toBeUndefined();
+    });
+
+    it('기본 이름으로 시작하는 설정 이름을 기본 이름으로 잘못 읽지 않는다(긴 이름 우선)', () => {
+        const names = ['앙팡타임 새벽'];
+        expect(parseLuckyTier('앙팡타임 새벽 럭키 포인트', names)).toBe('앙팡타임 새벽');
+        expect(parseLuckyTier('앙팡타임 럭키 포인트', names)).toBe('앙팡타임');
+        // 설정에서 지워진 이름은 기본 이름으로 떨어지지 않고 라벨이 없다
+        expect(parseLuckyTier('앙팡타임 새벽 럭키 포인트')).toBeUndefined();
+    });
+
+    it('설정 이름 앞뒤 공백·빈 이름은 무시', () => {
+        expect(parseLuckyTier('심야 럭키 포인트', ['  심야 ', ''])).toBe('심야');
+    });
+});
+
+describe('luckyTierNamesFromConfig', () => {
+    it('windows·fixed_windows 이름을 중복 없이 순서대로', () => {
+        expect(
+            luckyTierNamesFromConfig({
+                windows: [{ name: '가' }, { name: ' 나 ' }],
+                fixed_windows: [{ name: '다' }, { name: '가' }, { name: '' }, {}]
+            })
+        ).toEqual(['가', '나', '다']);
+    });
+
+    it('모양이 깨졌으면 빈 배열', () => {
+        expect(luckyTierNamesFromConfig(null)).toEqual([]);
+        expect(luckyTierNamesFromConfig('x')).toEqual([]);
+        expect(luckyTierNamesFromConfig({ windows: 'x', fixed_windows: [null] })).toEqual([]);
     });
 });
 
@@ -118,7 +156,7 @@ describe('collectLuckyRows', () => {
                 {
                     po_rel_id: '7',
                     po_point: 100,
-                    po_content: '앙팡타임 당첨',
+                    po_content: '앙팡타임 럭키 포인트',
                     po_dt: '2026-10-01 14:23:05'
                 },
                 {
@@ -145,7 +183,7 @@ describe('collectLuckyRows', () => {
                 {
                     po_rel_id: '1',
                     po_point: 10,
-                    po_content: '앙팡팡타임 당첨',
+                    po_content: '앙팡팡타임 럭키 포인트',
                     po_dt: '2026-10-01 18:00:00'
                 },
                 {
@@ -157,7 +195,7 @@ describe('collectLuckyRows', () => {
                 {
                     po_rel_id: '1',
                     po_point: 20,
-                    po_content: '앙복타임 당첨',
+                    po_content: '앙복타임 럭키 포인트',
                     po_dt: '2026-10-01 12:00:00'
                 }
             ],
@@ -176,13 +214,13 @@ describe('collectLuckyRows', () => {
                 {
                     po_rel_id: '2',
                     po_point: 5,
-                    po_content: '앙팡타임 당첨',
+                    po_content: '앙팡타임 럭키 포인트',
                     po_dt: '2026-10-01 12:00:00'
                 },
                 {
                     po_rel_id: '2',
                     po_point: 50,
-                    po_content: '앙팡팡타임 당첨',
+                    po_content: '앙팡팡타임 럭키 포인트',
                     po_dt: '2026-10-01 12:00:00'
                 }
             ],
@@ -198,11 +236,11 @@ describe('collectLuckyRows', () => {
     it('회차명이 있어도 시각이 없거나 잘못되면 tier·at 없음', () => {
         const map = collectLuckyRows(
             [
-                { po_rel_id: '3', po_point: 10, po_content: '앙복타임 당첨', po_dt: null },
+                { po_rel_id: '3', po_point: 10, po_content: '앙복타임 럭키 포인트', po_dt: null },
                 {
                     po_rel_id: '3',
                     po_point: 10,
-                    po_content: '앙팡타임 당첨',
+                    po_content: '앙팡타임 럭키 포인트',
                     po_dt: '0000-00-00 00:00:00'
                 }
             ],
@@ -318,5 +356,29 @@ describe('luckyFields (댓글 응답 병합)', () => {
         expect(luckyFields({ amount: 100, at: '2026-10-01T12:00:00+09:00' }, undefined)).toEqual({
             lucky_point: 100
         });
+    });
+});
+
+describe('collectLuckyRows + 설정 이름', () => {
+    const keys = { id: 'po_rel_id', amount: 'po_point', content: 'po_content', datetime: 'po_dt' };
+    const rows = [
+        {
+            po_rel_id: '5',
+            po_point: 40,
+            po_content: '앙팡타임 새벽 럭키 포인트(댓글)',
+            po_dt: '2026-10-01 03:00:00'
+        }
+    ];
+
+    it('설정 이름이 있으면 그 이름이 회차명', () => {
+        expect(collectLuckyRows(rows, keys, ['앙팡타임 새벽']).get(5)).toEqual({
+            amount: 40,
+            tier: '앙팡타임 새벽',
+            at: '2026-10-01T03:00:00+09:00'
+        });
+    });
+
+    it('설정 이름이 없으면 회차명 없음(기본 이름으로 오인하지 않음)', () => {
+        expect(collectLuckyRows(rows, keys).get(5)).toEqual({ amount: 40 });
     });
 });

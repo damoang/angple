@@ -11,6 +11,7 @@ import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getDisciplineIds } from '$lib/server/discipline-ids';
 import { collectLuckyRows, luckyFields, type LuckyHit } from '$lib/utils/lucky-badge';
+import { getLuckyTierNames } from '$lib/server/lucky-tier-names';
 import { isValidBoardId } from '$lib/utils/board-id.js';
 import {
     applyAffiliateField,
@@ -333,6 +334,8 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
         // po_rel_table=슬러그, po_rel_id=wr_id(VARCHAR)라 문자열로 비교(인덱스 seek). 레거시 과거 당첨 포함.
         // 지급 문구(회차명)·시각도 같은 쿼리에서 읽는다. collectLuckyRows 가 백엔드와 같은 규칙으로
         // 모은다(금액=MAX, 회차명·시각=회차명 있는 가장 이른 행). 실패는 무시(배지 없이 진행).
+        // 회차명 허용 목록 = 기본 3개 + lucky_config 설정 이름. 설정은 30초 모듈 캐시로 읽는다(실패=기본 3개만).
+        const luckyTierNames = commentIds.length > 0 ? await getLuckyTierNames() : [];
         let luckyMap = new Map<number, LuckyHit>();
         if (commentIds.length > 0) {
             try {
@@ -342,12 +345,16 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
                      WHERE po_rel_action = '@lucky' AND po_rel_table = ? AND po_rel_id IN (?)`,
                     [safeBoardId, commentIds.map(String)]
                 );
-                luckyMap = collectLuckyRows(lkRows, {
-                    id: 'po_rel_id',
-                    amount: 'po_point',
-                    content: 'po_content',
-                    datetime: 'po_datetime'
-                });
+                luckyMap = collectLuckyRows(
+                    lkRows,
+                    {
+                        id: 'po_rel_id',
+                        amount: 'po_point',
+                        content: 'po_content',
+                        datetime: 'po_datetime'
+                    },
+                    luckyTierNames
+                );
             } catch (e) {
                 console.warn('[lucky] enrich(comments) failed:', e);
             }
@@ -365,12 +372,16 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
                      WHERE xp_rel_action = '@lucky' AND xp_rel_table = ? AND xp_rel_id IN (?)`,
                     [safeBoardId, commentIds.map(String)]
                 );
-                luckyExpMap = collectLuckyRows(lxRows, {
-                    id: 'xp_rel_id',
-                    amount: 'xp_point',
-                    content: 'xp_content',
-                    datetime: 'xp_datetime'
-                });
+                luckyExpMap = collectLuckyRows(
+                    lxRows,
+                    {
+                        id: 'xp_rel_id',
+                        amount: 'xp_point',
+                        content: 'xp_content',
+                        datetime: 'xp_datetime'
+                    },
+                    luckyTierNames
+                );
             } catch (e) {
                 console.warn('[lucky] enrich-exp(comments) failed:', e);
             }
