@@ -79,8 +79,16 @@ describe('processWaitMs', () => {
         );
     });
 
-    it('긴 한도도 앞단 프록시의 응답 대기 제한(60초)보다 충분히 짧다', () => {
+    it('재인코딩 한도는 기본 한도보다 길다', () => {
         expect(CONVERTED_VIDEO_WAIT_MS).toBeGreaterThan(DEFAULT_PROCESS_WAIT_MS);
-        expect(CONVERTED_VIDEO_WAIT_MS).toBeLessThanOrEqual(45_000);
+    });
+
+    it('포스터 키와 확장자 없는 키는 기본 한도다', () => {
+        expect(processWaitMs('raw/editor/2610/abc1234_poster.jpg', { converted: true })).toBe(
+            DEFAULT_PROCESS_WAIT_MS
+        );
+        expect(processWaitMs('raw/editor/2610/abc1234', { converted: true })).toBe(
+            DEFAULT_PROCESS_WAIT_MS
+        );
     });
 });

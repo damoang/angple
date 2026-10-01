@@ -139,28 +139,36 @@ function generateKey(ext: string): string {
     return `raw/editor/${yy}${mm}/${hash}${ext}`;
 }
 
+/** 조회 한 번의 한도 — 걸린 조회가 전체 대기를 끌고 가지 않게 한다 */
+const HEAD_TIMEOUT_MS = 3000;
+
 /**
  * Lambda 변환 완료 대기 — data/ 키에 HeadObject 폴링.
  * 기본 한도(8초)는 300ms 간격, 그보다 긴 대기(재인코딩 영상)는 1초 간격으로 묻는다.
+ *
+ * 한도는 시도 횟수가 아니라 **시각**으로 끊는다. 조회 한 번이 느려져도 전체 대기가
+ * 한도를 넘지 않아야 앞단 프록시의 응답 대기 제한에 걸리지 않는다.
  */
 async function waitForProcessed(
     finalKey: string,
     maxWaitMs = DEFAULT_PROCESS_WAIT_MS,
     intervalMs = maxWaitMs > DEFAULT_PROCESS_WAIT_MS ? 1000 : 300
 ): Promise<boolean> {
-    const maxAttempts = Math.ceil(maxWaitMs / intervalMs);
-    for (let i = 0; i < maxAttempts; i++) {
+    const deadline = Date.now() + maxWaitMs;
+    for (;;) {
+        const remaining = deadline - Date.now();
+        if (remaining <= 0) return false;
         try {
-            await s3.send(new HeadObjectCommand({ Bucket: S3_BUCKET, Key: finalKey }));
+            await s3.send(new HeadObjectCommand({ Bucket: S3_BUCKET, Key: finalKey }), {
+                abortSignal: AbortSignal.timeout(Math.min(HEAD_TIMEOUT_MS, remaining))
+            });
             return true;
         } catch {
-            // 아직 변환 안 됨 — 대기 후 재시도
-            if (i < maxAttempts - 1) {
-                await new Promise((r) => setTimeout(r, intervalMs));
-            }
+            // 아직 변환 안 됨(또는 조회 지연) — 남은 시간이 있으면 대기 후 재시도
         }
+        if (deadline - Date.now() <= intervalMs) return false;
+        await new Promise((r) => setTimeout(r, intervalMs));
     }
-    return false;
 }
 
 export const POST: RequestHandler = async ({ request, cookies }) => {
