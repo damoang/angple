@@ -25,6 +25,12 @@ import { addReadPost } from '$lib/server/read-posts.js';
 import { fetchPostReportCount } from '$lib/server/report-count.js';
 import { isSanctionedPost } from '$lib/server/sanctioned-lock.js';
 import { fetchReactionsByParentId } from '$lib/server/reactions.js';
+import { COMMENT_LIKERS_BATCH_IDS, fetchCommentLikersBatch } from '$lib/server/comment-likers.js';
+import {
+    commentIdsForLikersPreview,
+    isLikersPreview,
+    shouldPreviewPostLikers
+} from '$lib/utils/post-followup.js';
 import { fetchHasPoll } from '$lib/server/poll-presence.js';
 import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
@@ -124,6 +130,8 @@ export const load: PageServerLoad = async ({
     //
     // ⛔ backfill 경로를 지우지 마라. 50개를 넘는 0.9% 의 글은 여전히 그 경로로 채운다.
     const initialCommentsLimit = 50;
+    // 댓글당 추천한 사람 미리보기 수 — 화면이 따로 부를 때 쓰는 값과 같다
+    const COMMENT_LIKERS_PREVIEW_LIMIT = 5;
     // postId가 숫자인지 검증 (레거시 PHP URL 방어: /bbs/board.php 등)
     if (!/^\d+$/.test(postId)) {
         throw error(404, '잘못된 게시글 주소입니다.');
@@ -670,7 +678,9 @@ export const load: PageServerLoad = async ({
                 scheduledDeleteResult,
                 commentLikeStatusesResult,
                 truthroomCommentMapResult,
-                memberActivityResult
+                memberActivityResult,
+                postLikersPreviewResult,
+                commentLikersPreviewResult
             ] = await Promise.allSettled([
                 // 직접홍보 사잇광고 (ads 서버 직접 호출 + 캐시)
                 fetchPromotionPosts(),
@@ -746,7 +756,38 @@ export const load: PageServerLoad = async ({
                 })(),
                 // 작성자 최근 활동 (SSR 직접 조회 — 클릭 없이 표시, 클라이언트 API 요청 제거)
                 // 1단계에서 시작한 단일 fetch 재사용 (SEO 섹션 #83 과 공유, 중복 호출 방지)
-                memberActivityPromise
+                memberActivityPromise,
+                // 글의 추천한 사람 미리보기 — 화면이 진입 직후 따로 부르던 것을 함께 보낸다.
+                // 추천한 사람의 신원은 로그인 회원에게만 보여 주므로 세션 회원일 때만 조회한다
+                // (비로그인 응답은 캐시되어 여러 사람에게 나간다). 실패하면 싣지 않고 화면이 직접 받는다.
+                shouldPreviewPostLikers({ sessionUserId: locals.user?.id, postLikes: post.likes })
+                    ? bFetch(`/api/v1/boards/${boardId}/posts/${postId}/likers?page=1&limit=5`, {
+                          headers,
+                          // 화면이 전달분을 기다리는 한도보다 짧게 — 넘기면 부가 데이터 전체가 늦어진다
+                          timeout: 2_000
+                      }).then(async (res) => {
+                          if (!res.ok) throw new Error(`Likers API error: ${res.status}`);
+                          const payload = (await res.json())?.data;
+                          if (!isLikersPreview(payload)) throw new Error('Likers API shape');
+                          return { likers: payload.likers, total: payload.total };
+                      })
+                    : Promise.resolve(null),
+                // 댓글의 추천한 사람 미리보기 — 첫 화면에 싣는 댓글 중 추천이 있는 것만.
+                (() => {
+                    if (!locals.user?.id) return Promise.resolve(null);
+                    const ids = commentIdsForLikersPreview({
+                        sessionUserId: locals.user.id,
+                        comments: commentsData.comments.items ?? [],
+                        max: COMMENT_LIKERS_BATCH_IDS
+                    });
+                    if (ids.length === 0) return Promise.resolve({});
+                    return fetchCommentLikersBatch(
+                        boardId.replace(/[^a-zA-Z0-9_-]/g, ''),
+                        ids,
+                        COMMENT_LIKERS_PREVIEW_LIMIT,
+                        true
+                    );
+                })()
             ]);
 
             // 프로모션 사잇광고: board_exception에 포함된 게시판은 제외
@@ -802,6 +843,16 @@ export const load: PageServerLoad = async ({
                     ? memberActivityResult.value
                     : { recentPosts: [], recentComments: [] };
 
+            // 미리보기는 조회가 성공했을 때만 싣는다. null 이면 화면이 이전처럼 직접 받는다.
+            const postLikersPreview =
+                postLikersPreviewResult.status === 'fulfilled'
+                    ? postLikersPreviewResult.value
+                    : null;
+            const commentLikersPreview =
+                commentLikersPreviewResult.status === 'fulfilled'
+                    ? commentLikersPreviewResult.value
+                    : null;
+
             return {
                 promotionPosts,
                 reactions,
@@ -815,7 +866,9 @@ export const load: PageServerLoad = async ({
                 commentLikeStatuses,
                 truthroomCommentMap,
                 linkAffiliate,
-                memberActivity
+                memberActivity,
+                postLikersPreview,
+                commentLikersPreview
             };
         })();
 

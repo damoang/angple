@@ -28,7 +28,7 @@
     import { transformEmoticons } from '$lib/utils/content-transform';
     import { applyFilter } from '$lib/hooks/registry';
     import { getHookVersion } from '$lib/hooks/hook-state.svelte';
-    import { onMount, tick } from 'svelte';
+    import { onMount, tick, untrack } from 'svelte';
     import { highlightAllCodeBlocks } from '$lib/utils/code-highlight';
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
     import { enhanceWikiangLinks } from '$lib/utils/wikiang-link.js';
@@ -78,6 +78,7 @@
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
     import { apiClient } from '$lib/api/index.js';
     import type { LikerInfo } from '$lib/api/types.js';
+    import { commentLikerIdsToFetch } from '$lib/utils/post-followup.js';
     import { toast } from 'svelte-sonner';
     import { blockedUsersStore } from '$lib/stores/blocked-users.svelte';
     import EyeOff from '@lucide/svelte/icons/eye-off';
@@ -103,6 +104,10 @@
         commentLayout?: string; // 댓글 레이아웃 (flat, bordered, divided, bubble, compact, muzia)
         reactionsMap?: Record<string, ReactionItem[]>; // 일괄 조회된 리액션 맵
         initialLikedCommentIds?: number[]; // SSR에서 전달된 좋아요한 댓글 ID 목록
+        /** 서버가 페이지와 함께 보낸 댓글별 추천한 사람 미리보기 (없으면 null) */
+        likersPreview?: Record<string, { likers: LikerInfo[]; total: number }> | null;
+        /** 위 미리보기의 도착을 기다리는 중인가 — 기다리는 동안은 따로 부르지 않는다 */
+        likersPreviewPending?: boolean;
         initialDislikedCommentIds?: number[]; // SSR에서 전달된 비추천한 댓글 ID 목록
         truthroomCommentMap?: Record<number, number>; // 잠긴 댓글 → 진실의방 글 ID 매핑
         isRestricted?: boolean; // 제한된 유저 (영구정지 등)
@@ -143,6 +148,8 @@
         commentLayout = 'flat',
         reactionsMap,
         initialLikedCommentIds = [],
+        likersPreview = null,
+        likersPreviewPending = false,
         initialDislikedCommentIds = [],
         truthroomCommentMap = {},
         isRestricted = false,
@@ -1117,18 +1124,32 @@
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 재시도 횟수 기록용. 화면에 렌더되지 않아 반응형일 필요가 없다.
     const likerAvatarsAttempts = new Map<string, number>();
     const LIKER_AVATARS_MAX_ATTEMPTS = 4;
+    // 서버가 페이지와 함께 보낸 미리보기를 먼저 채운다. 채운 댓글은 '로드됨'으로 표시해
+    // 아래 배치 로드가 다시 부르지 않게 한다. 이미 채워진 댓글(직접 받아 온 최신값)은 덮지 않는다.
+    $effect(() => {
+        const preview = likersPreview;
+        if (!preview) return;
+        untrack(() => {
+            for (const [commentId, entry] of Object.entries(preview)) {
+                if (likerAvatarsLoadedIds.has(commentId)) continue;
+                commentLikersList.set(commentId, entry.likers);
+                commentLikersTotal.set(commentId, entry.total);
+                likerAvatarsLoadedIds.add(commentId);
+            }
+        });
+    });
+
     $effect(() => {
         if (commentTree.length === 0 || !boardId || !postId || !authStore.isAuthenticated) return;
 
-        const ids = commentTree
-            .filter(
-                (c) =>
-                    (c.likes ?? 0) > 0 &&
-                    !likerAvatarsLoadedIds.has(String(c.id)) &&
-                    !likerAvatarsInflight.has(String(c.id)) &&
-                    (likerAvatarsAttempts.get(String(c.id)) ?? 0) < LIKER_AVATARS_MAX_ATTEMPTS
-            )
-            .map((c) => String(c.id));
+        const ids = commentLikerIdsToFetch({
+            previewPending: likersPreviewPending,
+            comments: commentTree,
+            loaded: likerAvatarsLoadedIds,
+            inflight: likerAvatarsInflight,
+            attempts: likerAvatarsAttempts,
+            maxAttempts: LIKER_AVATARS_MAX_ATTEMPTS
+        });
 
         if (ids.length > 0) {
             void loadCommentLikerAvatarsBatch(ids);
