@@ -1,0 +1,125 @@
+name: Bundle Shape
+
+# 빌드 산출물의 「라우트당 JS 파일 수」를 재서 기록한다. 배포하지 않는다.
+#
+# ⛔ 왜 이 워크플로가 먼저 있어야 하나
+#   코드 분할을 세 번 시도해 세 번 운영 사고를 냈다(2026-06 · #2303 · 2026-09-30).
+#   3차의 원인은 라우트당 의존 파일이 중위 33개·최대 214개였던 것인데, 그 수치를
+#   **카나리에 올린 뒤에야** 알았다. 운영 서버에서는 빌드를 할 수 없어서
+#   「배포해서 본다」가 유일한 측정 수단이었고, 그게 사고의 구조적 원인이다.
+#   → 4차는 배포 전에 CI 에서 숫자를 먼저 본다.
+#
+# ⭐ 임계(`max_files`/`median_files`)는 기본으로 주지 않는다. 먼저 현재(single) 기준선을
+#    뜬다 — 기준선 없이 임계를 박으면 그 숫자에 근거가 없다.
+#
+# ⛔ 빌드 순서는 발명하지 않고 `ci.yml` 의 build 잡을 그대로 따른다(워크스페이스 패키지
+#    4개를 먼저 빌드해야 apps/web 빌드가 된다).
+
+on:
+    pull_request:
+        paths:
+            - 'apps/web/svelte.config.js'
+            - 'apps/web/vite.config.ts'
+            - 'apps/web/scripts/bundle-shape*.mjs'
+            - '.github/workflows/bundle-shape.yml'
+    workflow_dispatch:
+        inputs:
+            max_files:
+                description: '라우트당 최대 파일 수 임계 (비우면 판정 없이 측정만)'
+                type: string
+                default: ''
+            median_files:
+                description: '라우트당 중위 파일 수 임계 (비우면 판정 없음)'
+                type: string
+                default: ''
+
+concurrency:
+    group: bundle-shape-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    NODE_VERSION: '24.11.1'
+
+jobs:
+    shape:
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            # ⭐ 분석기 시험을 빌드보다 먼저 돌린다. 분석기가 깨졌는데 30분 빌드를 하는 건 낭비다.
+            - name: Verify shape analyzer
+              run: node apps/web/scripts/bundle-shape.test.mjs
+
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: 'pnpm'
+
+            - name: Install dependencies
+              run: |
+                  pnpm fetch --frozen-lockfile
+                  pnpm install --frozen-lockfile --prefer-offline
+
+            - name: Build workspace packages
+              run: |
+                  pnpm --filter @angple/types build
+                  pnpm --filter @angple/hook-system build
+                  pnpm --filter @angple/theme-engine build
+                  pnpm --filter @angple/i18n build
+
+            - name: Build
+              working-directory: apps/web
+              run: pnpm run build
+
+            - name: Report bundle shape
+              working-directory: apps/web
+              env:
+                  MAX_FILES: ${{ github.event.inputs.max_files }}
+                  MEDIAN_FILES: ${{ github.event.inputs.median_files }}
+              run: |
+                  ARGS=""
+                  [ -n "$MAX_FILES" ] && ARGS="$ARGS --max $MAX_FILES"
+                  [ -n "$MEDIAN_FILES" ] && ARGS="$ARGS --median $MEDIAN_FILES"
+                  echo "인자: ${ARGS:-(임계 없음 — 측정만)}"
+                  node scripts/bundle-shape-report.mjs \
+                    .svelte-kit/output/client/_app/immutable $ARGS
+
+            - name: Transfer size
+              working-directory: apps/web
+              # ⭐ 분할의 목적은 다운로드 축소가 아니다 — 운영 실측으로 brotli 전송은 이미
+              #    JS 1,246,824B · CSS 47,853B 다. 목적은 **파싱 6,066,325B** 를 줄이는 것이다.
+              #    그래서 전송량이 늘지 않았는지를 함께 본다.
+              # ⛔ `brotli` CLI 가 러너에 있다고 가정하지 않는다 — node 내장 zlib 을 쓴다.
+              run: |
+                  node -e '
+                    const {readdirSync,statSync,readFileSync}=require("node:fs");
+                    const {join,extname}=require("node:path");
+                    const {brotliCompressSync,constants}=require("node:zlib");
+                    const root=".svelte-kit/output/client/_app/immutable";
+                    const walk=(d,o=[])=>{for(const n of readdirSync(d)){const p=join(d,n);
+                      statSync(p).isDirectory()?walk(p,o):o.push(p);}return o;};
+                    const agg={};
+                    for(const f of walk(root)){
+                      const e=extname(f); if(e!==".js"&&e!==".css") continue;
+                      const b=readFileSync(f);
+                      const br=brotliCompressSync(b,{params:{[constants.BROTLI_PARAM_QUALITY]:5}});
+                      agg[e]=agg[e]||{raw:0,br:0,n:0};
+                      agg[e].raw+=b.length; agg[e].br+=br.length; agg[e].n++;
+                    }
+                    const lines=[];
+                    for(const e of [".js",".css"]){
+                      const a=agg[e]||{raw:0,br:0,n:0};
+                      lines.push(`${e.slice(1).toUpperCase().padEnd(4)} ${String(a.n).padStart(4)}개 · 원본 ${a.raw.toLocaleString()}B · brotli(q5) ${a.br.toLocaleString()}B`);
+                    }
+                    const out=lines.join("\n");
+                    console.log(out);
+                    const s=process.env.GITHUB_STEP_SUMMARY;
+                    if(s) require("node:fs").appendFileSync(s,
+                      "### 전송량\n\n```\n"+out+"\n⛔ q5 는 CI 비교용이다. 운영 엣지 압축률과 같지 않다.\n```\n");
+                  '
