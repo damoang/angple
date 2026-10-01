@@ -61,6 +61,7 @@
         updateExtendedSettings,
         type ExtendedSettings
     } from '$lib/api/board-extended-settings';
+    import { mergeLuckySettings } from '$lib/utils/lucky-settings';
     import {
         getPromotionSettings,
         toggleBoardException,
@@ -173,6 +174,7 @@
     let formLuckyEnabled = $state(false);
     let formLuckyPoints = $state(500);
     let formLuckyOdds = $state(20);
+    let formLuckyCommentOdds = $state(0);
     // 게시판별 글쓰기 안내(write_notice)
     let formWriteNoticeEnabled = $state(false);
     let formWriteNoticeMode = $state<'off' | 'banner' | 'blocking'>('banner');
@@ -277,6 +279,7 @@
             formLuckyEnabled,
             formLuckyPoints,
             formLuckyOdds,
+            formLuckyCommentOdds,
             formWriteNoticeEnabled,
             formWriteNoticeMode,
             formWriteNoticeHtml,
@@ -392,6 +395,7 @@
         formLuckyEnabled = es.lucky?.enabled ?? false;
         formLuckyPoints = es.lucky?.points ?? 500;
         formLuckyOdds = es.lucky?.odds ?? 20;
+        formLuckyCommentOdds = es.lucky?.comment_odds ?? 0;
         formWriteNoticeEnabled = es.write_notice?.enabled ?? false;
         formWriteNoticeMode = es.write_notice?.mode ?? 'banner';
         formWriteNoticeHtml = es.write_notice?.html ?? '';
@@ -551,11 +555,13 @@
 
             // 확장 설정 업데이트 (프로모션 오버라이드 포함)
             const extendedUpdate: ExtendedSettings = {
-                lucky: {
+                // 새 객체로 만들면 이 카드가 모르는 lucky 키가 저장 한 번에 지워진다
+                lucky: mergeLuckySettings(extendedSettings.lucky, {
                     enabled: formLuckyEnabled,
                     points: formLuckyPoints,
-                    odds: formLuckyOdds
-                },
+                    odds: formLuckyOdds,
+                    comment_odds: formLuckyCommentOdds
+                }),
                 xp: {
                     write: formXpWrite,
                     comment: formXpComment
@@ -1370,6 +1376,23 @@
                                         />
                                         <p class="text-muted-foreground text-xs">
                                             {formLuckyOdds}분의 1 확률 (기본 20)
+                                        </p>
+                                    </div>
+                                    <!-- 「당첨 확률」 바로 아래 칸에 둔다 -->
+                                    <div class="col-start-2 grid gap-2">
+                                        <Label for="lucky-comment-odds">
+                                            댓글 당첨 확률 (N분의 1, 0이면 댓글 미발동)
+                                        </Label>
+                                        <Input
+                                            id="lucky-comment-odds"
+                                            type="number"
+                                            bind:value={formLuckyCommentOdds}
+                                            min="0"
+                                        />
+                                        <p class="text-muted-foreground text-xs">
+                                            {formLuckyCommentOdds >= 1
+                                                ? `댓글 ${formLuckyCommentOdds}분의 1 확률`
+                                                : '댓글에서는 발동하지 않음'}
                                         </p>
                                     </div>
                                 </div>

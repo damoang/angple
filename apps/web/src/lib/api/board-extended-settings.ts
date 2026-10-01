@@ -31,6 +31,8 @@ export interface LuckySettings {
     enabled?: boolean;
     points?: number;
     odds?: number;
+    /** 댓글 당첨 확률(N분의 1). 없거나 1 미만이면 댓글은 발동하지 않는다. */
+    comment_odds?: number;
 }
 
 /** XP(경험치) 설정 */
