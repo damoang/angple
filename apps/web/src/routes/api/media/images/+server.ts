@@ -5,7 +5,7 @@
  *
  * 저장 경로는 두 가지 모드가 있다 ($lib/server/media/s3-client 참고):
  * - AWS (기본): raw/ 에 올리면 Lambda 가 data/ 로 변환 + 썸네일 생성 + R2 dual-write
- * - 직접 업로드 (S3_ENDPOINT 지정 또는 S3_DIRECT_UPLOAD=true, 예: Cloudflare R2 단독 사이트):
+ * - 직접 업로드 (AWS 가 아닌 S3_ENDPOINT 지정 또는 S3_DIRECT_UPLOAD=true, 예: Cloudflare R2 단독 사이트):
  *   Lambda 가 없으므로 data/ 최종 키에 바로 저장하고 변환 대기를 건너뛴다
  */
 import { json, error } from '@sveltejs/kit';

@@ -7,11 +7,14 @@
  */
 import { S3Client, HeadBucketCommand } from '@aws-sdk/client-s3';
 import { env } from '$env/dynamic/private';
+import { resolveDirectUpload } from './storage-mode.js';
 
 export const S3_REGION = env.S3_REGION || 'ap-northeast-2';
 export const S3_BUCKET = env.S3_BUCKET || 'damoang-data-v1';
 export const S3_ENDPOINT = env.S3_ENDPOINT || '';
-export const S3_DIRECT_UPLOAD = env.S3_DIRECT_UPLOAD === 'true' || Boolean(S3_ENDPOINT);
+// ⛔ endpoint 유무만으로 판정하지 않는다 — AWS 자체 주소를 적어 둔 사이트가 Lambda 를 건너뛴다.
+//    판정 규칙과 그 이유는 storage-mode.ts 에 있다.
+export const S3_DIRECT_UPLOAD = resolveDirectUpload(S3_ENDPOINT, env.S3_DIRECT_UPLOAD);
 export const CDN_BASE = (env.CDN_URL || env.VITE_S3_URL || 'https://s3.damoang.net').replace(
     /\/$/,
     ''
