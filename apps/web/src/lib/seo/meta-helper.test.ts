@@ -305,13 +305,39 @@ describe('동영상 포스터 (관례 키 + poster 속성)', () => {
         ]);
     });
 
-    it('deriveVideoPoster: 확장자 → _poster.jpg (쿼리스트링 보존)', async () => {
+    it('deriveVideoPoster: 파일 이름 앞에 poster_ 를 붙이고 확장자를 jpg 로 (쿼리스트링 보존)', async () => {
         const { deriveVideoPoster } = await import('../utils/video-poster');
         expect(deriveVideoPoster('https://r2.damoang.net/data/editor/2607/a.mp4')).toBe(
-            'https://r2.damoang.net/data/editor/2607/a_poster.jpg'
+            'https://r2.damoang.net/data/editor/2607/poster_a.jpg'
         );
         expect(deriveVideoPoster('https://r2.damoang.net/data/editor/2607/a.webm?v=1')).toBe(
-            'https://r2.damoang.net/data/editor/2607/a_poster.jpg?v=1'
+            'https://r2.damoang.net/data/editor/2607/poster_a.jpg?v=1'
+        );
+    });
+
+    it('deriveVideoPoster: 경계 사례', async () => {
+        const { deriveVideoPoster } = await import('../utils/video-poster');
+        // 해시(#) 보존
+        expect(deriveVideoPoster('https://cdn.damoang.net/data/editor/2503/abc1234.mp4#t=3')).toBe(
+            'https://cdn.damoang.net/data/editor/2503/poster_abc1234.jpg#t=3'
+        );
+        // 이름에 점이 여러 개 — 마지막 확장자만 뗀다
+        expect(deriveVideoPoster('https://s3.damoang.net/data/file/free/a.b.MP4')).toBe(
+            'https://s3.damoang.net/data/file/free/poster_a.b.jpg'
+        );
+        // 쿼리스트링 안의 점은 건드리지 않는다
+        expect(deriveVideoPoster('https://r2.damoang.net/data/editor/2607/a.mp4?v=1.2')).toBe(
+            'https://r2.damoang.net/data/editor/2607/poster_a.jpg?v=1.2'
+        );
+        // 호스트의 점은 건드리지 않는다
+        expect(deriveVideoPoster('https://r2.damoang.net/data/editor/2607/a.mp4')).not.toContain(
+            'poster_r2'
+        );
+        // 상대 경로
+        expect(deriveVideoPoster('/data/editor/2607/a.mov')).toBe('/data/editor/2607/poster_a.jpg');
+        // 확장자가 없으면 그대로
+        expect(deriveVideoPoster('https://r2.damoang.net/data/editor/2607/abc')).toBe(
+            'https://r2.damoang.net/data/editor/2607/abc'
         );
     });
 });
