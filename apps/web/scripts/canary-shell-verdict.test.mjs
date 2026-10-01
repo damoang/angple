@@ -14,7 +14,12 @@ const cases = [
     ['#app-root 없음', '/', { ...OK, appRoot: false }, 1, 'app-root'],
     ['/free 목록 부족', '/free', { ...OK, postLinks: 3 }, 1, '목록 링크'],
     ['/ 는 목록 수를 보지 않는다', '/', { ...OK, postLinks: 0 }, 0, null],
-    ['글상세 본문 짧음', '/free/9', { ...OK, proseLen: 5 }, 1, '본문'],
+    ['글상세 본문 짧음(미디어도 없음)', '/free/9', { ...OK, proseLen: 5 }, 1, '본문'],
+    // ⛔ 사진 글 오탐 방지 — 2026-10-01 verify-canary 가 4자짜리 이미지 글에서 두 번 실패했다.
+    ['사진 글: 4자 + 이미지 1장은 정상', '/free/9', { ...OK, proseLen: 4, proseMedia: 1 }, 0, null],
+    ['사진 글: 0자 + 이미지 3장은 정상', '/free/9', { ...OK, proseLen: 0, proseMedia: 3 }, 0, null],
+    ['빈 본문: 0자 + 미디어 0', '/free/9', { ...OK, proseLen: 0, proseMedia: 0 }, 1, '본문'],
+    ['proseMedia 필드 없음(구 프로브)도 실패', '/free/9', { ...OK, proseLen: 3 }, 1, '본문'],
     ['/free 는 본문을 보지 않는다', '/free', { ...OK, proseLen: 0 }, 0, null],
 
     // ⭐ CSS 축 — bug/14049 를 잡는 자리

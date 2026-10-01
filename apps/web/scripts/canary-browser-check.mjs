@@ -199,6 +199,8 @@ const shellProbe = () => {
         appRoot: !!document.getElementById('app-root'),
         postLinks: links,
         proseLen: prose ? (prose.textContent || '').trim().length : 0,
+        // 사진·영상만 있는 글은 글자 수가 0~몇 자다. 미디어 수를 같이 실어 판정에서 구분한다.
+        proseMedia: prose ? prose.querySelectorAll('img, video, iframe').length : 0,
         cssLinks,
         cssLoaded
     };
