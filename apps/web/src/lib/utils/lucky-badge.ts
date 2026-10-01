@@ -21,9 +21,11 @@ function positive(value: unknown): number {
 
 /** 원장 한 갈래(포인트 또는 경험치)의 당첨 정보. */
 export interface LuckyHit {
+    /** 금액 최댓값(레거시 중복행 방어) */
     amount: number;
+    /** 회차명이 있는 행 중 가장 이른 행의 회차명. 레거시만 있으면 없음 */
     tier?: string;
-    /** ISO 8601, +09:00 */
+    /** 위 행의 시각(ISO 8601, +09:00). tier 가 있을 때만 */
     at?: string;
 }
 
@@ -56,7 +58,8 @@ export function toKstIso(value: unknown): string | undefined {
 
 /**
  * 원장 행들을 rel_id 별 당첨 정보로 모은다(쿼리 1회 결과를 그대로 받는다).
- * 레거시 중복행 방어: 금액이 가장 큰 행을 쓰고, 같은 금액이면 회차명이 있는 행을 쓴다.
+ * 백엔드 배지 조회와 같은 규칙: 금액은 최댓값, 회차명·시각은 회차명이 있고 시각이 유효한 행 중
+ * 가장 이른 행(같은 시각이면 먼저 본 행). 레거시 행만 있으면 tier·at 없음.
  */
 export function collectLuckyRows(
     rows: Array<Record<string, unknown>>,
@@ -66,24 +69,37 @@ export function collectLuckyRows(
     for (const r of rows) {
         const id = Number(r[keys.id]);
         if (!Number.isFinite(id)) continue;
-        const amount = Number(r[keys.amount]);
-        if (!Number.isFinite(amount)) continue;
-        const hit: LuckyHit = { amount };
+        const raw = Number(r[keys.amount]);
+        const amount = Number.isFinite(raw) ? raw : 0;
+        const hit: LuckyHit = map.get(id) ?? { amount: 0 };
+        if (amount > hit.amount) hit.amount = amount;
         const tier = parseLuckyTier(r[keys.content]);
-        if (tier) hit.tier = tier;
         const at = toKstIso(r[keys.datetime]);
-        if (at) hit.at = at;
-        const prev = map.get(id);
-        if (!prev || amount > prev.amount || (amount === prev.amount && !prev.tier && hit.tier)) {
-            map.set(id, hit);
+        if (tier && at && (!hit.at || at < hit.at)) {
+            hit.tier = tier;
+            hit.at = at;
         }
+        map.set(id, hit);
     }
     return map;
 }
 
+/** 두 갈래 중 회차명이 있는 가장 이른 쪽(같은 시각이면 포인트 쪽 — 백엔드가 포인트 행을 먼저 본다). */
+function earliestTiered(
+    point: LuckyHit | undefined,
+    exp: LuckyHit | undefined
+): { tier: string; at: string } | undefined {
+    let best: { tier: string; at: string } | undefined;
+    for (const h of [point, exp]) {
+        if (!h?.tier || !h.at) continue;
+        if (!best || h.at < best.at) best = { tier: h.tier, at: h.at };
+    }
+    return best;
+}
+
 /**
- * 댓글 응답에 실을 럭키 필드. 0 이하인 갈래·없는 값은 키 자체를 싣지 않는다(기존 응답 형태 유지).
- * 회차명·시각은 회차명이 있는 갈래를 우선(포인트 → 경험치 순)하고, 없으면 시각만 싣는다.
+ * 댓글 응답에 실을 럭키 필드. 0 이하인 갈래는 키 자체를 싣지 않는다(기존 응답 형태 유지).
+ * lucky_tier·lucky_at 은 회차명이 확인된 당첨에만 함께 싣는다(레거시면 둘 다 생략) — 백엔드와 동일.
  */
 export function luckyFields(
     point: LuckyHit | undefined,
@@ -91,15 +107,11 @@ export function luckyFields(
 ): { lucky_point?: number; lucky_exp?: number; lucky_tier?: string; lucky_at?: string } {
     const p = positive(point?.amount);
     const x = positive(exp?.amount);
-    const hits = [p > 0 ? point : undefined, x > 0 ? exp : undefined].filter(
-        (h): h is LuckyHit => !!h
-    );
-    const source = hits.find((h) => h.tier) ?? hits.find((h) => h.at);
+    const tiered = earliestTiered(point, exp);
     return {
         ...(p > 0 ? { lucky_point: p } : {}),
         ...(x > 0 ? { lucky_exp: x } : {}),
-        ...(source?.tier ? { lucky_tier: source.tier } : {}),
-        ...(source?.at ? { lucky_at: source.at } : {})
+        ...(tiered ? { lucky_tier: tiered.tier, lucky_at: tiered.at } : {})
     };
 }
 

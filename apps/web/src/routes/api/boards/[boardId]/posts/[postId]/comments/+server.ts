@@ -331,8 +331,8 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
 
         // 럭키 당첨 포인트(🍀 배지): g5_point(@lucky) 에서 댓글 wr_id 별 당첨 금액.
         // po_rel_table=슬러그, po_rel_id=wr_id(VARCHAR)라 문자열로 비교(인덱스 seek). 레거시 과거 당첨 포함.
-        // 지급 문구(회차명)·시각도 같은 쿼리에서 읽는다. 레거시 중복행은 collectLuckyRows 가
-        // 금액 최대 행으로 모은다(기존 MAX 와 같은 금액). 실패는 무시(배지 없이 진행).
+        // 지급 문구(회차명)·시각도 같은 쿼리에서 읽는다. collectLuckyRows 가 백엔드와 같은 규칙으로
+        // 모은다(금액=MAX, 회차명·시각=회차명 있는 가장 이른 행). 실패는 무시(배지 없이 진행).
         let luckyMap = new Map<number, LuckyHit>();
         if (commentIds.length > 0) {
             try {

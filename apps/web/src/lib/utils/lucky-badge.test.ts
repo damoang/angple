@@ -135,21 +135,88 @@ describe('collectLuckyRows', () => {
             tier: '앙팡타임',
             at: '2026-10-01T14:23:05+09:00'
         });
-        expect(map.get(8)).toEqual({ amount: 50, at: '2025-01-02T03:04:05+09:00' });
+        // 레거시만 있으면 tier·at 둘 다 없다
+        expect(map.get(8)).toEqual({ amount: 50 });
     });
 
-    it('중복행은 금액이 큰 행, 같은 금액이면 회차명 있는 행', () => {
+    it('섞이면 금액은 최댓값, 회차명·시각은 회차명 있는 행 중 가장 이른 행(백엔드와 동일)', () => {
         const map = collectLuckyRows(
             [
-                { po_rel_id: '1', po_point: 10, po_content: '앙복타임 당첨', po_dt: null },
-                { po_rel_id: '1', po_point: 30, po_content: '레거시', po_dt: null },
-                { po_rel_id: '2', po_point: 20, po_content: '레거시', po_dt: null },
-                { po_rel_id: '2', po_point: 20, po_content: '앙팡팡타임 당첨', po_dt: null }
+                {
+                    po_rel_id: '1',
+                    po_point: 10,
+                    po_content: '앙팡팡타임 당첨',
+                    po_dt: '2026-10-01 18:00:00'
+                },
+                {
+                    po_rel_id: '1',
+                    po_point: 30,
+                    po_content: '레거시',
+                    po_dt: '2026-10-01 09:00:00'
+                },
+                {
+                    po_rel_id: '1',
+                    po_point: 20,
+                    po_content: '앙복타임 당첨',
+                    po_dt: '2026-10-01 12:00:00'
+                }
             ],
             keys
         );
-        expect(map.get(1)).toEqual({ amount: 30 });
-        expect(map.get(2)).toEqual({ amount: 20, tier: '앙팡팡타임' });
+        expect(map.get(1)).toEqual({
+            amount: 30,
+            tier: '앙복타임',
+            at: '2026-10-01T12:00:00+09:00'
+        });
+    });
+
+    it('같은 시각이면 먼저 본 행', () => {
+        const map = collectLuckyRows(
+            [
+                {
+                    po_rel_id: '2',
+                    po_point: 5,
+                    po_content: '앙팡타임 당첨',
+                    po_dt: '2026-10-01 12:00:00'
+                },
+                {
+                    po_rel_id: '2',
+                    po_point: 50,
+                    po_content: '앙팡팡타임 당첨',
+                    po_dt: '2026-10-01 12:00:00'
+                }
+            ],
+            keys
+        );
+        expect(map.get(2)).toEqual({
+            amount: 50,
+            tier: '앙팡타임',
+            at: '2026-10-01T12:00:00+09:00'
+        });
+    });
+
+    it('회차명이 있어도 시각이 없거나 잘못되면 tier·at 없음', () => {
+        const map = collectLuckyRows(
+            [
+                { po_rel_id: '3', po_point: 10, po_content: '앙복타임 당첨', po_dt: null },
+                {
+                    po_rel_id: '3',
+                    po_point: 10,
+                    po_content: '앙팡타임 당첨',
+                    po_dt: '0000-00-00 00:00:00'
+                }
+            ],
+            keys
+        );
+        expect(map.get(3)).toEqual({ amount: 10 });
+    });
+
+    it('음수·비정상 금액은 0(백엔드 초기값과 동일)', () => {
+        const map = collectLuckyRows(
+            [{ po_rel_id: '4', po_point: -5, po_content: '레거시', po_dt: null }],
+            keys
+        );
+        expect(map.get(4)).toEqual({ amount: 0 });
     });
 });
 
@@ -198,7 +265,7 @@ describe('luckyFields (댓글 응답 병합)', () => {
     it('경험치만 회차명이 있으면 경험치 쪽 회차명·시각', () => {
         expect(
             luckyFields(
-                { amount: 100, at: '2026-10-01T10:00:00+09:00' },
+                { amount: 100 },
                 { amount: 50, tier: '앙팡타임', at: '2026-10-01T14:23:05+09:00' }
             )
         ).toEqual({
@@ -209,14 +276,47 @@ describe('luckyFields (댓글 응답 병합)', () => {
         });
     });
 
-    it('레거시는 회차명 없이 시각만', () => {
-        expect(luckyFields({ amount: 100, at: '2025-01-02T03:04:05+09:00' }, undefined)).toEqual({
+    it('둘 다 회차명이 있으면 더 이른 쪽', () => {
+        expect(
+            luckyFields(
+                { amount: 100, tier: '앙팡팡타임', at: '2026-10-01T18:00:00+09:00' },
+                { amount: 50, tier: '앙복타임', at: '2026-10-01T09:00:00+09:00' }
+            )
+        ).toEqual({
             lucky_point: 100,
-            lucky_at: '2025-01-02T03:04:05+09:00'
+            lucky_exp: 50,
+            lucky_tier: '앙복타임',
+            lucky_at: '2026-10-01T09:00:00+09:00'
         });
     });
 
-    it('0 이하 갈래의 회차명은 쓰지 않는다', () => {
-        expect(luckyFields({ amount: 0, tier: '앙복타임' }, undefined)).toEqual({});
+    it('같은 시각이면 포인트 쪽(백엔드가 포인트 행을 먼저 본다)', () => {
+        expect(
+            luckyFields(
+                { amount: 100, tier: '앙팡타임', at: '2026-10-01T12:00:00+09:00' },
+                { amount: 50, tier: '앙복타임', at: '2026-10-01T12:00:00+09:00' }
+            )
+        ).toEqual({
+            lucky_point: 100,
+            lucky_exp: 50,
+            lucky_tier: '앙팡타임',
+            lucky_at: '2026-10-01T12:00:00+09:00'
+        });
+    });
+
+    it('레거시만 있으면 lucky_tier·lucky_at 둘 다 없다', () => {
+        expect(luckyFields({ amount: 100 }, { amount: 50 })).toEqual({
+            lucky_point: 100,
+            lucky_exp: 50
+        });
+    });
+
+    it('회차명만 있고 시각이 없으면(또는 반대) 둘 다 싣지 않는다', () => {
+        expect(luckyFields({ amount: 100, tier: '앙복타임' }, undefined)).toEqual({
+            lucky_point: 100
+        });
+        expect(luckyFields({ amount: 100, at: '2026-10-01T12:00:00+09:00' }, undefined)).toEqual({
+            lucky_point: 100
+        });
     });
 });
