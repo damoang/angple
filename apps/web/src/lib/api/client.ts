@@ -1754,7 +1754,13 @@ class ApiClient {
      * 진짜 끊긴 연결에 무한정 매달리지는 않도록 상한을 둔다.
      */
     private uploadTimeoutMs(file: File): number {
-        const base = file.type.startsWith('video/') ? 120_000 : 30_000;
+        // 브라우저가 형식을 비워 주는 영상(.mkv·.flv 등)이 있다 — 확장자로도 영상을 가린다.
+        // 서버는 재인코딩되는 영상의 변환 완료를 수십 초 기다리므로, 기본 30초로는
+        // 응답 전에 끊겨 같은 파일을 재시도로 다시 올리게 된다.
+        const isVideo =
+            file.type.startsWith('video/') ||
+            /\.(mp4|webm|mov|avi|mkv|wmv|flv|m4v|3gp)$/i.test(file.name);
+        const base = isVideo ? 120_000 : 30_000;
         const perSize = Math.ceil(file.size / (100 * 1024)) * 1000;
         return Math.min(Math.max(base, perSize), 300_000);
     }
