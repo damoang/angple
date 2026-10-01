@@ -1,10 +1,11 @@
 /**
  * 동영상 포스터(썸네일) 유틸
  *
- * 업로드 시점에 브라우저에서 첫 프레임을 캡처해 포스터 jpg 를 만든다.
- * 포스터는 동영상 키에서 기계적으로 도출되는 "관례 키"(형제 키)에 저장되므로
- * DB 스키마 변경 없이 URL 만으로 상호 변환할 수 있다:
- *   data/editor/2607/abc1234.mp4  →  data/editor/2607/abc1234_poster.jpg
+ * 포스터는 두 가지가 있고 이름이 다르다.
+ *  - 변환 파이프라인이 영상마다 만드는 것:  data/editor/2607/poster_abc1234.jpg
+ *    → 저장된 주소가 없을 때 `deriveVideoPoster` 가 영상 주소에서 이 이름을 만들어 낸다.
+ *  - 업로드 시점에 브라우저가 첫 프레임을 캡처한 것:  data/editor/2607/abc1234_poster.jpg
+ *    → 업로드 응답의 poster_url 로 받아 본문 <video poster> 에 그대로 적는다(만들어 내지 않는다).
  */
 
 /** 포스터 캡처 시점(초) — 0초 프레임이 검은 인트로인 경우가 흔해 살짝 뒤로 */
@@ -74,11 +75,13 @@ export async function captureVideoPoster(file: File): Promise<File | null> {
 }
 
 /**
- * 동영상 URL → 관례 포스터 URL (확장자를 _poster.jpg 로 치환)
+ * 동영상 URL → 변환 파이프라인이 만든 포스터 URL
+ *   …/abc1234.mp4  →  …/poster_abc1234.jpg   (쿼리스트링·해시는 그대로 둔다)
  *
- * 포스터가 아직 없는 옛 동영상은 404 가 되지만, <video poster> 는 로드 실패를
- * 조용히 무시하므로(현행과 동일한 표시) 무해하다. backfill 이 채우면 자동 표시.
+ * 파이프라인은 영상 파일 이름에서 확장자를 뗀 것 앞에 `poster_` 를 붙여 같은 폴더에 저장한다.
+ * 브라우저 캡처 이름(…_poster.jpg)을 만들어 내면 안 된다 — 캡처는 실패할 수 있어 없는 주소가 된다.
+ * 확장자가 없는 주소는 바꾸지 않는다.
  */
 export function deriveVideoPoster(videoUrl: string): string {
-    return videoUrl.replace(/\.[a-z0-9]+(?=(?:\?|#|$))/i, '_poster.jpg');
+    return videoUrl.replace(/([^/?#]+)\.[a-z0-9]+(?=(?:\?|#|$))/i, 'poster_$1.jpg');
 }

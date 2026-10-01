@@ -2168,8 +2168,8 @@
                               // 본문 텍스트 없는 동영상 글 — GSC "description 누락" 방지 (제목 폴백)
                               description: postDescription || data.post.title?.trim() || boardTitle,
                               // 썸네일 우선순위: ①본문 poster 속성(업로드 시 캡처)
-                              // ②관례 키 도출 — backfill 로 기존 동영상 2,339건 포스터 생성
-                              //   완료(2026-07-10)라 도출 URL 이 실존 ③글 대표이미지
+                              // ②영상 주소에서 만들어 낸 포스터 — 변환 파이프라인이 영상마다
+                              //   poster_이름.jpg 를 만든다 ③글 대표이미지
                               thumbnailUrl:
                                   toHttpUrl(v.poster) ??
                                   toHttpUrl(deriveVideoPoster(v.url)) ??
