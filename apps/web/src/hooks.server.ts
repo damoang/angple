@@ -728,6 +728,10 @@ function buildCsp(): string {
         `style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com${adsHost}${assetOrigin}`,
         `font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com${assetOrigin}`,
         `img-src 'self' data: blob: https:${assetOrigin}`,
+        // 동영상 포스터 캡처는 업로드할 파일을 blob: 주소로 <video> 에 올려 첫 프레임을 그린다.
+        // media-src 가 없으면 default-src 로 내려가는데 거기엔 blob: 이 없어 로드가 막히고,
+        // 캡처가 조용히 실패해 포스터 없이 올라간다. 허용 출처는 default-src 와 같게 두고 blob: 만 더한다.
+        "media-src 'self' https://damoang.net https://*.damoang.net blob:",
         "worker-src 'self' blob:",
         // API 및 광고 서버 연결 허용
         `connect-src 'self' http://localhost:* ws://localhost:* https://*.damoang.net https://damoang.net${legacyHost}${adsHost}${assetOrigin} https://pagead2.googlesyndication.com https://securepubads.g.doubleclick.net https://www.google-analytics.com https://cdn.jsdelivr.net https://*.google.com https://*.googlesyndication.com https://*.doubleclick.net https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://*.adtrafficquality.google https://*.gstatic.com https://cdn.ampproject.org https://t1.daumcdn.net https://t1.kakaocdn.net https://kapi.kakao.com https://serv.ds.kakao.com https://aem-kakao-collector.onkakao.net https://*.adnxs.com https://*.criteo.com https://*.criteo.net https://*.clarity.ms https://c.bing.com`,
