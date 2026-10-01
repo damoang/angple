@@ -20,7 +20,11 @@ import {
     S3_DIRECT_UPLOAD,
     CDN_BASE
 } from '$lib/server/media/s3-client.js';
-import { rawKeyToFinalKey } from '$lib/server/media/final-key.js';
+import {
+    DEFAULT_PROCESS_WAIT_MS,
+    processWaitMs,
+    rawKeyToFinalKey
+} from '$lib/server/media/final-key.js';
 
 const ALLOWED_EXTENSIONS = new Set([
     '.jpg',
@@ -135,11 +139,14 @@ function generateKey(ext: string): string {
     return `raw/editor/${yy}${mm}/${hash}${ext}`;
 }
 
-/** Lambda 변환 완료 대기 — data/ 키에 HeadObject 폴링 (최대 8초, 300ms 간격) */
+/**
+ * Lambda 변환 완료 대기 — data/ 키에 HeadObject 폴링.
+ * 기본 한도(8초)는 300ms 간격, 그보다 긴 대기(재인코딩 영상)는 1초 간격으로 묻는다.
+ */
 async function waitForProcessed(
     finalKey: string,
-    maxWaitMs = 8000,
-    intervalMs = 300
+    maxWaitMs = DEFAULT_PROCESS_WAIT_MS,
+    intervalMs = maxWaitMs > DEFAULT_PROCESS_WAIT_MS ? 1000 : 300
 ): Promise<boolean> {
     const maxAttempts = Math.ceil(maxWaitMs / intervalMs);
     for (let i = 0; i < maxAttempts; i++) {
@@ -267,7 +274,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         const [isReady, posterReady] = S3_DIRECT_UPLOAD
             ? [true, Boolean(hasPoster && posterFinalKey)]
             : await Promise.all([
-                  waitForProcessed(finalKey),
+                  // 재인코딩되는 영상은 더 오래 기다린다 — 아직 없는 주소를 돌려주지 않기 위함
+                  waitForProcessed(finalKey, processWaitMs(rawKey, keyOptions)),
                   posterFinalKey ? waitForProcessed(posterFinalKey) : Promise.resolve(false)
               ]);
         if (!isReady) {
