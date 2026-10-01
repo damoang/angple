@@ -57,3 +57,42 @@ describe('resolveDirectUpload', () => {
         expect(resolveDirectUpload(R2, 'yes')).toBe(true);
     });
 });
+
+describe('isAwsS3Endpoint — 주소 모양이 달라도 알아본다', () => {
+    // ⛔ 호스트 파싱을 문자열 비교로 「단순화」하면 이 블록이 잡는다.
+    it('끝 슬래시·포트·경로가 붙은 AWS 주소', () => {
+        expect(isAwsS3Endpoint(`${AWS}/`)).toBe(true);
+        expect(isAwsS3Endpoint(`${AWS}:443`)).toBe(true);
+        expect(isAwsS3Endpoint(`${AWS}:443/some/path`)).toBe(true);
+        expect(resolveDirectUpload(`${AWS}/`, undefined)).toBe(false);
+    });
+
+    it('중국 리전과 끝에 점이 붙은 FQDN', () => {
+        expect(isAwsS3Endpoint('https://s3.cn-north-1.amazonaws.com.cn')).toBe(true);
+        expect(isAwsS3Endpoint('https://s3.ap-northeast-2.amazonaws.com.')).toBe(true);
+    });
+
+    it('스킴 없이 호스트만 적거나 따옴표·공백이 섞인 값', () => {
+        expect(isAwsS3Endpoint('s3.ap-northeast-2.amazonaws.com')).toBe(true);
+        expect(isAwsS3Endpoint(` "${AWS}" `)).toBe(true);
+        expect(resolveDirectUpload('s3.ap-northeast-2.amazonaws.com', undefined)).toBe(false);
+    });
+
+    it('그래도 비슷한 이름에는 속지 않는다', () => {
+        expect(isAwsS3Endpoint('https://amazonaws.com.cn.evil.example')).toBe(false);
+        expect(isAwsS3Endpoint('minio:9000')).toBe(false);
+        expect(resolveDirectUpload('minio:9000', undefined)).toBe(true);
+    });
+});
+
+describe('resolveDirectUpload — 플래그 표기', () => {
+    it('대소문자와 앞뒤 공백을 무시한다', () => {
+        expect(resolveDirectUpload(R2, 'False')).toBe(false);
+        expect(resolveDirectUpload(R2, ' FALSE ')).toBe(false);
+        expect(resolveDirectUpload(AWS, 'TRUE')).toBe(true);
+    });
+
+    it('공백뿐인 endpoint 는 없는 것과 같다', () => {
+        expect(resolveDirectUpload('   ', undefined)).toBe(false);
+    });
+});

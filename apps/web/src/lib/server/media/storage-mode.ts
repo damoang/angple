@@ -18,19 +18,39 @@
  * 2. 없으면, endpoint 가 지정돼 있고 **AWS 주소가 아닐 때만** 직접 업로드다.
  */
 
-/** AWS S3 자체 endpoint 인가 (`s3.<region>.amazonaws.com`, `<bucket>.s3.amazonaws.com` 등). */
+/** AWS 파티션의 도메인 접미사 — 표준, 중국 리전. */
+const AWS_SUFFIXES = ['amazonaws.com', 'amazonaws.com.cn'];
+
+/**
+ * AWS S3 자체 endpoint 인가 (`s3.<region>.amazonaws.com`, `<bucket>.s3.amazonaws.com`, 중국 리전 등).
+ *
+ * ⛔ 반드시 호스트를 파싱해서 본다. 원문 문자열을 `endsWith` 로 보면 끝 슬래시·포트·경로가
+ *    붙은 주소(`https://s3.ap-northeast-2.amazonaws.com/`)를 놓쳐 다시 직접 업로드가 된다.
+ */
 export function isAwsS3Endpoint(endpoint: string): boolean {
-    if (!endpoint) return false;
+    const raw = endpoint.trim().replace(/^["']|["']$/g, '');
+    if (!raw) return false;
+    let host: string;
     try {
-        const host = new URL(endpoint).hostname.toLowerCase();
-        return host === 'amazonaws.com' || host.endsWith('.amazonaws.com');
+        // 스킴 없이 호스트만 적은 값도 받아 준다
+        host = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`).hostname;
     } catch {
         return false;
     }
+    host = host.toLowerCase().replace(/\.$/, '');
+    return AWS_SUFFIXES.some((suffix) => host === suffix || host.endsWith(`.${suffix}`));
+}
+
+/** `true`/`false` 를 대소문자·앞뒤 공백 무시하고 읽는다. 그 밖의 값은 「지정 안 함」이다. */
+function parseFlag(flag: string | undefined): boolean | undefined {
+    const v = flag?.trim().toLowerCase();
+    if (v === 'true') return true;
+    if (v === 'false') return false;
+    return undefined;
 }
 
 export function resolveDirectUpload(endpoint: string, flag: string | undefined): boolean {
-    if (flag === 'true') return true;
-    if (flag === 'false') return false;
-    return Boolean(endpoint) && !isAwsS3Endpoint(endpoint);
+    const explicit = parseFlag(flag);
+    if (explicit !== undefined) return explicit;
+    return Boolean(endpoint.trim()) && !isAwsS3Endpoint(endpoint);
 }
