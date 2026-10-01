@@ -469,24 +469,40 @@
             return;
         }
 
-        const memoKey = uniqueAuthorIds.join(',');
+        const listKey = uniqueAuthorIds.join(',');
+
+        // ⭐ 내가 메모를 단 상대와 겹치는 작성자만 묻는다. 목록을 모르면(실패·상한 초과)
+        //    입력 그대로 돌아와 기존 동작이다. 겹치는 작성자가 없으면 부르지 않는다
+        //    (빈 응답과 같은 결과 — 모든 작성자 메모 = null).
+        const fetchIds = await memoPresence.filterIds(uniqueAuthorIds);
+        if (fetchIds.length === 0) {
+            lastMemoRequestKey = listKey;
+            memoByAuthorId = buildMemoState(uniqueAuthorIds, {});
+            return;
+        }
+
+        // 겹침이 바뀌면(메모 저장·삭제) 캐시도 달라야 하므로 질의 ID 를 키에 섞는다.
+        const memoKey =
+            fetchIds.length === uniqueAuthorIds.length
+                ? listKey
+                : `${listKey}|${fetchIds.join(',')}`;
         const cached = memoBatchCache.get(memoKey);
         if (cached && cached.expiresAt > Date.now()) {
-            lastMemoRequestKey = memoKey;
+            lastMemoRequestKey = listKey;
             memoByAuthorId = cached.value;
             return;
         }
 
         const pending = memoBatchPending.get(memoKey);
         if (pending) {
-            lastMemoRequestKey = memoKey;
+            lastMemoRequestKey = listKey;
             memoByAuthorId = await pending;
             return;
         }
 
         const loadPromise = (async () => {
             const response = await fetch(
-                `/api/v1/members/batch/memo?ids=${uniqueAuthorIds.map(encodeURIComponent).join(',')}`,
+                `/api/v1/members/batch/memo?ids=${fetchIds.map(encodeURIComponent).join(',')}`,
                 { credentials: 'include' }
             );
 
@@ -513,7 +529,7 @@
 
         try {
             const next = await loadPromise;
-            lastMemoRequestKey = memoKey;
+            lastMemoRequestKey = listKey;
             memoByAuthorId = next;
         } catch {
             lastMemoRequestKey = '';

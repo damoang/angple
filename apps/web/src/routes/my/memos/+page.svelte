@@ -15,6 +15,7 @@
     import X from '@lucide/svelte/icons/x';
     import { slide } from 'svelte/transition';
     import { pluginStore } from '$lib/stores/plugin.svelte';
+    import { memoPresence } from '$lib/stores/memo-presence.svelte.js';
     import { loadPluginLib } from '$lib/utils/plugin-optional-loader';
     import { uiSettingsStore } from '$lib/stores/ui-settings.svelte';
     import type { PageData } from './$types.js';
@@ -180,6 +181,8 @@
                     }
                 );
                 if (!res.ok) throw new Error('삭제 실패');
+                // 플러그인 API 경로는 플러그인이 갱신한다. 직접 지운 경우만 여기서 반영.
+                memoPresence.markDeleted(targetMemberId);
             }
             await invalidate('app:memos');
         } catch (err) {
