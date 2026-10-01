@@ -45,7 +45,8 @@ interface MemberPromotionData extends RowDataPacket {
 }
 
 interface PromotionConfig extends RowDataPacket {
-    settings_json: string | null;
+    // mysql2 는 JSON 컬럼을 이미 파싱된 객체로 돌려준다. 문자열은 TEXT 컬럼·구버전 대비.
+    settings_json: string | Record<string, unknown> | null;
 }
 
 interface CheckAndPromoteOptions {
@@ -57,17 +58,37 @@ function isMissingSiteSettingsTable(err: unknown): boolean {
     return (err as QueryError & { code?: string }).code === 'ER_NO_SUCH_TABLE';
 }
 
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+    return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+/**
+ * site_settings.settings_json 을 객체로 읽는다.
+ * mysql2 가 JSON 컬럼을 객체로 돌려주므로 문자열이라 가정하고 JSON.parse 하면 실패한다.
+ * 객체·JSON 문자열 둘 다 받고, 해석 불가면 null — 호출부가 「빈 설정」과 구분할 수 있게.
+ */
+export function parseSettingsJson(v: unknown): Record<string, unknown> | null {
+    if (isPlainObject(v)) return v;
+    if (typeof v === 'string') {
+        try {
+            const parsed: unknown = JSON.parse(v);
+            return isPlainObject(parsed) ? parsed : null;
+        } catch {
+            return null;
+        }
+    }
+    return null;
+}
+
 export async function getPromotionRules(): Promise<PromotionRule[]> {
     try {
         const [rows] = await readPool.query<PromotionConfig[]>(
             `SELECT settings_json FROM site_settings WHERE site_id = 'default' LIMIT 1`
         );
 
-        if (rows[0]?.settings_json) {
-            const settings = JSON.parse(rows[0].settings_json);
-            if (settings.promotion_rules && Array.isArray(settings.promotion_rules)) {
-                return settings.promotion_rules;
-            }
+        const settings = parseSettingsJson(rows[0]?.settings_json);
+        if (settings && Array.isArray(settings.promotion_rules)) {
+            return settings.promotion_rules as PromotionRule[];
         }
     } catch (err) {
         if (isMissingSiteSettingsTable(err)) {
@@ -84,28 +105,28 @@ export async function savePromotionRules(rules: PromotionRule[]): Promise<void> 
         `SELECT settings_json FROM site_settings WHERE site_id = 'default' LIMIT 1`
     );
 
-    let settings: Record<string, unknown> = {};
-    if (rows[0]?.settings_json) {
-        try {
-            settings = JSON.parse(rows[0].settings_json);
-        } catch {
-            settings = {};
-        }
-    }
-
-    settings.promotion_rules = rules;
-    const jsonStr = JSON.stringify(settings);
-
     if (rows.length === 0) {
         await pool.query(
             `INSERT INTO site_settings (site_id, settings_json, active_theme) VALUES ('default', ?, ?)`,
-            [jsonStr, DEFAULT_THEME]
+            [JSON.stringify({ promotion_rules: rules }), DEFAULT_THEME]
         );
-    } else {
-        await pool.query(`UPDATE site_settings SET settings_json = ? WHERE site_id = 'default'`, [
-            jsonStr
-        ]);
+        return;
     }
+
+    // 같은 행에 다른 기능의 키(lucky_config 등)가 함께 산다. 해석 못 하는 값을
+    // 빈 객체로 덮으면 그 키들이 사라지므로 저장을 거부한다(NULL 은 비어 있는 것으로 본다).
+    const current = rows[0].settings_json;
+    if (current != null && parseSettingsJson(current) === null) {
+        throw new Error(
+            '[AutoPromotion] site_settings.settings_json 을 해석할 수 없어 저장을 중단합니다'
+        );
+    }
+
+    // 통째로 다시 쓰지 않고 promotion_rules 키만 바꿔 다른 키를 보존한다.
+    await pool.query(
+        `UPDATE site_settings SET settings_json = JSON_SET(COALESCE(settings_json, JSON_OBJECT()), '$.promotion_rules', CAST(? AS JSON)) WHERE site_id = 'default'`,
+        [JSON.stringify(rules)]
+    );
 }
 
 async function getLoginDays(mbId: string): Promise<number> {
