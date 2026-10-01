@@ -108,9 +108,20 @@
         const key = ids.sort().join(',');
         if (key === lastMemoKey) return;
         lastMemoKey = key;
+
+        // ⭐ 내가 메모를 단 상대와 겹치는 작성자만 묻는다. 목록을 모르면 입력 그대로(기존 동작).
+        //    겹치는 작성자가 없으면 부르지 않는다 — 빈 응답과 같은 결과(모든 작성자 메모 = null).
+        const fetchIds = await memoPresence.filterIds(ids);
+        if (key !== lastMemoKey) return;
+        if (fetchIds.length === 0) {
+            const empty: Record<string, { content: string; color: string } | null> = {};
+            for (const id of ids) empty[id] = null;
+            memoByAuthorId = empty;
+            return;
+        }
         try {
             const res = await fetch(
-                `/api/v1/members/batch/memo?ids=${ids.map(encodeURIComponent).join(',')}`,
+                `/api/v1/members/batch/memo?ids=${fetchIds.map(encodeURIComponent).join(',')}`,
                 { credentials: 'include' }
             );
             if (!res.ok) return;
