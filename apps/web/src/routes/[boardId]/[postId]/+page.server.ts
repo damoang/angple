@@ -678,7 +678,7 @@ export const load: PageServerLoad = async ({
                 fetchReactionsByParentId(
                     `document:${boardId}:${postId}`,
                     locals.user?.id || ''
-                ).catch(() => ({}) as Record<string, unknown>),
+                ).catch(() => null),
                 // 본문 제휴 링크 변환 (스트리밍 — 초기 렌더 블로킹 방지)
                 Promise.resolve(
                     affiliateEnabled && post.content
@@ -764,6 +764,11 @@ export const load: PageServerLoad = async ({
 
             const reactions =
                 reactionsResult.status === 'fulfilled' ? reactionsResult.value || {} : {};
+            // 조회가 성공했는지, 그때 회원을 알고 있었는지를 함께 보낸다. 화면은 이 둘로
+            // 「반응을 다시 불러야 하는가」를 정한다(실패와 반응 없음은 둘 다 빈 객체라 구분이 안 된다).
+            const reactionsLoaded =
+                reactionsResult.status === 'fulfilled' && reactionsResult.value != null;
+            const reactionsViewerKnown = Boolean(locals.user?.id);
 
             // 본문 제휴 링크 변환 결과
             const transformedPostContent =
@@ -800,6 +805,8 @@ export const load: PageServerLoad = async ({
             return {
                 promotionPosts,
                 reactions,
+                reactionsLoaded,
+                reactionsViewerKnown,
                 transformedPostContent,
                 isScrapped,
                 postReportCount,
