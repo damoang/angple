@@ -350,7 +350,7 @@
                         authorName={post.author}
                         isWithdrawn={!!post.is_left}
                     />
-                    <LuckyBadge amount={post.lucky_point ?? 0} />
+                    <LuckyBadge amount={post.lucky_point ?? 0} exp={post.lucky_exp ?? 0} />
                 </span>
 
                 <!-- 날짜 (col 4, 데스크톱만) -->

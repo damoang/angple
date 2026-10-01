@@ -106,6 +106,7 @@ function trimFreeListPayload(post: FreePost): FreePost {
         source_board: post.source_board,
         // 럭키 당첨 🍀 배지 — 경량화 트림이 버리지 않도록 화이트리스트에 포함(classic 등 기본 목록).
         lucky_point: post.lucky_point,
+        lucky_exp: post.lucky_exp,
         // 처리 상태 배지(해결됨·진행중·보류) — 같은 이유로 화이트리스트에 포함(2026-09-28 카나리에서 누락 실측).
         status: post.status,
         status_updated_at: post.status_updated_at,
