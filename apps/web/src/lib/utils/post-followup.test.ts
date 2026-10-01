@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canSkipReactionsRefetch, shouldRunLikeFallback } from './post-followup';
+import { canSkipReactionsRefetch, decideLikeResync, shouldRunLikeFallback } from './post-followup';
 
 describe('shouldRunLikeFallback', () => {
     it('로그인 판정이 끝나기 전에는 부르지 않는다', () => {
@@ -84,5 +84,23 @@ describe('canSkipReactionsRefetch', () => {
         expect(
             canSkipReactionsRefetch({ ...base, streamedViewerKnown: true, authLoading: true })
         ).toBe(true);
+    });
+});
+
+describe('decideLikeResync', () => {
+    it('서버가 이 회원의 것으로 확정해 보냈으면 다시 받지 않는다', () => {
+        expect(decideLikeResync('resolved')).toBe('skip');
+    });
+
+    it('서버가 회원을 몰랐거나 조회에 실패했으면 다시 받는다', () => {
+        expect(decideLikeResync('unresolved')).toBe('fetch');
+    });
+
+    it('서버 전달분이 아직 도착하지 않았으면 기다린다', () => {
+        expect(decideLikeResync('pending')).toBe('wait');
+    });
+
+    it('이 글에 대한 상태를 아직 모르면 기다린다', () => {
+        expect(decideLikeResync(null)).toBe('wait');
     });
 });

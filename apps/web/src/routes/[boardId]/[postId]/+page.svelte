@@ -50,7 +50,12 @@
     import { insertReplyAfterParent, type CommentLike } from '$lib/utils/comment-insert.js';
     import type { ReactionItem } from '$lib/types/reaction.js';
     import { generateParentId, generateDocumentTargetId } from '$lib/types/reaction.js';
-    import { canSkipReactionsRefetch, shouldRunLikeFallback } from '$lib/utils/post-followup.js';
+    import {
+        canSkipReactionsRefetch,
+        decideLikeResync,
+        shouldRunLikeFallback,
+        type StreamedLikeStatus
+    } from '$lib/utils/post-followup.js';
     import { onMount, untrack } from 'svelte';
     import { doAction } from '$lib/hooks/registry';
     import { page } from '$app/stores';
@@ -462,6 +467,11 @@
     // bug/13729: 인증 확립 후 하트 재동기화가 이 글에 대해 이미 실값을 채웠는지 표시.
     // 스트리밍(SSR strip 으로 빈값)과 재동기화의 순서 경쟁에서 재동기화가 이기게 한다.
     let likeStatusResyncedForPostId: number | null = null;
+    /** 서버 전달분의 추천 상태를 기다리는 한도 — 넘기면 재동기화가 직접 받는다 */
+    const STREAMED_LIKE_WAIT_MS = 4000;
+    // 서버가 페이지와 함께 보낸 추천 상태가 이 글에 대해 어떤 상태인지.
+    // 재동기화 $effect 가 이 값을 보고 「기다린다 / 건너뛴다 / 직접 받는다」를 정한다.
+    let streamedLikeState = $state<{ postId: number; status: StreamedLikeStatus } | null>(null);
     let trackedPostViewKey = '';
     let resetDetailUiPostId: number | null = null;
 
@@ -509,11 +519,24 @@
 
         if (!promise) {
             // SPA 내비게이션: auxiliaryData 없음 → 리액션 직접 fetch
+            // 추천 상태도 서버 전달분이 없으므로 재동기화가 직접 받는다.
+            streamedLikeState = { postId: effectPostId, status: 'unresolved' };
             if (browser) fetchBatchReactions();
             return;
         }
 
         let cancelled = false;
+        // 서버 전달분을 기다리는 동안 재동기화는 대기한다. 끝내 안 오면 직접 받도록 푼다 —
+        // 하트가 비어 보이는 것보다 한 번 더 묻는 편이 낫다.
+        streamedLikeState = { postId: effectPostId, status: 'pending' };
+        const likeWaitTimer = setTimeout(() => {
+            if (
+                streamedLikeState?.postId === effectPostId &&
+                streamedLikeState.status === 'pending'
+            ) {
+                streamedLikeState = { postId: effectPostId, status: 'unresolved' };
+            }
+        }, STREAMED_LIKE_WAIT_MS);
         promotionPosts = [];
         revisions = [];
         isScrapped = false;
@@ -608,15 +631,25 @@
 
                 scheduledDelete = result.scheduledDelete ?? null;
 
+                // 서버가 이 회원의 추천 상태로 확정해 보냈으면 재동기화가 다시 묻지 않는다.
+                // 표식이 없는 응답(이전 버전)·회원을 몰랐던 응답·조회 실패는 직접 받는다.
+                streamedLikeState = {
+                    postId: effectPostId,
+                    status:
+                        result.likeStatusesResolvedForViewer === true ? 'resolved' : 'unresolved'
+                };
+
                 auxiliaryLoaded = true;
             })
             .catch(() => {
                 if (cancelled) return;
+                streamedLikeState = { postId: effectPostId, status: 'unresolved' };
                 auxiliaryLoaded = true;
             });
 
         return () => {
             cancelled = true;
+            clearTimeout(likeWaitTimer);
         };
     });
 
@@ -711,9 +744,10 @@
     let isDisliking = $state(false);
     let isLikeAnimating = $state(false); // 좋아요 애니메이션
 
-    // bug/13729: 글상세는 SSR_STRIP_USER 로 서버에서 user=null → SSR/스트리밍 하트 상태가 항상 비어
-    // 있다(엣지캐시 설계). 인증은 하이드레이션 뒤 확립되므로, authStore.isAuthenticated 가 true 로
+    // bug/13729: 서버가 회원을 모른 채 페이지를 만든 경우(캐시된 응답, 세션 만료 등) 스트리밍
+    // 하트 상태가 비어 온다. 인증은 하이드레이션 뒤 확립되므로, authStore.isAuthenticated 가 true 로
     // 바뀌는 순간을 $effect 로 추적해 쿠키인증 엔드포인트로 실제 좋아요 상태를 다시 받아 하트를 채운다.
+    // 서버가 이 회원의 상태로 확정해 보낸 경우에는 같은 답이므로 다시 받지 않는다(streamedLikeState).
     // ⛔ onMount 게이트로 걸면 그 시점엔 아직 false 라 영원히 안 돈다(과거 read-posts 0건 함정).
     $effect(() => {
         const postId = data.post.id;
@@ -725,9 +759,16 @@
         //    ⭐ 같은 파일 댓글 backfill 이 이미 같은 이유로 AbortController 를 달았다(1780줄 주석).
         const bid = boardId;
         const isAuth = authStore.isAuthenticated; // 추적 대상 — 인증 확립 시 발화
+        // 추적 대상 — 서버 전달분이 도착하면(또는 못 온다고 판정되면) 다시 발화
+        const streamed = streamedLikeState;
         if (!browser || !isAuth || !bid) return;
         if (likeStatusResyncedForPostId === postId) return;
+        // 서버가 이 회원의 추천 상태로 확정해 보냈으면 같은 답을 다시 받을 필요가 없다.
+        // 아직 도착 전이면 기다린다(먼저 부르면 건너뛸 기회가 없다).
+        const decision = decideLikeResync(streamed?.postId === postId ? streamed.status : null);
+        if (decision === 'wait') return;
         likeStatusResyncedForPostId = postId;
+        if (decision === 'skip') return;
         // ⛔ cleanup 이 없으면 라우트를 떠난 뒤에도 응답이 도착해 죽은 상태에 쓴다.
         let cancelled = false;
         untrack(() => {

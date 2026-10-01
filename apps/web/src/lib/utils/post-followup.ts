@@ -51,3 +51,27 @@ export function canSkipReactionsRefetch(input: ReactionsRefetchInput): boolean {
     if (input.authLoading) return false;
     return !input.authenticated;
 }
+
+/** 서버가 페이지와 함께 보낸 추천 상태가 지금 어떤 상태인가 */
+export type StreamedLikeStatus =
+    /** 아직 도착하지 않았다 */
+    | 'pending'
+    /** 도착했고, 서버가 이 회원의 것으로 확정해 보냈다 */
+    | 'resolved'
+    /** 도착했지만 서버가 회원을 몰랐거나 조회에 실패했다. 또는 전달분 자체가 없다 */
+    | 'unresolved';
+
+export type LikeResyncDecision = 'wait' | 'skip' | 'fetch';
+
+/**
+ * 인증 확립 뒤 추천 상태(글·댓글)를 다시 받아야 하는지.
+ *
+ * 서버가 이 회원의 것으로 확정해 보냈으면 같은 답을 한 번 더 받는 것이라 건너뛴다.
+ * 아직 도착 전이면 기다린다 — 먼저 불러 버리면 건너뛸 기회가 없다.
+ * 이 글에 대한 상태를 아직 모르면(null) 기다린다.
+ */
+export function decideLikeResync(streamed: StreamedLikeStatus | null): LikeResyncDecision {
+    if (streamed === 'resolved') return 'skip';
+    if (streamed === 'unresolved') return 'fetch';
+    return 'wait';
+}

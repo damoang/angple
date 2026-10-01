@@ -699,10 +699,7 @@ export const load: PageServerLoad = async ({
                 postReportCountPromise,
                 // 게시글 추천/비추천 상태 (로그인 시만, DB 직접 조회)
                 likeUserId
-                    ? fetchPostLikeStatus(boardId, Number(postId), likeUserId).catch(() => ({
-                          userLiked: false,
-                          userDisliked: false
-                      }))
+                    ? fetchPostLikeStatus(boardId, Number(postId), likeUserId).catch(() => null)
                     : Promise.resolve({ userLiked: false, userDisliked: false }),
                 // 삭제 예약 상태 — Posts API 응답에 inline 포함 (별도 fetch 제거, 백엔드 PR #430)
                 Promise.resolve(
@@ -723,10 +720,7 @@ export const load: PageServerLoad = async ({
                     // 누락 방지 (economy/77128 제보: 정렬 동률로 1페이지에서 밀린 댓글의
                     // 좋아요가 새로고침 후 미표시되던 문제)
                     return fetchCommentLikeStatuses(boardId, Number(postId), likeUserId).catch(
-                        () => ({
-                            likedIds: [],
-                            dislikedIds: []
-                        })
+                        () => null
                     );
                 })(),
                 (() => {
@@ -779,18 +773,28 @@ export const load: PageServerLoad = async ({
             const postReportCount =
                 postReportCountResult.status === 'fulfilled' ? postReportCountResult.value : null;
 
-            const postLikeStatus =
-                postLikeStatusResult.status === 'fulfilled'
-                    ? postLikeStatusResult.value
-                    : { userLiked: false, userDisliked: false };
+            const postLikeStatusValue =
+                postLikeStatusResult.status === 'fulfilled' ? postLikeStatusResult.value : null;
+            const postLikeStatus = postLikeStatusValue ?? { userLiked: false, userDisliked: false };
 
             const scheduledDelete =
                 scheduledDeleteResult.status === 'fulfilled' ? scheduledDeleteResult.value : null;
 
-            const commentLikeStatuses =
+            const commentLikeStatusesValue =
                 commentLikeStatusesResult.status === 'fulfilled'
                     ? commentLikeStatusesResult.value
-                    : { likedIds: [], dislikedIds: [] };
+                    : null;
+            const commentLikeStatuses = commentLikeStatusesValue ?? {
+                likedIds: [],
+                dislikedIds: []
+            };
+            // 추천 상태를 「이 회원의 것으로」 확정해 보냈는가 — 회원을 알았고 두 조회가 모두 성공했을 때만 참.
+            // 화면은 이 값이 참이면 인증 확립 뒤 같은 것을 다시 묻지 않는다. 회원을 몰랐거나 조회가
+            // 실패했으면(둘 다 '안 눌렀음'으로 보인다) 거짓이라 화면이 직접 다시 받는다.
+            const likeStatusesResolvedForViewer =
+                Boolean(likeUserId) &&
+                postLikeStatusValue != null &&
+                commentLikeStatusesValue != null;
 
             const truthroomCommentMap =
                 truthroomCommentMapResult.status === 'fulfilled'
@@ -813,6 +817,7 @@ export const load: PageServerLoad = async ({
                 postLikeStatus,
                 scheduledDelete,
                 commentLikeStatuses,
+                likeStatusesResolvedForViewer,
                 truthroomCommentMap,
                 linkAffiliate,
                 memberActivity
