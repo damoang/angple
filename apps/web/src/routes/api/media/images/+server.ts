@@ -20,6 +20,7 @@ import {
     S3_DIRECT_UPLOAD,
     CDN_BASE
 } from '$lib/server/media/s3-client.js';
+import { rawKeyToFinalKey } from '$lib/server/media/final-key.js';
 
 const ALLOWED_EXTENSIONS = new Set([
     '.jpg',
@@ -134,11 +135,6 @@ function generateKey(ext: string): string {
     return `raw/editor/${yy}${mm}/${hash}${ext}`;
 }
 
-/** raw/editor/... → data/editor/... 경로 변환 (Lambda 처리 후 최종 URL) */
-function rawKeyToFinalKey(rawKey: string): string {
-    return rawKey.replace(/^raw\//, 'data/');
-}
-
 /** Lambda 변환 완료 대기 — data/ 키에 HeadObject 폴링 (최대 8초, 300ms 간격) */
 async function waitForProcessed(
     finalKey: string,
@@ -218,7 +214,10 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     }
 
     const rawKey = generateKey(ext);
-    const finalKey = rawKeyToFinalKey(rawKey);
+    // 변환 파이프라인은 .mov 등을 mp4 로 바꿔 저장한다 — 최종 키도 그 이름이어야 한다.
+    // 직접 업로드 모드는 변환이 없으므로 올린 확장자 그대로다.
+    const keyOptions = { converted: !S3_DIRECT_UPLOAD };
+    const finalKey = rawKeyToFinalKey(rawKey, keyOptions);
     const contentType = file.type || 'application/octet-stream';
 
     // 포스터는 동영상에 한해, jpeg·2MB 이하만 수용 (남용 방지). 관례 키 = 동영상과
@@ -231,7 +230,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         poster.size > 0 &&
         poster.size <= 2 * 1024 * 1024;
     const posterRawKey = hasPoster ? rawKey.replace(/\.[a-z0-9]+$/i, '_poster.jpg') : null;
-    const posterFinalKey = posterRawKey ? rawKeyToFinalKey(posterRawKey) : null;
+    const posterFinalKey = posterRawKey ? rawKeyToFinalKey(posterRawKey, keyOptions) : null;
 
     // 직접 업로드 모드는 Lambda 가 없으므로 최종 키(data/)에 바로 저장한다
     const uploadKey = S3_DIRECT_UPLOAD ? finalKey : rawKey;
