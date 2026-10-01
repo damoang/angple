@@ -135,7 +135,7 @@ export const load: PageServerLoad = async ({
     try {
         // --- 1단계: 필수 데이터 즉시 await (본문, SEO, 권한 체크) ---
         // board는 공유 캐시(300초 TTL)에서 조회, post/files는 병렬로 fetch
-        const [postResult, boardResult, filesResult] = await Promise.allSettled([
+        const [postResult, boardResult, filesResult, hasPollResult] = await Promise.allSettled([
             // 게시글 (Go 백엔드 직접 호출)
             bFetch(`/api/v1/boards/${boardId}/posts/${postId}`, {
                 headers,
@@ -156,8 +156,13 @@ export const load: PageServerLoad = async ({
                     if (!res.ok) return null;
                     return res.json();
                 }
-            )
+            ),
+            // 투표 유무 (위젯 by-post 호출 생략 힌트). params 만 쓰므로 post 와 병렬,
+            // 인덱스 1건이라 이 묶음의 대기를 늘리지 않는다. 실패=null → 위젯은 기존처럼 호출
+            fetchHasPoll(boardId, Number(postId))
         ]);
+        const hasPoll: boolean | null =
+            hasPollResult.status === 'fulfilled' ? hasPollResult.value : null;
 
         // 게시글 필수 — 실패 시 404
         if (postResult.status === 'rejected') {
@@ -665,8 +670,7 @@ export const load: PageServerLoad = async ({
                 scheduledDeleteResult,
                 commentLikeStatusesResult,
                 truthroomCommentMapResult,
-                memberActivityResult,
-                hasPollResult
+                memberActivityResult
             ] = await Promise.allSettled([
                 // 직접홍보 사잇광고 (ads 서버 직접 호출 + 캐시)
                 fetchPromotionPosts(),
@@ -742,9 +746,7 @@ export const load: PageServerLoad = async ({
                 })(),
                 // 작성자 최근 활동 (SSR 직접 조회 — 클릭 없이 표시, 클라이언트 API 요청 제거)
                 // 1단계에서 시작한 단일 fetch 재사용 (SEO 섹션 #83 과 공유, 중복 호출 방지)
-                memberActivityPromise,
-                // 투표 유무 (투표 위젯 by-post 호출 생략 힌트). 실패=null → 위젯은 기존처럼 호출
-                fetchHasPoll(boardId, Number(postId))
+                memberActivityPromise
             ]);
 
             // 프로모션 사잇광고: board_exception에 포함된 게시판은 제외
@@ -795,9 +797,6 @@ export const load: PageServerLoad = async ({
                     ? memberActivityResult.value
                     : { recentPosts: [], recentComments: [] };
 
-            const hasPoll: boolean | null =
-                hasPollResult.status === 'fulfilled' ? hasPollResult.value : null;
-
             return {
                 promotionPosts,
                 reactions,
@@ -809,8 +808,7 @@ export const load: PageServerLoad = async ({
                 commentLikeStatuses,
                 truthroomCommentMap,
                 linkAffiliate,
-                memberActivity,
-                hasPoll
+                memberActivity
             };
         })();
 
@@ -987,6 +985,8 @@ export const load: PageServerLoad = async ({
             ).catch(() => null)),
             /** 처리 상태 기능(관리자 상태 변경 메뉴 노출용) — 게시판 확장설정 post_status.enabled */
             postStatusEnabled: await boardHasPostStatusFeature(boardId),
+            /** 이 글에 투표가 있는지 — 투표 위젯 호출 생략 힌트 (null=모름 → 위젯은 기존처럼 호출) */
+            hasPoll,
             /** 스트리밍: Promise로 반환 → 클라이언트에서 $effect로 수신 */
             streamed: {
                 auxiliaryData: auxiliaryDataPromise

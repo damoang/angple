@@ -1,7 +1,7 @@
 /**
  * 투표 위젯의 by-post 호출 생략 판정 (순수 함수 — 단위 테스트 대상)
  *
- * 상세 로더가 auxiliaryData.hasPoll(true/false/null)을 실어 보낸다.
+ * 상세 로더가 page.data.hasPoll(true/false/null)을 실어 보낸다.
  * 「확실히 없음(false)」 + 비작성자일 때만 호출을 생략하고, 나머지는 전부 기존 경로(호출).
  */
 

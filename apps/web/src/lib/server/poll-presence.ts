@@ -6,6 +6,8 @@
  *
  * ⛔ 반환값은 3상태다. 조회 실패·잘못된 인자는 반드시 null(=모름) — false(=없음)로
  *    떨어뜨리면 투표가 있는 글에서도 위젯이 사라진다(fail-open 이 깨짐).
+ * 비로그인 상세는 엣지 캐시(s-maxage=60, swr=120)라 이 값도 본문과 수명이 같다(최대 180초).
+ *    생성만 늦게 보이고, 삭제 방향(true 잔존)은 위젯이 조회해 exists:false 를 받으므로 무해.
  */
 import { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
