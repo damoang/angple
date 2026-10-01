@@ -25,12 +25,17 @@ function eq(name, actual, expected) {
 // ── parseImports ────────────────────────────────────────────────
 // ⛔ 순서는 계약이 아니다 — 폐쇄 계산은 집합으로 쓴다. 정렬해 비교한다.
 const imports = (src) => parseImports(src).sort();
-eq('정적 import 를 뽑는다 (압축형: from 앞 공백 없음)', imports('import{a}from"../chunks/x.js";\nimport"./y.js";'), [
-    '../chunks/x.js',
-    './y.js'
-]);
+eq(
+    '정적 import 를 뽑는다 (압축형: from 앞 공백 없음)',
+    imports('import{a}from"../chunks/x.js";\nimport"./y.js";'),
+    ['../chunks/x.js', './y.js']
+);
 eq('re-export 도 의존이다', imports('export{z}from"../chunks/z.js";'), ['../chunks/z.js']);
-eq('압축형 여러 개를 다 집는다', imports('import{a}from"./a.js";import*as b from"./b.js";export{c}from"./c.js";'), ['./a.js', './b.js', './c.js']);
+eq(
+    '압축형 여러 개를 다 집는다',
+    imports('import{a}from"./a.js";import*as b from"./b.js";export{c}from"./c.js";'),
+    ['./a.js', './b.js', './c.js']
+);
 eq('여러 줄·공백 허용', imports('import {\n a\n} from  "../a.js" ;'), ['../a.js']);
 // ⛔ 동적 import 는 「그 라우트를 열려면 필요한 파일」이 아니다. 세면 과대평가가 된다.
 eq('동적 import() 는 세지 않는다', imports('const p=import("../chunks/lazy.js");'), []);
@@ -76,7 +81,12 @@ eq('최대', s.max, 214);
 eq('평균', s.mean, 70.8);
 eq('가장 무거운 라우트가 먼저', s.top[0].route, 'r3');
 eq('빈 입력', summarize([]), { routes: 0, min: 0, median: 0, mean: 0, max: 0, top: [] });
-eq('홀수 개 중위', summarize([{ route: 'a', files: 1 }, { route: 'b', files: 5 }, { route: 'c', files: 9 }]).median, 5);
+const odd = [
+    { route: 'a', files: 1 },
+    { route: 'b', files: 5 },
+    { route: 'c', files: 9 }
+];
+eq('홀수 개 중위', summarize(odd).median, 5);
 
 // ── shapeFails ──────────────────────────────────────────────────
 // ⛔ 측정기가 아무것도 못 읽었는데 「통과」로 읽히면 가드가 죽은 것이다.
@@ -87,7 +97,11 @@ eq('3차 실패 형상은 걸러진다 (최대·중위 둘 다)', shapeFails(s, 
     '최대 214개 > 임계 8 (r3)',
     '중위 33개 > 임계 5'
 ]);
-eq('목표 형상은 통과', shapeFails(summarize([{ route: 'r', files: 5 }]), { maxFiles: 8, medianFiles: 5 }), []);
+eq(
+    '목표 형상은 통과',
+    shapeFails(summarize([{ route: 'r', files: 5 }]), { maxFiles: 8, medianFiles: 5 }),
+    []
+);
 // ⭐ 중위만 보면 괴물 라우트가 숨는다 — 그걸 시험으로 고정한다.
 const hidden = summarize([
     { route: 'ok1', files: 2 },

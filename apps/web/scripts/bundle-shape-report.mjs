@@ -17,7 +17,14 @@
  */
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { closure, parseImports, resolveSpec, shapeFails, summarize, formatReport } from './bundle-shape.mjs';
+import {
+    closure,
+    formatReport,
+    parseImports,
+    resolveSpec,
+    shapeFails,
+    summarize
+} from './bundle-shape.mjs';
 
 const args = process.argv.slice(2);
 const root = args.find((a) => !a.startsWith('--')) || '.svelte-kit/output/client/_app/immutable';
@@ -42,7 +49,9 @@ function walk(dir, out = []) {
 }
 
 const files = walk(root);
-const js = files.filter((f) => f.endsWith('.js')).map((f) => relative(root, f).split('\\').join('/'));
+const js = files
+    .filter((f) => f.endsWith('.js'))
+    .map((f) => relative(root, f).split('\\').join('/'));
 const css = files.filter((f) => f.endsWith('.css'));
 
 const graph = {};

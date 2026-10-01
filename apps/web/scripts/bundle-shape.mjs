@@ -34,10 +34,12 @@
 export function parseImports(src) {
     const out = [];
     const BOUND = '(?:^|[;\n}])\\s*';
+    const SPEC = '["\']([^"\']+)["\']';
     // ① import "x"  (부수효과 전용)
-    const bare = new RegExp(BOUND + 'import\\s*["\']([^"\']+)["\']', 'g');
+    const bare = new RegExp(BOUND + 'import\\s*' + SPEC, 'g');
     // ② import <절> from "x" · export <절> from "x"
-    const withFrom = new RegExp(BOUND + '(?:import|export)\\s*[^"\';]*?from\\s*["\']([^"\']+)["\']', 'g');
+    const CLAUSE = '(?:import|export)\\s*[^"\';]*?from\\s*';
+    const withFrom = new RegExp(BOUND + CLAUSE + SPEC, 'g');
     for (const re of [bare, withFrom]) {
         let m;
         while ((m = re.exec(src)) !== null) out.push(m[1]);
@@ -120,8 +122,9 @@ export function shapeFails(summary, limits) {
 export function formatReport(summary, mode) {
     const lines = [
         `모드: ${mode}`,
-        `라우트 ${summary.routes}개 · 라우트당 파일 수 — ` +
-            `최소 ${summary.min} · **중위 ${summary.median}** · 평균 ${summary.mean} · **최대 ${summary.max}**`
+        `라우트 ${summary.routes}개 · 라우트당 파일 수 —` +
+            ` 최소 ${summary.min} · **중위 ${summary.median}**` +
+            ` · 평균 ${summary.mean} · **최대 ${summary.max}**`
     ];
     if (summary.top.length) {
         lines.push('', '가장 무거운 라우트:');
