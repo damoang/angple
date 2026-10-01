@@ -50,6 +50,7 @@
     import { insertReplyAfterParent, type CommentLike } from '$lib/utils/comment-insert.js';
     import type { ReactionItem } from '$lib/types/reaction.js';
     import { generateParentId, generateDocumentTargetId } from '$lib/types/reaction.js';
+    import { canSkipReactionsRefetch, shouldRunLikeFallback } from '$lib/utils/post-followup.js';
     import { onMount, untrack } from 'svelte';
     import { doAction } from '$lib/hooks/registry';
     import { page } from '$app/stores';
@@ -503,6 +504,7 @@
         postReactions = undefined;
         reactionsMap = undefined;
         lastFetchedReactionsKey = '';
+        streamedReactions = null;
         linkAffiliate = {};
 
         if (!promise) {
@@ -543,11 +545,23 @@
                         recentComments: unknown[];
                     }) ?? null;
 
-                if (result.reactions && Object.keys(result.reactions).length > 0) {
+                // 서버가 조회에 성공했다고 알려 준 경우에는 반응이 하나도 없어도 그대로 받는다.
+                // (표식이 없는 응답은 조회 실패와 반응 없음을 구분할 수 없어 비어 있으면 받지 않는다.)
+                const reactionsLoaded = result.reactionsLoaded === true;
+                if (
+                    result.reactions &&
+                    (reactionsLoaded || Object.keys(result.reactions).length > 0)
+                ) {
                     reactionsMap = result.reactions as Record<string, ReactionItem[]>;
                     const docTargetId = generateDocumentTargetId(boardId, data.post.id);
                     postReactions =
                         (result.reactions as Record<string, ReactionItem[]>)[docTargetId] || [];
+                }
+                if (reactionsLoaded) {
+                    streamedReactions = {
+                        parentId: generateParentId(boardId, data.post.id),
+                        viewerKnown: result.reactionsViewerKnown === true
+                    };
                 }
 
                 if (result.transformedPostContent) {
@@ -838,6 +852,8 @@
     let reactionsMap = $state<Record<string, ReactionItem[]> | undefined>(undefined);
 
     let lastFetchedReactionsKey = '';
+    // 서버가 페이지와 함께 흘려보낸 반응이 어느 글 것이고, 조회 때 회원을 알았는지.
+    let streamedReactions: { parentId: string; viewerKnown: boolean } | null = null;
 
     async function fetchBatchReactions(): Promise<void> {
         if (!reactionPluginActive) return;
@@ -848,6 +864,18 @@
         const parentId = generateParentId(boardId, data.post.id);
         // 동일 parentId 중복 호출 방지 (SPA 네비게이션 시 이중 fetch 제거)
         if (lastFetchedReactionsKey === parentId && reactionsMap) return;
+        // 서버가 이미 보낸 반응이면 다시 부르지 않는다. 이 함수는 $effect 안에서도 불리므로
+        // 인증 상태를 읽을 때 반응 의존성이 생기지 않게 untrack 으로 감싼다.
+        const skip = untrack(() =>
+            canSkipReactionsRefetch({
+                parentId,
+                streamedParentId: streamedReactions?.parentId ?? null,
+                streamedViewerKnown: streamedReactions?.viewerKnown ?? false,
+                authLoading: authStore.isLoading,
+                authenticated: authStore.isAuthenticated
+            })
+        );
+        if (skip) return;
         lastFetchedReactionsKey = parentId;
         try {
             const res = await fetch(`/api/reactions?parentId=${encodeURIComponent(parentId)}`);
@@ -985,18 +1013,37 @@
         };
         window.addEventListener('comment-refresh', handleCommentRefresh);
 
-        // 추천 상태 조회 (SSR 스트리밍으로 로드, fallback으로 클라이언트 호출)
-        if (!auxiliaryLoaded) {
-            (async () => {
+        return () => {
+            cleanupScrollObserver?.();
+            window.removeEventListener('comment-refresh', handleCommentRefresh);
+        };
+    });
+
+    // 추천 상태 대체 호출 (SSR 스트리밍으로 로드, 못 받았을 때만 클라이언트 호출).
+    // 진입 즉시 부르면 로그인 회원은 「인증 확립 뒤 재조회」와 겹쳐 같은 호출이 두 번 나간다.
+    // 로그인 판정이 끝난 뒤 한 번만 판단하고, 로그인 회원은 재조회 쪽에 맡긴다.
+    let likeFallbackSettled = false;
+    $effect(() => {
+        if (!browser || likeFallbackSettled) return;
+        const authLoading = authStore.isLoading; // 추적 대상 — 판정이 끝나면 다시 돈다
+        const authenticated = authStore.isAuthenticated;
+        if (authLoading) return;
+        likeFallbackSettled = true;
+        untrack(() => {
+            if (!shouldRunLikeFallback({ auxiliaryLoaded, authLoading, authenticated })) return;
+            const bid = boardId;
+            const postId = data.post.id;
+            void (async () => {
                 try {
-                    const status = await apiClient.getPostLikeStatus(boardId, String(data.post.id));
+                    const status = await apiClient.getPostLikeStatus(bid, String(postId));
+                    if (data.post?.id !== postId) return;
                     isLiked = status.user_liked;
                     isDisliked = status.user_disliked ?? false;
                     likeCount = status.likes;
                     dislikeCount = status.dislikes ?? 0;
 
                     // 낙관적 오버레이 (fallback 경로에서도 내 방금 액션 우선)
-                    const myLike = postLikeStore.get(boardId, data.post.id);
+                    const myLike = postLikeStore.get(bid, postId);
                     if (myLike) {
                         isLiked = myLike.liked;
                         isDisliked = myLike.disliked;
@@ -1005,12 +1052,7 @@
                     console.error('Failed to load like status:', err);
                 }
             })();
-        }
-
-        return () => {
-            cleanupScrollObserver?.();
-            window.removeEventListener('comment-refresh', handleCommentRefresh);
-        };
+        });
     });
 
     // 글 이동 시 상태 리셋 (같은 레이아웃 내 다른 글로 이동할 때)
