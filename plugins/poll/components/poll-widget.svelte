@@ -1,5 +1,8 @@
 <script lang="ts">
+    import { untrack } from 'svelte';
+    import { page } from '$app/state';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import { resolveTrustedHasPoll, shouldFetchPoll } from '../lib/poll-fetch-gate';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
@@ -29,6 +32,13 @@
         is_author?: boolean;
         hide_counts?: boolean;
         closes_at?: string;
+    }
+
+    /** 글 상세 로더 반환값 중 이 위젯이 읽는 부분 (다른 라우트에선 비어 있음) */
+    interface DetailPageData {
+        boardId?: unknown;
+        post?: { id?: unknown; author_id?: unknown };
+        streamed?: { auxiliaryData?: Promise<{ hasPoll?: unknown } | undefined> };
     }
 
     let poll = $state<PollData | null>(null);
@@ -115,8 +125,46 @@
         multiPicks = new Set();
         errorMsg = '';
         showCreateForm = false;
-        load(reqBoardId, reqPostId);
+        // page.data 는 의존성으로 잡지 않는다 — invalidate 마다 재조회·깜빡임이 생긴다
+        const data = untrack(() => page.data) as DetailPageData | undefined;
+        loadOrSkip(reqBoardId, reqPostId, data);
     });
+
+    // 투표가 극소수 글에만 달려 by-post 응답 대부분이 「없음」이다. 로더의 hasPoll 이
+    // 확실히 false 이고 작성자가 아니면 호출을 생략한다(그 외·조회 실패는 기존대로 호출).
+    // hasPoll 은 스트리밍(auxiliaryData)으로 오므로 기다린 뒤 판정한다.
+    async function loadOrSkip(
+        reqBoardId: string,
+        reqPostId: number,
+        data: DetailPageData | undefined
+    ) {
+        const aux = data?.streamed?.auxiliaryData;
+        if (!aux) {
+            load(reqBoardId, reqPostId);
+            return;
+        }
+        const hasPoll = await Promise.resolve(aux).then(
+            (v) => v?.hasPoll,
+            () => null
+        );
+        if (reqPostId !== postId || reqBoardId !== boardId) return;
+        const trusted = resolveTrustedHasPoll({
+            boardId: reqBoardId,
+            postId: reqPostId,
+            dataBoardId: data?.boardId,
+            dataPostId: data?.post?.id,
+            hasPoll
+        });
+        // 표시용 힌트일 뿐 — 생성 권한은 백엔드가 재검증한다
+        const viewerId = authStore.user?.mb_id;
+        const isAuthor = !!viewerId && data?.post?.author_id === viewerId;
+        if (shouldFetchPoll(trusted, isAuthor)) {
+            load(reqBoardId, reqPostId);
+        } else {
+            // 기존 no-poll 응답과 같은 렌더(아무것도 안 그림)
+            poll = { exists: false };
+        }
+    }
 
     async function api(path: string, method: string, body?: unknown): Promise<boolean> {
         isSubmitting = true;

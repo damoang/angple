@@ -25,6 +25,7 @@ import { addReadPost } from '$lib/server/read-posts.js';
 import { fetchPostReportCount } from '$lib/server/report-count.js';
 import { isSanctionedPost } from '$lib/server/sanctioned-lock.js';
 import { fetchReactionsByParentId } from '$lib/server/reactions.js';
+import { fetchHasPoll } from '$lib/server/poll-presence.js';
 import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
 
@@ -664,7 +665,8 @@ export const load: PageServerLoad = async ({
                 scheduledDeleteResult,
                 commentLikeStatusesResult,
                 truthroomCommentMapResult,
-                memberActivityResult
+                memberActivityResult,
+                hasPollResult
             ] = await Promise.allSettled([
                 // 직접홍보 사잇광고 (ads 서버 직접 호출 + 캐시)
                 fetchPromotionPosts(),
@@ -740,7 +742,9 @@ export const load: PageServerLoad = async ({
                 })(),
                 // 작성자 최근 활동 (SSR 직접 조회 — 클릭 없이 표시, 클라이언트 API 요청 제거)
                 // 1단계에서 시작한 단일 fetch 재사용 (SEO 섹션 #83 과 공유, 중복 호출 방지)
-                memberActivityPromise
+                memberActivityPromise,
+                // 투표 유무 (투표 위젯 by-post 호출 생략 힌트). 실패=null → 위젯은 기존처럼 호출
+                fetchHasPoll(boardId, Number(postId))
             ]);
 
             // 프로모션 사잇광고: board_exception에 포함된 게시판은 제외
@@ -791,6 +795,9 @@ export const load: PageServerLoad = async ({
                     ? memberActivityResult.value
                     : { recentPosts: [], recentComments: [] };
 
+            const hasPoll: boolean | null =
+                hasPollResult.status === 'fulfilled' ? hasPollResult.value : null;
+
             return {
                 promotionPosts,
                 reactions,
@@ -802,7 +809,8 @@ export const load: PageServerLoad = async ({
                 commentLikeStatuses,
                 truthroomCommentMap,
                 linkAffiliate,
-                memberActivity
+                memberActivity,
+                hasPoll
             };
         })();
 
