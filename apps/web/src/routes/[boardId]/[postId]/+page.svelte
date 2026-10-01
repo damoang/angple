@@ -54,6 +54,7 @@
         canSkipReactionsRefetch,
         decidePostLikers,
         isLikersPreview,
+        shouldApplyLikersPreview,
         shouldRunLikeFallback
     } from '$lib/utils/post-followup.js';
     import { onMount, untrack } from 'svelte';
@@ -528,7 +529,7 @@
 
         let cancelled = false;
         // 추천한 사람 미리보기는 서버 전달분이 도착한 뒤에 「그 값을 쓸지 / 직접 받을지」를 정한다.
-        // 끝내 안 오면 직접 받도록 푼다(늦게 도착하면 그때 다시 채운다 — 같은 값이라 무해).
+        // 끝내 안 오면 직접 받도록 푼다. 그 뒤 늦게 도착한 미리보기는 버린다(직접 받은 값이 더 새롭다).
         likersPreviewPending = true;
         const likersWaitTimer = setTimeout(() => {
             if (cancelled || data.post?.id !== effectPostId || !likersPreviewPending) return;
@@ -637,11 +638,21 @@
                     postLikes: data.post.likes
                 });
                 if (likersAction === 'use-preview' && isLikersPreview(postPreview)) {
-                    postLikersPreviewRaw = {
-                        postId: effectPostId,
-                        likers: postPreview.likers as LikerInfo[],
-                        total: postPreview.total
-                    };
+                    // 그 사이 화면이 직접 받아 왔으면(추천을 눌렀거나, 목록을 열었거나, 대기 한도를
+                    // 넘겼거나) 그쪽이 더 새 값이다 — 미리보기로 덮지 않는다.
+                    if (
+                        shouldApplyLikersPreview({
+                            previewPostId: effectPostId,
+                            currentPostId: data.post.id,
+                            directFetchedPostId: likersDirectForPostId
+                        })
+                    ) {
+                        postLikersPreviewRaw = {
+                            postId: effectPostId,
+                            likers: postPreview.likers as LikerInfo[],
+                            total: postPreview.total
+                        };
+                    }
                 } else if (likersAction === 'fetch' && likersPreviewPending) {
                     // 대기 한도를 이미 넘겨 직접 받기 시작했으면 다시 부르지 않는다.
                     loadLikerAvatars();
@@ -838,7 +849,12 @@
         string,
         { likers: LikerInfo[]; total: number }
     > | null>(null);
-    let likersPreviewPending = $state(false);
+    // 초깃값이 중요하다: 댓글 목록(자식)의 $effect 가 이 컴포넌트의 $effect 보다 먼저 돈다.
+    // 여기서 false 로 시작하면 서버 전달분이 올 예정인데도 댓글 목록이 먼저 불러 버린다.
+    let likersPreviewPending = $state(untrack(() => Boolean(data.streamed?.auxiliaryData)));
+    // 이 글의 추천한 사람을 화면이 직접 받아 온 적이 있는가(받는 중 포함).
+    // 그 뒤에 도착한 서버 미리보기는 더 오래된 값이므로 버린다.
+    let likersDirectForPostId: number | null = null;
     /** 서버 전달분의 미리보기를 기다리는 한도 — 넘기면 화면이 직접 받는다 */
     const LIKERS_PREVIEW_WAIT_MS = 4000;
     let isLoadingLikers = $state(false);
@@ -857,7 +873,16 @@
     // 서버가 보낸 미리보기를 화면에 반영한다. 차단 목록을 읽으므로 그 목록이 늦게 도착하면 다시 거른다.
     $effect(() => {
         const preview = postLikersPreviewRaw;
-        if (!preview || preview.postId !== data.post.id) return;
+        if (
+            !preview ||
+            !shouldApplyLikersPreview({
+                previewPostId: preview.postId,
+                currentPostId: data.post.id,
+                directFetchedPostId: likersDirectForPostId
+            })
+        ) {
+            return;
+        }
         const filtered = excludeBlockedLikers(preview.likers);
         likers = filtered;
         likersTotal = Math.max(
@@ -1138,6 +1163,7 @@
         const postId = data.post.id;
         if (resetDetailUiPostId === postId) return;
         resetDetailUiPostId = postId;
+        likersDirectForPostId = null;
         likers = [];
         likersTotal = 0;
         showLikersDialog = false;
@@ -1626,6 +1652,7 @@
     // 추천자 목록 로드
     async function loadLikers(): Promise<void> {
         if (!authStore.isAuthenticated) return;
+        likersDirectForPostId = data.post.id;
         showLikersDialog = true;
         isLoadingLikers = true;
         likersPage = 1;
@@ -1656,6 +1683,7 @@
     async function loadMoreLikers(): Promise<void> {
         if (!authStore.isAuthenticated) return;
         if (isLoadingMoreLikers) return;
+        likersDirectForPostId = data.post.id;
         isLoadingMoreLikers = true;
         const nextPage = likersPage + 1;
         try {
@@ -1684,13 +1712,14 @@
 
     // 추천자 아바타 미리 로드 (상위 5명)
     async function loadLikerAvatars(): Promise<void> {
-        // 직접 받아 오는 값이 최신이다 — 서버가 보낸 미리보기로 다시 덮지 않게 비운다.
-        postLikersPreviewRaw = null;
         if (!authStore.isAuthenticated) {
             likers = [];
             likersTotal = 0;
             return;
         }
+        // 직접 받아 오는 값이 최신이다 — 이 글에서는 서버 미리보기를 더 쓰지 않는다.
+        likersDirectForPostId = data.post.id;
+        postLikersPreviewRaw = null;
         try {
             const response = await apiClient.getPostLikers(boardId, String(data.post.id), 1, 5);
             {

@@ -763,7 +763,8 @@ export const load: PageServerLoad = async ({
                 shouldPreviewPostLikers({ sessionUserId: locals.user?.id, postLikes: post.likes })
                     ? bFetch(`/api/v1/boards/${boardId}/posts/${postId}/likers?page=1&limit=5`, {
                           headers,
-                          timeout: 5_000
+                          // 화면이 전달분을 기다리는 한도보다 짧게 — 넘기면 부가 데이터 전체가 늦어진다
+                          timeout: 2_000
                       }).then(async (res) => {
                           if (!res.ok) throw new Error(`Likers API error: ${res.status}`);
                           const payload = (await res.json())?.data;

@@ -130,3 +130,19 @@ export function commentLikerIdsToFetch(input: {
     }
     return ids;
 }
+
+/**
+ * 서버가 보낸 글의 추천한 사람 미리보기를 화면에 반영해도 되는지.
+ *
+ * 미리보기는 페이지를 만들 때의 값이다. 그 뒤 화면이 직접 받아 온 값(추천을 누른 직후,
+ * 목록을 연 뒤, 대기 한도를 넘겨 직접 받은 뒤)이 있으면 그쪽이 더 새롭다 — 덮으면 안 된다.
+ * 다른 글의 미리보기도 반영하지 않는다.
+ */
+export function shouldApplyLikersPreview(input: {
+    previewPostId: number;
+    currentPostId: number | null | undefined;
+    directFetchedPostId: number | null;
+}): boolean {
+    if (input.previewPostId !== input.currentPostId) return false;
+    return input.directFetchedPostId !== input.previewPostId;
+}

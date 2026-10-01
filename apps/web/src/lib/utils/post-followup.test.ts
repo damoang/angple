@@ -5,6 +5,7 @@ import {
     commentLikerIdsToFetch,
     decidePostLikers,
     isLikersPreview,
+    shouldApplyLikersPreview,
     shouldPreviewPostLikers,
     shouldRunLikeFallback
 } from './post-followup';
@@ -194,5 +195,49 @@ describe('commentLikerIdsToFetch', () => {
     it('요청 중이거나 재시도 한도를 넘긴 댓글은 뺀다', () => {
         expect(commentLikerIdsToFetch({ ...base, inflight: new Set(['3']) })).toEqual(['1']);
         expect(commentLikerIdsToFetch({ ...base, attempts: new Map([['1', 4]]) })).toEqual(['3']);
+    });
+});
+
+describe('shouldApplyLikersPreview', () => {
+    it('지금 보는 글의 미리보기이고 직접 받은 적이 없으면 반영한다', () => {
+        expect(
+            shouldApplyLikersPreview({
+                previewPostId: 1,
+                currentPostId: 1,
+                directFetchedPostId: null
+            })
+        ).toBe(true);
+    });
+
+    it('늦게 도착한 다른 글의 미리보기는 버린다 (A→B 이동 뒤 A 의 전달분)', () => {
+        expect(
+            shouldApplyLikersPreview({
+                previewPostId: 1,
+                currentPostId: 2,
+                directFetchedPostId: null
+            })
+        ).toBe(false);
+    });
+
+    it('이 글을 직접 받아 온 뒤 도착한 미리보기는 버린다 (추천 직후·목록을 연 뒤·대기 한도 초과 뒤)', () => {
+        expect(
+            shouldApplyLikersPreview({ previewPostId: 1, currentPostId: 1, directFetchedPostId: 1 })
+        ).toBe(false);
+    });
+
+    it('다른 글에서 직접 받았던 기록은 이 글의 미리보기를 막지 않는다 (A→B→A 에서 표식이 지워지지 않았을 때 B 의 미리보기)', () => {
+        expect(
+            shouldApplyLikersPreview({ previewPostId: 2, currentPostId: 2, directFetchedPostId: 1 })
+        ).toBe(true);
+    });
+
+    it('글이 아직 없으면 반영하지 않는다', () => {
+        expect(
+            shouldApplyLikersPreview({
+                previewPostId: 1,
+                currentPostId: undefined,
+                directFetchedPostId: null
+            })
+        ).toBe(false);
     });
 });
