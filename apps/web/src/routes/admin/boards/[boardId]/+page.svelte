@@ -62,6 +62,7 @@
         type ExtendedSettings
     } from '$lib/api/board-extended-settings';
     import { mergeLuckySettings } from '$lib/utils/lucky-settings';
+    import { mergeExtendedSettings } from '$lib/utils/extended-settings-merge';
     import {
         getPromotionSettings,
         toggleBoardException,
@@ -169,6 +170,8 @@
 
     // Extended settings
     let extendedSettings = $state<ExtendedSettings>({});
+    // 확장설정을 못 읽은 채 저장하면 {} 위에 폼 값만 올라가 운영 키가 통째로 지워진다
+    let extendedLoadFailed = $state(false);
 
     // 럭키포인트
     let formLuckyEnabled = $state(false);
@@ -463,6 +466,8 @@
 
     async function loadData() {
         isLoading = true;
+        // 확장설정 응답을 받기 전에 빠져나가는 경로(예외·게시판 조회 실패)도 실패로 본다
+        extendedLoadFailed = true;
         try {
             const [boardData, groupsData, displayData, extendedData, promotionData] =
                 await Promise.allSettled([
@@ -499,6 +504,12 @@
 
             const es: ExtendedSettings =
                 extendedData.status === 'fulfilled' ? extendedData.value : {};
+            extendedLoadFailed = extendedData.status !== 'fulfilled';
+            if (extendedLoadFailed) {
+                toast.error(
+                    '확장 설정을 불러오지 못했습니다. 새로고침 전까지 확장 설정은 저장되지 않습니다.'
+                );
+            }
 
             if (promotionData.status === 'fulfilled') {
                 promotionGlobal = promotionData.value;
@@ -626,9 +637,16 @@
 
             const savePromises: Promise<unknown>[] = [
                 updateBoard(boardId, boardUpdate),
-                updateDisplaySettings(boardId, displayUpdate),
-                updateExtendedSettings(boardId, extendedUpdate)
+                updateDisplaySettings(boardId, displayUpdate)
             ];
+
+            // 로드 실패면 원본이 {} 라 저장 시 운영 키가 지워진다 → 확장설정만 건너뛴다
+            const skipExtended = extendedLoadFailed;
+            if (!skipExtended) {
+                // PUT 은 통째 저장이므로 폼이 모르는 섹션 안 키·최상위 키를 원본에서 이어받는다
+                const extendedBody = mergeExtendedSettings(extendedSettings, extendedUpdate);
+                savePromises.push(updateExtendedSettings(boardId, extendedBody));
+            }
 
             // 프로모션 제외 토글 변경 시 damoang-ads API 호출
             if (promotionGlobal) {
@@ -652,6 +670,14 @@
             }
 
             await Promise.all(savePromises);
+
+            if (skipExtended) {
+                // 확장설정 변경분이 남았으므로 스냅샷을 갱신하지 않아 「변경됨」 상태를 유지한다
+                toast.error(
+                    '확장 설정을 불러오지 못해 확장 설정은 저장하지 않았습니다. 새로고침 후 다시 저장하세요.'
+                );
+                return;
+            }
 
             // 원본 스냅샷 갱신
             originalData = getFormSnapshot();
