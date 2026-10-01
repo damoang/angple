@@ -633,17 +633,26 @@
 
                 // 서버가 이 회원의 추천 상태로 확정해 보냈으면 재동기화가 다시 묻지 않는다.
                 // 표식이 없는 응답(이전 버전)·회원을 몰랐던 응답·조회 실패는 직접 받는다.
-                streamedLikeState = {
-                    postId: effectPostId,
-                    status:
-                        result.likeStatusesResolvedForViewer === true ? 'resolved' : 'unresolved'
-                };
+                // ⛔ 재동기화가 이미 시작됐으면(대기 한도를 넘겨 직접 받는 중) 상태를 바꾸지 않는다.
+                //    바꾸면 재동기화 $effect 가 다시 돌면서 진행 중인 응답을 버리고, 위 가드 때문에
+                //    스트리밍 값도 적용되지 않아 하트가 빈 채로 남는다.
+                if (likeStatusResyncedForPostId !== effectPostId) {
+                    streamedLikeState = {
+                        postId: effectPostId,
+                        status:
+                            result.likeStatusesResolvedForViewer === true
+                                ? 'resolved'
+                                : 'unresolved'
+                    };
+                }
 
                 auxiliaryLoaded = true;
             })
             .catch(() => {
                 if (cancelled) return;
-                streamedLikeState = { postId: effectPostId, status: 'unresolved' };
+                if (likeStatusResyncedForPostId !== effectPostId) {
+                    streamedLikeState = { postId: effectPostId, status: 'unresolved' };
+                }
                 auxiliaryLoaded = true;
             });
 
