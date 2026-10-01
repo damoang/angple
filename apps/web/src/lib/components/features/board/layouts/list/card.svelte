@@ -162,6 +162,8 @@
                                     <LuckyBadge
                                         amount={post.lucky_point ?? 0}
                                         exp={post.lucky_exp ?? 0}
+                                        tier={post.lucky_tier}
+                                        at={post.lucky_at}
                                     />
                                     {#if memoPluginActive && MemoBadge && !uiSettingsStore.hideMemoInList}
                                         <MemoBadge memberId={post.author_id} />
