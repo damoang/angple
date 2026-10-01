@@ -4,7 +4,7 @@
  * ⛔ 이 파일이 실패하면 카나리 검사가 **bug/14049 형태(스타일 덜 먹은 화면)를 놓치는 상태**다.
  *   node apps/web/scripts/canary-shell-verdict.test.mjs
  */
-import { shellFails } from './canary-shell-verdict.mjs';
+import { pickCheckablePostId, shellFails } from './canary-shell-verdict.mjs';
 
 const OK = { header: true, appRoot: true, postLinks: 28, proseLen: 500, cssLinks: 1, cssLoaded: 1 };
 const cases = [
@@ -14,12 +14,21 @@ const cases = [
     ['#app-root 없음', '/', { ...OK, appRoot: false }, 1, 'app-root'],
     ['/free 목록 부족', '/free', { ...OK, postLinks: 3 }, 1, '목록 링크'],
     ['/ 는 목록 수를 보지 않는다', '/', { ...OK, postLinks: 0 }, 0, null],
-    ['글상세 본문 짧음(미디어도 없음)', '/free/9', { ...OK, proseLen: 5 }, 1, '본문'],
+    // ⛔ 짧은 글 오탐 방지 — 최근 글이 19자짜리 한 줄 글이라 verify-canary 가 실패한 적이 있다.
+    ['짧은 글: 5자 + 미디어 0 은 정상', '/free/9', { ...OK, proseLen: 5, proseMedia: 0 }, 0, null],
+    ['짧은 글: 1자 + 미디어 0 은 정상', '/free/9', { ...OK, proseLen: 1, proseMedia: 0 }, 0, null],
     // ⛔ 사진 글 오탐 방지 — 2026-10-01 verify-canary 가 4자짜리 이미지 글에서 두 번 실패했다.
     ['사진 글: 4자 + 이미지 1장은 정상', '/free/9', { ...OK, proseLen: 4, proseMedia: 1 }, 0, null],
     ['사진 글: 0자 + 이미지 3장은 정상', '/free/9', { ...OK, proseLen: 0, proseMedia: 3 }, 0, null],
     ['빈 본문: 0자 + 미디어 0', '/free/9', { ...OK, proseLen: 0, proseMedia: 0 }, 1, '본문'],
-    ['proseMedia 필드 없음(구 프로브)도 실패', '/free/9', { ...OK, proseLen: 3 }, 1, '본문'],
+    ['proseMedia 필드 없음(구 프로브): 0자면 실패', '/free/9', { ...OK, proseLen: 0 }, 1, '본문'],
+    [
+        'proseMedia 필드 없음(구 프로브): 글자가 있으면 정상',
+        '/free/9',
+        { ...OK, proseLen: 3 },
+        0,
+        null
+    ],
     ['/free 는 본문을 보지 않는다', '/free', { ...OK, proseLen: 0 }, 0, null],
 
     // ⭐ CSS 축 — bug/14049 를 잡는 자리
@@ -60,5 +69,33 @@ for (const [name, path, sh, wantN, wantSub] of cases) {
             (got.length ? ` :: ${got.join(' / ').slice(0, 60)}` : '')
     );
 }
-console.log(fail ? `FAIL ${fail}/${cases.length}건` : `PASS ${cases.length}건 모두`);
+// 본문 검사에 쓸 글 고르기 — 삭제·비밀글 등은 본문이 의도적으로 비어 보이므로 건너뛴다.
+const pickCases = [
+    ['맨 위가 일반 글이면 그 글', [{ id: 10 }, { id: 9 }], 10],
+    ['삭제된 글은 건너뛴다', [{ id: 10, deleted_at: '2026-10-02' }, { id: 9 }], 9],
+    ['비밀글은 건너뛴다', [{ id: 10, is_secret: true }, { id: 9 }], 9],
+    [
+        '블러·성인 글은 건너뛴다',
+        [{ id: 10, is_blur: true }, { id: 9, is_adult: true }, { id: 8 }],
+        8
+    ],
+    ['표식 필드가 없는 응답은 맨 위 글', [{ id: 7, title: 't' }], 7],
+    ['전부 건너뛸 글이면 null', [{ id: 10, is_secret: true }], null],
+    ['id 없는 항목은 건너뛴다', [{ title: 'x' }, { id: 5 }], 5],
+    ['배열이 아니면 null', undefined, null],
+    ['빈 배열이면 null', [], null]
+];
+for (const [name, posts, want] of pickCases) {
+    let got;
+    try {
+        got = pickCheckablePostId(posts);
+    } catch (e) {
+        got = `THREW: ${e.message}`;
+    }
+    const ok = got === want;
+    if (!ok) fail++;
+    console.log(`${ok ? 'PASS' : 'FAIL'} 글 고르기: ${name.padEnd(26)} → ${got} (기대 ${want})`);
+}
+const total = cases.length + pickCases.length;
+console.log(fail ? `FAIL ${fail}/${total}건` : `PASS ${total}건 모두`);
 process.exit(fail ? 1 : 0);

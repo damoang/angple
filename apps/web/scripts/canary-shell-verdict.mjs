@@ -34,9 +34,12 @@ export function shellFails(path, sh) {
     if (path === '/free' && (sh.postLinks ?? 0) < 5) f.push(`목록 링크 ${sh.postLinks ?? 0}개(<5)`);
     // ⛔ 글자 수만 보면 사진 글을 「본문 없음」으로 오탐한다. 2026-10-01 에 목록 맨 위가
     //    4자짜리 이미지 글이라 verify-canary 가 두 번 연속 실패했다(운영에서도 4자인 정상 글).
-    //    본문이 비었다고 보려면 **글자도 적고 미디어도 없어야** 한다.
-    if (/^\/free\/\d+/.test(path) && (sh.proseLen ?? 0) < 20 && (sh.proseMedia ?? 0) < 1) {
-        f.push(`본문 ${sh.proseLen ?? 0}자(<20)·미디어 0`);
+    //    본문이 비었다고 보려면 **글자도 없고 미디어도 없어야** 한다.
+    // ⛔ 「N자 미만」 같은 길이 기준도 두지 않는다. 최근 글 하나를 열어 보는 검사라, 그 글이
+    //    한두 줄짜리 짧은 글이면 정상인데도 실패한다(19자 글에서 실제로 났다). 이 규칙이 잡으려는 것은
+    //    본문이 아예 렌더되지 않은 빈 껍데기이고, 그건 0자다.
+    if (/^\/free\/\d+/.test(path) && (sh.proseLen ?? 0) < 1 && (sh.proseMedia ?? 0) < 1) {
+        f.push('본문 0자·미디어 0');
     }
     // 🔴 CSS 적용 판정 — bug/14049 를 잡는 축
     const links = sh.cssLinks ?? 0;
@@ -45,4 +48,23 @@ export function shellFails(path, sh) {
         f.push(`CSS 미적용 ${links - loaded}/${links}개 (link 있으나 styleSheets 에 없음)`);
     }
     return f;
+}
+
+/**
+ * 목록 응답에서 본문 검사에 쓸 글을 고른다.
+ *
+ * 맨 위 글이 삭제·비밀·블러 처리된 글이면 본문이 **의도적으로** 비어 보여 빈 껍데기로 오판한다.
+ * 그런 표식이 있는 글은 건너뛰고 처음 나오는 일반 글의 ID 를 돌려준다. 없으면 null.
+ *
+ * @param {unknown} posts 목록 API 의 data 배열
+ * @returns {number|string|null}
+ */
+export function pickCheckablePostId(posts) {
+    if (!Array.isArray(posts)) return null;
+    for (const p of posts) {
+        if (!p || typeof p !== 'object' || p.id == null) continue;
+        if (p.deleted_at || p.is_deleted || p.is_secret || p.is_blur || p.is_adult) continue;
+        return p.id;
+    }
+    return null;
 }
