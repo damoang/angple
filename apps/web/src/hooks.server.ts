@@ -1,6 +1,7 @@
 // OpenTelemetry 초기화 (최상단 — 다른 import 전에 로드)
 import '$lib/server/telemetry.js';
 import { isClientRecoveryEnabled, injectRecoveryFlag } from '$lib/server/client-recovery-flag.js';
+import { shouldSendCsp } from '$lib/server/csp-scope.js';
 import {
     trackInflightStart,
     trackInflightEnd,
@@ -1337,7 +1338,9 @@ const handleInner: Handle = async ({ event, resolve }) => {
     );
 
     // 보안 헤더
-    if (!dev) {
+    // CSP 는 문서 렌더링에만 적용된다. JSON·SvelteKit 데이터 응답에는 붙이지 않는다 —
+    // 2.8KB 헤더가 하루 1천만 건 넘는 데이터 응답에 실려 나가고 있었다(판정: csp-scope.ts).
+    if (!dev && shouldSendCsp(response.headers.get('content-type'))) {
         response.headers.set('Content-Security-Policy', cspHeader);
     }
     response.headers.set('X-Content-Type-Options', 'nosniff');
