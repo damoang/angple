@@ -12,16 +12,29 @@
 import { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 
+// 본문 SSR 을 막는 1단계 묶음에서 기다리는 값이라 짧게 끊는다. 늦으면 null(모름)로
+// 두면 위젯이 기존처럼 호출하므로(fail-open) 풀 포화 때 본문을 늦출 이유가 없다.
+export const HAS_POLL_TIMEOUT_MS = 300;
+
 export async function fetchHasPoll(boTable: string, wrId: number): Promise<boolean | null> {
     if (!boTable || !Number.isInteger(wrId) || wrId <= 0) return null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
         // uq_post(bo_table, wr_id) 유니크 인덱스 1건 조회
-        const [rows] = await readPool.query<RowDataPacket[]>(
-            'SELECT 1 FROM angple_polls WHERE bo_table = ? AND wr_id = ? LIMIT 1',
-            [boTable, wrId]
-        );
-        return rows.length > 0;
+        const query = readPool
+            .query<
+                RowDataPacket[]
+            >('SELECT 1 FROM angple_polls WHERE bo_table = ? AND wr_id = ? LIMIT 1', [boTable, wrId])
+            .then(([rows]) => rows.length > 0);
+        const timeout = new Promise<null>((resolve) => {
+            timer = setTimeout(() => resolve(null), HAS_POLL_TIMEOUT_MS);
+        });
+        // 진 쪽 쿼리가 나중에 실패해도 unhandled rejection 이 되지 않게
+        query.catch(() => {});
+        return await Promise.race([query, timeout]);
     } catch {
         return null;
+    } finally {
+        clearTimeout(timer);
     }
 }
