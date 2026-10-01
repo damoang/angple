@@ -4,13 +4,20 @@
  * 당첨 상품은 포인트(lucky_point)와 경험치(lucky_exp) 두 갈래다. 둘 중 하나만 있을 수도,
  * 둘 다 있을 수도 있다. 값이 없거나 0 이하이면 그 갈래는 표시하지 않는다.
  *
- * 이벤트 회차 당첨이면 지급 문구가 「<회차명> …」으로 시작한다. 회차명(lucky_tier)과
+ * 이벤트 회차 당첨이면 지급 문구가 「<회차명> 럭키 …」으로 시작한다. 회차명(lucky_tier)과
  * 당첨 시각(lucky_at, ISO +09:00)을 함께 실어 배지 옆에 작은 라벨로 보여준다.
  * 레거시 당첨(회차명 없음)은 라벨 없이 기존과 같다.
+ *
+ * 회차명 판정은 백엔드(LuckyTierFromContent)와 같은 규칙이다:
+ * 기본 3개 + 설정 이름(lucky_config 의 windows·fixed_windows name) 중 하나이고,
+ * 문구가 「<이름> 럭키 」로 시작해야 한다(접두사 비교, 긴 이름 우선).
  */
 
-/** 배지 라벨을 붙이는 회차명. 지급 문구가 「<회차명> 」으로 시작할 때만 인정한다. */
-const LUCKY_TIER_RE = /^(앙복타임|앙팡타임|앙팡팡타임) /;
+/** 설정과 무관하게 항상 인정하는 기본 회차명. 백엔드 luckyBuiltinTierNames 와 같다. */
+export const LUCKY_BUILTIN_TIERS: readonly string[] = ['앙복타임', '앙팡타임', '앙팡팡타임'];
+
+/** 회차명 뒤에 오는 구분자. 백엔드 luckyTierContentSep 와 같다. */
+const LUCKY_TIER_SEP = ' 럭키 ';
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
@@ -29,11 +36,51 @@ export interface LuckyHit {
     at?: string;
 }
 
-/** 지급 문구에서 회차명을 뽑는다. 레거시 문구면 undefined. */
-export function parseLuckyTier(content: unknown): string | undefined {
+/**
+ * 지급 문구에서 회차명을 뽑는다. 기본 3개와 tierNames(설정 이름) 중 문구가 「<이름> 럭키 」로
+ * 시작하는 것, 여럿이면 가장 긴 이름. 맞는 것이 없으면(레거시 등) undefined.
+ * 예) 「앙팡타임 새벽 럭키 포인트」는 설정에 「앙팡타임 새벽」이 있을 때만 그 이름이고,
+ *     없으면 앙팡타임으로 잘못 읽지 않고 undefined 다(구분자까지 비교하므로).
+ */
+export function parseLuckyTier(
+    content: unknown,
+    tierNames: readonly string[] = []
+): string | undefined {
     if (typeof content !== 'string') return undefined;
-    const m = LUCKY_TIER_RE.exec(content);
-    return m ? m[1] : undefined;
+    let best = '';
+    const tryName = (raw: unknown) => {
+        if (typeof raw !== 'string') return;
+        const name = raw.trim();
+        if (!name || name.length <= best.length) return;
+        if (content.startsWith(name + LUCKY_TIER_SEP)) best = name;
+    };
+    for (const n of LUCKY_BUILTIN_TIERS) tryName(n);
+    for (const n of tierNames) tryName(n);
+    return best || undefined;
+}
+
+/**
+ * lucky_config 객체에서 설정 이름(windows·fixed_windows 의 name)을 중복 없이 뽑는다.
+ * 백엔드 LuckyConfig.TierNames 와 같은 순서·규칙(앞뒤 공백 제거, 빈 이름 제외).
+ * 모양이 깨져 있으면 빈 배열(기본 3개만 인정).
+ */
+export function luckyTierNamesFromConfig(cfg: unknown): string[] {
+    if (!cfg || typeof cfg !== 'object') return [];
+    const c = cfg as { windows?: unknown; fixed_windows?: unknown };
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const list of [c.windows, c.fixed_windows]) {
+        if (!Array.isArray(list)) continue;
+        for (const w of list) {
+            const raw = (w as { name?: unknown } | null)?.name;
+            if (typeof raw !== 'string') continue;
+            const name = raw.trim();
+            if (!name || seen.has(name)) continue;
+            seen.add(name);
+            out.push(name);
+        }
+    }
+    return out;
 }
 
 /**
@@ -60,10 +107,12 @@ export function toKstIso(value: unknown): string | undefined {
  * 원장 행들을 rel_id 별 당첨 정보로 모은다(쿼리 1회 결과를 그대로 받는다).
  * 백엔드 배지 조회와 같은 규칙: 금액은 최댓값, 회차명·시각은 회차명이 있고 시각이 유효한 행 중
  * 가장 이른 행(같은 시각이면 먼저 본 행). 레거시 행만 있으면 tier·at 없음.
+ * tierNames 는 설정 이름 목록(기본 3개는 항상 인정) — parseLuckyTier 참고.
  */
 export function collectLuckyRows(
     rows: Array<Record<string, unknown>>,
-    keys: { id: string; amount: string; content: string; datetime: string }
+    keys: { id: string; amount: string; content: string; datetime: string },
+    tierNames: readonly string[] = []
 ): Map<number, LuckyHit> {
     const map = new Map<number, LuckyHit>();
     for (const r of rows) {
@@ -73,7 +122,7 @@ export function collectLuckyRows(
         const amount = Number.isFinite(raw) ? raw : 0;
         const hit: LuckyHit = map.get(id) ?? { amount: 0 };
         if (amount > hit.amount) hit.amount = amount;
-        const tier = parseLuckyTier(r[keys.content]);
+        const tier = parseLuckyTier(r[keys.content], tierNames);
         const at = toKstIso(r[keys.datetime]);
         if (tier && at && (!hit.at || at < hit.at)) {
             hit.tier = tier;

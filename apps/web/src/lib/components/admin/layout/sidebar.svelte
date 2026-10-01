@@ -19,6 +19,7 @@
         Megaphone,
         StickyNote,
         TrendingUp,
+        Sparkles,
         Award,
         Plug,
         Image as ImageIcon
@@ -103,6 +104,11 @@
             title: '경험치 관리',
             href: '/admin/xp',
             icon: TrendingUp
+        },
+        {
+            title: '앙팡',
+            href: '/admin/angpang',
+            icon: Sparkles
         },
         {
             title: '등급 설정',
