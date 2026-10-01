@@ -32,8 +32,11 @@ export function shellFails(path, sh) {
     if (!sh.header) f.push('header 없음');
     if (!sh.appRoot) f.push('#app-root 없음');
     if (path === '/free' && (sh.postLinks ?? 0) < 5) f.push(`목록 링크 ${sh.postLinks ?? 0}개(<5)`);
-    if (/^\/free\/\d+/.test(path) && (sh.proseLen ?? 0) < 20) {
-        f.push(`본문 ${sh.proseLen ?? 0}자(<20)`);
+    // ⛔ 글자 수만 보면 사진 글을 「본문 없음」으로 오탐한다. 2026-10-01 에 목록 맨 위가
+    //    4자짜리 이미지 글이라 verify-canary 가 두 번 연속 실패했다(운영에서도 4자인 정상 글).
+    //    본문이 비었다고 보려면 **글자도 적고 미디어도 없어야** 한다.
+    if (/^\/free\/\d+/.test(path) && (sh.proseLen ?? 0) < 20 && (sh.proseMedia ?? 0) < 1) {
+        f.push(`본문 ${sh.proseLen ?? 0}자(<20)·미디어 0`);
     }
     // 🔴 CSS 적용 판정 — bug/14049 를 잡는 축
     const links = sh.cssLinks ?? 0;
