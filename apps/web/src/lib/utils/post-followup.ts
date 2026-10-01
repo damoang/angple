@@ -51,3 +51,82 @@ export function canSkipReactionsRefetch(input: ReactionsRefetchInput): boolean {
     if (input.authLoading) return false;
     return !input.authenticated;
 }
+
+/**
+ * 추천한 사람 미리보기 — 서버가 페이지와 함께 보낼지, 화면이 따로 부를지.
+ *
+ * 추천한 사람의 신원은 로그인 회원에게만 보여 준다. 비로그인용 페이지는 캐시되어 여러 사람에게
+ * 나가므로, 서버는 **세션으로 확인된 회원**일 때만 싣는다.
+ */
+
+/** 서버가 글의 추천한 사람 미리보기를 실어야 하는가 */
+export function shouldPreviewPostLikers(input: {
+    sessionUserId: string | null | undefined;
+    postLikes: number | null | undefined;
+}): boolean {
+    return Boolean(input.sessionUserId) && (input.postLikes ?? 0) > 0;
+}
+
+/** 서버가 미리보기를 실을 댓글 ID — 세션 회원일 때만, 추천이 있는 댓글만, 한도까지 */
+export function commentIdsForLikersPreview(input: {
+    sessionUserId: string | null | undefined;
+    comments: ReadonlyArray<{ id: number | string; likes?: number | null }>;
+    max: number;
+}): number[] {
+    if (!input.sessionUserId) return [];
+    const ids: number[] = [];
+    for (const c of input.comments) {
+        if ((c.likes ?? 0) <= 0) continue;
+        const id = Number(c.id);
+        if (!Number.isInteger(id) || id <= 0) continue;
+        ids.push(id);
+        if (ids.length >= input.max) break;
+    }
+    return ids;
+}
+
+export type PostLikersAction = 'use-preview' | 'fetch' | 'none';
+
+/**
+ * 서버 전달분이 도착한 뒤 글의 추천한 사람을 어떻게 채울지.
+ * 미리보기가 실려 왔으면 그것을 쓰고, 없으면(서버가 싣지 않았거나 실패) 추천이 있는 글만 따로 부른다.
+ */
+export function decidePostLikers(input: {
+    preview: unknown;
+    postLikes: number | null | undefined;
+}): PostLikersAction {
+    if (isLikersPreview(input.preview)) return 'use-preview';
+    return (input.postLikes ?? 0) > 0 ? 'fetch' : 'none';
+}
+
+export function isLikersPreview(value: unknown): value is { likers: unknown[]; total: number } {
+    if (!value || typeof value !== 'object') return false;
+    const v = value as { likers?: unknown; total?: unknown };
+    return Array.isArray(v.likers) && typeof v.total === 'number';
+}
+
+/**
+ * 댓글 목록이 추천한 사람을 따로 불러야 하는 댓글 ID.
+ *
+ * 서버 전달분을 기다리는 중이면 아무것도 부르지 않는다(먼저 부르면 같은 것을 두 번 받는다).
+ * 이미 채워졌거나 요청 중이거나 재시도 한도를 넘긴 댓글은 뺀다.
+ */
+export function commentLikerIdsToFetch(input: {
+    previewPending: boolean;
+    comments: ReadonlyArray<{ id: number | string; likes?: number | null }>;
+    loaded: { has(id: string): boolean };
+    inflight: { has(id: string): boolean };
+    attempts: { get(id: string): number | undefined };
+    maxAttempts: number;
+}): string[] {
+    if (input.previewPending) return [];
+    const ids: string[] = [];
+    for (const c of input.comments) {
+        if ((c.likes ?? 0) <= 0) continue;
+        const id = String(c.id);
+        if (input.loaded.has(id) || input.inflight.has(id)) continue;
+        if ((input.attempts.get(id) ?? 0) >= input.maxAttempts) continue;
+        ids.push(id);
+    }
+    return ids;
+}

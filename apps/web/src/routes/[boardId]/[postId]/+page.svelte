@@ -50,7 +50,12 @@
     import { insertReplyAfterParent, type CommentLike } from '$lib/utils/comment-insert.js';
     import type { ReactionItem } from '$lib/types/reaction.js';
     import { generateParentId, generateDocumentTargetId } from '$lib/types/reaction.js';
-    import { canSkipReactionsRefetch, shouldRunLikeFallback } from '$lib/utils/post-followup.js';
+    import {
+        canSkipReactionsRefetch,
+        decidePostLikers,
+        isLikersPreview,
+        shouldRunLikeFallback
+    } from '$lib/utils/post-followup.js';
     import { onMount, untrack } from 'svelte';
     import { doAction } from '$lib/hooks/registry';
     import { page } from '$app/stores';
@@ -506,14 +511,30 @@
         lastFetchedReactionsKey = '';
         streamedReactions = null;
         linkAffiliate = {};
+        postLikersPreviewRaw = null;
+        commentLikersPreview = null;
 
         if (!promise) {
             // SPA 내비게이션: auxiliaryData 없음 → 리액션 직접 fetch
-            if (browser) fetchBatchReactions();
+            // 추천한 사람 미리보기도 서버 전달분이 없으므로 화면이 직접 받는다.
+            likersPreviewPending = false;
+            if (browser) {
+                fetchBatchReactions();
+                // loadLikerAvatars 는 인증 상태를 읽는다 — 이 $effect 의 의존성이 되지 않게 감싼다.
+                if (data.post.likes > 0) untrack(() => void loadLikerAvatars());
+            }
             return;
         }
 
         let cancelled = false;
+        // 추천한 사람 미리보기는 서버 전달분이 도착한 뒤에 「그 값을 쓸지 / 직접 받을지」를 정한다.
+        // 끝내 안 오면 직접 받도록 푼다(늦게 도착하면 그때 다시 채운다 — 같은 값이라 무해).
+        likersPreviewPending = true;
+        const likersWaitTimer = setTimeout(() => {
+            if (cancelled || data.post?.id !== effectPostId || !likersPreviewPending) return;
+            likersPreviewPending = false;
+            if (data.post.likes > 0) loadLikerAvatars();
+        }, LIKERS_PREVIEW_WAIT_MS);
         promotionPosts = [];
         revisions = [];
         isScrapped = false;
@@ -608,15 +629,45 @@
 
                 scheduledDelete = result.scheduledDelete ?? null;
 
+                // 추천한 사람 미리보기: 서버가 실어 보냈으면 그 값을 쓰고, 아니면 직접 받는다.
+                clearTimeout(likersWaitTimer);
+                const postPreview = result.postLikersPreview;
+                const likersAction = decidePostLikers({
+                    preview: postPreview,
+                    postLikes: data.post.likes
+                });
+                if (likersAction === 'use-preview' && isLikersPreview(postPreview)) {
+                    postLikersPreviewRaw = {
+                        postId: effectPostId,
+                        likers: postPreview.likers as LikerInfo[],
+                        total: postPreview.total
+                    };
+                } else if (likersAction === 'fetch' && likersPreviewPending) {
+                    // 대기 한도를 이미 넘겨 직접 받기 시작했으면 다시 부르지 않는다.
+                    loadLikerAvatars();
+                }
+                commentLikersPreview =
+                    (result.commentLikersPreview as Record<
+                        string,
+                        { likers: LikerInfo[]; total: number }
+                    > | null) ?? null;
+                likersPreviewPending = false;
+
                 auxiliaryLoaded = true;
             })
             .catch(() => {
                 if (cancelled) return;
+                clearTimeout(likersWaitTimer);
+                if (likersPreviewPending) {
+                    likersPreviewPending = false;
+                    if (data.post.likes > 0) loadLikerAvatars();
+                }
                 auxiliaryLoaded = true;
             });
 
         return () => {
             cancelled = true;
+            clearTimeout(likersWaitTimer);
         };
     });
 
@@ -775,6 +826,21 @@
     let showLikersDialog = $state(false);
     let likers = $state<LikerInfo[]>([]);
     let likersTotal = $state(0);
+    // 서버가 페이지와 함께 보낸 추천한 사람 미리보기(글). 차단 목록이 나중에 도착해도 다시
+    // 거를 수 있게 원본을 들고 있다. 화면이 직접 받아 오면 비운다(오래된 값으로 덮지 않게).
+    let postLikersPreviewRaw = $state<{
+        postId: number;
+        likers: LikerInfo[];
+        total: number;
+    } | null>(null);
+    // 서버가 보낸 댓글의 추천한 사람 미리보기와, 그 도착을 기다리는 중인지 — 댓글 목록에 넘긴다.
+    let commentLikersPreview = $state<Record<
+        string,
+        { likers: LikerInfo[]; total: number }
+    > | null>(null);
+    let likersPreviewPending = $state(false);
+    /** 서버 전달분의 미리보기를 기다리는 한도 — 넘기면 화면이 직접 받는다 */
+    const LIKERS_PREVIEW_WAIT_MS = 4000;
     let isLoadingLikers = $state(false);
     let likersPage = $state(1);
     let isLoadingMoreLikers = $state(false);
@@ -787,6 +853,18 @@
         if (blockedUsersStore.ids.size === 0) return list;
         return list.filter((l) => !blockedUsersStore.isBlocked(l.mb_id));
     }
+
+    // 서버가 보낸 미리보기를 화면에 반영한다. 차단 목록을 읽으므로 그 목록이 늦게 도착하면 다시 거른다.
+    $effect(() => {
+        const preview = postLikersPreviewRaw;
+        if (!preview || preview.postId !== data.post.id) return;
+        const filtered = excludeBlockedLikers(preview.likers);
+        likers = filtered;
+        likersTotal = Math.max(
+            filtered.length,
+            preview.total - (preview.likers.length - filtered.length)
+        );
+    });
 
     // 인라인 메모 편집 대상 (추천인 목록 내)
     let editingMemoFor = $state<string | null>(null);
@@ -1067,14 +1145,8 @@
         editingMemoFor = null;
         scheduledDelete = null;
 
-        // 공감자 아바타 eager 미리보기 로드.
-        // 댓글은 getCommentLikersBatch로 초기 로드 시 아바타가 뜨지만, 게시글은 기존에
-        // loadLikerAvatars가 공감 토글에서만 호출돼 "공감/공감자 목록 보기"를 누르기 전엔
-        // 아바타가 안 떴음. 좋아요가 있는 글에서만 1회 요청(상위 5명).
-        // 비로그인은 loadLikerAvatars 내부에서 early-return하므로 요청 발생 안 함.
-        if (data.post.likes > 0) {
-            loadLikerAvatars();
-        }
+        // 공감자 아바타 미리보기는 서버 전달분(auxiliaryData)을 처리하는 $effect 가 맡는다 —
+        // 서버가 실어 보냈으면 그 값을 쓰고, 아니면 그때 loadLikerAvatars 로 직접 받는다.
     });
 
     // 앵커 스크롤 + 하이라이트 헬퍼
@@ -1612,6 +1684,8 @@
 
     // 추천자 아바타 미리 로드 (상위 5명)
     async function loadLikerAvatars(): Promise<void> {
+        // 직접 받아 오는 값이 최신이다 — 서버가 보낸 미리보기로 다시 덮지 않게 비운다.
+        postLikersPreviewRaw = null;
         if (!authStore.isAuthenticated) {
             likers = [];
             likersTotal = 0;
@@ -2873,6 +2947,8 @@
                             {reactionsMap}
                             {initialLikedCommentIds}
                             {initialDislikedCommentIds}
+                            likersPreview={commentLikersPreview}
+                            {likersPreviewPending}
                             {truthroomCommentMap}
                             isRestricted={data.isRestricted}
                             permissions={data.board?.permissions}
