@@ -1,5 +1,8 @@
 <script lang="ts">
+    import { untrack } from 'svelte';
+    import { page } from '$app/state';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import { resolveTrustedHasPoll, shouldFetchPoll } from '../lib/poll-fetch-gate';
     import { Button } from '$lib/components/ui/button/index.js';
     import { Card, CardContent, CardHeader, CardTitle } from '$lib/components/ui/card/index.js';
     import { Input } from '$lib/components/ui/input/index.js';
@@ -31,7 +34,16 @@
         closes_at?: string;
     }
 
+    /** 글 상세 로더 반환값 중 이 위젯이 읽는 부분 (다른 라우트에선 비어 있음) */
+    interface DetailPageData {
+        boardId?: unknown;
+        post?: { id?: unknown; author_id?: unknown };
+        hasPoll?: unknown;
+    }
+
     let poll = $state<PollData | null>(null);
+    // 호출을 생략한 글 (작성자 확인이 늦게 오면 다시 조회하려고 기억). 반응형 아님
+    let skipped: { boardId: string; postId: number; authorId: unknown } | null = null;
     let isSubmitting = $state(false);
     let errorMsg = $state('');
 
@@ -115,7 +127,38 @@
         multiPicks = new Set();
         errorMsg = '';
         showCreateForm = false;
-        load(reqBoardId, reqPostId);
+        // page.data 는 의존성으로 잡지 않는다 — invalidate 마다 재조회·깜빡임이 생긴다
+        const data = untrack(() => page.data) as DetailPageData | undefined;
+        // 투표가 극소수 글에만 달려 by-post 응답 대부분이 「없음」이다. 로더의 hasPoll 이
+        // 확실히 false 이고 작성자가 아니면 호출을 생략한다(그 외·조회 실패는 기존대로 호출).
+        const trusted = resolveTrustedHasPoll({
+            boardId: reqBoardId,
+            postId: reqPostId,
+            dataBoardId: data?.boardId,
+            dataPostId: data?.post?.id,
+            hasPoll: data?.hasPoll
+        });
+        // 표시용 힌트일 뿐 — 생성 권한은 백엔드가 재검증한다
+        const viewerId = untrack(() => authStore.user?.mb_id);
+        const isAuthor = !!viewerId && data?.post?.author_id === viewerId;
+        skipped = null;
+        if (shouldFetchPoll(trusted, isAuthor)) {
+            load(reqBoardId, reqPostId);
+        } else {
+            // 기존 no-poll 응답과 같은 렌더(아무것도 안 그림)
+            poll = { exists: false };
+            skipped = { boardId: reqBoardId, postId: reqPostId, authorId: data?.post?.author_id };
+        }
+    });
+
+    // 하드 로드에선 authStore 가 레이아웃 onMount 이후에 채워질 수 있다 → 생략한 뒤
+    // 로그인 사용자가 이 글 작성자로 확인되면 그때 조회(「투표 만들기」 노출 유지).
+    $effect(() => {
+        const viewerId = authStore.user?.mb_id;
+        if (!viewerId || !skipped || skipped.authorId !== viewerId) return;
+        const { boardId: b, postId: p } = skipped;
+        skipped = null;
+        if (b === untrack(() => boardId) && p === untrack(() => postId)) load(b, p);
     });
 
     async function api(path: string, method: string, body?: unknown): Promise<boolean> {
