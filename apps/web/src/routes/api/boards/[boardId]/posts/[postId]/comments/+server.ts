@@ -10,6 +10,7 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getDisciplineIds } from '$lib/server/discipline-ids';
+import { collectLuckyRows, luckyFields, type LuckyHit } from '$lib/utils/lucky-badge';
 import { isValidBoardId } from '$lib/utils/board-id.js';
 import {
     applyAffiliateField,
@@ -89,6 +90,9 @@ interface CommentResponseItem {
     /** 리뷰 별점(리뷰=댓글+별점): 작성자가 이 댓글에 남긴 리뷰 점수(1~5). 별점 게시판만. */
     review_rating?: number;
     lucky_point?: number;
+    lucky_exp?: number;
+    lucky_tier?: string;
+    lucky_at?: string;
 }
 
 function maskIp(ip: string): string {
@@ -327,20 +331,48 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
 
         // 럭키 당첨 포인트(🍀 배지): g5_point(@lucky) 에서 댓글 wr_id 별 당첨 금액.
         // po_rel_table=슬러그, po_rel_id=wr_id(VARCHAR)라 문자열로 비교(인덱스 seek). 레거시 과거 당첨 포함.
-        // MAX = 레거시 중복행 방어. 실패는 무시(배지 없이 진행).
-        const luckyMap = new Map<number, number>();
+        // 지급 문구(회차명)·시각도 같은 쿼리에서 읽는다. collectLuckyRows 가 백엔드와 같은 규칙으로
+        // 모은다(금액=MAX, 회차명·시각=회차명 있는 가장 이른 행). 실패는 무시(배지 없이 진행).
+        let luckyMap = new Map<number, LuckyHit>();
         if (commentIds.length > 0) {
             try {
                 const [lkRows] = await pool.query<RowDataPacket[]>(
-                    `SELECT po_rel_id, MAX(po_point) AS amt
+                    `SELECT po_rel_id, po_point, po_content, po_datetime
                      FROM g5_point
-                     WHERE po_rel_action = '@lucky' AND po_rel_table = ? AND po_rel_id IN (?)
-                     GROUP BY po_rel_id`,
+                     WHERE po_rel_action = '@lucky' AND po_rel_table = ? AND po_rel_id IN (?)`,
                     [safeBoardId, commentIds.map(String)]
                 );
-                for (const r of lkRows) luckyMap.set(Number(r.po_rel_id), Number(r.amt));
+                luckyMap = collectLuckyRows(lkRows, {
+                    id: 'po_rel_id',
+                    amount: 'po_point',
+                    content: 'po_content',
+                    datetime: 'po_datetime'
+                });
             } catch (e) {
                 console.warn('[lucky] enrich(comments) failed:', e);
+            }
+        }
+
+        // 럭키 당첨 경험치(🍀 배지 XP): g5_na_xp(@lucky) 에서 댓글 wr_id 별 당첨 경험치. 1쿼리.
+        // xp_rel_table=슬러그, xp_rel_id=wr_id(VARCHAR) — (xp_rel_table, xp_rel_id) 인덱스 seek.
+        // 문구·시각도 같은 쿼리에서. 실패는 무시(경험치 0 = 기존 포인트 배지 그대로).
+        let luckyExpMap = new Map<number, LuckyHit>();
+        if (commentIds.length > 0) {
+            try {
+                const [lxRows] = await pool.query<RowDataPacket[]>(
+                    `SELECT xp_rel_id, xp_point, xp_content, xp_datetime
+                     FROM g5_na_xp
+                     WHERE xp_rel_action = '@lucky' AND xp_rel_table = ? AND xp_rel_id IN (?)`,
+                    [safeBoardId, commentIds.map(String)]
+                );
+                luckyExpMap = collectLuckyRows(lxRows, {
+                    id: 'xp_rel_id',
+                    amount: 'xp_point',
+                    content: 'xp_content',
+                    datetime: 'xp_datetime'
+                });
+            } catch (e) {
+                console.warn('[lucky] enrich-exp(comments) failed:', e);
             }
         }
 
@@ -482,7 +514,7 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
                 ...(reviewRatingMap.has(row.wr_id)
                     ? { review_rating: reviewRatingMap.get(row.wr_id) }
                     : {}),
-                ...(luckyMap.get(row.wr_id) ? { lucky_point: luckyMap.get(row.wr_id) } : {}),
+                ...luckyFields(luckyMap.get(row.wr_id), luckyExpMap.get(row.wr_id)),
                 // admin 은 기존대로 신고수/lock 노출. 비로그인 잠긴 댓글은 'lock' 만 내려
                 // comment-list 가 "가려진 댓글" 접힘 플레이스홀더를 렌더하게 한다(본문은 위에서
                 // 이미 중립화됨). 로그인 일반 사용자는 기존 동작 유지(be 계약과 일관).

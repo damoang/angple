@@ -613,7 +613,12 @@
                                 isWithdrawn={!!post.is_left}
                                 nowrap
                             />
-                            <LuckyBadge amount={post.lucky_point ?? 0} />
+                            <LuckyBadge
+                                amount={post.lucky_point ?? 0}
+                                exp={post.lucky_exp ?? 0}
+                                tier={post.lucky_tier}
+                                at={post.lucky_at}
+                            />
                             {#if authStore.isAuthenticated && memoPluginActive && MemoBadge && !uiSettingsStore.hideMemo}
                                 <MemoBadge
                                     memberId={post.author_id}

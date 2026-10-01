@@ -1340,7 +1340,12 @@
                                 expandTouchArea
                             />
                             <LevelBadge level={memberLevelStore.getLevel(comment.author_id)} />
-                            <LuckyBadge amount={comment.lucky_point ?? 0} />
+                            <LuckyBadge
+                                amount={comment.lucky_point ?? 0}
+                                exp={comment.lucky_exp ?? 0}
+                                tier={comment.lucky_tier}
+                                at={comment.lucky_at}
+                            />
                             <span
                                 class="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 dark:bg-sky-900/40 dark:text-sky-300"
                                 >새 앙님 🎈</span
@@ -1358,7 +1363,12 @@
                                 expandTouchArea
                             />
                             <LevelBadge level={memberLevelStore.getLevel(comment.author_id)} />
-                            <LuckyBadge amount={comment.lucky_point ?? 0} />
+                            <LuckyBadge
+                                amount={comment.lucky_point ?? 0}
+                                exp={comment.lucky_exp ?? 0}
+                                tier={comment.lucky_tier}
+                                at={comment.lucky_at}
+                            />
                             {#if replyToAuthor}
                                 <!-- 대댓글 대상 — 기존에는 chat 모드에서 숨겨지는 구 헤더에만 있어 실제로 보이지 않았다 -->
                                 <span class="text-muted-foreground text-xs font-normal"
@@ -1493,7 +1503,12 @@
                                         <LevelBadge
                                             level={memberLevelStore.getLevel(comment.author_id)}
                                         />
-                                        <LuckyBadge amount={comment.lucky_point ?? 0} />
+                                        <LuckyBadge
+                                            amount={comment.lucky_point ?? 0}
+                                            exp={comment.lucky_exp ?? 0}
+                                            tier={comment.lucky_tier}
+                                            at={comment.lucky_at}
+                                        />
                                         {#if replyToAuthor}
                                             <span class="text-muted-foreground text-xs font-normal"
                                                 >→ {replyToAuthor}</span

@@ -44,6 +44,12 @@ export interface FreePost {
     author_ip?: string; // 작성자 IP (마스킹된 형태, 예: 123.456.*.*)
     /** 럭키 포인트 당첨 금액. 없거나 0이면 🍀 뱃지 미표시. 백엔드가 응답에 실어준다. */
     lucky_point?: number;
+    /** 럭키 당첨 경험치. 없거나 0이면 배지에 XP 미표시. 백엔드가 응답에 실어준다. */
+    lucky_exp?: number;
+    /** 럭키 당첨 회차명(이벤트 회차 당첨만). 레거시 당첨이면 없음. */
+    lucky_tier?: string;
+    /** 럭키 당첨 시각 (ISO 8601, +09:00). */
+    lucky_at?: string;
     views: number;
     likes: number;
     dislikes?: number;
@@ -170,6 +176,12 @@ export interface FreeComment {
     author_ip?: string; // 작성자 IP (마스킹된 형태, 예: 123.456.*.*)
     /** 럭키 포인트 당첨 금액. 없거나 0이면 🍀 뱃지 미표시. 백엔드가 응답에 실어준다. */
     lucky_point?: number;
+    /** 럭키 당첨 경험치. 없거나 0이면 배지에 XP 미표시. 백엔드가 응답에 실어준다. */
+    lucky_exp?: number;
+    /** 럭키 당첨 회차명(이벤트 회차 당첨만). 레거시 당첨이면 없음. */
+    lucky_tier?: string;
+    /** 럭키 당첨 시각 (ISO 8601, +09:00). */
+    lucky_at?: string;
     likes?: number;
     dislikes?: number; // 비추천 수
     depth?: number;
