@@ -54,6 +54,7 @@
         formatDiffValue,
         kstToday,
         removedTierNames,
+        submissionKey,
         summarizeBoardLucky,
         type LuckyAdminConfig,
         type LuckyBoardLucky,
@@ -98,8 +99,14 @@
     let saving = $state(false);
     let saveMessage = $state('');
     let saveError = $state('');
+    /** 미리보기를 연 시점의 전송 본문. 이후 폼이 바뀌면 미리보기를 닫는다(미리보기≠실제 전송). */
+    let previewKey = $state('');
 
     const body = $derived(form ? buildPutConfigBody(form) : null);
+
+    $effect(() => {
+        if (previewOpen && submissionKey(body) !== previewKey) previewOpen = false;
+    });
     const diff = $derived(original && body ? diffValues(original, body) : []);
     const removedNames = $derived(original && body ? removedTierNames(original, body) : []);
     const cacheTtl = $derived(view?.cache_ttl_seconds ?? 0);
@@ -148,6 +155,7 @@
             saveError = '입력칸을 확인해 주세요.';
             return;
         }
+        previewKey = submissionKey(body);
         previewOpen = true;
     }
 
@@ -162,6 +170,18 @@
 
     async function save() {
         if (!form || !canSave) return;
+        // 미리보기 뒤에 칸을 비웠을 수 있다 — 보내기 직전에 다시 검사한다.
+        // 빈칸(null)은 백엔드에서 기본값·0 이 되어 확률 0 이면 그 단계가 꺼진다.
+        const local = clientFieldErrors(form);
+        if (local.length > 0 || submissionKey(buildPutConfigBody(form)) !== previewKey) {
+            errors = local;
+            previewOpen = false;
+            saveError =
+                local.length > 0
+                    ? '입력칸을 확인해 주세요.'
+                    : '미리보기 뒤에 값이 바뀌었습니다. 다시 미리보기를 확인해 주세요.';
+            return;
+        }
         saving = true;
         saveMessage = '';
         saveError = '';
@@ -214,6 +234,7 @@
     let boardSaving = $state(false);
     let boardMessage = $state('');
     let boardError = $state('');
+    let boardPreviewKey = $state('');
 
     const boards = $derived<LuckyBoardSetting[]>(view?.boards ?? []);
     const filteredBoards = $derived.by(() => {
@@ -224,6 +245,15 @@
         );
     });
     const boardBody = $derived(buildBoardLuckyBody(boardForm));
+
+    $effect(() => {
+        if (
+            boardPreviewOpen &&
+            submissionKey({ ids: selectedBoards, lucky: boardBody }) !== boardPreviewKey
+        ) {
+            boardPreviewOpen = false;
+        }
+    });
     const boardPreview = $derived(
         selectedBoards.map((id) => {
             const b = boards.find((x) => x.board_id === id);
@@ -289,11 +319,24 @@
             boardError = '입력칸을 확인해 주세요.';
             return;
         }
+        boardPreviewKey = submissionKey({ ids: selectedBoards, lucky: boardBody });
         boardPreviewOpen = true;
     }
 
     async function saveBoards() {
         if (boardSaving || selectedBoards.length === 0) return;
+        // 미리보기 뒤에 칸을 비웠을 수 있다 — 보내기 직전에 다시 검사한다.
+        const local = clientBoardErrors(selectedBoards, boardForm);
+        const key = submissionKey({ ids: selectedBoards, lucky: buildBoardLuckyBody(boardForm) });
+        if (local.length > 0 || key !== boardPreviewKey) {
+            boardErrors = local;
+            boardPreviewOpen = false;
+            boardError =
+                local.length > 0
+                    ? '입력칸을 확인해 주세요.'
+                    : '미리보기 뒤에 값이 바뀌었습니다. 다시 미리보기를 확인해 주세요.';
+            return;
+        }
         boardSaving = true;
         boardMessage = '';
         boardError = '';

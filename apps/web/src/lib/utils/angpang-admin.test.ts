@@ -16,6 +16,7 @@ import {
     isValidClock,
     kstToday,
     removedTierNames,
+    submissionKey,
     type LuckyAdminConfig
 } from './angpang-admin';
 
@@ -314,5 +315,71 @@ describe('시각·안내', () => {
     it('KST 오늘', () => {
         expect(kstToday(new Date('2026-10-01T15:30:00Z'))).toBe('2026-10-02');
         expect(kstToday(new Date('2026-10-01T14:59:00Z'))).toBe('2026-10-01');
+    });
+});
+
+describe('보내기 직전 재검사 — 빈칸(null·undefined·"")이 섞인 폼', () => {
+    it('전역 설정: 비운 숫자칸은 모두 오류다', () => {
+        const cfg = sampleConfig() as unknown as {
+            windows: Record<string, unknown>[];
+            fixed_windows: Record<string, unknown>[];
+        };
+        cfg.windows[0].odds = null;
+        cfg.windows[0].minutes = undefined;
+        cfg.fixed_windows[0].comment_odds = '';
+        (cfg.fixed_windows[0].prizes as unknown[]).push({ weight: null, points: 1, exp: 0 });
+        const fields = clientFieldErrors(cfg as unknown as LuckyAdminConfig).map((e) => e.field);
+        expect(fields).toEqual([
+            'windows[0].minutes',
+            'windows[0].odds',
+            'fixed_windows[0].comment_odds',
+            'fixed_windows[0].prizes[0].weight'
+        ]);
+    });
+
+    it('게시판 일괄: 비운 숫자칸은 모두 오류다', () => {
+        const lucky = {
+            enabled: true,
+            points: '',
+            odds: null,
+            comment_odds: undefined,
+            prizes: [{ weight: 1, points: null, exp: 0 }]
+        } as unknown as Parameters<typeof clientBoardErrors>[1];
+        expect(clientBoardErrors(['free'], lucky).map((e) => e.field)).toEqual([
+            'lucky.odds',
+            'lucky.comment_odds',
+            'lucky.points',
+            'lucky.prizes[0].points'
+        ]);
+    });
+});
+
+describe('submissionKey (미리보기 뒤 변경 감지)', () => {
+    it('같은 본문이면 같은 키', () => {
+        expect(submissionKey(buildPutConfigBody(sampleConfig()))).toBe(
+            submissionKey(buildPutConfigBody(sampleConfig()))
+        );
+    });
+
+    it('칸을 비우면(null·undefined) 0 과도 다른 키 — 미리보기가 무효가 된다', () => {
+        const base = buildPutConfigBody(sampleConfig());
+        const zero = buildPutConfigBody({ ...sampleConfig(), daily_cap_post: 0 });
+        const blank = buildPutConfigBody({
+            ...sampleConfig(),
+            daily_cap_post: null as unknown as number
+        });
+        const missing = buildPutConfigBody({
+            ...sampleConfig(),
+            daily_cap_post: undefined as unknown as number
+        });
+        const keys = [base, zero, blank, missing].map(submissionKey);
+        expect(new Set(keys).size).toBe(4);
+    });
+
+    it('게시판 선택이 바뀌어도 다른 키', () => {
+        const lucky = { enabled: true, points: 1, odds: 1, comment_odds: 0, prizes: [] };
+        expect(submissionKey({ ids: ['a'], lucky })).not.toBe(
+            submissionKey({ ids: ['a', 'b'], lucky })
+        );
     });
 });

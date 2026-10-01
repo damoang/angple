@@ -133,6 +133,14 @@ export function buildBoardLuckyBody(lucky: LuckyBoardLucky): LuckyBoardLucky {
     };
 }
 
+/**
+ * 전송 본문 비교용 키. 미리보기를 연 시점과 저장 시점의 본문이 같은지 본다.
+ * 빈칸(null·undefined)과 0 은 다른 키다 — 미리보기 뒤에 칸을 비우면 미리보기가 무효가 된다.
+ */
+export function submissionKey(value: unknown): string {
+    return JSON.stringify(value, (_k, v) => (v === undefined ? '__undefined__' : v)) ?? '';
+}
+
 /** 화면 편집용 깊은 복사(원본 스냅샷과 폼 상태를 분리). */
 export function cloneConfig(config: LuckyAdminConfig): LuckyAdminConfig {
     return buildPutConfigBody(config);
