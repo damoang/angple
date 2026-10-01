@@ -81,7 +81,9 @@ if (nodes.length) {
 const summary = summarize(perRoute);
 console.log(`\n${formatReport(summary, mode)}`);
 console.log(`\nJS 파일 총 ${js.length}개 · CSS 파일 총 ${css.length}개`);
-console.log('⛔ 이 수치는 JS 정적 import 폐쇄다. 9/30 의 mapDeps 기준(CSS 포함)과 직접 비교하지 마라.');
+console.log(
+    '⛔ 이 수치는 JS 정적 import 폐쇄다. 9/30 의 mapDeps 기준(CSS 포함)과 직접 비교하지 마라.'
+);
 
 const problems = shapeFails(summary, limits);
 if (process.env.GITHUB_STEP_SUMMARY) {
