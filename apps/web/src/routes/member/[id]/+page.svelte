@@ -102,7 +102,7 @@
         imageUploading = true;
         try {
             const result = await apiClient.uploadMemberImage(file);
-            overrideImageUrl = result.url;
+            overrideImageUrl = getAvatarUrl(result.url);
             profileIconFailed = false;
         } catch (err) {
             alert(err instanceof Error ? err.message : '이미지 업로드에 실패했습니다.');
