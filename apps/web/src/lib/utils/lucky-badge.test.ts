@@ -103,9 +103,15 @@ describe('parseLuckyTier — 평소 단계 이름(base_name)', () => {
         expect(parseLuckyTier('앙팡팡 럭키 포인트')).toBeUndefined();
     });
 
-    it('base_name 을 바꾸면 옛 base_name 문구는 라벨이 없다', () => {
-        expect(parseLuckyTier('앙팡 럭키 포인트', [], '평소')).toBeUndefined();
+    it('base_name 을 바꿔도 「앙팡」은 기본 이름이라 그대로 「앙팡」', () => {
+        expect(parseLuckyTier('앙팡 럭키 포인트', [], '평소')).toBe('앙팡');
         expect(parseLuckyTier('평소 럭키 포인트', [], '평소')).toBe('평소');
+        // 「앙복타임」 별칭은 현재 base_name 을 따른다
+        expect(parseLuckyTier('앙복타임 럭키 포인트', [], '평소')).toBe('평소');
+    });
+
+    it('기본 이름이 아닌 옛 base_name 문구는 바꾼 뒤 라벨이 없다', () => {
+        expect(parseLuckyTier('평소 럭키 포인트', [], '다른')).toBeUndefined();
     });
 });
 

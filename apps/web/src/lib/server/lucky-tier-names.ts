@@ -6,7 +6,7 @@
  * 30초 모듈 캐시(백엔드 lucky_config 캐시 TTL 과 같은 값) + singleflight 로 한 번에 읽는다.
  *
  * 조회 실패·행 없음·JSON 깨짐이면 설정 이름은 빈 목록, base_name 은 기본 「앙팡」 —
- * 기본 3개와 「앙팡」만 인정한다. 배지 라벨이 없어질 뿐 금액 표시에는 영향이 없다.
+ * 기본 4개(「앙팡」 포함)만 인정한다. 배지 라벨이 없어질 뿐 금액 표시에는 영향이 없다.
  */
 import { readPool } from '$lib/server/db.js';
 import {

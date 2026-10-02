@@ -9,14 +9,23 @@
  * 레거시 당첨(회차명 없음)은 라벨 없이 기존과 같다.
  *
  * 회차명 판정은 백엔드(LuckyTierFromContent)와 같은 규칙이다:
- * 기본 3개 + 평소 단계 이름(lucky_config.base_name, 기본 「앙팡」) + 설정 이름(windows·fixed_windows
- * name) 중 하나이고, 문구가 「<이름> 럭키 」로 시작해야 한다(접두사 비교, 긴 이름 우선).
+ * 기본 4개 + 평소 단계 이름(lucky_config.base_name, 기본 「앙팡」) + 설정 이름
+ * (windows·fixed_windows name) 중 하나이고, 문구가 「<이름> 럭키 」로 시작해야 한다
+ * (접두사 비교, 긴 이름 우선).
  * 「앙복타임 럭키 」로 시작하는 지난 문구는 평소 단계의 옛 이름이므로 회차명을 현재 base_name 으로
  * 보고한다(표시 별칭 — 원장 문구는 그대로).
  */
 
-/** 설정과 무관하게 항상 인정하는 기본 회차명. 백엔드 luckyBuiltinTierNames 와 같다. */
-export const LUCKY_BUILTIN_TIERS: readonly string[] = ['앙복타임', '앙팡타임', '앙팡팡타임'];
+/**
+ * 설정과 무관하게 항상 인정하는 기본 회차명. 백엔드 luckyBuiltinTierNames 와 같다.
+ * 「앙팡」은 base_name 을 바꿔도 인정한다(그 이름으로 지급된 지난 당첨의 라벨 유지).
+ */
+export const LUCKY_BUILTIN_TIERS: readonly string[] = [
+    '앙복타임',
+    '앙팡',
+    '앙팡타임',
+    '앙팡팡타임'
+];
 
 /** 평소 단계의 옛 이름. 이 이름으로 판정된 문구는 현재 base_name 으로 표시한다. */
 export const LUCKY_LEGACY_BASE_NAME = '앙복타임';
@@ -51,8 +60,8 @@ export function normalizeLuckyBaseName(raw: unknown): string {
 }
 
 /**
- * 지급 문구에서 회차명을 뽑는다. 기본 3개·baseName·tierNames(설정 이름) 중 문구가 「<이름> 럭키 」로
- * 시작하는 것, 여럿이면 가장 긴 이름. 맞는 것이 없으면(레거시 등) undefined.
+ * 지급 문구에서 회차명을 뽑는다. 기본 4개·baseName·tierNames(설정 이름) 중 문구가
+ * 「<이름> 럭키 」로 시작하는 것, 여럿이면 가장 긴 이름. 맞는 것이 없으면(레거시 등) undefined.
  * 판정된 이름이 「앙복타임」(평소 단계의 옛 이름)이면 현재 baseName 으로 돌려준다.
  * 예) 「앙팡타임 새벽 럭키 포인트」는 설정에 「앙팡타임 새벽」이 있을 때만 그 이름이고,
  *     없으면 앙팡타임으로 잘못 읽지 않고 undefined 다(구분자까지 비교하므로).
@@ -82,7 +91,7 @@ export function parseLuckyTier(
 /**
  * lucky_config 객체에서 설정 이름(windows·fixed_windows 의 name)을 중복 없이 뽑는다.
  * 백엔드 LuckyConfig.TierNames 와 같은 순서·규칙(앞뒤 공백 제거, 빈 이름 제외).
- * 모양이 깨져 있으면 빈 배열(기본 3개만 인정).
+ * 모양이 깨져 있으면 빈 배열(기본 4개만 인정).
  */
 export function luckyTierNamesFromConfig(cfg: unknown): string[] {
     if (!cfg || typeof cfg !== 'object') return [];
@@ -135,7 +144,8 @@ export function toKstIso(value: unknown): string | undefined {
  * 원장 행들을 rel_id 별 당첨 정보로 모은다(쿼리 1회 결과를 그대로 받는다).
  * 백엔드 배지 조회와 같은 규칙: 금액은 최댓값, 회차명·시각은 회차명이 있고 시각이 유효한 행 중
  * 가장 이른 행(같은 시각이면 먼저 본 행). 레거시 행만 있으면 tier·at 없음.
- * tierNames 는 설정 이름 목록(기본 3개는 항상 인정), baseName 은 평소 단계 이름 — parseLuckyTier 참고.
+ * tierNames 는 설정 이름 목록(기본 4개는 항상 인정), baseName 은 평소 단계 이름
+ * — parseLuckyTier 참고.
  */
 export function collectLuckyRows(
     rows: Array<Record<string, unknown>>,

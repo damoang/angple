@@ -254,6 +254,23 @@ describe('평소 단계 이름(base_name) 변경 경고', () => {
         expect(baseNameChange(before, sampleConfig())).toEqual({ from: '앙팡', to: '평소A' });
     });
 
+    it('기본 이름 「앙팡」에서 바꿔도 「앙팡」은 사라지는 이름이 아니다', () => {
+        const before = { ...sampleConfig(), base_name: '앙팡' };
+        const after = { ...sampleConfig(), base_name: '평소' };
+        expect(removedTierNames(before, after)).toEqual([]);
+        expect(baseNameChange(before, after)).toEqual({ from: '앙팡', to: '평소' });
+    });
+
+    it('기본 4개 이름은 설정에서 빠져도 사라지는 이름이 아니다', () => {
+        const before = sampleConfig();
+        before.windows[0].name = '앙팡';
+        before.fixed_windows[0].name = '앙복타임';
+        const after = sampleConfig();
+        after.windows = [];
+        after.fixed_windows = [];
+        expect(removedTierNames(before, after)).toEqual([]);
+    });
+
     it('평소 단계 이름을 무작위 단계 이름으로 옮기면 사라지지 않는다', () => {
         const after = sampleConfig();
         after.base_name = '평소B';

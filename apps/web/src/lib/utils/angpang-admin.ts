@@ -249,7 +249,8 @@ function configTierNames(cfg: unknown): string[] {
 }
 
 /**
- * 저장 후 사라지는 이름(평소 단계 + 무작위 단계 + 고정 시간대). 기본 3개 이름은 설정과 무관하게 항상
+ * 저장 후 사라지는 이름(평소 단계 + 무작위 단계 + 고정 시간대). 기본 4개 이름
+ * (앙복타임·앙팡·앙팡타임·앙팡팡타임)은 설정과 무관하게 항상
  * 인정되므로 제외한다. 이 이름으로 지급된 과거 당첨은 배지 단계 라벨이 사라진다.
  */
 export function removedTierNames(before: unknown, after: unknown): string[] {
