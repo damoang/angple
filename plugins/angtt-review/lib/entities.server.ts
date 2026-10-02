@@ -16,6 +16,7 @@
  * (affiliate-link-private 플러그인과 동일 관례).
  */
 import pool from '$lib/server/db';
+import { createCache } from '$lib/server/cache';
 import { hasAngttTag, normalizeWorkTitle } from './normalize';
 import { validateAspects } from './aspect-presets';
 
@@ -548,4 +549,82 @@ export async function putEntityAspects(
     );
 
     return getEntityAspects(entityId, mbId);
+}
+
+/** 목록 「작품」 선반·사이트맵에 내보내는 작품 요약 */
+export interface AngttShelfEntity {
+    slug: string;
+    title: string;
+    posterUrl: string | null;
+    ratingAvg: number;
+    ratingCount: number;
+    /** 연결 글 수(review + mention). 자동 부착(auto)은 세지 않는다. */
+    postCount: number;
+    /** 'YYYY-MM-DD' — SQL DATE_FORMAT 문자열(Date 객체 직렬화 500 재발 방지, #1813) */
+    updatedAt: string;
+}
+
+interface ShelfRow {
+    slug: string;
+    canonical_title: string;
+    poster_url: string | null;
+    rating_avg: number | string | null;
+    rating_count: number | null;
+    post_count: number | string | null;
+    updated_at: string | null;
+}
+
+/** 선반 캐시: TTL 5분. 실패 시 stale → 빈 배열(목록 페이지를 절대 막지 않는다). */
+const shelfCache = createCache<AngttShelfEntity[]>({ ttl: 5 * 60_000, maxSize: 4 });
+
+async function fetchShelfEntities(limit: number): Promise<AngttShelfEntity[]> {
+    // 대상: 활성 작품 중 **실제 회원 활동**(별점 1개 이상 또는 review/mention 연결 글)이 있는 것만.
+    // ⛔ 빈 작품 페이지를 노출·색인하지 않는다(가짜 후기·시드 금지 원칙과 같은 선).
+    // 정렬: 최근 30일 활동(별점 + 연결 글) → 별점 수 → 최신 등록.
+    const [rows] = await pool.query(
+        `SELECT e.slug, e.canonical_title, e.poster_url, e.rating_avg, e.rating_count,
+                (SELECT COUNT(*) FROM angple_entity_posts p
+                  WHERE p.entity_id = e.id AND p.role IN ('review', 'mention')) AS post_count,
+                (SELECT COUNT(*) FROM angple_entity_posts p
+                  WHERE p.entity_id = e.id AND p.created_at >= NOW() - INTERVAL 30 DAY)
+                + (SELECT COUNT(*) FROM angple_post_ratings r
+                  WHERE r.entity_id = e.id AND r.created_at >= NOW() - INTERVAL 30 DAY)
+                    AS recent_activity,
+                DATE_FORMAT(e.updated_at, '%Y-%m-%d') AS updated_at
+           FROM angple_entities e
+          WHERE e.status = 'active'
+            AND (e.rating_count > 0
+                 OR EXISTS (SELECT 1 FROM angple_entity_posts p
+                             WHERE p.entity_id = e.id AND p.role IN ('review', 'mention')))
+          ORDER BY recent_activity DESC, e.rating_count DESC, e.id DESC
+          LIMIT ?`,
+        [limit]
+    );
+    return (rows as ShelfRow[])
+        .filter((r) => typeof r.slug === 'string' && r.slug.length > 0)
+        .map((r) => ({
+            slug: r.slug,
+            title: r.canonical_title || r.slug,
+            posterUrl: r.poster_url || null,
+            ratingAvg: Number(r.rating_avg ?? 0),
+            ratingCount: Number(r.rating_count ?? 0),
+            postCount: Number(r.post_count ?? 0),
+            updatedAt: String(r.updated_at ?? '')
+        }));
+}
+
+/**
+ * 「작품」 선반(/angtt 목록 상단)·작품 사이트맵용 작품 목록 — 읽기 전용, 절대 reject 하지 않는다.
+ *
+ * ⛔ 링크 가능 여부(순수 숫자 slug 등 /angtt/{숫자} 섀도잉)는 호출부가 entityslug 매처로 거른다.
+ */
+export async function listShelfEntities(opts: { limit: number }): Promise<AngttShelfEntity[]> {
+    const limit = Math.max(1, Math.min(5000, Math.floor(opts.limit) || 1));
+    const key = `shelf:${limit}`;
+    try {
+        return await shelfCache.getOrSet(key, () => fetchShelfEntities(limit));
+    } catch (e) {
+        console.warn('[angtt-review] shelf entities 조회 실패:', e);
+        return shelfCache.getStale(key) ?? [];
+    }
 }

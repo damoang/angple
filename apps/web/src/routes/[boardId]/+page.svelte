@@ -84,6 +84,7 @@
     import { boardTypeRegistry } from '$lib/components/features/board/board-type-registry.js';
     import AngmapPinMap from '$lib/components/features/board/angmap-pin-map.svelte';
     import EconomyShoppingBanner from '$lib/components/features/board/economy-shopping-banner.svelte';
+    import AngttEntityShelf from './_components/angtt-entity-shelf.svelte';
     import TagNav from '$lib/components/ui/tag-nav/tag-nav.svelte';
     import QAPostList from '$lib/components/features/board/qa-post-list.svelte';
     import BoardFavoriteButton from '$lib/components/features/board/board-favorite-button.svelte';
@@ -1376,6 +1377,12 @@
                     <!-- #12520 후속: 상단 title 우측 글쓰기 버튼 제거 → 빠른필터 행의 검색 버튼 오른쪽으로 이동(아래). -->
                 </div>
             </div>
+
+            <!-- 앙티티 「작품」 선반 — 서버 load 가 angtt 첫 페이지에서만 채운다(그 외엔 빈 배열 → 미렌더).
+                 SSR 로 그리고 높이가 고정이라 하이드레이션 뒤 목록을 밀지 않는다. -->
+            {#if data.angttShelf && data.angttShelf.length > 0}
+                <AngttEntityShelf entities={data.angttShelf} />
+            {/if}
 
             <!-- 소모임 당주에게만 보이는 관리 진입점.
                  서버(+page.server.ts)가 g5_board.bo_admin 으로 판정한 값이라 이 링크가
