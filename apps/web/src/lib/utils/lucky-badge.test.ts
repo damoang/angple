@@ -5,6 +5,8 @@ import {
     formatLuckyBadge,
     formatLuckyMeta,
     formatLuckyTitle,
+    LUCKY_DEFAULT_BASE_NAME,
+    luckyBaseNameFromConfig,
     luckyFields,
     luckyTierNamesFromConfig,
     parseLuckyTier,
@@ -41,7 +43,6 @@ describe('formatLuckyBadge', () => {
 
 describe('parseLuckyTier', () => {
     it('기본 회차명 + 「 럭키 」로 시작할 때만', () => {
-        expect(parseLuckyTier('앙복타임 럭키 당첨')).toBe('앙복타임');
         expect(parseLuckyTier('앙팡타임 럭키 당첨')).toBe('앙팡타임');
         expect(parseLuckyTier('앙팡팡타임 럭키 포인트(댓글)')).toBe('앙팡팡타임');
     });
@@ -73,6 +74,58 @@ describe('parseLuckyTier', () => {
 
     it('설정 이름 앞뒤 공백·빈 이름은 무시', () => {
         expect(parseLuckyTier('심야 럭키 포인트', ['  심야 ', ''])).toBe('심야');
+    });
+});
+
+describe('parseLuckyTier — 평소 단계 이름(base_name)', () => {
+    it('base_name 미설정이면 기본 「앙팡」', () => {
+        expect(LUCKY_DEFAULT_BASE_NAME).toBe('앙팡');
+        expect(parseLuckyTier('앙팡 럭키 포인트')).toBe('앙팡');
+        expect(parseLuckyTier('앙팡 럭키 포인트', [], undefined)).toBe('앙팡');
+        expect(parseLuckyTier('앙팡 럭키 포인트', [], '')).toBe('앙팡');
+        expect(parseLuckyTier('앙팡 럭키 포인트', [], '   ')).toBe('앙팡');
+    });
+
+    it('지난 「앙복타임」 문구는 현재 base_name 으로 표시한다(별칭)', () => {
+        expect(parseLuckyTier('앙복타임 럭키 당첨')).toBe('앙팡');
+        expect(parseLuckyTier('앙복타임 럭키 포인트(댓글)', [], '앙팡')).toBe('앙팡');
+        expect(parseLuckyTier('앙복타임 럭키 경험치', [], '평소')).toBe('평소');
+        // 구분자까지 맞아야 별칭 — 그냥 「앙복타임」으로 시작하는 것은 아님
+        expect(parseLuckyTier('앙복타임 당첨')).toBeUndefined();
+    });
+
+    it('「앙팡」/「앙팡타임」/「앙팡팡타임」을 섞지 않는다', () => {
+        expect(parseLuckyTier('앙팡 럭키 포인트')).toBe('앙팡');
+        expect(parseLuckyTier('앙팡타임 럭키 포인트')).toBe('앙팡타임');
+        expect(parseLuckyTier('앙팡팡타임 럭키 포인트')).toBe('앙팡팡타임');
+        expect(parseLuckyTier('앙팡 럭키 포인트', ['앙팡 새벽'])).toBe('앙팡');
+        expect(parseLuckyTier('앙팡 새벽 럭키 포인트', ['앙팡 새벽'])).toBe('앙팡 새벽');
+        expect(parseLuckyTier('앙팡팡 럭키 포인트')).toBeUndefined();
+    });
+
+    it('base_name 을 바꿔도 「앙팡」은 기본 이름이라 그대로 「앙팡」', () => {
+        expect(parseLuckyTier('앙팡 럭키 포인트', [], '평소')).toBe('앙팡');
+        expect(parseLuckyTier('평소 럭키 포인트', [], '평소')).toBe('평소');
+        // 「앙복타임」 별칭은 현재 base_name 을 따른다
+        expect(parseLuckyTier('앙복타임 럭키 포인트', [], '평소')).toBe('평소');
+    });
+
+    it('기본 이름이 아닌 옛 base_name 문구는 바꾼 뒤 라벨이 없다', () => {
+        expect(parseLuckyTier('평소 럭키 포인트', [], '다른')).toBeUndefined();
+    });
+});
+
+describe('luckyBaseNameFromConfig', () => {
+    it('설정 값(앞뒤 공백 제거)', () => {
+        expect(luckyBaseNameFromConfig({ base_name: ' 평소 ' })).toBe('평소');
+    });
+
+    it('없음·빈 값·모양 깨짐이면 「앙팡」', () => {
+        expect(luckyBaseNameFromConfig({})).toBe('앙팡');
+        expect(luckyBaseNameFromConfig({ base_name: '' })).toBe('앙팡');
+        expect(luckyBaseNameFromConfig({ base_name: 3 })).toBe('앙팡');
+        expect(luckyBaseNameFromConfig(null)).toBe('앙팡');
+        expect(luckyBaseNameFromConfig('x')).toBe('앙팡');
     });
 });
 
@@ -203,7 +256,7 @@ describe('collectLuckyRows', () => {
         );
         expect(map.get(1)).toEqual({
             amount: 30,
-            tier: '앙복타임',
+            tier: '앙팡',
             at: '2026-10-01T12:00:00+09:00'
         });
     });
@@ -380,5 +433,18 @@ describe('collectLuckyRows + 설정 이름', () => {
 
     it('설정 이름이 없으면 회차명 없음(기본 이름으로 오인하지 않음)', () => {
         expect(collectLuckyRows(rows, keys).get(5)).toEqual({ amount: 40 });
+    });
+
+    it('지난 「앙복타임」 행은 넘긴 base_name 으로, 미지정이면 「앙팡」으로', () => {
+        const old = [
+            {
+                po_rel_id: '6',
+                po_point: 10,
+                po_content: '앙복타임 럭키 포인트(댓글)',
+                po_dt: '2026-09-01 10:00:00'
+            }
+        ];
+        expect(collectLuckyRows(old, keys).get(6)?.tier).toBe('앙팡');
+        expect(collectLuckyRows(old, keys, [], '평소').get(6)?.tier).toBe('평소');
     });
 });

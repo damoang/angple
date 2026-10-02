@@ -40,6 +40,8 @@
     import {
         ALL_DAY_END,
         ALL_DAY_START,
+        BASE_NAME_MAX_CHARS,
+        baseNameChange,
         buildBoardLuckyBody,
         buildPutConfigBody,
         clientBoardErrors,
@@ -74,6 +76,7 @@
         expire_days: '포인트 만료일수',
         window_start_hour: '무작위 단계 시작 시',
         window_end_hour: '무작위 단계 끝 시',
+        base_name: '평소 단계 이름',
         windows: '무작위 단계',
         fixed_windows: '고정 시간대'
     };
@@ -109,6 +112,7 @@
     });
     const diff = $derived(original && body ? diffValues(original, body) : []);
     const removedNames = $derived(original && body ? removedTierNames(original, body) : []);
+    const baseRename = $derived(original && body ? baseNameChange(original, body) : null);
     const cacheTtl = $derived(view?.cache_ttl_seconds ?? 0);
     const parseError = $derived(view?.stored_parse_error === true);
     const canSave = $derived(
@@ -499,6 +503,20 @@
                     />
                 </div>
 
+                <div class="sm:max-w-md">
+                    <Label for="lk-base-name">평소 단계 이름</Label>
+                    <Input id="lk-base-name" class="mt-1" bind:value={form.base_name} />
+                    <p class="text-muted-foreground mt-1 text-xs">
+                        단계 밖 평소 당첨의 이름입니다. 지급 문구는 「이름 럭키 포인트」이고, 지난
+                        「앙복타임」 당첨 배지도 이 이름으로 표시됩니다.
+                    </p>
+                    <p class="text-muted-foreground mt-0.5 text-xs">
+                        1~{BASE_NAME_MAX_CHARS}자, 「 럭키 」 불가, 다른 단계 이름과 겹칠 수
+                        없습니다.
+                    </p>
+                    <FieldError errors={errMap} path="base_name" />
+                </div>
+
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <div>
                         <Label for="lk-cap-post">글 하루 상한(사이트 전체)</Label>
@@ -867,6 +885,18 @@
                                 <span>
                                     사라지는 이름: <strong>{removedNames.join(', ')}</strong>. 이
                                     이름으로 지급된 과거 당첨 배지의 단계 라벨이 사라집니다.
+                                </span>
+                            </div>
+                        {/if}
+                        {#if baseRename}
+                            <div
+                                class="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs"
+                            >
+                                <TriangleAlert class="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                                <span>
+                                    평소 단계 이름: <strong>{baseRename.from}</strong> →
+                                    <strong>{baseRename.to}</strong>. 지난 「앙복타임」 당첨 배지도
+                                    새 이름으로 표시됩니다.
                                 </span>
                             </div>
                         {/if}

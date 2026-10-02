@@ -13,8 +13,10 @@ vi.mock('$lib/server/db.js', () => ({
 }));
 
 import {
+    getLuckyTierInfo,
     getLuckyTierNames,
     resetLuckyTierNamesCache,
+    tierInfoFromSettingsJson,
     tierNamesFromSettingsJson
 } from './lucky-tier-names';
 
@@ -61,5 +63,49 @@ describe('getLuckyTierNames (캐시)', () => {
         resetLuckyTierNamesCache();
         site = new Error('db down');
         await expect(getLuckyTierNames()).resolves.toEqual([]);
+    });
+});
+
+describe('tierInfoFromSettingsJson (평소 단계 이름)', () => {
+    it('base_name 을 이름 목록과 함께 읽는다', () => {
+        const cfg = { lucky_config: { base_name: '평소', windows: [{ name: '가' }] } };
+        expect(tierInfoFromSettingsJson(JSON.stringify(cfg))).toEqual({
+            names: ['가'],
+            baseName: '평소'
+        });
+    });
+
+    it('base_name 미설정·깨짐이면 기본 「앙팡」', () => {
+        const cfg = { lucky_config: { windows: [{ name: '가' }] } };
+        expect(tierInfoFromSettingsJson(cfg)).toEqual({ names: ['가'], baseName: '앙팡' });
+        expect(tierInfoFromSettingsJson(null)).toEqual({ names: [], baseName: '앙팡' });
+        expect(tierInfoFromSettingsJson('{broken')).toEqual({ names: [], baseName: '앙팡' });
+    });
+});
+
+describe('getLuckyTierInfo (같은 캐시·쿼리 1회)', () => {
+    beforeEach(() => {
+        resetLuckyTierNamesCache();
+        calls = 0;
+        site = [];
+    });
+
+    it('이름 목록과 base_name 을 한 번의 조회로 함께 캐시한다', async () => {
+        site = [
+            {
+                settings_json: JSON.stringify({
+                    lucky_config: { base_name: '평소', fixed_windows: [{ name: '다' }] }
+                })
+            }
+        ];
+        await expect(getLuckyTierInfo()).resolves.toEqual({ names: ['다'], baseName: '평소' });
+        await expect(getLuckyTierNames()).resolves.toEqual(['다']);
+        await expect(getLuckyTierInfo()).resolves.toEqual({ names: ['다'], baseName: '평소' });
+        expect(calls).toBe(1);
+    });
+
+    it('조회 실패면 기본 「앙팡」', async () => {
+        site = new Error('db down');
+        await expect(getLuckyTierInfo()).resolves.toEqual({ names: [], baseName: '앙팡' });
     });
 });
