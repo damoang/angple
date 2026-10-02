@@ -286,9 +286,7 @@ describe('baseNameErrors (평소 단계 이름 검사)', () => {
     });
 
     it('clientFieldErrors 가 base_name 경로로 알린다', () => {
-        const fields = clientFieldErrors({ ...sampleConfig(), base_name: '' }).map(
-            (e) => e.field
-        );
+        const fields = clientFieldErrors({ ...sampleConfig(), base_name: '' }).map((e) => e.field);
         expect(fields).toEqual(['base_name']);
     });
 });

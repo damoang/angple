@@ -254,9 +254,7 @@ function configTierNames(cfg: unknown): string[] {
  */
 export function removedTierNames(before: unknown, after: unknown): string[] {
     const keep = new Set(configTierNames(after));
-    return configTierNames(before).filter(
-        (n) => !keep.has(n) && !LUCKY_BUILTIN_TIERS.includes(n)
-    );
+    return configTierNames(before).filter((n) => !keep.has(n) && !LUCKY_BUILTIN_TIERS.includes(n));
 }
 
 /**
