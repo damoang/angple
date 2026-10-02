@@ -17,7 +17,7 @@ import {
     normalizeWorkTitle,
     buildDictionary,
     hasAngttTag,
-    matchWorkFromTags,
+    decideAngttCard,
     type AngttDictionary
 } from './angtt-dictionary-logic.js';
 
@@ -341,8 +341,9 @@ export async function resolveAngttMatch(
         if (!hasAngttTag(strTags)) return undefined;
 
         const dict = await getAngttDictionary();
-        const match = matchWorkFromTags(strTags, dict);
-        if (!match) return undefined;
+        // 엔티티 색인은 5분 메모리 캐시라 매번 받아도 부담이 없다(실패 시 빈 Map).
+        const decision = decideAngttCard(strTags, dict, await getEntityIndex());
+        if (!decision) return undefined;
 
         // 사전(angtt 글 제목)에 없어도 **엔티티에 있으면** 그것으로 카드를 만든다.
         //
@@ -353,27 +354,24 @@ export async function resolveAngttMatch(
         //
         // ⛔ 「앙티티」 태그 제약은 그대로 둔다(위 hasAngttTag). 태그 없는 글까지 훑으면
         //    '오디세이' 같은 일반명사성 제목에서 오탐이 터진다.
-        if ('notFound' in match) {
-            const index = await getEntityIndex();
-            for (const t of strTags) {
-                const key = normalizeWorkTitle(t);
-                if (key === normalizeWorkTitle(ANGTT_TAG)) continue;
-                const entity = index.get(key);
-                if (!entity) continue;
-                return {
-                    // wrId 없음 — angtt 글이 아직 없는 작품이다. entitySlug 로 링크한다.
-                    title: entity.title,
-                    thumbnail: entity.poster,
-                    rating: { avg: entity.avg, count: entity.count },
-                    entitySlug: entity.slug,
-                    ...(ctx && (await isAutoLinked(ctx.boardId, ctx.wrId))
-                        ? { autoLinked: true }
-                        : {})
-                };
-            }
+        //
+        // ⛔ (2026-10-02) 이 분기는 원래 `'notFound' in match` 로 판정해서 한 번도 실행되지
+        //    않았다 — matchWorkFromTags 는 { work } | { query } 를 돌려준다. 판정은 이제
+        //    decideAngttCard(순수 함수 + 단위 테스트)가 한다. 여기서 다시 키 이름으로 분기하지 말 것.
+        if (decision.kind === 'entity') {
+            const entity = decision.entity;
+            return {
+                // wrId 없음 — angtt 글이 아직 없는 작품이다. entitySlug 로 링크한다.
+                title: entity.title,
+                thumbnail: entity.poster,
+                rating: { avg: entity.avg, count: entity.count },
+                entitySlug: entity.slug,
+                ...(ctx && (await isAutoLinked(ctx.boardId, ctx.wrId)) ? { autoLinked: true } : {})
+            };
         }
 
-        if ('work' in match) {
+        if (decision.kind === 'work') {
+            const match = decision;
             // 매칭 작품에 활성 엔티티가 있으면 작품 페이지 슬러그 부착(없으면 기존 wrId 폴백).
             const matchedKey = findMatchedKey(strTags, dict, match.work.wrId);
             const entity = matchedKey ? await resolveEntity(matchedKey) : undefined;
@@ -397,7 +395,7 @@ export async function resolveAngttMatch(
                 ...(autoLinked ? { autoLinked: true } : {})
             };
         }
-        return { notFound: true, query: match.query };
+        return { notFound: true, query: decision.query };
     } catch {
         return undefined;
     }

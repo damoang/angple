@@ -303,3 +303,60 @@ export function matchWorkFromTags(tags: readonly string[], dict: AngttDictionary
     }
     return { query: candidates[0].raw };
 }
+
+/**
+ * 사전(angtt 글 제목) 미스일 때 엔티티 색인에서 작품을 찾는다.
+ *
+ * ⛔ 판정 키는 `'query' in match` 다. matchWorkFromTags 의 반환형은 `{ work } | { query } | null`
+ *    이라 `notFound` 키는 존재하지 않는다. 예전 호출부가 `'notFound' in match` 로 분기해서
+ *    이 폴백이 한 번도 실행되지 않았다(작품이 등록돼 있는데도 「아직 없어요」 카드가 떴다).
+ *    그래서 판정을 이 순수 함수로 옮기고 단위 테스트로 묶는다.
+ *
+ * - match 가 사전 히트({ work })거나 null 이면 → null (폴백 대상 아님)
+ * - 「앙티티」 태그 자신은 건너뛰고, 태그 입력 순서대로 첫 엔티티 일치를 반환
+ * - 일치 없음 → null
+ */
+export function pickEntityFallback<E>(
+    match: TagMatchResult,
+    tags: readonly string[],
+    index: ReadonlyMap<string, E>
+): E | null {
+    if (!match || !('query' in match)) return null;
+    const angtt = normalizeWorkTitle(ANGTT_TAG);
+    for (const t of tags) {
+        const key = normalizeWorkTitle(t);
+        if (!key || key === angtt) continue;
+        const entity = index.get(key);
+        if (entity) return entity;
+    }
+    return null;
+}
+
+/** 카드 판정 결과: 사전 작품 / 엔티티 작품 / 미등록 유도 */
+export type AngttCardDecision<E> =
+    | { kind: 'work'; work: AngttWork }
+    | { kind: 'entity'; entity: E }
+    | { kind: 'notFound'; query: string };
+
+/**
+ * 글 태그 → 앙티티 카드 판정(순수 함수). resolveAngttMatch 가 이 결과대로 카드를 만든다.
+ *
+ * - 「앙티티」 태그 없음 → null (게이트 — 태그 없는 글까지 훑으면 일반명사 제목에서 오탐이 난다)
+ * - 「앙티티」 외 태그 없음 → null
+ * - 사전 히트 → work (기존 경로, 엔티티 보강은 호출부가 한다)
+ * - 사전 미스 + 엔티티 히트 → entity (작품 페이지로 링크)
+ * - 둘 다 미스 → notFound (등록 유도 카드)
+ */
+export function decideAngttCard<E>(
+    tags: readonly string[],
+    dict: AngttDictionary,
+    index: ReadonlyMap<string, E>
+): AngttCardDecision<E> | null {
+    if (!hasAngttTag(tags)) return null;
+    const match = matchWorkFromTags(tags, dict);
+    if (!match) return null;
+    if ('work' in match) return { kind: 'work', work: match.work };
+    const entity = pickEntityFallback(match, tags, index);
+    if (entity) return { kind: 'entity', entity };
+    return { kind: 'notFound', query: match.query };
+}
