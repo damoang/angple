@@ -21,7 +21,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { classify } from './canary-error-lanes.mjs';
-import { shellFails } from './canary-shell-verdict.mjs';
+import { pickCheckablePostId, shellFails } from './canary-shell-verdict.mjs';
 
 // playwright 모듈 경로: CI 러너는 PW_MODULE 로 넘긴다(예: /tmp/pw/node_modules/playwright/index.mjs). 없으면 로컬 pnpm 스토어 경로.
 const PW =
@@ -108,11 +108,12 @@ console.log(
 
 async function latestPostPath() {
     try {
-        const r = await fetch(`${base}/api/v1/boards/free/posts?page=1&limit=1&summary=1`, {
+        // 맨 위 글이 삭제·비밀글이면 본문이 의도적으로 비어 보인다 — 몇 개를 받아 일반 글을 고른다.
+        const r = await fetch(`${base}/api/v1/boards/free/posts?page=1&limit=10&summary=1`, {
             headers: { 'x-real-ip': '127.0.0.1', 'user-agent': UA }
         });
         const j = await r.json();
-        const id = j?.data?.[0]?.id;
+        const id = pickCheckablePostId(j?.data);
         return id ? `/free/${id}` : null;
     } catch {
         return null;
