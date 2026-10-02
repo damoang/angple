@@ -4,7 +4,11 @@
  * 화면(+page.svelte)에서 판단을 떼어 vitest 로 검증할 수 있게 둔다.
  * ⛔ 여기에 운영값(확률·상한·포인트)을 기본값으로 넣지 않는다. 새 줄은 0·빈칸으로 시작한다.
  */
-import { LUCKY_BUILTIN_TIERS, luckyTierNamesFromConfig } from './lucky-badge';
+import {
+    LUCKY_BUILTIN_TIERS,
+    luckyBaseNameFromConfig,
+    luckyTierNamesFromConfig
+} from './lucky-badge';
 
 export interface LuckyPrize {
     weight: number;
@@ -45,6 +49,8 @@ export interface LuckyAdminConfig {
     expire_days: number;
     window_start_hour: number;
     window_end_hour: number;
+    /** 평소 단계 이름(지급 문구 「<base_name> 럭키 …」). 백엔드 기본 「앙팡」 */
+    base_name: string;
     windows: LuckyWindow[];
     fixed_windows: LuckyFixedWindow[];
 }
@@ -102,6 +108,7 @@ export function buildPutConfigBody(config: LuckyAdminConfig): LuckyAdminConfig {
         expire_days: c.expire_days,
         window_start_hour: c.window_start_hour,
         window_end_hour: c.window_end_hour,
+        base_name: c.base_name,
         windows: (Array.isArray(c.windows) ? c.windows : []).map((w) => ({
             name: w.name,
             minutes: w.minutes,
@@ -235,16 +242,38 @@ export function formatDiffValue(v: unknown): string {
     return JSON.stringify(v);
 }
 
+/** 평소 단계 이름 + 설정 이름(중복 없음). 배지 판정이 인정하는 설정 쪽 이름 전부. */
+function configTierNames(cfg: unknown): string[] {
+    const base = luckyBaseNameFromConfig(cfg);
+    return [base, ...luckyTierNamesFromConfig(cfg).filter((n) => n !== base)];
+}
+
 /**
- * 저장 후 사라지는 설정 이름(무작위 단계 + 고정 시간대). 기본 3개 이름은 설정과 무관하게 항상
+ * 저장 후 사라지는 이름(평소 단계 + 무작위 단계 + 고정 시간대). 기본 3개 이름은 설정과 무관하게 항상
  * 인정되므로 제외한다. 이 이름으로 지급된 과거 당첨은 배지 단계 라벨이 사라진다.
  */
 export function removedTierNames(before: unknown, after: unknown): string[] {
-    const keep = new Set(luckyTierNamesFromConfig(after));
-    return luckyTierNamesFromConfig(before).filter(
+    const keep = new Set(configTierNames(after));
+    return configTierNames(before).filter(
         (n) => !keep.has(n) && !LUCKY_BUILTIN_TIERS.includes(n)
     );
 }
+
+/**
+ * 평소 단계 이름이 바뀌는지. 바뀌면 { from, to } — 지난 「앙복타임」 당첨 배지도 새 이름으로 표시된다.
+ * 값이 없거나 비었으면 기본 「앙팡」으로 본다(백엔드와 같다).
+ */
+export function baseNameChange(
+    before: unknown,
+    after: unknown
+): { from: string; to: string } | null {
+    const from = luckyBaseNameFromConfig(before);
+    const to = luckyBaseNameFromConfig(after);
+    return from === to ? null : { from, to };
+}
+
+/** 평소 단계 이름 최대 글자 수. 백엔드 검증과 같다. */
+export const BASE_NAME_MAX_CHARS = 20;
 
 // ─── 필드 오류 ───────────────────────────────────────────────────
 
@@ -285,6 +314,7 @@ export function clientFieldErrors(config: LuckyAdminConfig): LuckyFieldError[] {
     num('expire_days', config.expire_days);
     num('window_start_hour', config.window_start_hour);
     num('window_end_hour', config.window_end_hour);
+    baseNameErrors(config).forEach((message) => errs.push({ field: 'base_name', message }));
     config.windows.forEach((w, i) => {
         const p = `windows[${i}]`;
         if (!w.name?.trim()) errs.push({ field: `${p}.name`, message: '이름이 비었습니다' });
@@ -309,6 +339,32 @@ export function clientFieldErrors(config: LuckyAdminConfig): LuckyFieldError[] {
         prizes(`${p}.prizes`, f.prizes);
     });
     return errs;
+}
+
+/**
+ * 평소 단계 이름(base_name) 형식 오류. 1~20자(앞뒤 공백 제외), 「 럭키 」 포함 불가,
+ * 무작위 단계·고정 시간대 이름과 중복 불가. 나머지(범위 밖 규칙)는 백엔드 400 이 알려 준다.
+ */
+export function baseNameErrors(config: LuckyAdminConfig): string[] {
+    const raw = config.base_name;
+    const name = typeof raw === 'string' ? raw.trim() : '';
+    const len = Array.from(name).length;
+    if (len === 0) return ['평소 단계 이름이 비었습니다'];
+    const out: string[] = [];
+    if (len > BASE_NAME_MAX_CHARS) {
+        out.push(`평소 단계 이름은 ${BASE_NAME_MAX_CHARS}자 이하여야 합니다`);
+    }
+    if (name.includes(' 럭키 ')) {
+        out.push('평소 단계 이름에 「 럭키 」를 넣을 수 없습니다');
+    }
+    const others = [
+        ...(Array.isArray(config.windows) ? config.windows : []),
+        ...(Array.isArray(config.fixed_windows) ? config.fixed_windows : [])
+    ].map((w) => (typeof w?.name === 'string' ? w.name.trim() : ''));
+    if (others.includes(name)) {
+        out.push('무작위 단계·고정 시간대 이름과 겹칠 수 없습니다');
+    }
+    return out;
 }
 
 /** 게시판 일괄 적용 폼의 형식 오류(경로는 백엔드와 같은 lucky.*). */

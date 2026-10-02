@@ -11,7 +11,7 @@ import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { getDisciplineIds } from '$lib/server/discipline-ids';
 import { collectLuckyRows, luckyFields, type LuckyHit } from '$lib/utils/lucky-badge';
-import { getLuckyTierNames } from '$lib/server/lucky-tier-names';
+import { getLuckyTierInfo, type LuckyTierInfo } from '$lib/server/lucky-tier-names';
 import { isValidBoardId } from '$lib/utils/board-id.js';
 import {
     applyAffiliateField,
@@ -334,8 +334,11 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
         // po_rel_table=슬러그, po_rel_id=wr_id(VARCHAR)라 문자열로 비교(인덱스 seek). 레거시 과거 당첨 포함.
         // 지급 문구(회차명)·시각도 같은 쿼리에서 읽는다. collectLuckyRows 가 백엔드와 같은 규칙으로
         // 모은다(금액=MAX, 회차명·시각=회차명 있는 가장 이른 행). 실패는 무시(배지 없이 진행).
-        // 회차명 허용 목록 = 기본 3개 + lucky_config 설정 이름. 설정은 30초 모듈 캐시로 읽는다(실패=기본 3개만).
-        const luckyTierNames = commentIds.length > 0 ? await getLuckyTierNames() : [];
+        // 회차명 허용 목록 = 기본 3개 + 평소 단계 이름(base_name, 기본 「앙팡」) + lucky_config 설정 이름.
+        // 「앙복타임 럭키 」 지난 문구는 현재 base_name 으로 표시한다. 설정은 30초 모듈 캐시로 읽는다
+        // (실패=기본 3개 + 「앙팡」만).
+        const luckyTier: LuckyTierInfo | null =
+            commentIds.length > 0 ? await getLuckyTierInfo() : null;
         let luckyMap = new Map<number, LuckyHit>();
         if (commentIds.length > 0) {
             try {
@@ -353,7 +356,8 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
                         content: 'po_content',
                         datetime: 'po_datetime'
                     },
-                    luckyTierNames
+                    luckyTier?.names ?? [],
+                    luckyTier?.baseName
                 );
             } catch (e) {
                 console.warn('[lucky] enrich(comments) failed:', e);
@@ -380,7 +384,8 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
                         content: 'xp_content',
                         datetime: 'xp_datetime'
                     },
-                    luckyTierNames
+                    luckyTier?.names ?? [],
+                    luckyTier?.baseName
                 );
             } catch (e) {
                 console.warn('[lucky] enrich-exp(comments) failed:', e);

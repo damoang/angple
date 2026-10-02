@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
     ALL_DAY_END,
     ALL_DAY_START,
+    baseNameChange,
+    baseNameErrors,
     buildBoardLuckyBody,
     buildPutConfigBody,
     clientBoardErrors,
@@ -33,6 +35,7 @@ function sampleConfig(): LuckyAdminConfig {
         expire_days: 30,
         window_start_hour: 1,
         window_end_hour: 5,
+        base_name: '평소A',
         windows: [
             {
                 name: '단계A',
@@ -81,6 +84,7 @@ describe('buildPutConfigBody (PUT 본문 = config 만)', () => {
                 'expire_days',
                 'window_start_hour',
                 'window_end_hour',
+                'base_name',
                 'windows',
                 'fixed_windows'
             ].sort()
@@ -113,6 +117,13 @@ describe('buildPutConfigBody (PUT 본문 = config 만)', () => {
         const body = buildPutConfigBody(cfg as unknown as LuckyAdminConfig);
         expect(body.windows).toEqual([]);
         expect(body.fixed_windows).toEqual([]);
+    });
+
+    it('평소 단계 이름(base_name)을 PUT 본문에 싣는다', () => {
+        const cfg = { ...sampleConfig(), base_name: '앙팡' };
+        const body = buildPutConfigBody(cfg);
+        expect(body.base_name).toBe('앙팡');
+        expect(JSON.parse(JSON.stringify(body)).base_name).toBe('앙팡');
     });
 
     it('JSON 문자열에 응답 전용 키가 없다', () => {
@@ -220,6 +231,65 @@ describe('removedTierNames (배지 라벨 사라짐 경고)', () => {
         const after = sampleConfig();
         after.windows = [];
         expect(removedTierNames(before, after)).toEqual([]);
+    });
+});
+
+describe('평소 단계 이름(base_name) 변경 경고', () => {
+    it('이름을 바꾸면 옛 이름이 사라지는 이름에 들어간다', () => {
+        const after = { ...sampleConfig(), base_name: '평소B' };
+        expect(removedTierNames(sampleConfig(), after)).toEqual(['평소A']);
+        expect(baseNameChange(sampleConfig(), after)).toEqual({ from: '평소A', to: '평소B' });
+    });
+
+    it('그대로면 경고 없음', () => {
+        expect(baseNameChange(sampleConfig(), sampleConfig())).toBeNull();
+    });
+
+    it('예전 설정(base_name 없음)은 기본 「앙팡」으로 본다', () => {
+        const before = sampleConfig() as unknown as Record<string, unknown>;
+        delete before.base_name;
+        const after = { ...sampleConfig(), base_name: '앙팡' };
+        expect(baseNameChange(before, after)).toBeNull();
+        expect(removedTierNames(before, after)).toEqual([]);
+        expect(baseNameChange(before, sampleConfig())).toEqual({ from: '앙팡', to: '평소A' });
+    });
+
+    it('평소 단계 이름을 무작위 단계 이름으로 옮기면 사라지지 않는다', () => {
+        const after = sampleConfig();
+        after.base_name = '평소B';
+        after.windows[0].name = '평소A';
+        expect(removedTierNames(sampleConfig(), after)).toEqual(['단계A']);
+    });
+});
+
+describe('baseNameErrors (평소 단계 이름 검사)', () => {
+    it('정상 이름은 오류 없음', () => {
+        expect(baseNameErrors(sampleConfig())).toEqual([]);
+        expect(baseNameErrors({ ...sampleConfig(), base_name: '가'.repeat(20) })).toEqual([]);
+    });
+
+    it('비었거나 20자를 넘으면 오류', () => {
+        expect(baseNameErrors({ ...sampleConfig(), base_name: '  ' })).toHaveLength(1);
+        expect(
+            baseNameErrors({ ...sampleConfig(), base_name: undefined as unknown as string })
+        ).toHaveLength(1);
+        expect(baseNameErrors({ ...sampleConfig(), base_name: '가'.repeat(21) })).toHaveLength(1);
+    });
+
+    it('「 럭키 」를 넣을 수 없다', () => {
+        expect(baseNameErrors({ ...sampleConfig(), base_name: '앙팡 럭키 타임' })).toHaveLength(1);
+    });
+
+    it('무작위 단계·고정 시간대 이름과 겹칠 수 없다', () => {
+        expect(baseNameErrors({ ...sampleConfig(), base_name: '단계A' })).toHaveLength(1);
+        expect(baseNameErrors({ ...sampleConfig(), base_name: ' 고정A ' })).toHaveLength(1);
+    });
+
+    it('clientFieldErrors 가 base_name 경로로 알린다', () => {
+        const fields = clientFieldErrors({ ...sampleConfig(), base_name: '' }).map(
+            (e) => e.field
+        );
+        expect(fields).toEqual(['base_name']);
     });
 });
 
