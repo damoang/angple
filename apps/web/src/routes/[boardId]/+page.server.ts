@@ -29,6 +29,11 @@ import { getBoardOwnerContext, getBoardIntro } from '$lib/server/board-owner';
 import { boardHasPostStatusFeature } from '$lib/server/post-status';
 import { sanitizeIntroHtml } from '$lib/server/sanitize';
 import { resolveClientIp } from '$lib/server/rate-limit.js';
+import {
+    listShelfEntities,
+    type AngttShelfEntity
+} from '$plugins/angtt-review/lib/entities.server';
+import { match as isEntitySlug } from '../../params/entityslug';
 
 // --- 인메모리 캐시: 비로그인 게시글 목록 (15초 TTL) ---
 interface PostsCacheData {
@@ -186,6 +191,29 @@ const inFlightPostsLoads = new Map<string, Promise<PostsCacheData>>();
 const DEFAULT_POSTS_TIMEOUT_MS = 12_000;
 const HOT_BOARD_POSTS_TIMEOUT_MS = 8_000;
 
+/** 앙티티 목록 「작품」 선반 — 최대 개수와 조회 상한 시간 */
+const ANGTT_SHELF_LIMIT = 12;
+const ANGTT_SHELF_TIMEOUT_MS = 1_500;
+
+/**
+ * 앙티티 「작품」 선반 데이터. 절대 reject 하지 않는다 — 실패·지연이면 빈 배열(선반 생략).
+ * 작품 페이지로 링크할 수 없는 slug(순수 숫자 등 /angtt/{번호} 글 URL 을 가리는 것)는 뺀다.
+ */
+async function loadAngttShelf(): Promise<AngttShelfEntity[]> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+        const timeout = new Promise<AngttShelfEntity[]>((resolve) => {
+            timer = setTimeout(() => resolve([]), ANGTT_SHELF_TIMEOUT_MS);
+        });
+        const list = await Promise.race([listShelfEntities({ limit: ANGTT_SHELF_LIMIT }), timeout]);
+        return list.filter((e) => isEntitySlug(e.slug));
+    } catch {
+        return [];
+    } finally {
+        if (timer) clearTimeout(timer);
+    }
+}
+
 /**
  * 게시판 목록 페이지
  *
@@ -296,6 +324,7 @@ export const load: PageServerLoad = async ({
             // 비로그인 경로라 당주일 수 없다. 모든 return 이 같은 필드를 가져야
             // postsData 타입이 합집합으로 갈라지지 않는다.
             canManageBoard: false,
+            angttShelf: [] as AngttShelfEntity[],
             streamed: { promotionData: Promise.resolve([] as unknown[]) }
         };
     }
@@ -400,6 +429,18 @@ export const load: PageServerLoad = async ({
     // ⛔ exclude_status(해결됨 숨기기)는 키의 한 차원이다 — 빠지면 필터된 목록이 전원에게 15초 배포되거나 토글이 헛돈다.
     const postsCacheKey = `${boardId}:p${page}:l${limit}${category ? `:c${category}` : ''}${messagePeriod ? `:period:${messagePeriod}` : ''}${useSummaryListResponse ? ':summary1' : ''}${excludeStatus ? `:x${excludeStatus}` : ''}`;
 
+    // 앙티티 「작품」 선반 — angtt 기본 목록 첫 페이지에서만 조회한다(다른 게시판은 쿼리 없음).
+    // 목록과 병렬로 출발하고, 실패·지연(1.5초)이면 빈 배열이라 페이지를 막지 않는다.
+    const angttShelfPromise: Promise<AngttShelfEntity[]> =
+        boardId === 'angtt' &&
+        page === 1 &&
+        !isSearching &&
+        !isTagFiltering &&
+        !category &&
+        !isDateMode
+            ? loadAngttShelf()
+            : Promise.resolve([]);
+
     // 처리 상태 기능(해결됨 숨기기 토글) 플래그 — 게시판 확장설정. 실패 시 false.
     // 캐시 hit 경로에도 실어야 익명에게 토글이 깜빡이지 않는다(모든 return 이 같은 필드).
     const postStatusEnabled = await boardHasPostStatusFeature(boardId);
@@ -416,6 +457,7 @@ export const load: PageServerLoad = async ({
                 // 비로그인 목록 캐시 경로 — 당주일 수 없다(위 return 과 필드를 맞춘다).
                 canManageBoard: false,
                 postStatusEnabled,
+                angttShelf: await angttShelfPromise,
                 streamed: { promotionData: Promise.resolve([] as unknown[]) }
             };
         }
@@ -952,6 +994,9 @@ export const load: PageServerLoad = async ({
         }
     }
 
+    // 앙티티 「작품」 선반 — 위에서 병렬로 출발시킨 것을 받는다(실패해도 빈 배열).
+    const angttShelf = await angttShelfPromise;
+
     return {
         boardId,
         boardIntroHtml,
@@ -963,6 +1008,7 @@ export const load: PageServerLoad = async ({
         promotionData,
         canManageBoard,
         postStatusEnabled,
+        angttShelf,
         streamed: {
             promotionData: promotionDataPromise ?? Promise.resolve([] as unknown[])
         }

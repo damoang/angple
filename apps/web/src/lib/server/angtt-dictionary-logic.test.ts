@@ -7,6 +7,8 @@ import {
     matchWorkFromTags,
     scanAliasesInTitle,
     matchAliasFromTags,
+    pickEntityFallback,
+    decideAngttCard,
     type EntityAlias
 } from './angtt-dictionary-logic';
 
@@ -304,5 +306,92 @@ describe('matchAliasFromTags — 태그 정확 일치로 작품 찾기 (쓰기 �
 
     it('「앙티티」 태그 자신은 후보에서 제외', () => {
         expect(matchAliasFromTags([ANGTT_TAG], ALIASES)).toBeNull();
+    });
+});
+
+describe('decideAngttCard — 카드 판정 (사전 → 엔티티 폴백 → 등록 유도)', () => {
+    // angtt 글 제목 사전: 표기가 다른 글(「오딧세이」)만 있고 「오디세이」 글은 없다.
+    const dict = buildDictionary([
+        { wrId: 7372, title: '스파이더맨 - 브랜드뉴데이', thumbnail: 'spider.jpg' },
+        { wrId: 7400, title: '오딧세이 보고 왔습니다', thumbnail: '' }
+    ]);
+    // 엔티티 색인: 정규화 키 → 작품(정본 angple_entities 에서 만든 것과 같은 모양)
+    const index = new Map([
+        ['오디세이', { slug: '오디세이', title: '오디세이' }],
+        ['odyssey', { slug: '오디세이', title: '오디세이' }],
+        ['참교육', { slug: '참교육', title: '참교육' }]
+    ]);
+
+    it('① 사전 미스 + 엔티티 히트 → 엔티티 카드 (작품 페이지로 링크)', () => {
+        expect(decideAngttCard([ANGTT_TAG, '오디세이'], dict, index)).toEqual({
+            kind: 'entity',
+            entity: { slug: '오디세이', title: '오디세이' }
+        });
+        // 별칭·대소문자 차이도 정규화 키로 찾는다
+        expect(decideAngttCard([ANGTT_TAG, ' Odyssey '], dict, index)).toEqual({
+            kind: 'entity',
+            entity: { slug: '오디세이', title: '오디세이' }
+        });
+    });
+
+    it('① 첫 태그가 미등록이어도 뒤 태그가 엔티티면 엔티티 카드', () => {
+        const result = decideAngttCard([ANGTT_TAG, '영화', '참교육'], dict, index);
+        expect(result).toEqual({ kind: 'entity', entity: { slug: '참교육', title: '참교육' } });
+    });
+
+    it('② 사전 미스 + 엔티티 미스 → notFound (첫 후보 태그 원문)', () => {
+        expect(decideAngttCard([ANGTT_TAG, ' 사일로 ', '드라마'], dict, index)).toEqual({
+            kind: 'notFound',
+            query: '사일로'
+        });
+    });
+
+    it('③ 「앙티티」 태그만 있음 → null (카드 없음)', () => {
+        expect(decideAngttCard([ANGTT_TAG], dict, index)).toBeNull();
+        expect(decideAngttCard([ANGTT_TAG, '  '], dict, index)).toBeNull();
+    });
+
+    it('③ 「앙티티」 태그가 없으면 엔티티가 있어도 null (게이트 유지 — 오탐 방지)', () => {
+        expect(decideAngttCard(['오디세이'], dict, index)).toBeNull();
+        expect(decideAngttCard(['참교육', '영화'], dict, index)).toBeNull();
+    });
+
+    it('④ 사전 히트 → 기존 work 경로 (엔티티 폴백보다 우선)', () => {
+        expect(decideAngttCard([ANGTT_TAG, '스파이더맨-브랜드뉴데이'], dict, index)).toEqual({
+            kind: 'work',
+            work: { wrId: 7372, title: '스파이더맨 - 브랜드뉴데이', thumbnail: 'spider.jpg' }
+        });
+    });
+
+    it('엔티티 색인이 비어 있으면(조회 실패) notFound 로 떨어진다 — 예외 없음', () => {
+        expect(decideAngttCard([ANGTT_TAG, '오디세이'], dict, new Map())).toEqual({
+            kind: 'notFound',
+            query: '오디세이'
+        });
+    });
+});
+
+describe('pickEntityFallback — 엔티티 폴백은 { query } 결과에서만 동작한다', () => {
+    const index = new Map([['오디세이', 'odyssey-entity']]);
+
+    it('⛔ 회귀: matchWorkFromTags 의 미스 결과는 { query } 다 — notFound 키가 아니다', () => {
+        const match = matchWorkFromTags([ANGTT_TAG, '오디세이'], new Map());
+        expect(match).toEqual({ query: '오디세이' });
+        expect(match && 'notFound' in match).toBe(false);
+        expect(pickEntityFallback(match, [ANGTT_TAG, '오디세이'], index)).toBe('odyssey-entity');
+    });
+
+    it('사전 히트({ work })면 폴백하지 않는다', () => {
+        const match = { work: { wrId: 1, title: '오디세이', thumbnail: '' } };
+        expect(pickEntityFallback(match, [ANGTT_TAG, '오디세이'], index)).toBeNull();
+    });
+
+    it('null 이면 null', () => {
+        expect(pickEntityFallback(null, [ANGTT_TAG], index)).toBeNull();
+    });
+
+    it('「앙티티」 태그 자신은 엔티티 키로 보지 않는다', () => {
+        const withAngttKey = new Map([[normalizeWorkTitle(ANGTT_TAG), 'wrong']]);
+        expect(pickEntityFallback({ query: 'x' }, [ANGTT_TAG, 'x'], withAngttKey)).toBeNull();
     });
 });
