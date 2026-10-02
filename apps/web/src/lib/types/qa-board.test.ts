@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseQAInfo, getQAStatusLabel, getQAStatusColor } from './qa-board';
+import { parseQAInfo, getQAStatusLabel, getQAStatusColor, isQaBoard } from './qa-board';
 import type { QAStatus } from './qa-board';
 import type { FreePost } from '$lib/api/types.js';
 
@@ -119,5 +119,28 @@ describe('getQAStatusColor', () => {
         for (const status of statuses) {
             expect(typeof getQAStatusColor(status)).toBe('string');
         }
+    });
+});
+
+describe('isQaBoard', () => {
+    it('board_type 이 standard 여도 게시판 id 가 qa 면 true', () => {
+        expect(isQaBoard('qa', 'standard')).toBe(true);
+    });
+
+    it('board_type 이 없어도 게시판 id 가 qa 면 true', () => {
+        expect(isQaBoard('qa', undefined)).toBe(true);
+        expect(isQaBoard('qa', null)).toBe(true);
+    });
+
+    it('다른 게시판 id 라도 board_type 이 qa 면 true', () => {
+        expect(isQaBoard('free', 'qa')).toBe(true);
+    });
+
+    it('일반 게시판은 false', () => {
+        expect(isQaBoard('free', 'standard')).toBe(false);
+    });
+
+    it('앙지도 게시판은 false', () => {
+        expect(isQaBoard('angmap', 'standard')).toBe(false);
     });
 });

@@ -53,3 +53,14 @@ export function getQAStatusColor(status: QAStatus): string {
             return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
     }
 }
+
+/**
+ * Q&A 게시판인지 판정한다.
+ *
+ * 게시판 API 는 board_type 이 비어 있는 게시판에 'standard' 를 내려준다. board_type 만
+ * 믿으면 Q&A 게시판을 일반 게시판으로 오판하므로 게시판 id 를 먼저 본다.
+ * (앙지도의 isAngmapBoard 와 같은 방식)
+ */
+export function isQaBoard(boardId: string, boardType?: string | null): boolean {
+    return boardId === 'qa' || boardType === 'qa';
+}

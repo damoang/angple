@@ -92,6 +92,8 @@
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginLib } from '$lib/utils/plugin-optional-loader';
     import Trash2 from '@lucide/svelte/icons/trash-2';
+    import { isAngmapBoard as detectAngmapBoard } from '$lib/utils/angmap-link';
+    import { isQaBoard } from '$lib/types/qa-board.js';
 
     // Q&A 게시판 타입 등록
     boardTypeRegistry.register('qa', QAPostList, 'core');
@@ -125,12 +127,15 @@
                       ? 'economy'
                       : 'standard')
     );
-    const isAngmapBoard = $derived(boardType === 'angmap');
+    // 앙지도·Q&A 는 게시판 id 로도 판정한다 — API 가 비어 있는 board_type 을 'standard' 로 준다.
+    const isAngmapBoard = $derived(detectAngmapBoard(boardId, boardType));
     const isEconomyBoard = $derived(boardType === 'economy');
     const isMessageBoard = $derived(boardId === 'message');
 
     // 플러그인 레지스트리에서 특수 게시판 컴포넌트 resolve
-    const boardTypeComponent = $derived(boardTypeRegistry.resolve(boardType));
+    const boardTypeComponent = $derived(
+        boardTypeRegistry.resolve(isQaBoard(boardId, boardType) ? 'qa' : boardType)
+    );
 
     // 목록 보기 권한 체크 (list_level이 0보다 크고 인증된 경우에만 체크)
     const canList = $derived.by(() => {
@@ -1123,7 +1128,8 @@
 <!-- 특수 게시판: 플러그인 레지스트리 기반 동적 로딩 -->
 {#if boardTypeComponent}
     {@const BoardTypeComponent = boardTypeComponent}
-    <BoardTypeComponent {data} />
+    <!-- QAPostList 는 data 가 아니라 boardId·boardTitle 을 받는다 -->
+    <BoardTypeComponent {data} {boardId} {boardTitle} />
 {:else}
     <SeoHead config={seoConfig} />
 
