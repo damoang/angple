@@ -2,6 +2,7 @@
 import '$lib/server/telemetry.js';
 import { isClientRecoveryEnabled, injectRecoveryFlag } from '$lib/server/client-recovery-flag.js';
 import { shouldSendCsp } from '$lib/server/csp-scope.js';
+import { hasAuthCookie, shouldPublicCacheNotFound } from '$lib/server/not-found-cache.js';
 import {
     trackInflightStart,
     trackInflightEnd,
@@ -282,18 +283,6 @@ const POST_DETAIL_REGEX = /^\/[a-z][a-z0-9_-]{1,20}\/\d+$/;
  * bot/legacy URL 이 반복 요청해서 origin 부담을 일으키는 패턴에 한정.
  * CloudFront 통계: /theme/* = 0% hit / 48 GB/7d uncached (2026-06-03 측정).
  */
-function isCacheableNotFoundPath(pathname: string): boolean {
-    return (
-        pathname.startsWith('/theme/') ||
-        pathname.startsWith('/themes/') ||
-        pathname.startsWith('/wp-') ||
-        pathname.startsWith('/wordpress/') ||
-        pathname.endsWith('.php') ||
-        pathname.endsWith('.asp') ||
-        pathname.endsWith('.aspx')
-    );
-}
-
 function isPostDetailPath(pathname: string): boolean {
     return POST_DETAIL_REGEX.test(pathname);
 }
@@ -1395,8 +1384,16 @@ const handleInner: Handle = async ({ event, resolve }) => {
         // 비로그인 사용자의 글 상세
         response.headers.set('Cache-Control', publicHtmlCacheControl);
         mergeVarySet(response, publicVaryHeader);
-    } else if (response.status === 404 && isCacheableNotFoundPath(pathname)) {
+    } else if (
+        shouldPublicCacheNotFound({
+            status: response.status,
+            pathname,
+            hasUser: Boolean(event.locals.user),
+            hasAuthCookie: hasAuthCookie((name) => event.cookies.get(name), SESSION_COOKIE_NAME)
+        })
+    ) {
         // bot/legacy URL 의 known-static 경로 404 = origin 부담 ↓
+        // ⛔ 비로그인·무쿠키 요청의 404 만 — 공개 캐시는 누구에게나 같은 응답에만 쓴다.
         // CloudFront 통계상 /theme/* = 0% hit / 48 GB/7d uncached origin fetch.
         // CDN 1h + browser 10min cache 로 동일 invalid path 반복 요청 흡수.
         response.headers.set('Cache-Control', 'public, s-maxage=3600, max-age=600');
