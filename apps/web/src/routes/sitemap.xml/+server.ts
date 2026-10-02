@@ -35,6 +35,11 @@ export const GET: RequestHandler = async ({ url }) => {
         `  <sitemap>
     <loc>${siteUrl}/sitemap-boards.xml</loc>
     <lastmod>${now}</lastmod>
+  </sitemap>`,
+        // 앙티티 작품 페이지 (별점·연결 글이 있는 작품만)
+        `  <sitemap>
+    <loc>${siteUrl}/sitemap-angtt.xml</loc>
+    <lastmod>${now}</lastmod>
   </sitemap>`
     ];
 
