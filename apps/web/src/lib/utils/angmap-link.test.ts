@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findMapLink, normalizeMapUrl, isSupportedMapUrl } from './angmap-link';
+import { findMapLink, normalizeMapUrl, isSupportedMapUrl, isAngmapBoard } from './angmap-link';
 
 describe('normalizeMapUrl', () => {
     it('strips zero-width characters (실측: kko.to 링크 끝 U+200B)', () => {
@@ -73,5 +73,27 @@ describe('findMapLink', () => {
     it('does not absorb Korean text following the URL', () => {
         const text = '위치는 https://naver.me/AbCd12이에요';
         expect(findMapLink(text)).toBe('https://naver.me/AbCd12');
+    });
+});
+
+describe('isAngmapBoard', () => {
+    it('detects angmap by board id even when board_type is standard', () => {
+        expect(isAngmapBoard('angmap', 'standard')).toBe(true);
+    });
+
+    it('detects angmap by board id when board_type is missing', () => {
+        expect(isAngmapBoard('angmap', undefined)).toBe(true);
+    });
+
+    it('detects angmap by board_type for other board ids', () => {
+        expect(isAngmapBoard('free', 'angmap')).toBe(true);
+    });
+
+    it('returns false for a standard board', () => {
+        expect(isAngmapBoard('free', 'standard')).toBe(false);
+    });
+
+    it('returns false for the qa board', () => {
+        expect(isAngmapBoard('qa', 'standard')).toBe(false);
     });
 });

@@ -82,3 +82,15 @@ export function findMapLink(text: string): string | null {
     }
     return null;
 }
+
+/**
+ * 앙지도 게시판인지 판정한다.
+ *
+ * 게시판 API 가 board_type 을 내려주기 시작한 뒤로, 값이 비어 있는 게시판은
+ * 'standard' 로 채워져 온다. 화면이 board_type 만 믿으면 앙지도 게시판을 일반 게시판으로
+ * 오판해 핀 지도·미니맵이 통째로 사라진다. 그래서 게시판 id 를 먼저 본다.
+ * board_type 값 자체는 바꾸지 않는다(다른 분기에 영향 없게).
+ */
+export function isAngmapBoard(boardId: string, boardType?: string | null): boolean {
+    return boardId === 'angmap' || boardType === 'angmap';
+}

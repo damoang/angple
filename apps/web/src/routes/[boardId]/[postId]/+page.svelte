@@ -42,6 +42,7 @@
     import RecentPosts from '$lib/components/features/board/recent-posts.svelte';
     import AngttConnectCard from '$lib/components/features/board/angtt-connect-card.svelte';
     import AngmapPlaceMap from '$lib/components/features/board/angmap-place-map.svelte';
+    import { isAngmapBoard as detectAngmapBoard } from '$lib/utils/angmap-link';
     import { BOARD_LIST_PAGE_SIZE } from '$lib/constants/board';
     import { ReportDialog } from '$lib/components/features/report/index.js';
     import type { FreeComment, FreePost, LikerInfo, PostRevision } from '$lib/api/types.js';
@@ -384,6 +385,8 @@
                       ? 'economy'
                       : 'standard')
     );
+    // 앙지도는 게시판 id 로도 판정한다 — API 가 비어 있는 board_type 을 'standard' 로 준다.
+    const isAngmapBoard = $derived(detectAngmapBoard(boardId, boardType));
     const isUsedMarket = $derived(boardType === 'used-market');
 
     // 플러그인 슬롯
@@ -2791,14 +2794,14 @@
         {/if}
 
         <!-- 앙지도 상세 단일 핀 미니맵 — 좌표 확보 글에만(서버 주입). 좌표 없으면 미표시(빈 박스 금지). -->
-        {#if boardType === 'angmap' && data.angmapPlace}
+        {#if isAngmapBoard && data.angmapPlace}
             <AngmapPlaceMap
                 lat={data.angmapPlace.lat}
                 lng={data.angmapPlace.lng}
                 name={data.angmapPlace.name}
                 mapUrl={data.post.link1 || data.post.link2 || null}
             />
-        {:else if boardType === 'angmap' && isAuthor && (data.post.link1 || data.post.link2)}
+        {:else if isAngmapBoard && isAuthor && (data.post.link1 || data.post.link2)}
             <!-- 핀 미등록 + 작성자 + 지도 링크 존재 → 재시도 경로 (M-1b).
                  등록이 작성 직후 fire-and-forget 이라 탭을 바로 닫으면 핀이 영구 소실되던
                  구멍의 복구 수단. 서버가 작성자·링크를 재검증하므로 버튼은 단순 트리거다. -->

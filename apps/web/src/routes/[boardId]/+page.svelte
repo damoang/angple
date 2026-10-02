@@ -92,6 +92,7 @@
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginLib } from '$lib/utils/plugin-optional-loader';
     import Trash2 from '@lucide/svelte/icons/trash-2';
+    import { isAngmapBoard as detectAngmapBoard } from '$lib/utils/angmap-link';
 
     // Q&A 게시판 타입 등록
     boardTypeRegistry.register('qa', QAPostList, 'core');
@@ -125,7 +126,8 @@
                       ? 'economy'
                       : 'standard')
     );
-    const isAngmapBoard = $derived(boardType === 'angmap');
+    // 앙지도는 게시판 id 로도 판정한다 — API 가 비어 있는 board_type 을 'standard' 로 준다.
+    const isAngmapBoard = $derived(detectAngmapBoard(boardId, boardType));
     const isEconomyBoard = $derived(boardType === 'economy');
     const isMessageBoard = $derived(boardId === 'message');
 
