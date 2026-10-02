@@ -17,6 +17,7 @@
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { widgetLayoutStore } from '$lib/stores/widget-layout.svelte';
     import type { ActivePlugin } from '$lib/stores/plugin.svelte';
+    import { shouldRefreshActivePlugins } from '$lib/utils/active-plugins-refresh.js';
     import { menuStore } from '$lib/stores/menu.svelte';
     import { tagNavMenusStore } from '$lib/stores/tagnav-menus.svelte';
     import { loadThemeHooks } from '$lib/hooks/theme-loader';
@@ -993,7 +994,14 @@
         // 플러그인 hooks/components 지연 로드 (SSR에서는 hooks 빈 배열로 전달하여 __data.json 축소)
         // Option C 3단계: activePlugins 는 CDN 캐시(layout/hooks·layout/init)에서 분리하고
         // no-store 인 /api/plugins/active 에서 직접 가져온다 → admin 토글 즉시 반영.
-        if ((data.activePlugins?.length ?? 0) > 0) {
+        // 이 호출은 「캐시된 페이지에 실려 온 목록이 낡았을 때 바로잡기」용이다. 로그인 응답은
+        // 캐시되지 않고 같은 서버 캐시에서 목록을 읽으므로 이미 최신이다 — 부르지 않는다.
+        if (
+            shouldRefreshActivePlugins({
+                ssrPluginCount: data.activePlugins?.length ?? 0,
+                ssrLoggedIn: data.isLoggedIn
+            })
+        ) {
             fetch('/api/plugins/active')
                 .then((res) => (res.ok ? res.json() : null))
                 .then((payload: { plugins?: typeof data.activePlugins } | null) => {
