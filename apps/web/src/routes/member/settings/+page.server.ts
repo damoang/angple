@@ -129,20 +129,6 @@ export const actions: Actions = {
         return { success: true, message: '비밀번호가 변경되었습니다.' };
     },
 
-    updateAvatar: async ({ request, locals }) => {
-        if (!locals.user) return fail(401, { error: '로그인이 필요합니다.' });
-
-        const formData = await request.formData();
-        const avatarUrl = (formData.get('avatar_url') as string) || '';
-
-        const result = await updateProfile(locals.user.id!, { mb_image_url: avatarUrl });
-        if (!result.success) {
-            return fail(400, { error: result.error });
-        }
-
-        return { success: true, message: '프로필 사진이 변경되었습니다.' };
-    },
-
     updateProfile: async ({ request, locals }) => {
         if (!locals.user) return fail(401, { error: '로그인이 필요합니다.' });
 

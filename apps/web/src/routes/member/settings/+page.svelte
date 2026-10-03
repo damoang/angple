@@ -31,6 +31,8 @@
     import { enhance } from '$app/forms';
     import { invalidateAll } from '$app/navigation';
     import { getAvatarUrl } from '$lib/utils/member-icon';
+    import { MEMBER_IMAGE_ACCEPT, validateMemberImageFile } from '$lib/utils/member-image-upload';
+    import { apiClient } from '$lib/api/index.js';
     import MyNav from '$lib/components/features/my/my-nav.svelte';
 
     let { data }: { data: PageData } = $props();
@@ -66,25 +68,20 @@
             ? getAvatarUrl(data.profile.mb_image_url, data.profile?.mb_image_updated_at)
             : null
     );
-    let avatarFormRef = $state<HTMLFormElement | null>(null);
-    let avatarUrlInput = $state('');
-
     let fileInputRef = $state<HTMLInputElement | null>(null);
 
+    // 프로필 사진 업로드 — 전용 API(/api/members/me/image)가 저장·DB 갱신까지 처리한다
     async function handleAvatarFileChange(event: Event) {
         const input = event.target as HTMLInputElement;
         const file = input.files?.[0];
         if (!file) return;
 
-        // 파일 크기 체크 (5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            avatarError = '파일 크기는 5MB 이하여야 합니다.';
-            return;
-        }
-
-        // 이미지 타입 체크
-        if (!file.type.startsWith('image/')) {
-            avatarError = '이미지 파일만 업로드 가능합니다.';
+        // 형식(JPG/PNG/GIF/WebP)·크기(5MB) 검사
+        const invalid = validateMemberImageFile(file);
+        if (invalid) {
+            avatarSuccess = null;
+            avatarError = invalid;
+            input.value = '';
             return;
         }
 
@@ -93,36 +90,38 @@
         avatarSuccess = null;
 
         try {
-            // S3 업로드
-            const formData = new FormData();
-            formData.append('file', file);
-            const res = await fetch('/api/media/images', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!res.ok) {
-                const errData = await res.json().catch(() => null);
-                throw new Error(errData?.error || '업로드에 실패했습니다.');
+            const result = await apiClient.uploadMemberImage(file);
+            if (result?.url) {
+                currentAvatarUrl = getAvatarUrl(result.url);
             }
-
-            const result = await res.json();
-            const uploadedUrl = result.data?.cdn_url || result.data?.url;
-            if (!uploadedUrl) throw new Error('업로드 URL을 받지 못했습니다.');
-
-            // form action으로 DB 업데이트
-            avatarUrlInput = uploadedUrl;
-
-            // 약간의 딜레이 후 폼 제출 (state 반영 대기)
-            await new Promise((r) => setTimeout(r, 50));
-            avatarFormRef?.requestSubmit();
+            avatarSuccess = '프로필 사진이 변경되었습니다.';
+            await invalidateAll();
         } catch (err) {
             avatarError = err instanceof Error ? err.message : '업로드에 실패했습니다.';
+        } finally {
+            avatarUploading = false;
+            // input 리셋
+            input.value = '';
+        }
+    }
+
+    // 프로필 사진 삭제 — 전용 API 사용
+    async function handleAvatarDelete() {
+        if (avatarUploading) return;
+        avatarUploading = true;
+        avatarError = null;
+        avatarSuccess = null;
+
+        try {
+            await apiClient.deleteMemberImage();
+            currentAvatarUrl = null;
+            avatarSuccess = '프로필 사진이 삭제되었습니다.';
+            await invalidateAll();
+        } catch (err) {
+            avatarError = err instanceof Error ? err.message : '삭제에 실패했습니다.';
+        } finally {
             avatarUploading = false;
         }
-
-        // input 리셋
-        input.value = '';
     }
 
     const providerNames: Record<string, string> = {
@@ -291,7 +290,7 @@
                         프로필 사진
                     </CardTitle>
                     <CardDescription
-                        >프로필 사진을 변경합니다. (5MB 이하, 이미지 파일)</CardDescription
+                        >프로필 사진을 변경합니다. (5MB 이하, JPG·PNG·GIF·WebP)</CardDescription
                     >
                 </CardHeader>
                 <CardContent>
@@ -327,7 +326,7 @@
                             <input
                                 bind:this={fileInputRef}
                                 type="file"
-                                accept="image/*"
+                                accept={MEMBER_IMAGE_ACCEPT}
                                 class="hidden"
                                 onchange={handleAvatarFileChange}
                             />
@@ -346,40 +345,18 @@
                             </Button>
 
                             {#if currentAvatarUrl}
-                                <form
-                                    method="POST"
-                                    action="?/updateAvatar"
-                                    use:enhance={() => {
-                                        avatarSuccess = null;
-                                        avatarError = null;
-                                        return async ({ result }) => {
-                                            if (result.type === 'success') {
-                                                avatarSuccess = '프로필 사진이 삭제되었습니다.';
-                                                currentAvatarUrl = null;
-                                                await invalidateAll();
-                                            } else if (result.type === 'failure') {
-                                                avatarError =
-                                                    (result.data?.error as string) ||
-                                                    '삭제에 실패했습니다.';
-                                            }
-                                        };
-                                    }}
-                                >
-                                    <input
-                                        type="hidden"
-                                        name="_csrf"
-                                        value={data.csrfToken ?? ''}
-                                    />
-                                    <input type="hidden" name="avatar_url" value="" />
+                                <div>
                                     <Button
-                                        type="submit"
+                                        type="button"
                                         variant="ghost"
                                         size="sm"
                                         class="text-muted-foreground"
+                                        onclick={handleAvatarDelete}
+                                        disabled={avatarUploading}
                                     >
                                         사진 삭제
                                     </Button>
-                                </form>
+                                </div>
                             {/if}
 
                             {#if avatarSuccess}
@@ -394,32 +371,6 @@
                             {/if}
                         </div>
                     </div>
-
-                    <!-- 숨겨진 폼: S3 업로드 후 DB 업데이트용 -->
-                    <form
-                        bind:this={avatarFormRef}
-                        method="POST"
-                        action="?/updateAvatar"
-                        class="hidden"
-                        use:enhance={() => {
-                            return async ({ result }) => {
-                                avatarUploading = false;
-                                if (result.type === 'success') {
-                                    avatarSuccess = '프로필 사진이 변경되었습니다.';
-                                    currentAvatarUrl = avatarUrlInput;
-                                    await invalidateAll();
-                                } else if (result.type === 'failure') {
-                                    avatarError =
-                                        (result.data?.error as string) || '저장에 실패했습니다.';
-                                } else if (result.type === 'error') {
-                                    avatarError = '서버 오류가 발생했습니다.';
-                                }
-                            };
-                        }}
-                    >
-                        <input type="hidden" name="_csrf" value={data.csrfToken ?? ''} />
-                        <input type="hidden" name="avatar_url" value={avatarUrlInput} />
-                    </form>
                 </CardContent>
             </Card>
         {/if}

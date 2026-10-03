@@ -351,6 +351,10 @@ export async function changePassword(
     return { success: true };
 }
 
+/** 회원 이미지 상대 키 (data/member_image/{ab}/{file}.{ext}) */
+const MEMBER_IMAGE_KEY_PATTERN =
+    /^data\/member_image\/[^/.][^/]*\/[^/.][^/]*\.(jpe?g|png|gif|webp)$/i;
+
 /**
  * 프로필 설정 업데이트
  * - 홈페이지, 서명, 프로필 공개, 메일링
@@ -369,18 +373,10 @@ export async function updateProfile(
     const values: (string | number)[] = [];
 
     if (fields.mb_image_url !== undefined) {
-        // 빈 문자열(삭제) 또는 S3/CDN/R2 URL만 허용
-        // r2.damoang.net: R2 read 전환(2026-06)으로 업로드가 R2 URL 을 반환 — 누락 시
-        // 프로필 사진 변경이 전부 거절됨 (#12626)
-        const ALLOWED_CDN_PREFIXES = [
-            'https://s3.damoang.net/',
-            'https://cdn.damoang.net/',
-            'https://r2.damoang.net/'
-        ];
-        if (
-            fields.mb_image_url &&
-            !ALLOWED_CDN_PREFIXES.some((p) => fields.mb_image_url!.startsWith(p))
-        ) {
+        // 빈 문자열(삭제) 또는 회원 이미지 상대 키만 허용.
+        // 업로드는 전용 API(/api/members/me/image)가 저장·DB 갱신까지 처리하므로
+        // 외부 URL 을 아바타로 지정하는 경로는 두지 않는다.
+        if (fields.mb_image_url && !MEMBER_IMAGE_KEY_PATTERN.test(fields.mb_image_url)) {
             return { success: false, error: '유효하지 않은 이미지 URL입니다.' };
         }
         updates.push('mb_image_url = ?', 'mb_image_updated_at = NOW()');

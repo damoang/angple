@@ -7,8 +7,14 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/private';
 import { getAuthUser, verifyToken } from '$lib/server/auth/index.js';
-import { getMemberById } from '$lib/server/auth/oauth/member.js';
+import { getMemberById, invalidateMemberCache } from '$lib/server/auth/oauth/member.js';
 import { issueUserBasicCookie } from '$lib/server/auth/user-basic.js';
+import {
+    backendErrorMessage,
+    loadFreshMember,
+    parseBackendBody,
+    resolveProxyToken
+} from '$lib/server/auth/member-image-proxy.js';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
@@ -23,7 +29,11 @@ async function refreshUserBasic(
     try {
         const payload = await verifyToken(token);
         if (!payload?.sub) return;
-        const member = await getMemberById(payload.sub);
+        // memberCache 에 남은 이전 이미지로 재발행하지 않도록 캐시를 먼저 비운다
+        const member = await loadFreshMember(payload.sub, {
+            invalidate: invalidateMemberCache,
+            load: getMemberById
+        });
         if (!member) return;
         const updatedAtTs = member.mb_image_updated_at
             ? Math.floor(new Date(member.mb_image_updated_at).getTime() / 1000)
@@ -72,8 +82,8 @@ async function getAccessToken(
     return '';
 }
 
-export const POST: RequestHandler = async ({ request, cookies }) => {
-    const token = await getAccessToken(request, cookies);
+export const POST: RequestHandler = async ({ request, cookies, locals }) => {
+    const token = resolveProxyToken(await getAccessToken(request, cookies), locals.accessToken);
     if (!token) {
         error(401, '로그인이 필요합니다.');
     }
@@ -94,19 +104,19 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         body: proxyForm
     });
 
-    const body = await res.json();
+    const body = parseBackendBody(await res.text().catch(() => ''));
     if (!res.ok) {
-        error(res.status, body.error || '이미지 업로드에 실패했습니다.');
+        error(res.status, backendErrorMessage(body, '이미지 업로드에 실패했습니다.'));
     }
 
     // Phase A 확장: 이미지 변경됨 → user_basic 쿠키 재발행 (stale 방지)
     await refreshUserBasic(token, cookies);
 
-    return json(body);
+    return json(body ?? {});
 };
 
-export const DELETE: RequestHandler = async ({ request, cookies }) => {
-    const token = await getAccessToken(request, cookies);
+export const DELETE: RequestHandler = async ({ request, cookies, locals }) => {
+    const token = resolveProxyToken(await getAccessToken(request, cookies), locals.accessToken);
     if (!token) {
         error(401, '로그인이 필요합니다.');
     }
@@ -116,13 +126,13 @@ export const DELETE: RequestHandler = async ({ request, cookies }) => {
         headers: { Authorization: `Bearer ${token}` }
     });
 
-    const body = await res.json();
+    const body = parseBackendBody(await res.text().catch(() => ''));
     if (!res.ok) {
-        error(res.status, body.error || '이미지 삭제에 실패했습니다.');
+        error(res.status, backendErrorMessage(body, '이미지 삭제에 실패했습니다.'));
     }
 
     // Phase A 확장: 이미지 삭제됨 → user_basic 쿠키 재발행
     await refreshUserBasic(token, cookies);
 
-    return json(body);
+    return json(body ?? {});
 };

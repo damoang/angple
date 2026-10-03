@@ -9,6 +9,7 @@
     import type { PageData } from './$types.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { getAvatarUrl } from '$lib/utils/member-icon.js';
+    import { MEMBER_IMAGE_ACCEPT, validateMemberImageFile } from '$lib/utils/member-image-upload';
     import { apiClient } from '$lib/api/index.js';
     import { blockedUsersStore } from '$lib/stores/blocked-users.svelte';
     import { goto } from '$app/navigation';
@@ -90,19 +91,18 @@
         const file = input.files?.[0];
         if (!file) return;
 
-        if (!file.type.startsWith('image/')) {
-            alert('이미지 파일만 업로드할 수 있습니다.');
-            return;
-        }
-        if (file.size > 2 * 1024 * 1024) {
-            alert('파일 크기가 너무 큽니다. (최대 2MB)');
+        // 형식(JPG/PNG/GIF/WebP)·크기(5MB) 검사 — 서버 상한과 같은 문구
+        const invalid = validateMemberImageFile(file);
+        if (invalid) {
+            alert(invalid);
+            input.value = '';
             return;
         }
 
         imageUploading = true;
         try {
             const result = await apiClient.uploadMemberImage(file);
-            overrideImageUrl = result.url;
+            overrideImageUrl = getAvatarUrl(result.url);
             profileIconFailed = false;
         } catch (err) {
             alert(err instanceof Error ? err.message : '이미지 업로드에 실패했습니다.');
@@ -437,7 +437,7 @@
                             {/if}
                             <input
                                 type="file"
-                                accept="image/jpeg,image/png,image/gif,image/webp"
+                                accept={MEMBER_IMAGE_ACCEPT}
                                 class="hidden"
                                 bind:this={imageFileInput}
                                 onchange={handleImageSelect}
