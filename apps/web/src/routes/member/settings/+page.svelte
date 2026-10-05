@@ -33,6 +33,7 @@
     import { getAvatarUrl } from '$lib/utils/member-icon';
     import { MEMBER_IMAGE_ACCEPT, validateMemberImageFile } from '$lib/utils/member-image-upload';
     import { apiClient } from '$lib/api/index.js';
+    import { authActions } from '$lib/stores/auth.svelte.js';
     import MyNav from '$lib/components/features/my/my-nav.svelte';
 
     let { data }: { data: PageData } = $props();
@@ -93,6 +94,8 @@
             const result = await apiClient.uploadMemberImage(file);
             if (result?.url) {
                 currentAvatarUrl = getAvatarUrl(result.url);
+                // 헤더·위젯도 바로 새 사진으로. 이어지는 invalidateAll 이 옛 값으로 덮지 않는다
+                authActions.setAvatar(result.url);
             }
             avatarSuccess = '프로필 사진이 변경되었습니다.';
             await invalidateAll();
@@ -115,6 +118,7 @@
         try {
             await apiClient.deleteMemberImage();
             currentAvatarUrl = null;
+            authActions.setAvatar(null);
             avatarSuccess = '프로필 사진이 삭제되었습니다.';
             await invalidateAll();
         } catch (err) {

@@ -67,6 +67,73 @@ export function parseUserBasicCookie(encoded: string | null | undefined): UserBa
     }
 }
 
+/** user_basic 을 만드는 데 필요한 회원 필드(g5_member 행의 부분집합). */
+export interface UserBasicMemberSource {
+    mb_id: string;
+    mb_no?: number;
+    mb_nick?: string | null;
+    mb_name?: string | null;
+    mb_level?: number | null;
+    as_level?: number | null;
+    mb_certify?: string | null;
+    mb_image_url?: string | null;
+    mb_image_updated_at?: string | Date | null;
+}
+
+/**
+ * 이미지 갱신 시각(ISO 문자열 또는 Date)을 Unix 초로 바꾼다. 비었거나 해석할 수 없으면 null.
+ */
+export function toImageUnixSeconds(value: string | Date | null | undefined): number | null {
+    if (!value) return null;
+    // NaN(해석 불가)·0 은 null — hooks 가 쓰던 `|| null` 과 같은 규칙
+    return Math.floor(new Date(value).getTime() / 1000) || null;
+}
+
+/**
+ * 회원 행에서 user_basic 쿠키 값을 만든다.
+ *
+ * ⛔ 쿠키를 발급하는 곳(hooks, 프로필 이미지 프록시)은 모두 이 함수를 써야 한다.
+ *    발급처마다 필드가 다르면 hooks 의 비교(`userBasicNeedsReissue`)가 매 요청
+ *    「불일치」로 보고 쿠키를 다시 발급한다. 이미지 프록시가 certified 를 빠뜨려
+ *    업로드 직후 요청마다 재발급이 강제됐다.
+ */
+export function buildUserBasicFromMember(member: UserBasicMemberSource): UserBasic {
+    return {
+        id: member.mb_id,
+        mb_no: member.mb_no,
+        nickname: member.mb_nick || member.mb_name || '',
+        mb_level: member.mb_level ?? 0,
+        as_level: member.as_level ?? 0,
+        mb_image: member.mb_image_url || null,
+        mb_image_updated_at: toImageUnixSeconds(member.mb_image_updated_at),
+        // 실명인증 여부 — fast-path 가 공감/글쓰기 게이트를 정확히 판단하려면
+        // 쿠키에 반드시 담아야 한다(#12789). PII 없이 boolean 만.
+        certified: !!member.mb_certify
+    };
+}
+
+/**
+ * 기존 user_basic 쿠키를 새 값으로 다시 발급해야 하는지 판정한다.
+ *
+ * ⛔ 쿠키에 담는 값은 전부 여기서 비교해야 한다.
+ *    PUBLIC_USER_BASIC_CLIENT_READ=true 면 클라이언트가 /api/auth/me 대신
+ *    이 쿠키를 읽으므로(+layout.svelte), 비교에서 빠진 필드는 쿠키 수명
+ *    30일 동안 옛 값으로 남는다.
+ *    mb_level 이 빠져 있어 승급해도 옛 등급으로 동작했다(#13055):
+ *    쿠키는 기기별이라 "폰은 되는데 태블릿은 안 되는" 증상으로 나타났다.
+ */
+export function userBasicNeedsReissue(existing: UserBasic | null, next: UserBasic): boolean {
+    return (
+        !existing ||
+        existing.id !== next.id ||
+        existing.mb_image_updated_at !== next.mb_image_updated_at ||
+        existing.certified !== next.certified ||
+        existing.mb_level !== next.mb_level ||
+        existing.as_level !== next.as_level ||
+        existing.nickname !== next.nickname
+    );
+}
+
 /**
  * user_basic 쿠키 발행.
  *

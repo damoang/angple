@@ -10,11 +10,20 @@
 import { apiClient } from '$lib/api';
 import type { DamoangUser } from '$lib/api/types.js';
 import { memoPresence } from './memo-presence.svelte.js';
+import {
+    createAvatarPin,
+    resolveSsrAvatar,
+    toMemberImageKey,
+    type AvatarPin
+} from './avatar-pin.js';
 
 // 인증 상태
 let user = $state<DamoangUser | null>(null);
 let isLoading = $state(true);
 let error = $state<string | null>(null);
+
+// 업로드·삭제 직후 SSR 의 옛 사진 값으로 덮이지 않게 하는 고정(화면에 그리지 않으므로 $state 아님)
+let avatarPin: AvatarPin | null = null;
 
 // Derived states
 const isLoggedIn = $derived(user !== null);
@@ -60,7 +69,15 @@ function initFromSSR(
     const mbId = ssrUser.id ?? '';
     // 동일 사용자면 이미지만 갱신 (SPA 네비게이션마다 불필요한 상태 갱신 방지)
     if (user && user.mb_id === mbId) {
-        if (ssrUser.mb_image && user.mb_image !== ssrUser.mb_image) {
+        // 업로드·삭제 직후에는 다른 파드의 옛 캐시 값일 수 있어 무시한다(avatar-pin.ts)
+        const avatar = resolveSsrAvatar({
+            current: user.mb_image,
+            ssr: ssrUser.mb_image,
+            pin: avatarPin,
+            now: Date.now()
+        });
+        if (!avatar.keepPin) avatarPin = null;
+        if (avatar.apply) {
             user.mb_image = ssrUser.mb_image;
             user.mb_image_updated_at = ssrUser.mb_image_updated_at;
         }
@@ -77,6 +94,7 @@ function initFromSSR(
         isLoading = false;
         return;
     }
+    avatarPin = null;
     user = {
         mb_id: mbId,
         mb_name: ssrUser.nickname,
@@ -91,6 +109,22 @@ function initFromSSR(
     };
     apiClient.setAccessToken(accessToken);
     isLoading = false;
+}
+
+/**
+ * 프로필 사진을 즉시 바꾼다(업로드·삭제 성공 직후 호출).
+ * 헤더·위젯이 SSR 왕복 없이 새 사진을 그리고, 이후 잠시 동안은
+ * SSR 이 옛 사진을 내려줘도 덮지 않는다.
+ *
+ * @param imageUrl 업로드 응답 URL 또는 DB 키. null 이면 사진 삭제
+ * @param updatedAt 갱신 시각(ISO). 생략하면 지금 — 주소의 캐시 버스팅(?v=)에 쓰인다
+ */
+function setAvatar(imageUrl: string | null, updatedAt?: string): void {
+    if (!user) return;
+    const key = toMemberImageKey(imageUrl);
+    user.mb_image = key ?? undefined;
+    user.mb_image_updated_at = key ? (updatedAt ?? new Date().toISOString()) : undefined;
+    avatarPin = createAvatarPin(Date.now());
 }
 
 /**
@@ -151,6 +185,7 @@ async function initAuth(): Promise<void> {
 function resetAuth(): void {
     user = null;
     error = null;
+    avatarPin = null;
     apiClient.setAccessToken(null);
     // ⛔ 회원이 바뀌면 앞 회원의 「메모 없음」 판단을 물려주면 안 된다.
     //    남겨두면 다음 회원에게 메모가 통째로 안 보인다.
@@ -210,6 +245,7 @@ export function getError() {
 export const authActions = {
     initAuth,
     initFromSSR,
+    setAvatar,
     ensureAccessToken,
     fetchCurrentUser,
     resetAuth,
