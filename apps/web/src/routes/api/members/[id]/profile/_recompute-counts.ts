@@ -36,6 +36,15 @@ export interface MemberCounts {
     deletedComments: number;
 }
 
+/**
+ * 글(wr_is_comment = 0)을 총계에서 빼는 보드 — 댓글은 그대로 센다(bug/14061).
+ *
+ * `truthroom` 은 쓰기 레벨 10 이라 회원이 직접 글을 쓸 수 없다. 이 보드의 글은 모두
+ * 시스템이 만든 참조글·사본이며, 원글 작성자의 mb_id 를 그대로 갖는다. 원글은 원래
+ * 보드에도 남아 있으므로 함께 세면 같은 글이 두 번 집계된다.
+ */
+const POST_EXCLUDED_BOARDS: ReadonlySet<string> = new Set(['truthroom']);
+
 /** 실존하는 g5_write_* 테이블만 돌려준다 — 보드 행만 있고 테이블이 없는 경우가 있다. */
 async function listWritableBoards(query: QueryFn): Promise<string[]> {
     try {
@@ -77,7 +86,7 @@ export async function calculateMemberCounts(
                    SUM(wr_is_comment = 0 AND ${isDeleted}) AS deleted,
                    SUM(wr_is_comment = 1) AS c_total,
                    SUM(wr_is_comment = 1 AND ${isDeleted}) AS c_deleted
-                 FROM g5_write_${t} WHERE mb_id = ?`
+                 FROM g5_write_${t} WHERE mb_id = ?${POST_EXCLUDED_BOARDS.has(t) ? ' AND wr_is_comment = 1' : ''}`
         )
         .join(' UNION ALL ');
     const params = boards.map(() => mbId);
