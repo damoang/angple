@@ -8,7 +8,7 @@ import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/private';
 import { getAuthUser, verifyToken } from '$lib/server/auth/index.js';
 import { getMemberById, invalidateMemberCache } from '$lib/server/auth/oauth/member.js';
-import { issueUserBasicCookie } from '$lib/server/auth/user-basic.js';
+import { buildUserBasicFromMember, issueUserBasicCookie } from '$lib/server/auth/user-basic.js';
 import {
     backendErrorMessage,
     loadFreshMember,
@@ -35,18 +35,9 @@ async function refreshUserBasic(
             load: getMemberById
         });
         if (!member) return;
-        const updatedAtTs = member.mb_image_updated_at
-            ? Math.floor(new Date(member.mb_image_updated_at).getTime() / 1000)
-            : null;
-        issueUserBasicCookie(cookies, {
-            id: member.mb_id,
-            mb_no: member.mb_no,
-            nickname: member.mb_nick || member.mb_name,
-            mb_level: member.mb_level ?? 0,
-            as_level: member.as_level ?? 0,
-            mb_image: member.mb_image_url || null,
-            mb_image_updated_at: updatedAtTs
-        });
+        // hooks 와 같은 공용 함수로 만든다(certified 포함). 필드가 하나라도 빠지면
+        // 다음 요청의 hooks 가 「불일치」로 보고 쿠키를 다시 발급한다.
+        issueUserBasicCookie(cookies, buildUserBasicFromMember(member));
     } catch {
         // user_basic 재발행 실패는 무시 — 다음 로그인 때 복구
     }

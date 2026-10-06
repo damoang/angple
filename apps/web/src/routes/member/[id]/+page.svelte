@@ -104,6 +104,9 @@
             const result = await apiClient.uploadMemberImage(file);
             overrideImageUrl = getAvatarUrl(result.url);
             profileIconFailed = false;
+            // 헤더·위젯도 SSR 왕복 없이 바로 새 사진으로
+            if (result?.url) authStore.setAvatar(result.url);
+            toast.success('프로필 사진이 변경되었습니다.');
         } catch (err) {
             alert(err instanceof Error ? err.message : '이미지 업로드에 실패했습니다.');
         }
@@ -118,6 +121,8 @@
             await apiClient.deleteMemberImage();
             overrideImageUrl = null;
             profileIconFailed = true;
+            authStore.setAvatar(null);
+            toast.success('프로필 사진이 삭제되었습니다.');
         } catch (err) {
             alert(err instanceof Error ? err.message : '이미지 삭제에 실패했습니다.');
         }

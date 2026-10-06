@@ -26,7 +26,12 @@ import { grantLoginPoint } from '$lib/server/auth/point-grant.js';
 import { checkAndPromoteMember } from '$lib/server/auth/auto-promotion.js';
 import { generateAccessToken } from '$lib/server/auth/jwt.js';
 import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
-import { parseUserBasicCookie, issueUserBasicCookie } from '$lib/server/auth/user-basic.js';
+import {
+    buildUserBasicFromMember,
+    issueUserBasicCookie,
+    parseUserBasicCookie,
+    userBasicNeedsReissue
+} from '$lib/server/auth/user-basic.js';
 import { loadAllPluginServerHooks } from '$lib/server/plugin-server-loader.js';
 import { initPluginInvalidationSubscriber } from '$lib/server/plugins/invalidation-subscriber.js';
 import { CompositeSiteResolver } from '$lib/server/site-resolver/composite.js';
@@ -541,46 +546,14 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                     // 인증 사용자를 해석한 김에, 쿠키가 없거나 현재 사용자/아바타와 어긋나면
                     // 재발행해 다음 로드부터 클라이언트 fast-path(백엔드 호출 0) 즉시 렌더로 복귀시킨다.
                     // (USER_BASIC_FAST_PATH 와 무관 — DB 조회를 건너뛰지 않는 단순 Set-Cookie)
-                    // member.mb_image_updated_at 는 ISO 문자열이고 user_basic 쿠키/클라
-                    // fast-path 는 Unix 초(number)를 기대하므로 변환한다(파싱 불가 시 null).
-                    const memberImageTs: number | null = member.mb_image_updated_at
-                        ? Math.floor(new Date(member.mb_image_updated_at).getTime() / 1000) || null
-                        : null;
-                    // 실명인증 여부 — fast-path 가 공감/글쓰기 게이트를 정확히 판단하려면
-                    // 쿠키에 반드시 담아야 한다(#12789 incident: certified 누락 → 미인증 오판 →
-                    // 전원 실명인증 유도). PII 없이 boolean 만.
-                    const memberCertified = !!member.mb_certify;
-                    const memberNickname = member.mb_nick || member.mb_name;
-                    const memberLevel = member.mb_level ?? 0;
-                    const memberAsLevel = member.as_level ?? 0;
+                    // 쿠키 값(이미지 시각 Unix 초 변환, certified 포함)은 공용 함수로 만들고,
+                    // 재발행 판정도 공용 함수로 한다. 이미지 프록시도 같은 함수로 발급하므로
+                    // 발급처끼리 필드 집합이 어긋나 매 요청 재발행되는 일이 없다.
+                    // ⛔ 쿠키에 담는 값은 전부 userBasicNeedsReissue 에서 비교해야 한다(#13055).
+                    const nextBasic = buildUserBasicFromMember(member);
                     const existingBasic = parseUserBasicCookie(event.cookies.get('user_basic'));
-                    // ⛔ 쿠키에 담는 값은 전부 여기서 비교해야 한다.
-                    //    PUBLIC_USER_BASIC_CLIENT_READ=true 면 클라이언트가 /api/auth/me 대신
-                    //    이 쿠키를 읽으므로(+layout.svelte), 비교에서 빠진 필드는 쿠키 수명
-                    //    30일 동안 옛 값으로 남는다.
-                    //    mb_level 이 빠져 있어 승급해도 옛 등급으로 동작했다(#13055):
-                    //    등급 3 회원이 등급 2 로 취급돼 자유게시판 글쓰기가 잠겼고,
-                    //    쿠키는 기기별이라 "폰은 되는데 태블릿은 안 되는" 증상으로 나타났다.
-                    //    최근 30일 승급자 322명이 영향 범위였다.
-                    if (
-                        !existingBasic ||
-                        existingBasic.id !== member.mb_id ||
-                        existingBasic.mb_image_updated_at !== memberImageTs ||
-                        existingBasic.certified !== memberCertified ||
-                        existingBasic.mb_level !== memberLevel ||
-                        existingBasic.as_level !== memberAsLevel ||
-                        existingBasic.nickname !== memberNickname
-                    ) {
-                        issueUserBasicCookie(event.cookies, {
-                            id: member.mb_id,
-                            mb_no: member.mb_no,
-                            nickname: memberNickname,
-                            mb_level: memberLevel,
-                            as_level: memberAsLevel,
-                            mb_image: member.mb_image_url || null,
-                            mb_image_updated_at: memberImageTs,
-                            certified: memberCertified
-                        });
+                    if (userBasicNeedsReissue(existingBasic, nextBasic)) {
+                        issueUserBasicCookie(event.cookies, nextBasic);
                     }
 
                     // Go 백엔드 통신용 내부 JWT (캐시 사용, 5분 TTL)
