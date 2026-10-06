@@ -121,7 +121,7 @@
             <Card.Description>규정을 위반한 회원에 대한 제재 기록입니다.</Card.Description>
         </Card.Header>
         <Card.Content>
-            <!-- 회원 필터 (아이디/닉네임은 백엔드 검색 키 동일 — member_id 기준) -->
+            <!-- 회원 필터 (member_id 파라미터 하나로 아이디·현재 닉네임·제재 당시 닉네임을 백엔드가 매칭) -->
             <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
                 <div class="relative flex-1">
                     <Search
@@ -129,7 +129,7 @@
                     />
                     <Input
                         type="text"
-                        placeholder="회원 아이디로 검색"
+                        placeholder="회원 아이디 또는 닉네임으로 검색"
                         class="pl-9"
                         bind:value={searchInput}
                         onkeydown={handleSearchKeydown}
