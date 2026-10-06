@@ -75,6 +75,8 @@
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
     import type { ReactionItem } from '$lib/types/reaction.js';
     import CommentLikersDialog from './comment-likers-dialog.svelte';
+    import DeleteConfirmDialog from './delete-confirm-dialog.svelte';
+    import { trackCommentDelete } from '$lib/services/comment-delete-telemetry';
     import { AvatarStack } from '$lib/components/ui/avatar-stack/index.js';
     import { apiClient } from '$lib/api/index.js';
     import type { LikerInfo } from '$lib/api/types.js';
@@ -210,6 +212,11 @@
     let LazyCommentEditor = $state<Component | null>(null);
     let isDeleting = $state<string | null>(null);
     let isRestoring = $state<string | null>(null);
+
+    // 삭제·복구 확인 대화상자 — 두 레이아웃(목록형·채팅형)이 하나를 공유한다.
+    // 대상은 열 때 여기 고정하고, 확인 시 이 값만 읽는다(버튼 클로저의 ID 를 다시 쓰지 않는다).
+    let pendingAction = $state<{ kind: 'delete' | 'restore'; commentId: string } | null>(null);
+    let confirmDialogOpen = $state(false);
 
     // 수정 폼 이미지 업로드
     /**
@@ -643,14 +650,49 @@
         }
     }
 
-    // 삭제 확인 및 처리
-    async function handleDelete(commentId: string): Promise<void> {
-        if (!confirm('댓글을 삭제하시겠습니까?')) return;
+    // 삭제·복구 확인
+    // ⛔ 브라우저 기본 확인창(window.confirm)으로 되돌리지 말 것. 브라우저가 창을
+    //    띄우지 않기로 하면 아무 흔적 없이 false 를 돌려주고, 요청도 오류도 없이 조용히 끝난다
+    //    글 삭제와 같은 앱 내 대화상자를 쓴다.
+    function handleDelete(commentId: string): void {
+        trackCommentDelete('click', { kind: 'delete' });
+        pendingAction = { kind: 'delete', commentId };
+        confirmDialogOpen = true;
+    }
 
+    function handleRestore(commentId: string): void {
+        if (!onRestore) return;
+        trackCommentDelete('click', { kind: 'restore' });
+        pendingAction = { kind: 'restore', commentId };
+        confirmDialogOpen = true;
+    }
+
+    // 대화상자 확인 — 열 때 고정한 대상만 처리한다. 예외를 밖으로 던지지 않는다
+    // (대화상자는 이 함수가 끝나면 닫힌다). 처리 중에 대화상자가 닫히고 다른 댓글로
+    // 다시 열렸다면 그 대화상자를 닫지 않도록 false 를 돌려준다.
+    async function confirmPendingAction(): Promise<void | false> {
+        const action = pendingAction;
+        if (!action || isDeleting !== null || isRestoring !== null) return;
+        trackCommentDelete('confirmed');
+        if (action.kind === 'delete') {
+            await runDelete(action.commentId);
+        } else {
+            await runRestore(action.commentId);
+        }
+        if (pendingAction !== action) return false;
+    }
+
+    function cancelPendingAction(): void {
+        trackCommentDelete('cancelled');
+    }
+
+    async function runDelete(commentId: string): Promise<void> {
         isDeleting = commentId;
         try {
             await onDelete(commentId);
+            trackCommentDelete('ok');
         } catch (err) {
+            trackCommentDelete('fail', { error: err });
             console.error('Failed to delete comment:', err);
             // 수정과 같은 사유 — 서버가 준 이유를 그대로 보여준다.
             alert(err instanceof Error && err.message ? err.message : '댓글 삭제에 실패했습니다.');
@@ -659,15 +701,15 @@
         }
     }
 
-    async function handleRestore(commentId: string): Promise<void> {
+    async function runRestore(commentId: string): Promise<void> {
         if (!onRestore) return;
-        if (!confirm('이 댓글을 복구하시겠습니까?')) return;
-
         isRestoring = commentId;
         try {
             await onRestore(commentId);
+            trackCommentDelete('ok');
             toast.success('댓글이 복구되었습니다.');
         } catch (err) {
+            trackCommentDelete('fail', { error: err });
             console.error('Failed to restore comment:', err);
             toast.error('댓글 복구에 실패했습니다.');
         } finally {
@@ -2252,6 +2294,22 @@
         onClose={closeLikersDialog}
     />
 {/if}
+
+<!-- 댓글 삭제·복구 확인 다이얼로그 (브라우저 기본 확인창 대체 — 두 레이아웃 공유) -->
+<DeleteConfirmDialog
+    bind:open={confirmDialogOpen}
+    showTrigger={false}
+    title={pendingAction?.kind === 'restore' ? '댓글 복구' : '댓글 삭제'}
+    description={pendingAction?.kind === 'restore'
+        ? '이 댓글을 복구하시겠습니까?'
+        : '댓글을 삭제하시겠습니까?'}
+    confirmLabel={pendingAction?.kind === 'restore' ? '복구' : '삭제'}
+    loadingLabel={pendingAction?.kind === 'restore' ? '복구 중...' : '삭제 중...'}
+    confirmVariant={pendingAction?.kind === 'restore' ? 'default' : 'destructive'}
+    isLoading={isDeleting !== null || isRestoring !== null}
+    onConfirm={confirmPendingAction}
+    onCancel={cancelPendingAction}
+/>
 
 <style>
     /* 댓글 내 iframe/video 폭 제한 (인라인 width/height 속성 오버라이드) */
