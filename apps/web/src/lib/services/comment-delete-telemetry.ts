@@ -106,8 +106,7 @@ export function statusOf(
     for (let i = entries.length - 1; i >= 0; i--) {
         const e = entries[i];
         if (typeof e.startTime === 'number' && e.startTime < since) break;
-        if (!/\/api\/boards\/[^/]+\/posts\/[^/]+\/comments\/\d+(?:[?#].*)?$/.test(e.name))
-            continue;
+        if (!/\/api\/boards\/[^/]+\/posts\/[^/]+\/comments\/\d+(?:[?#].*)?$/.test(e.name)) continue;
         if (typeof e.responseStatus === 'number' && e.responseStatus > 0) {
             return String(e.responseStatus);
         }
