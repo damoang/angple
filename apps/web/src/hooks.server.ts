@@ -3,6 +3,7 @@ import '$lib/server/telemetry.js';
 import { isClientRecoveryEnabled, injectRecoveryFlag } from '$lib/server/client-recovery-flag.js';
 import { shouldSendCsp } from '$lib/server/csp-scope.js';
 import { hasAuthCookie, shouldPublicCacheNotFound } from '$lib/server/not-found-cache.js';
+import { enforcePrivateOnSetCookie } from '$lib/server/set-cookie-cache.js';
 import {
     trackInflightStart,
     trackInflightEnd,
@@ -1239,6 +1240,8 @@ const handleInner: Handle = async ({ event, resolve }) => {
                 });
             }
 
+            // 쿠키를 내리는 응답은 공개 캐시 대상이 되면 안 된다 (set-cookie-cache.ts)
+            enforcePrivateOnSetCookie(response.headers);
             return response;
         })();
 
@@ -1379,6 +1382,12 @@ const handleInner: Handle = async ({ event, resolve }) => {
     // SvelteKit modulepreload Link 헤더 제거 (8KB+ → 응답 헤더 축소)
     // HTML 내 <link> 태그로 이미 preload되므로 헤더는 불필요
     response.headers.delete('Link');
+
+    // 쿠키를 내리는 응답은 위에서 정한 값과 관계없이 private 으로 강제한다.
+    // 301/308·public API 분기도 로그인 요청에서는 재발급된 user_basic 등을 실을 수 있는데,
+    // 공개 캐시가 저장하면서 Set-Cookie 를 떼면 본인에게도 쿠키가 전달되지 않는다.
+    // event.cookies 로 붙인 쿠키는 resolve() 안에서 이미 set-cookie 헤더로 합쳐졌다.
+    enforcePrivateOnSetCookie(response.headers);
 
     return response;
 };
