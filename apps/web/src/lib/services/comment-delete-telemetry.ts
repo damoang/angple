@@ -1,10 +1,10 @@
 /**
- * 댓글 삭제·복구 단계 계측 — bug/14063 「휴지통 버튼을 눌러도 삭제가 안 된다」 진단용.
+ * 댓글 삭제·복구 단계 계측.
  *
  * ## 왜 필요한가
- * 제보 구간에는 서버에 DELETE 요청이 한 건도 도착하지 않았다. 요청 전에 클라이언트에서
- * 조용히 끝난 것이다(기본 `confirm()` 이 대화상자 없이 false 를 돌려준 것으로 추정).
- * 이 실패 모드는 예외도, 서버 로그도 남기지 않는다. 그래서 **다음 재발이 어느 단계에서
+ * 브라우저가 기본 확인창을 띄우지 않으면 `window.confirm` 이 흔적 없이 false 를 돌려줘
+ * 요청 없이 끝난다. 클라이언트에서 요청 전에 멈추는 실패 모드는 예외도, 서버 로그도
+ * 남기지 않는다. 그래서 **다음 재발이 어느 단계에서
  * 멈췄는지 말하게** 한다.
  *
  * ## 단계
@@ -79,6 +79,8 @@ export function engineOf(ua: string): string {
 export interface ResourceEntryLike {
     name: string;
     responseStatus?: number;
+    /** performance.now() 축 */
+    startTime?: number;
 }
 
 /**
@@ -87,16 +89,25 @@ export interface ResourceEntryLike {
  * 2) 리소스 타이밍의 `responseStatus` — 댓글 삭제 클라이언트는 상태 코드 없이 Error 만
  *    던지므로 이 보조 경로가 필요하다(Chromium 계열만 지원, 없으면 건너뜀).
  *    URL 은 여기서 비교만 하고 밖으로 내보내지 않는다.
+ *    ⛔ 이번 시도(click) 이후에 시작된 항목만 본다(`startTime >= since`). 오래된 문서에서
+ *    리소스 버퍼가 가득 차면 새 항목이 안 쌓여, 예전 요청의 200 이 실릴 수 있다.
+ *    경로는 끝까지 고정한다(`…/comments/<숫자 id>` 만 — `/restore`·`like-statuses` 등 제외).
  * 3) fetch 네트워크 실패(TypeError) → 'network'
  */
-export function statusOf(err: unknown, entries: ResourceEntryLike[] = []): string {
+export function statusOf(
+    err: unknown,
+    entries: ResourceEntryLike[] = [],
+    since: number = 0
+): string {
     if (err && typeof err === 'object' && 'status' in err) {
         const s = (err as { status?: unknown }).status;
         if (typeof s === 'number' && s > 0) return String(s);
     }
     for (let i = entries.length - 1; i >= 0; i--) {
         const e = entries[i];
-        if (!/\/api\/boards\/[^/]+\/posts\/[^/]+\/comments\/[^/]+/.test(e.name)) continue;
+        if (typeof e.startTime === 'number' && e.startTime < since) break;
+        if (!/\/api\/boards\/[^/]+\/posts\/[^/]+\/comments\/\d+(?:[?#].*)?$/.test(e.name))
+            continue;
         if (typeof e.responseStatus === 'number' && e.responseStatus > 0) {
             return String(e.responseStatus);
         }
@@ -215,7 +226,7 @@ export function trackCommentDelete(
         if (!shouldSend(stage, attempt.sampled)) return;
         const status =
             stage === 'fail'
-                ? statusOf(opts.error, resourceEntries())
+                ? statusOf(opts.error, resourceEntries(), attempt.startedAt)
                 : stage === 'ok'
                   ? 'ok'
                   : '-';

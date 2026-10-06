@@ -55,6 +55,50 @@ describe('statusOf', () => {
         expect(statusOf(new TypeError('Failed to fetch'), entries)).toBe('network');
     });
 
+    it('이번 시도(since) 이전에 시작된 항목은 보지 않는다 — 버퍼가 찬 문서의 예전 200 차단', () => {
+        const entries = [
+            {
+                name: 'https://x.test/api/boards/free/posts/1/comments/2',
+                responseStatus: 200,
+                startTime: 1000
+            }
+        ];
+        expect(statusOf(new Error('x'), entries, 5000)).toBe('unknown');
+        expect(statusOf(new Error('x'), entries, 500)).toBe('200');
+    });
+
+    it('since 이후 항목 중 마지막 것을 쓴다', () => {
+        const entries = [
+            {
+                name: 'https://x.test/api/boards/free/posts/1/comments/2',
+                responseStatus: 200,
+                startTime: 1000
+            },
+            {
+                name: 'https://x.test/api/boards/free/posts/1/comments/3',
+                responseStatus: 403,
+                startTime: 6000
+            }
+        ];
+        expect(statusOf(new Error('x'), entries, 5000)).toBe('403');
+    });
+
+    it('경로 끝이 댓글 ID 가 아니면(하위 경로) 무시한다', () => {
+        const entries = [
+            {
+                name: 'https://x.test/api/boards/free/posts/1/comments/2/restore',
+                responseStatus: 500,
+                startTime: 6000
+            },
+            {
+                name: 'https://x.test/api/boards/free/posts/1/comments/like-statuses',
+                responseStatus: 200,
+                startTime: 6100
+            }
+        ];
+        expect(statusOf(new Error('x'), entries, 5000)).toBe('unknown');
+    });
+
     it('아무 정보도 없으면 unknown', () => {
         expect(statusOf(undefined)).toBe('unknown');
         expect(statusOf({ status: 0 })).toBe('unknown');
@@ -64,7 +108,7 @@ describe('statusOf', () => {
 describe('engineOf', () => {
     it('iPhone Safari 는 webkit-ios', () => {
         const ua =
-            'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.3 Mobile/15E148 Safari/604.1';
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
         expect(engineOf(ua)).toBe('webkit-ios');
     });
 

@@ -653,7 +653,7 @@
     // 삭제·복구 확인
     // ⛔ 브라우저 기본 확인창(window.confirm)으로 되돌리지 말 것. 브라우저가 창을
     //    띄우지 않기로 하면 아무 흔적 없이 false 를 돌려주고, 요청도 오류도 없이 조용히 끝난다
-    //    (bug/14063 — 제보 구간에 서버로 간 DELETE 가 0건). 글 삭제와 같은 앱 내 대화상자를 쓴다.
+    //    글 삭제와 같은 앱 내 대화상자를 쓴다.
     function handleDelete(commentId: string): void {
         trackCommentDelete('click', { kind: 'delete' });
         pendingAction = { kind: 'delete', commentId };
@@ -668,8 +668,9 @@
     }
 
     // 대화상자 확인 — 열 때 고정한 대상만 처리한다. 예외를 밖으로 던지지 않는다
-    // (대화상자는 이 함수가 끝나면 닫힌다).
-    async function confirmPendingAction(): Promise<void> {
+    // (대화상자는 이 함수가 끝나면 닫힌다). 처리 중에 대화상자가 닫히고 다른 댓글로
+    // 다시 열렸다면 그 대화상자를 닫지 않도록 false 를 돌려준다.
+    async function confirmPendingAction(): Promise<void | false> {
         const action = pendingAction;
         if (!action || isDeleting !== null || isRestoring !== null) return;
         trackCommentDelete('confirmed');
@@ -678,6 +679,7 @@
         } else {
             await runRestore(action.commentId);
         }
+        if (pendingAction !== action) return false;
     }
 
     function cancelPendingAction(): void {

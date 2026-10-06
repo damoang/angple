@@ -15,7 +15,8 @@
     interface Props {
         title?: string;
         description?: string;
-        onConfirm: () => Promise<void>;
+        /** `false` 를 돌려주면 대화상자를 닫지 않는다(그 사이 다른 대상으로 다시 열린 경우) */
+        onConfirm: () => Promise<void | false>;
         isLoading?: boolean;
         trigger?: Snippet;
         /**
@@ -52,8 +53,8 @@
     async function handleConfirm(): Promise<void> {
         confirming = true;
         try {
-            await onConfirm();
-            open = false;
+            const result = await onConfirm();
+            if (result !== false) open = false;
         } finally {
             confirming = false;
         }
