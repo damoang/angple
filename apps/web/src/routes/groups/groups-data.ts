@@ -6,6 +6,7 @@ import { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import { TieredCache } from '$lib/server/cache.js';
 import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-mask.js';
+import { maskEmailText } from '$lib/utils/email-reveal.js';
 
 export interface GroupLatestPost {
     bo_table: string;
@@ -99,7 +100,7 @@ export async function fetchPostDetails(
                                 wr_id: item.wr_id,
                                 wr_subject: disciplined.has(item.wr_id)
                                     ? DISCIPLINED_TITLE
-                                    : (post.wr_subject as string),
+                                    : maskEmailText(post.wr_subject as string),
                                 mb_id: item.mb_id,
                                 mb_nick: item.mb_id,
                                 wr_datetime: item.bn_datetime,

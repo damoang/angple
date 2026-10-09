@@ -11,6 +11,7 @@ import pool from '$lib/server/db';
 import { getRedis } from '$lib/server/redis';
 import { getMemberLikedVersion } from '$lib/server/member-activity-cache';
 import { isWithdrawnMember } from '../_withdrawn';
+import { maskEmailText } from '$lib/utils/email-reveal.js';
 
 interface GoodRow extends RowDataPacket {
     bg_id: number;
@@ -178,7 +179,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
                 bo_table: row.bo_table,
                 bo_subject: boardSubjects.get(row.bo_table) || row.bo_table,
                 wr_id: w.wr_id,
-                wr_subject: deleted ? '' : w.wr_subject,
+                wr_subject: deleted ? '' : maskEmailText(w.wr_subject),
                 wr_datetime: w.wr_datetime,
                 bg_datetime: row.bg_datetime,
                 deleted,

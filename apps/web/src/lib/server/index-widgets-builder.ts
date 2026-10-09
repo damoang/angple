@@ -7,6 +7,7 @@
 
 import { readFile } from 'fs/promises';
 import { rewriteImageHosts } from '$lib/server/cdn-rewrite';
+import { maskTitleFields, titleEmailReviver } from '$lib/utils/email-reveal.js';
 import { env } from '$env/dynamic/private';
 import { findDisciplinedIds } from '$lib/server/discipline-mask';
 import type {
@@ -138,7 +139,7 @@ export async function buildIndexWidgets(_backendUrl: string): Promise<IndexWidge
 
     try {
         const raw = await readFile(JSON_PATH, 'utf-8');
-        const json = JSON.parse(rewriteImageHosts(raw));
+        const json = JSON.parse(rewriteImageHosts(raw), titleEmailReviver);
 
         const rawResult: IndexWidgetsData = {
             news_tabs: (json.news_tabs ?? []) as NewsPost[],
@@ -206,7 +207,7 @@ export async function fetchBoardPostsForWidget(
         }
 
         const result: BackendBoardResponse = await response.json();
-        return result.data ?? [];
+        return maskTitleFields(result.data ?? []);
     } catch (err) {
         // timeout 또는 network 에러 — 홈이 깨지지 않도록 빈 결과 fallback
         const isTimeout =

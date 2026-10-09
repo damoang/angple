@@ -18,6 +18,7 @@ import { readPool } from '$lib/server/db.js';
 import { searchAllBoards, buildMatchExpr } from '$lib/server/sphinx-search.js';
 import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-mask.js';
 import { isSecretOption } from '$lib/server/secret-option.js';
+import { maskEmailText } from '$lib/utils/email-reveal.js';
 import type { RowDataPacket } from 'mysql2';
 
 /** 본문(wr_content)을 매칭하지 않는 검색 필드 — sphinx-search.ts buildMatchExpr 와 일치 */
@@ -245,11 +246,12 @@ export const GET: RequestHandler = async ({ url, locals }) => {
                                 ? ''
                                 : isDisciplined
                                   ? DISCIPLINED_TITLE
-                                  : row.wr_subject,
+                                  : maskEmailText(row.wr_subject),
+                            // 이메일 주소 수집 방지 — 자르기 전에 가려 반쯤 잘린 주소가 남지 않게 한다.
                             content:
                                 isDisciplined || isSecret
                                     ? ''
-                                    : stripHtml(row.wr_content).slice(0, 200),
+                                    : maskEmailText(stripHtml(row.wr_content)).slice(0, 200),
                             author: author?.wr_name || '',
                             author_id: author?.mb_id || '',
                             board_id: boardId,

@@ -3,6 +3,7 @@ import { rssEtag, etagMatches, rssHeaders } from './headers.js';
 import pool from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import { findDisciplinedIds } from '$lib/server/discipline-mask.js';
+import { maskEmailText } from '$lib/utils/email-reveal.js';
 
 /**
  * 전체 RSS 피드 (최근 게시글)
@@ -69,7 +70,7 @@ export const GET: RequestHandler = async ({ url, request }) => {
                 for (const post of typedPosts) {
                     if (disciplined.has(post.wr_id)) continue;
                     allPosts.push({
-                        title: escapeXml(post.wr_subject),
+                        title: escapeXml(maskEmailText(post.wr_subject)),
                         link: `${siteUrl}/${board.bo_table}/${post.wr_id}`,
                         // ⛔ 본문을 피드에 싣지 않는다.
                         //

@@ -11,6 +11,7 @@ import type { PageServerLoad } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { findCarHubTopic } from '$lib/server/car-hub-topics';
+import { maskEmailText } from '$lib/utils/email-reveal.js';
 
 const MIN_POSTS = 3; // thin content 방지: 글 3개 미만 주제는 404
 const LIST_LIMIT = 40;
@@ -74,7 +75,7 @@ export const load: PageServerLoad = async ({ params, setHeaders }) => {
         topic,
         posts: rows.map((r) => ({
             id: r.wr_id,
-            subject: r.wr_subject,
+            subject: maskEmailText(r.wr_subject),
             author: r.wr_name,
             datetime: toDateStr(r.wr_datetime),
             hit: r.wr_hit ?? 0,

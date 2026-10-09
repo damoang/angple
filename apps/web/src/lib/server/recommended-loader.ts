@@ -7,6 +7,7 @@
 
 import { readFile } from 'node:fs/promises';
 import { rewriteImageHosts } from '$lib/server/cdn-rewrite';
+import { titleEmailReviver } from '$lib/utils/email-reveal.js';
 import { existsSync, statSync } from 'node:fs';
 import type { RecommendedDataWithAI, RecommendedPeriod, RecommendedSection } from '$lib/api/types';
 import { findDisciplinedIds } from '$lib/server/discipline-mask';
@@ -144,7 +145,10 @@ async function loadRecommendedDataRaw(
 
     try {
         const content = await readFile(filePath, 'utf-8');
-        const data: RecommendedDataWithAI = JSON.parse(rewriteImageHosts(content));
+        const data: RecommendedDataWithAI = JSON.parse(
+            rewriteImageHosts(content),
+            titleEmailReviver
+        );
 
         cache.set(period, { data, timestamp: Date.now() });
         return data;
