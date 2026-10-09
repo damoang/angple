@@ -1,7 +1,7 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
     import { toast } from 'svelte-sonner';
-    import { apiClient } from '$lib/api/index.js';
+    import { apiClient, isWriteInProgressError } from '$lib/api/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import PostForm from '$lib/components/features/board/post-form.svelte';
     import type { CreatePostRequest, UpdatePostRequest, Board } from '$lib/api/types.js';
@@ -98,10 +98,20 @@
                     }
                 );
             }
-            goto(`/${boardId}/${post.id}`);
+            // 이동이 끝날 때까지 잠금 유지 — 이동 중 재제출로 중복 등록되는 것을 막는다.
+            await goto(`/${boardId}/${post.id}`);
         } catch (e) {
+            if (isWriteInProgressError(e)) {
+                // 같은 요청이 이미 서버에서 처리 중 — 실패가 아니므로 잠금을 유지한 채 목록으로.
+                toast.info('이미 등록 처리 중입니다. 잠시 후 목록을 확인해 주세요.');
+                try {
+                    await goto(`/${boardId}`);
+                    return;
+                } catch (navErr) {
+                    console.error('Failed to navigate after in-progress submit:', navErr);
+                }
+            }
             error = e instanceof Error ? e.message : '게시글 작성에 실패했습니다.';
-        } finally {
             busy = false;
         }
     }
