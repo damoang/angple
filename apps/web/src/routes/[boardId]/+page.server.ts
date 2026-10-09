@@ -15,6 +15,7 @@ import { fetchScheduledDeletes } from '$lib/server/scheduled-deletes.js';
 import { createCache } from '$lib/server/cache.js';
 // 검색 결과 썸네일 파생용 (bug/13130). Go 의 TransformToV1Post 와 같은 규칙을 재현한다.
 import { normalizeMediaUrl } from '$lib/utils/media-url.js';
+import { maskEmailText } from '$lib/utils/email-reveal.js';
 import { toThumbnailUrl } from '$lib/utils/thumbnail-url.js';
 import { extractFirstImage } from '$lib/components/features/adult/thumbnail-utils.js';
 import { getCachedBoard, resolveCanonicalBoardId } from '$lib/server/board-cache.js';
@@ -130,6 +131,13 @@ function trimFreeListPayload(post: FreePost): FreePost {
     } as FreePost;
 }
 
+function maskListPostEmails(post: FreePost): FreePost {
+    const title = typeof post.title === 'string' ? maskEmailText(post.title) : post.title;
+    const content = typeof post.content === 'string' ? maskEmailText(post.content) : post.content;
+    if (title === post.title && content === post.content) return post;
+    return { ...post, title, content };
+}
+
 function maybeTrimBoardListPayload(
     boardId: string,
     board: Board | null,
@@ -139,6 +147,11 @@ function maybeTrimBoardListPayload(
     const listLayoutId =
         board?.display_settings?.list_layout || board?.display_settings?.list_style || 'classic';
     const shouldTrim = !CONTENT_HEAVY_LIST_LAYOUTS.has(listLayoutId);
+
+    // 이메일 주소 수집 방지 — 목록 제목(과 본문을 싣는 레이아웃의 본문 미리보기)은 「[이메일]」로.
+    // 캐시된 원본 객체는 건드리지 않도록 얕은 복사본을 만든다. 여러 번 적용해도 결과가 같다.
+    posts = posts.map(maskListPostEmails);
+    notices = notices.map(maskListPostEmails);
 
     if (!shouldTrim) {
         return { posts, notices };
@@ -1018,7 +1031,7 @@ export const load: PageServerLoad = async ({
 function mapPromotionBoardPostToFreePost(p: PromotionBoardPost): FreePost {
     return {
         id: p.wr_id,
-        title: p.wr_subject,
+        title: maskEmailText(p.wr_subject),
         content: p.wr_content,
         author: p.wr_name,
         author_id: p.mb_id,

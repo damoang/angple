@@ -312,6 +312,11 @@ export const load: PageServerLoad = async ({
         if (post.content) {
             post.content = encodeEmails(post.content);
         }
+        // 제목도 같은 방식 — 위 이용제한 게이트(제목 문자열 비교)를 지난 뒤에 바꾼다.
+        // 화면 제목은 EmailText 버튼, <title>·메타·구조화 데이터는 「[이메일]」 평문으로 쓴다.
+        if (post.title) {
+            post.title = encodeEmails(post.title);
+        }
 
         // Bluesky handle → DID prefetch (#12050).
         // content-transform 직전에 본문 내 `bsky.app/profile/<handle>/post/<id>`

@@ -13,6 +13,7 @@ import { invalidateBoardCache } from '$lib/server/ssr-cache.js';
 import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api.js';
 import { checkCertification } from '$lib/server/certification';
 import { autoLinkAngttEntity, linkEntityFromTags } from '$lib/server/angtt-auto-link';
+import { isTitleMaskedProxyPath, maskProxyJsonTitles } from '$lib/server/proxy-title-mask.js';
 
 /**
  * API v1 프록시 핸들러
@@ -627,6 +628,29 @@ async function proxyRequest(
                     postIdMatch ? parseInt(postIdMatch[1], 10) : undefined
                 );
             }
+        }
+
+        // 이메일 주소 수집 방지 — 글 목록 응답의 제목만 「[이메일]」로 바꾼다.
+        // ⛔ 단건 글 조회는 대상이 아니다(수정·다시 쓰기 화면이 원문 제목을 받아야 한다).
+        if (
+            method === 'GET' &&
+            response.status >= 200 &&
+            response.status < 300 &&
+            isTitleMaskedProxyPath(path) &&
+            (response.headers.get('content-type') ?? '').includes('application/json')
+        ) {
+            const text = await response.text();
+            const masked = maskProxyJsonTitles(text);
+            if (masked !== text) {
+                // 본문이 바뀌었으니 길이·검증자는 원본 것이 아니다. 캐시 헤더는 그대로 둔다.
+                responseHeaders.delete('content-length');
+                responseHeaders.delete('etag');
+            }
+            return new Response(masked, {
+                status: response.status,
+                statusText: response.statusText,
+                headers: responseHeaders
+            });
         }
 
         return new Response(response.body, {
