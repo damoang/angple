@@ -21,11 +21,18 @@ const CACHE_TTL_SEC = 60;
  * 최근 댓글 미리보기(평문)의 이메일 주소를 「[이메일]」로 가린다 — 본문·댓글의 「이메일 보기」
  * 처리(utils/email-reveal.ts)와 같은 수집 방지. 미리보기는 글자 그대로 표시되므로 버튼 대신 글자.
  */
+// 백엔드가 미리보기를 80자에서 자르면 끝의 주소가 반쯤 잘려 주소 형태가 아니게 된다(abc@gmail.c).
+// 끝에 걸린 「로컬파트@…」 조각도 가린다.
+const PREVIEW_CUT_EMAIL = /[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{0,253}$/;
+
 export function maskActivityEmails<T extends { recentComments?: unknown }>(data: T): T {
     if (!Array.isArray(data.recentComments)) return data;
     for (const c of data.recentComments as Array<{ preview?: unknown } | null>) {
         if (c && typeof c.preview === 'string') {
-            c.preview = stripEmailMarkers(encodeEmails(c.preview));
+            c.preview = stripEmailMarkers(encodeEmails(c.preview)).replace(
+                PREVIEW_CUT_EMAIL,
+                '[이메일]'
+            );
         }
     }
     return data;
