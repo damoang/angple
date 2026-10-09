@@ -3,9 +3,13 @@ import {
     decodeEmailMarkers,
     emailToMarker,
     encodeEmails,
+    maskEmailText,
+    maskTitleFields,
     markerToEmail,
     renderEmailMarkers,
-    stripEmailMarkers
+    splitEmailMarkers,
+    stripEmailMarkers,
+    titleEmailReviver
 } from './email-reveal';
 
 const RAW_EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z]{2,}/;
@@ -124,5 +128,96 @@ describe('markers', () => {
 
     it('strips markers for plain-text descriptions', () => {
         expect(stripEmailMarkers(`메일 ${emailToMarker('a@b.com')}`)).toBe('메일 [이메일]');
+    });
+});
+
+describe('maskEmailText', () => {
+    it('replaces raw addresses and markers with a placeholder', () => {
+        expect(maskEmailText('연락 a.b@test.com 주세요')).toBe('연락 [이메일] 주세요');
+        expect(maskEmailText(`연락 ${emailToMarker('a@b.com')}`)).toBe('연락 [이메일]');
+    });
+
+    it('is idempotent', () => {
+        const once = maskEmailText('x a@b.com y <c@d.org>');
+        expect(maskEmailText(once)).toBe(once);
+        expect(once).not.toMatch(RAW_EMAIL);
+    });
+
+    it('leaves text without addresses untouched', () => {
+        expect(maskEmailText('logo@2x.png 파일')).toBe('logo@2x.png 파일');
+        expect(maskEmailText('')).toBe('');
+    });
+});
+
+describe('splitEmailMarkers', () => {
+    it('splits text and valid markers', () => {
+        const hex = emailToMarker('a@b.com').slice(7, -1);
+        expect(splitEmailMarkers(`제목 ${emailToMarker('a@b.com')} 끝`)).toEqual([
+            { text: '제목 ' },
+            { hex },
+            { text: ' 끝' }
+        ]);
+    });
+
+    it('keeps forged markers as text', () => {
+        const forged = '{email:3c7363726970743e}';
+        expect(splitEmailMarkers(`a ${forged} b`)).toEqual([{ text: `a ${forged} b` }]);
+    });
+
+    it('returns a single text segment without markers and nothing for empty input', () => {
+        expect(splitEmailMarkers('평범한 제목')).toEqual([{ text: '평범한 제목' }]);
+        expect(splitEmailMarkers('')).toEqual([]);
+    });
+});
+
+describe('maskTitleFields', () => {
+    it('masks title-like keys in nested arrays and objects only', () => {
+        const data = {
+            data: [
+                { title: 'a@b.com 문의', content: 'c@d.com', author: 'x' },
+                { wr_subject: '메일 e@f.org', subject: 'g@h.net', parent_title: 'i@j.io' }
+            ],
+            notices: [{ title: '공지 k@l.com' }]
+        };
+        const out = maskTitleFields(data);
+        expect(out).toBe(data);
+        expect(out.data[0].title).toBe('[이메일] 문의');
+        expect(out.data[0].content).toBe('c@d.com');
+        expect(out.data[1]).toEqual({
+            wr_subject: '메일 [이메일]',
+            subject: '[이메일]',
+            parent_title: '[이메일]'
+        });
+        expect(out.notices[0].title).toBe('공지 [이메일]');
+    });
+
+    it('accepts a custom key list', () => {
+        const out = maskTitleFields({ name: 'a@b.com', title: 'c@d.com' }, ['name']);
+        expect(out).toEqual({ name: '[이메일]', title: 'c@d.com' });
+    });
+
+    it('stops at the depth limit and ignores non-objects', () => {
+        let deep: Record<string, unknown> = { title: 'a@b.com' };
+        for (let i = 0; i < 10; i++) deep = { child: deep };
+        maskTitleFields(deep);
+        let cur = deep;
+        while (cur.child) cur = cur.child as Record<string, unknown>;
+        expect(cur.title).toBe('a@b.com');
+        expect(maskTitleFields('a@b.com')).toBe('a@b.com');
+        expect(maskTitleFields(null)).toBeNull();
+    });
+});
+
+describe('titleEmailReviver', () => {
+    it('masks title fields while parsing JSON', () => {
+        const json = JSON.stringify({
+            posts: [{ title: 'a@b.com', wr_subject: 'c@d.com', content: 'e@f.com' }]
+        });
+        const out = JSON.parse(json, titleEmailReviver);
+        expect(out.posts[0]).toEqual({
+            title: '[이메일]',
+            wr_subject: '[이메일]',
+            content: 'e@f.com'
+        });
     });
 });

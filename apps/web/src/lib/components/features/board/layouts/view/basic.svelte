@@ -80,6 +80,8 @@
     import PinOff from '@lucide/svelte/icons/pin-off';
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
     import { onMount, untrack } from 'svelte';
+    import { EmailText } from '$lib/components/ui/email-text/index.js';
+    import { stripEmailMarkers } from '$lib/utils/email-reveal.js';
     import {
         buildThumbnailSrcSet,
         isTransformableMediaImage,
@@ -516,10 +518,10 @@
                             isLoggedIn={authStore.isAuthenticated}
                             bind:revealed={discReveal}
                         >
-                            {post.title}
+                            <EmailText text={post.title} />
                         </DisciplinedContent>
                     {:else}
-                        {post.title}
+                        <EmailText text={post.title} />
                     {/if}
                 </span>
                 {#if isLockedPost}
@@ -1043,7 +1045,7 @@
                         <ShareButton
                             {boardId}
                             postId={post.id}
-                            title={post.title || ''}
+                            title={stripEmailMarkers(post.title || '')}
                             imageUrl={shareImageUrl}
                         />
                     {/if}

@@ -35,4 +35,25 @@ describe('maskActivityEmails', () => {
             recentComments: undefined
         });
     });
+
+    it('masks addresses in recent post titles', () => {
+        const data = {
+            recentPosts: [{ wr_subject: '문의는 a.b@test.com 으로' }, null, { wr_subject: 3 }],
+            recentComments: []
+        };
+        expect(maskActivityEmails(data).recentPosts).toEqual([
+            { wr_subject: '문의는 [이메일] 으로' },
+            null,
+            { wr_subject: 3 }
+        ]);
+    });
+
+    it('is idempotent', () => {
+        const data = {
+            recentPosts: [{ wr_subject: 'x a@b.com' }],
+            recentComments: [{ preview: 'y c@d.org' }]
+        };
+        const once = JSON.parse(JSON.stringify(maskActivityEmails(data)));
+        expect(maskActivityEmails(once)).toEqual(once);
+    });
 });

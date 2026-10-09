@@ -2069,7 +2069,7 @@
             sendMentionNotifications({
                 content,
                 postUrl: `/${boardId}/${data.post.id}`,
-                postTitle: data.post.title,
+                postTitle: plainTitle,
                 boardId,
                 postId: data.post.id,
                 commentId: newComment?.id,
@@ -2144,7 +2144,7 @@
             sendMentionNotifications({
                 content,
                 postUrl: `/${boardId}/${data.post.id}`,
-                postTitle: data.post.title,
+                postTitle: plainTitle,
                 boardId,
                 postId: data.post.id,
                 commentId: replyComment?.id,
@@ -2189,6 +2189,10 @@
             user_liked: response.user_liked
         };
     }
+
+    // 제목은 서버에서 이메일 표지로 바뀌어 온다 — 평문으로 쓰는 곳(<title>·메타·구조화 데이터·
+    // 알림·빵부스러기)은 「[이메일]」로 바꾼 값을 쓴다. 화면 제목은 레이아웃의 EmailText 가 버튼으로.
+    const plainTitle = $derived(stripEmailMarkers(data.post.title ?? ''));
 
     // SEO 설정
     // truncateText: .slice() 는 이모지(서로게이트 쌍)를 반쪽 내 GSC "잘린 유니코드"(파싱 불가) 오류가 됨
@@ -2250,13 +2254,12 @@
                   ]
                       .slice(0, 3)
                       .map((v) => {
-                          const name = data.post.title?.trim() || boardTitle;
+                          const name = plainTitle.trim() || boardTitle;
                           if (v.type === 'youtube') {
                               return createVideoObjectJsonLd({
                                   name,
                                   // 본문 텍스트 없는 동영상 글 — GSC "description 누락" 방지 (제목 폴백)
-                                  description:
-                                      postDescription || data.post.title?.trim() || boardTitle,
+                                  description: postDescription || plainTitle.trim() || boardTitle,
                                   thumbnailUrl: `https://i.ytimg.com/vi/${v.id}/hqdefault.jpg`,
                                   uploadDate: data.post.created_at,
                                   embedUrl: `https://www.youtube.com/embed/${v.id}`
@@ -2276,7 +2279,7 @@
                           return createVideoObjectJsonLd({
                               name,
                               // 본문 텍스트 없는 동영상 글 — GSC "description 누락" 방지 (제목 폴백)
-                              description: postDescription || data.post.title?.trim() || boardTitle,
+                              description: postDescription || plainTitle.trim() || boardTitle,
                               // 썸네일 우선순위: ①본문 poster 속성(업로드 시 캡처)
                               // ②영상 주소에서 만들어 낸 포스터 — 변환 파이프라인이 영상마다
                               //   poster_이름.jpg 를 만든다 ③글 대표이미지
@@ -2306,9 +2309,9 @@
         const qaPageJsonLd =
             boardId === 'qa' && !data.post.deleted_at && !data.post.is_secret
                 ? createQAPageJsonLd({
-                      name: data.post.title?.trim() || boardTitle,
+                      name: plainTitle.trim() || boardTitle,
                       // 본문이 이미지뿐인 글은 제목이 곧 질문 — GSC "text 누락" 방지
-                      text: postDescription || data.post.title?.trim() || boardTitle,
+                      text: postDescription || plainTitle.trim() || boardTitle,
                       author: data.post.author,
                       // GSC "mainEntity.author 의 url 누락" — 질문 작성자 프로필
                       authorUrl,
@@ -2338,10 +2341,10 @@
             data.post.rating && !data.post.deleted_at && !data.post.is_secret
                 ? createRatedItemJsonLd({
                       name: (
-                          data.post.title?.match(
+                          plainTitle.match(
                               /["'“”‘’「」『』]([^"'“”‘’「」『』]+)["'“”‘’「」『』]/
                           )?.[1] ||
-                          data.post.title ||
+                          plainTitle ||
                           ''
                       ).trim(),
                       category: data.post.category,
@@ -2355,13 +2358,13 @@
 
         return {
             meta: {
-                title: `${data.post.title} - ${boardTitle}`,
+                title: `${plainTitle} - ${boardTitle}`,
                 description: postDescription,
                 canonicalUrl: postUrl,
                 noIndex: data.post.is_secret || !!data.post.deleted_at
             },
             og: {
-                title: data.post.title,
+                title: plainTitle,
                 description: postDescription,
                 type: 'article',
                 url: postUrl,
@@ -2374,7 +2377,7 @@
             },
             twitter: {
                 card: safeOgImage ? 'summary_large_image' : 'summary',
-                title: data.post.title,
+                title: plainTitle,
                 description: postDescription,
                 image: ogImageUrl
             },
@@ -2387,7 +2390,7 @@
                     : // DiscussionForumPosting - 커뮤니티 게시글에 최적화된 구조화 데이터
                       createDiscussionForumPostingJsonLd({
                           // 빈 제목 글에서 headline 누락(GSC) 방지 — 게시판명 폴백
-                          headline: data.post.title?.trim() || boardTitle,
+                          headline: plainTitle.trim() || boardTitle,
                           text: postDescription,
                           author: data.post.deleted_at ? '' : data.post.author,
                           authorUrl: data.post.deleted_at ? undefined : authorUrl,
@@ -2413,7 +2416,7 @@
                       }),
                 // Article - 일반 검색 결과용 (폴백)
                 createArticleJsonLd({
-                    headline: data.post.title?.trim() || boardTitle,
+                    headline: plainTitle.trim() || boardTitle,
                     author: data.post.deleted_at ? '' : data.post.author,
                     datePublished: data.post.created_at,
                     dateModified: data.post.updated_at || data.post.created_at,
@@ -2424,7 +2427,7 @@
                 createBreadcrumbJsonLd([
                     { name: '홈', url: siteUrl },
                     { name: boardTitle, url: `${siteUrl}/${boardId}` },
-                    { name: data.post.title }
+                    { name: plainTitle }
                 ]),
                 // VideoObject — 본문 유튜브 임베드·업로드 동영상 (최대 3개, null 은 필터됨)
                 ...videoJsonLds,
@@ -2506,9 +2509,7 @@
                 >{boardTitle}</a
             >
             <span class="text-muted-foreground/50">/</span>
-            <span class="text-foreground min-w-0 break-words" title={data.post.title}
-                >{data.post.title}</span
-            >
+            <span class="text-foreground min-w-0 break-words" title={plainTitle}>{plainTitle}</span>
         </nav>
     {/if}
 
@@ -2836,7 +2837,7 @@
                 match={data.angttMatch}
                 {boardId}
                 postId={data.post.id}
-                postTitle={data.post.title}
+                postTitle={plainTitle}
                 {isAuthor}
             />
         {/if}

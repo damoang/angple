@@ -156,6 +156,89 @@ export function stripEmailMarkers(text: string): string {
 }
 
 /**
+ * 평문 마스킹 — 원문 주소와 표지를 모두 「[이메일]」로 바꾼다. 목록 제목·검색·RSS·미리보기처럼
+ * 버튼을 그릴 수 없는(또는 그릴 필요 없는) 곳에 쓴다. 여러 번 적용해도 결과가 같다.
+ */
+export function maskEmailText(text: string): string {
+    if (!text) return text;
+    return stripEmailMarkers(encodeEmails(text));
+}
+
+export type EmailTextSegment = { text: string } | { hex: string };
+
+/**
+ * 제목 컴포넌트용 — 표지가 섞인 평문을 글자/표지 조각으로 나눈다. 유효한 표지만 `{hex}` 가 되고
+ * 위조 표지(주소 형태가 아님)는 글자로 남는다. 마크업을 만들지 않으므로 `{@html}` 이 필요 없다.
+ */
+export function splitEmailMarkers(text: string): EmailTextSegment[] {
+    if (!text) return [];
+    if (text.indexOf('{email:') === -1) return [{ text }];
+    const out: EmailTextSegment[] = [];
+    let buf = '';
+    let last = 0;
+    for (const m of text.matchAll(MARKER_RE)) {
+        const idx = m.index ?? 0;
+        buf += text.slice(last, idx);
+        last = idx + m[0].length;
+        if (markerToEmail(m[1])) {
+            if (buf) out.push({ text: buf });
+            buf = '';
+            out.push({ hex: m[1] });
+        } else {
+            buf += m[0];
+        }
+    }
+    buf += text.slice(last);
+    if (buf) out.push({ text: buf });
+    return out;
+}
+
+/** 제목으로 취급해 마스킹하는 필드 이름 — 백엔드 v1 응답·그누보드 컬럼 이름 모두. */
+const TITLE_KEYS: ReadonlySet<string> = new Set(['title', 'wr_subject', 'subject', 'parent_title']);
+const MASK_MAX_DEPTH = 6;
+
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+    if (v === null || typeof v !== 'object') return false;
+    const proto = Object.getPrototypeOf(v);
+    return proto === Object.prototype || proto === null;
+}
+
+function maskWalk(v: unknown, keys: ReadonlySet<string>, depth: number): void {
+    if (depth > MASK_MAX_DEPTH) return;
+    if (Array.isArray(v)) {
+        for (let i = 0; i < v.length; i++) {
+            const item = v[i];
+            if (item !== null && typeof item === 'object') maskWalk(item, keys, depth + 1);
+        }
+        return;
+    }
+    if (!isPlainObject(v)) return;
+    for (const k of Object.keys(v)) {
+        const val = v[k];
+        if (typeof val === 'string') {
+            if (keys.has(k)) v[k] = maskEmailText(val);
+        } else if (val !== null && typeof val === 'object') {
+            maskWalk(val, keys, depth + 1);
+        }
+    }
+}
+
+/**
+ * 응답 데이터 안의 제목 필드(`title`·`wr_subject`·`subject`·`parent_title`)를 제자리에서
+ * 마스킹하고 같은 객체를 돌려준다. 배열·평범한 객체만 따라가며 깊이는 6단계까지만 본다.
+ */
+export function maskTitleFields<T>(data: T, keys?: Iterable<string>): T {
+    const keySet = keys ? new Set(keys) : TITLE_KEYS;
+    if (data !== null && typeof data === 'object') maskWalk(data, keySet, 0);
+    return data;
+}
+
+/** `JSON.parse(text, titleEmailReviver)` — 파싱하면서 제목 필드를 마스킹한다. */
+export function titleEmailReviver(key: string, value: unknown): unknown {
+    return typeof value === 'string' && TITLE_KEYS.has(key) ? maskEmailText(value) : value;
+}
+
+/**
  * 렌더러용 — **DOMPurify 전에** 호출한다. 태그 밖 표지는 버튼, 태그 안(속성값) 표지는
  * 「[이메일]」 글자로 바꾼다. 결과는 반드시 sanitize 를 거쳐야 한다(button·data-er 허용 필요).
  */

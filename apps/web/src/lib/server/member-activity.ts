@@ -7,7 +7,7 @@
  */
 import { backendFetch } from '$lib/server/backend-fetch';
 import { getRedis } from '$lib/server/redis';
-import { encodeEmails, stripEmailMarkers } from '$lib/utils/email-reveal.js';
+import { maskEmailText } from '$lib/utils/email-reveal.js';
 
 export interface MemberActivity {
     recentPosts: unknown[];
@@ -25,14 +25,21 @@ const CACHE_TTL_SEC = 60;
 // 끝에 걸린 「로컬파트@…」 조각도 가린다.
 const PREVIEW_CUT_EMAIL = /[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9.-]{0,253}$/;
 
-export function maskActivityEmails<T extends { recentComments?: unknown }>(data: T): T {
+export function maskActivityEmails<T extends { recentComments?: unknown; recentPosts?: unknown }>(
+    data: T
+): T {
+    // 최근 글 제목도 글자 그대로 표시된다 — 같은 방식으로 「[이메일]」.
+    if (Array.isArray(data.recentPosts)) {
+        for (const p of data.recentPosts as Array<{ wr_subject?: unknown } | null>) {
+            if (p && typeof p.wr_subject === 'string') {
+                p.wr_subject = maskEmailText(p.wr_subject);
+            }
+        }
+    }
     if (!Array.isArray(data.recentComments)) return data;
     for (const c of data.recentComments as Array<{ preview?: unknown } | null>) {
         if (c && typeof c.preview === 'string') {
-            c.preview = stripEmailMarkers(encodeEmails(c.preview)).replace(
-                PREVIEW_CUT_EMAIL,
-                '[이메일]'
-            );
+            c.preview = maskEmailText(c.preview).replace(PREVIEW_CUT_EMAIL, '[이메일]');
         }
     }
     return data;

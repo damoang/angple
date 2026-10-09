@@ -58,6 +58,7 @@
     import Info from '@lucide/svelte/icons/info';
     import ChevronDown from '@lucide/svelte/icons/chevron-down';
     import type { ViewLayoutProps } from '../types.js';
+    import { EmailText } from '$lib/components/ui/email-text/index.js';
     import ReportCharts from './report-charts.svelte';
 
     const FONT_SIZES: Record<ContentFontSize, string> = {
@@ -500,10 +501,10 @@
                             isLoggedIn={authStore.isAuthenticated}
                             bind:revealed={discReveal}
                         >
-                            {post.title}
+                            <EmailText text={post.title} />
                         </DisciplinedContent>
                     {:else}
-                        {post.title}
+                        <EmailText text={post.title} />
                     {/if}
                 </span>
             </CardTitle>
