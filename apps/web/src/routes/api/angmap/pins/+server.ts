@@ -12,6 +12,7 @@ import type { RequestHandler } from './$types';
 import { readPool } from '$lib/server/db.js';
 import { createCache } from '$lib/server/cache.js';
 import type { RowDataPacket } from 'mysql2';
+import { maskEmailText } from '$lib/utils/email-reveal.js';
 
 interface AngmapPin {
     id: number;
@@ -88,7 +89,7 @@ async function loadPins(): Promise<AngmapPin[]> {
     return rows
         .map((r) => ({
             id: r.wr_id,
-            title: r.wr_subject,
+            title: maskEmailText(r.wr_subject),
             name: r.name,
             lat: Number(r.lat),
             lng: Number(r.lng),

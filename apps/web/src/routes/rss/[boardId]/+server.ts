@@ -3,6 +3,7 @@ import { rssEtag, etagMatches, rssHeaders } from '../headers.js';
 import pool from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import { findDisciplinedIds } from '$lib/server/discipline-mask.js';
+import { maskEmailText } from '$lib/utils/email-reveal.js';
 
 /**
  * 게스트에게 공개된 보드의 경계.
@@ -107,7 +108,7 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
             .filter((post) => !disciplined.has(post.wr_id))
             .map((post) => {
                 return `    <item>
-      <title>${escapeXml(post.wr_subject)}</title>
+      <title>${escapeXml(maskEmailText(post.wr_subject))}</title>
       <link>${siteUrl}/${boardId}/${post.wr_id}</link>
       <description></description>
       <author>${escapeXml(post.wr_name)}</author>

@@ -1,5 +1,6 @@
 import type { PageLoad } from './$types.js';
 import { apiClient } from '$lib/api/client.js';
+import { maskTitleFields } from '$lib/utils/email-reveal.js';
 
 export const load: PageLoad = async ({ params, url }) => {
     const tag = decodeURIComponent(params.tag);
@@ -17,7 +18,8 @@ export const load: PageLoad = async ({ params, url }) => {
 
         return {
             tag,
-            posts: results,
+            // 이메일 주소 수집 방지 — SSR HTML·페이지 데이터에 제목 원문 주소를 남기지 않는다.
+            posts: maskTitleFields(results),
             page
         };
     } catch {

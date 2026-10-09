@@ -7,6 +7,7 @@
 
 import { readFile } from 'node:fs/promises';
 import { rewriteImageHosts } from '$lib/server/cdn-rewrite';
+import { titleEmailReviver } from '$lib/utils/email-reveal.js';
 import { existsSync } from 'node:fs';
 import type { ExploreData, ExploreModeData, ExplorePost, ExploreComment } from '$lib/api/types';
 import { findDisciplinedIds } from '$lib/server/discipline-mask';
@@ -175,7 +176,7 @@ async function loadExploreDataRaw(): Promise<ExploreData | null> {
 
     try {
         const content = await readFile(filePath, 'utf-8');
-        const data: ExploreData = JSON.parse(rewriteImageHosts(content));
+        const data: ExploreData = JSON.parse(rewriteImageHosts(content), titleEmailReviver);
         cache = { data, timestamp: Date.now() };
         return data;
     } catch (err) {

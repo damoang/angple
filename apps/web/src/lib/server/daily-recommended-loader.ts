@@ -7,6 +7,7 @@
 
 import { readFile } from 'node:fs/promises';
 import { rewriteImageHosts } from '$lib/server/cdn-rewrite';
+import { titleEmailReviver } from '$lib/utils/email-reveal.js';
 import { existsSync } from 'node:fs';
 import type {
     DailyCalendar,
@@ -63,7 +64,7 @@ export async function loadDailyCalendar(): Promise<DailyCalendar | null> {
 
     try {
         const content = await readFile(filePath, 'utf-8');
-        const data: DailyCalendar = JSON.parse(rewriteImageHosts(content));
+        const data: DailyCalendar = JSON.parse(rewriteImageHosts(content), titleEmailReviver);
         setCacheBounded(cacheKey, data, Date.now());
         return data;
     } catch (err) {
@@ -178,7 +179,10 @@ async function loadDailyRecommendedRaw(date: string): Promise<DailyRecommendedDa
 
     try {
         const content = await readFile(filePath, 'utf-8');
-        const data: DailyRecommendedData = JSON.parse(rewriteImageHosts(content));
+        const data: DailyRecommendedData = JSON.parse(
+            rewriteImageHosts(content),
+            titleEmailReviver
+        );
         cache.set(date, { data, timestamp: Date.now() });
         return data;
     } catch (err) {

@@ -7,6 +7,7 @@ import type { RowDataPacket } from 'mysql2';
 import { TieredCache } from '$lib/server/cache.js';
 import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-mask.js';
 import { isSecretOption, SECRET_COMMENT_PLACEHOLDER } from '$lib/server/secret-option.js';
+import { maskEmailText } from '$lib/utils/email-reveal.js';
 
 export interface NewPostItem {
     bn_id: number;
@@ -181,11 +182,14 @@ function extractContentPreview(rawContent: string, maxLen = 100): string {
         prev = stripped;
         stripped = stripped.replace(/<[^>]*>/g, '');
     } while (stripped !== prev);
-    const plainText = stripped
-        .replace(/\{emo:[^}]+\}/g, '') // 이모지 코드 {emo:xxx} 제거
-        .replace(/&(?:nbsp|lt|gt|amp);/g, (m) => entityMap[m])
-        .replace(/\s+/g, ' ')
-        .trim();
+    // 이메일 주소 수집 방지 — 자르기 전에 「[이메일]」로 가려 반쯤 잘린 주소가 남지 않게 한다.
+    const plainText = maskEmailText(
+        stripped
+            .replace(/\{emo:[^}]+\}/g, '') // 이모지 코드 {emo:xxx} 제거
+            .replace(/&(?:nbsp|lt|gt|amp);/g, (m) => entityMap[m])
+            .replace(/\s+/g, ' ')
+            .trim()
+    );
     return plainText.length > maxLen ? plainText.slice(0, maxLen) : plainText;
 }
 
@@ -354,7 +358,7 @@ export async function getNewPosts(
                 wr_parent: row.wr_parent,
                 bn_datetime: row.bn_datetime,
                 bo_subject: row.bo_subject,
-                wr_subject: isDisciplined ? DISCIPLINED_TITLE : writeData.wr_subject,
+                wr_subject: isDisciplined ? DISCIPLINED_TITLE : maskEmailText(writeData.wr_subject),
                 wr_content: preview,
                 mb_id: row.mb_id,
                 wr_name: writeData.wr_name,

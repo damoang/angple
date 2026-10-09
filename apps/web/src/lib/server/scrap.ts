@@ -12,6 +12,7 @@ import { readPool, pool } from '$lib/server/db.js';
 import { TieredCache } from '$lib/server/cache.js';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-mask.js';
+import { maskEmailText } from '$lib/utils/email-reveal.js';
 
 interface ScrapRow extends RowDataPacket {
     ms_id: number;
@@ -115,7 +116,9 @@ async function enrichScraps(rows: ScrapRow[]): Promise<ScrapItem[]> {
             bo_table: row.bo_table,
             wr_id: row.wr_id,
             ms_datetime: row.ms_datetime,
-            wr_subject: isDisciplined ? DISCIPLINED_TITLE : wr?.wr_subject,
+            wr_subject: isDisciplined
+                ? DISCIPLINED_TITLE
+                : wr?.wr_subject && maskEmailText(wr.wr_subject),
             wr_name: wr?.wr_name
         };
     });
