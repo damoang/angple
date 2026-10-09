@@ -58,7 +58,7 @@ import type {
     BoardStat
 } from './types.js';
 import { browser } from '$app/environment';
-import { ApiRequestError } from './errors.js';
+import { ApiRequestError, WRITE_IN_PROGRESS_CODE } from './errors.js';
 import { fetchWithRetry, type RetryConfig, DEFAULT_RETRY_CONFIG } from './retry.js';
 import { safeRandomUUID } from '$lib/utils/uuid';
 import { timedFetch, TimedFetchError } from '$lib/utils/timed-fetch';
@@ -736,6 +736,17 @@ class ApiClient {
             },
             WRITE_REQUEST_CONFIG
         );
+
+        // 같은 요청 키의 첫 요청이 아직 처리 중이면 서버가 202 + { success: false } 만 준다.
+        // 글은 첫 요청으로 등록되므로 실패가 아니라 "이미 제출됨"으로 구분해 올린다.
+        if (response?.success === false && !response.data) {
+            throw new ApiRequestError(
+                '이미 등록 처리 중입니다. 잠시 후 목록을 확인해 주세요.',
+                'unknown',
+                202,
+                WRITE_IN_PROGRESS_CODE
+            );
+        }
 
         return response.data;
     }

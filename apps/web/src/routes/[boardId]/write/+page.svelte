@@ -10,7 +10,8 @@
     // 나눔 게시판: 방식 선택이 포함된 커스텀 글쓰기 폼 등록
     writeFormRegistry.register('giving', GivingWriteForm, 'core');
     import { authStore } from '$lib/stores/auth.svelte.js';
-    import { apiClient } from '$lib/api/index.js';
+    import { toast } from 'svelte-sonner';
+    import { apiClient, isWriteInProgressError } from '$lib/api/index.js';
     import type { PageData } from './$types.js';
     import type { CreatePostRequest, UpdatePostRequest } from '$lib/api/types.js';
     import type { WritePermission } from './+page.js';
@@ -216,12 +217,24 @@
                 }
             }
 
-            // 상세 페이지로 이동 (새 경로이므로 page load 자동 실행)
-            goto(`/${boardId}/${newPost.id}`);
+            // 상세 페이지로 이동 (새 경로이므로 page load 자동 실행).
+            // 버튼 잠금은 풀지 않는다 — 느린 회선에서 이동 중에 버튼이 다시 살아나
+            // 같은 글이 두 번 등록되는 것을 막는다. goto 는 await 하지 않는다: 네이티브
+            // 이동으로 넘어가면 영원히 끝나지 않아, 호출 측(post-form)의 임시저장 정리가 막힌다.
+            goto(`/${boardId}/${newPost.id}`).catch(() => {
+                isSubmitting = false;
+            });
         } catch (err) {
+            if (isWriteInProgressError(err)) {
+                // 같은 요청이 이미 서버에서 처리 중 — 실패가 아니므로 잠금을 유지한 채 목록으로.
+                toast.info('이미 등록 처리 중입니다. 잠시 후 목록을 확인해 주세요.');
+                goto(`/${boardId}`).catch(() => {
+                    isSubmitting = false;
+                });
+                return;
+            }
             console.error('Failed to create post:', err);
             error = err instanceof Error ? err.message : '게시글 작성에 실패했습니다.';
-        } finally {
             isSubmitting = false;
         }
     }

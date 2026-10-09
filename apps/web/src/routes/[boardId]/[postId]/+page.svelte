@@ -1998,6 +1998,7 @@
         images?: string[],
         rating?: number
     ): Promise<void> {
+        if (isCreatingComment) return;
         if (!authStore.user) {
             throw new Error('로그인이 필요합니다.');
         }

@@ -47,6 +47,16 @@ export class ApiRequestError extends Error {
     }
 }
 
+/**
+ * 같은 작성 요청이 서버에서 아직 처리 중(HTTP 202, 결과 없음)일 때의 에러 코드.
+ * 첫 요청이 이미 접수된 것이므로 실패가 아니라 "이미 제출됨"으로 다룬다.
+ */
+export const WRITE_IN_PROGRESS_CODE = 'WRITE_IN_PROGRESS';
+
+export function isWriteInProgressError(error: unknown): boolean {
+    return error instanceof ApiRequestError && error.code === WRITE_IN_PROGRESS_CODE;
+}
+
 function classifyHttpStatus(status: number): ApiErrorType {
     if (status === 401) return 'auth';
     if (status === 403) return 'forbidden';
