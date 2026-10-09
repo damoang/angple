@@ -6,6 +6,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { backendFetch } from '$lib/server/backend-fetch';
 import { isWithdrawnMember } from '../_withdrawn';
+import { maskActivityEmails } from '$lib/server/member-activity';
 
 const EMPTY_RESPONSE = { recentPosts: [], recentComments: [] };
 
@@ -28,7 +29,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
             `/api/v1/members/${encodeURIComponent(memberId)}/activity?limit=${limit}`
         );
         const data = await res.json();
-        return json(data);
+        return json(data && typeof data === 'object' ? maskActivityEmails(data) : data);
     } catch {
         return json(EMPTY_RESPONSE);
     }

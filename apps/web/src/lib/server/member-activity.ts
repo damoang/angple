@@ -7,6 +7,7 @@
  */
 import { backendFetch } from '$lib/server/backend-fetch';
 import { getRedis } from '$lib/server/redis';
+import { encodeEmails, stripEmailMarkers } from '$lib/utils/email-reveal.js';
 
 export interface MemberActivity {
     recentPosts: unknown[];
@@ -15,6 +16,20 @@ export interface MemberActivity {
 
 const EMPTY: MemberActivity = { recentPosts: [], recentComments: [] };
 const CACHE_TTL_SEC = 60;
+
+/**
+ * 최근 댓글 미리보기(평문)의 이메일 주소를 「[이메일]」로 가린다 — 본문·댓글의 「이메일 보기」
+ * 처리(utils/email-reveal.ts)와 같은 수집 방지. 미리보기는 글자 그대로 표시되므로 버튼 대신 글자.
+ */
+export function maskActivityEmails<T extends { recentComments?: unknown }>(data: T): T {
+    if (!Array.isArray(data.recentComments)) return data;
+    for (const c of data.recentComments as Array<{ preview?: unknown } | null>) {
+        if (c && typeof c.preview === 'string') {
+            c.preview = stripEmailMarkers(encodeEmails(c.preview));
+        }
+    }
+    return data;
+}
 
 /**
  * 작성자(authorId)의 최근 글/댓글을 조회한다. 실패/유효하지 않은 입력 시 빈 결과 반환(크래시 방지).
@@ -29,7 +44,7 @@ export async function fetchMemberActivity(authorId: string, limit = 5): Promise<
     try {
         const cached = await getRedis().get(cacheKey);
         if (cached) {
-            return JSON.parse(cached) as MemberActivity;
+            return maskActivityEmails(JSON.parse(cached) as MemberActivity);
         }
     } catch {
         // Redis 장애 → 백엔드 직접 조회로 진행
@@ -42,10 +57,10 @@ export async function fetchMemberActivity(authorId: string, limit = 5): Promise<
             { timeout: 2000 }
         );
         const data = (await res.json()) as Partial<MemberActivity>;
-        const result: MemberActivity = {
+        const result: MemberActivity = maskActivityEmails({
             recentPosts: Array.isArray(data.recentPosts) ? data.recentPosts : [],
             recentComments: Array.isArray(data.recentComments) ? data.recentComments : []
-        };
+        });
         try {
             await getRedis().setex(cacheKey, CACHE_TTL_SEC, JSON.stringify(result));
         } catch {
