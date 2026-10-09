@@ -5,20 +5,26 @@
  * 흐름
  * 1. 서버(SSR load / 댓글 API)가 내려보내기 전에 `encodeEmails()` 로 주소를
  *    `{email:<hex>}` 표지로 바꾼다. HTML·페이지 데이터(JSON) 어디에도 `a@b.c` 원문이 남지 않는다.
- * 2. 렌더러(markdown / comment-list)가 sanitize 뒤에 `renderEmailMarkers()` 로 표지를 버튼으로 바꾼다.
- *    표지 값은 16진수만 허용하므로 sanitize 뒤에 넣어도 주입 표면이 없다.
- * 3. 버튼 클릭은 `openEmailReveal()` 이 받아 팝업(주소·복사·메일 쓰기)을 띄운다.
+ * 2. 렌더러(markdown / comment-list)가 **sanitize 전에** `renderEmailMarkers()` 로 표지를 버튼으로
+ *    바꾸고, 결과 전체를 DOMPurify 가 다시 거른다. 태그 안(속성값)의 표지는 버튼이 아니라
+ *    「[이메일]」 글자로 바꾼다 — sanitize 끝난 HTML 에 정규식으로 마크업을 끼우면 속성 문맥이
+ *    깨져 주입 표면이 된다(위조 표지를 alt/href 에 넣는 경우).
+ * 3. 버튼 클릭은 `handleEmailRevealClick()` 이 받아 팝업(주소·복사·메일 쓰기)을 띄운다.
  * 4. 댓글 수정 창은 `decodeEmailMarkers()` 로 원문 주소를 되돌려 표지가 저장되지 않게 한다.
+ *    단 mailto 링크는 「링크 글자 + 주소」 평문으로 돌아온다(링크 자체는 복원하지 않음).
  *
  * DB 원문은 건드리지 않는다(표시 단계 변환). 정교한 헤드리스 봇·백엔드 API 직접 호출은 막지 못한다.
  * ⛔ 정규식 lookbehind 금지(구형 iOS Safari 크래시) — 앞 글자는 offset 으로 직접 검사한다.
+ * ⛔ 반복 길이는 반드시 상한을 둔다 — 무한 `+` 는 긴 입력 한 건으로 SSR 을 O(n²) 로 묶는다.
  */
 
 const MARKER_RE = /\{email:([0-9a-f]{6,512})\}/g;
 
-// 로컬파트@도메인.TLD — 앞뒤 경계는 콜백에서 검사한다.
-const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,24}/g;
-const EMAIL_EXACT = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,24}$/;
+// 로컬파트@도메인.TLD (RFC 길이 상한) — 앞뒤 경계는 콜백에서 검사한다.
+const EMAIL_SRC =
+    '[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\\.[A-Za-z0-9-]{1,63}){0,8}\\.[A-Za-z]{2,24}';
+const EMAIL_RE = new RegExp(EMAIL_SRC, 'g');
+const EMAIL_EXACT = new RegExp(`^${EMAIL_SRC}$`);
 
 // `logo@2x.png` 같은 파일명은 이메일이 아니다.
 const FILE_TLDS = new Set([
@@ -49,6 +55,8 @@ const FILE_TLDS = new Set([
 // 이 글자 바로 뒤에 붙은 주소는 URL·속성값의 일부로 보고 건너뛴다.
 const BLOCKED_BEFORE = /[A-Za-z0-9._%+\-/=@]/;
 const BLOCKED_AFTER = /[A-Za-z0-9@/_-]/;
+// URL 토큰 경계 — 공백류(탭·NBSP 포함)와 따옴표·괄호·꺾쇠, `&nbsp;` 의 `;`
+const TOKEN_SEP = /[\s "'()<>;]/;
 
 function toHex(s: string): string {
     let out = '';
@@ -58,8 +66,9 @@ function toHex(s: string): string {
 
 function fromHex(hex: string): string {
     let out = '';
-    for (let i = 0; i + 1 < hex.length; i += 2)
+    for (let i = 0; i + 1 < hex.length; i += 2) {
         out += String.fromCharCode(parseInt(hex.slice(i, i + 2), 16));
+    }
     return out;
 }
 
@@ -81,50 +90,57 @@ function isEmail(s: string): boolean {
     return !FILE_TLDS.has(tld);
 }
 
-function encodeText(text: string): string {
-    if (text.indexOf('@') === -1) return text;
-    // mailto:주소 → 표지
-    text = text.replace(/mailto:([^\s<>"'()?]+)/gi, (m, addr: string) =>
-        isEmail(addr) ? emailToMarker(addr) : m
-    );
-    return text.replace(EMAIL_RE, (m: string, offset: number, whole: string) => {
-        const before = offset > 0 ? whole[offset - 1] : '';
-        const after = whole[offset + m.length] ?? '';
-        if (before && BLOCKED_BEFORE.test(before)) return m;
-        // http://user:pass@host 처럼 URL 토큰 안이면 건너뛴다
-        const tokenStart = Math.max(
-            whole.lastIndexOf(' ', offset),
-            whole.lastIndexOf('\n', offset)
-        );
-        if (whole.slice(tokenStart + 1, offset).includes('://')) return m;
-        // 주소 뒤 마침표·쉼표(문장부호)는 경계로 허용한다
-        if (after && BLOCKED_AFTER.test(after)) return m;
-        return isEmail(m) ? emailToMarker(m) : m;
-    });
+/** 링크 글자가 주소 자체(또는 비어 있음)면 표지만, 아니면 「글자 표지」로 남긴다. */
+function linkToMarker(text: string, addr: string): string {
+    const label = text.replace(/<[^>]*>/g, '').trim();
+    if (!label || label === addr) return emailToMarker(addr);
+    return `${text} ${emailToMarker(addr)}`;
+}
+
+/** URL 토큰(`https://user:pass@host` 등) 안의 위치인가. */
+function insideUrlToken(whole: string, offset: number): boolean {
+    let i = offset - 1;
+    while (i >= 0 && !TOKEN_SEP.test(whole[i])) i--;
+    return whole.slice(i + 1, offset).includes('://');
 }
 
 /**
  * 서버 전용 — 본문/댓글 원문(HTML·마크다운·평문 혼합)의 이메일을 표지로 바꾼다.
- * 태그 안(속성값)은 건드리지 않되, `mailto:` 링크는 링크째 표지로 바꾼다.
+ * 태그 속성 안의 주소도 바꾼다(렌더 단계에서 「[이메일]」 글자가 된다). URL·파일명의 `@` 는 둔다.
  */
 export function encodeEmails(content: string): string {
     if (!content || content.indexOf('@') === -1) return content;
 
-    // <a href="mailto:주소">…</a> → 표지 (링크 글자도 주소인 경우가 대부분)
+    // <a href="mailto:주소">글자</a> → 표지 (글자가 주소가 아니면 글자는 남긴다)
     let out = content.replace(
-        /<a\b[^>]*\bhref\s*=\s*["']mailto:([^"'?]+)[^"']*["'][^>]*>[\s\S]*?<\/a>/gi,
-        (m, addr: string) => (isEmail(addr.trim()) ? emailToMarker(addr.trim()) : m)
+        /<a\b[^>]{0,500}?\bhref\s*=\s*["']mailto:([^"'?]{1,320})[^"']{0,500}["'][^>]{0,500}>([\s\S]{0,500}?)<\/a>/gi,
+        (m, addr: string, text: string) =>
+            isEmail(addr.trim()) ? linkToMarker(text, addr.trim()) : m
     );
     // [글자](mailto:주소) → 표지
-    out = out.replace(/\[[^\]\n]*\]\(\s*mailto:([^)\s?]+)[^)]*\)/gi, (m, addr: string) =>
+    out = out.replace(
+        /\[([^\]\n]{0,200})\]\(\s*mailto:([^)\s?]{1,320})[^)]{0,500}\)/gi,
+        (m, text: string, addr: string) => (isEmail(addr) ? linkToMarker(text, addr) : m)
+    );
+    // <주소> 꺾쇠 자동링크 → 표지
+    out = out.replace(/<([^<>\s]{3,320})>/g, (m, addr: string) =>
         isEmail(addr) ? emailToMarker(addr) : m
     );
+    // 남은 mailto:주소 → 표지
+    out = out.replace(/mailto:([^\s<>"'()?]{1,320})/gi, (m, addr: string) =>
+        isEmail(addr) ? emailToMarker(addr) : m
+    );
+    if (out.indexOf('@') === -1) return out;
 
-    // 태그 밖 텍스트만 변환
-    return out
-        .split(/(<[^>]*>)/g)
-        .map((part) => (part.startsWith('<') ? part : encodeText(part)))
-        .join('');
+    return out.replace(EMAIL_RE, (m: string, offset: number, whole: string) => {
+        const before = offset > 0 ? whole[offset - 1] : '';
+        const after = whole[offset + m.length] ?? '';
+        if (before && BLOCKED_BEFORE.test(before)) return m;
+        if (after && BLOCKED_AFTER.test(after)) return m;
+        if (insideUrlToken(whole, offset)) return m;
+        // 주소 뒤 마침표·쉼표(문장부호)는 경계로 허용한다
+        return isEmail(m) ? emailToMarker(m) : m;
+    });
 }
 
 /** 수정 창 프리필용 — 표지를 원래 주소로 되돌린다. */
@@ -133,20 +149,30 @@ export function decodeEmailMarkers(content: string): string {
     return content.replace(MARKER_RE, (m, hex: string) => markerToEmail(hex) ?? m);
 }
 
-/** 메타 설명 등 평문용 — 표지를 「[이메일]」로. */
+/** 메타 설명·구조화 데이터 등 평문용 — 표지를 「[이메일]」로. */
 export function stripEmailMarkers(text: string): string {
     if (!text || text.indexOf('{email:') === -1) return text;
     return text.replace(MARKER_RE, '[이메일]');
 }
 
-/** 렌더러용(sanitize 뒤) — 표지를 버튼으로. */
+/**
+ * 렌더러용 — **DOMPurify 전에** 호출한다. 태그 밖 표지는 버튼, 태그 안(속성값) 표지는
+ * 「[이메일]」 글자로 바꾼다. 결과는 반드시 sanitize 를 거쳐야 한다(button·data-er 허용 필요).
+ */
 export function renderEmailMarkers(html: string): string {
     if (!html || html.indexOf('{email:') === -1) return html;
-    return html.replace(MARKER_RE, (m, hex: string) =>
-        markerToEmail(hex)
-            ? `<button type="button" class="email-reveal" data-er="${hex}" aria-haspopup="dialog">이메일 보기</button>`
-            : m
-    );
+    return html
+        .split(/(<[^>]*>)/g)
+        .map((part) => {
+            if (part.indexOf('{email:') === -1) return part;
+            if (part.startsWith('<')) return part.replace(MARKER_RE, '[이메일]');
+            return part.replace(MARKER_RE, (m, hex: string) =>
+                markerToEmail(hex)
+                    ? `<button type="button" class="email-reveal" data-er="${hex}" aria-haspopup="dialog">이메일 보기</button>`
+                    : m
+            );
+        })
+        .join('');
 }
 
 let popEl: HTMLDivElement | null = null;
@@ -167,6 +193,14 @@ export function handleEmailRevealClick(ev: MouseEvent): boolean {
     ev.stopPropagation();
     openEmailReveal(btn);
     return true;
+}
+
+function selectText(el: HTMLElement): void {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
 }
 
 export function openEmailReveal(btn: HTMLElement): void {
@@ -190,14 +224,15 @@ export function openEmailReveal(btn: HTMLElement): void {
     copyBtn.type = 'button';
     copyBtn.textContent = '복사';
     copyBtn.addEventListener('click', () => {
-        const done = () => (copyBtn.textContent = '복사됨');
-        navigator.clipboard?.writeText(email).then(done, () => {
-            const range = document.createRange();
-            range.selectNodeContents(addr);
-            const sel = window.getSelection();
-            sel?.removeAllRanges();
-            sel?.addRange(range);
-        });
+        // clipboard 미지원·거부 시 주소를 선택해 두어 직접 복사하게 한다.
+        if (!navigator.clipboard?.writeText) {
+            selectText(addr);
+            return;
+        }
+        navigator.clipboard.writeText(email).then(
+            () => (copyBtn.textContent = '복사됨'),
+            () => selectText(addr)
+        );
     });
 
     const mailLink = document.createElement('a');
@@ -224,10 +259,13 @@ export function openEmailReveal(btn: HTMLElement): void {
     // 현재 클릭이 곧바로 닫지 않도록 다음 틱에 설치
     const timer = setTimeout(() => document.addEventListener('click', onDocClick), 0);
     document.addEventListener('keydown', onKey);
+    // 뒤로가기 등 화면 전환 시 남지 않게
+    window.addEventListener('popstate', closeEmailReveal);
     cleanupPop = () => {
         clearTimeout(timer);
         document.removeEventListener('click', onDocClick);
         document.removeEventListener('keydown', onKey);
+        window.removeEventListener('popstate', closeEmailReveal);
     };
     popEl = pop;
 }

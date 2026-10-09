@@ -32,14 +32,40 @@ describe('encodeEmails', () => {
         expect(out).toBe(`<p>${emailToMarker('me@x.io')}</p>`);
     });
 
+    it('keeps the link text of mailto links that are not the address itself', () => {
+        expect(encodeEmails('<a href="mailto:me@x.io">연락</a>')).toBe(
+            `연락 ${emailToMarker('me@x.io')}`
+        );
+        expect(encodeEmails('[메일](mailto:me@x.io)')).toBe(`메일 ${emailToMarker('me@x.io')}`);
+    });
+
     it('replaces markdown mailto links and bare mailto: text', () => {
-        expect(encodeEmails('[메일](mailto:me@x.io)')).toBe(emailToMarker('me@x.io'));
+        expect(encodeEmails('[me@x.io](mailto:me@x.io)')).toBe(emailToMarker('me@x.io'));
         expect(encodeEmails('mailto:me@x.io')).toBe(emailToMarker('me@x.io'));
     });
 
-    it('does not touch addresses inside tag attributes', () => {
+    it('encodes addresses in attribute text but not image URLs', () => {
         const html = '<img src="https://cdn.example.com/a/logo@2x.png" alt="me@x.io">';
-        expect(encodeEmails(html)).toBe(html);
+        expect(encodeEmails(html)).toBe(
+            `<img src="https://cdn.example.com/a/logo@2x.png" alt="${emailToMarker('me@x.io')}">`
+        );
+    });
+
+    it('replaces <address> angle-bracket autolinks', () => {
+        expect(encodeEmails('메일 <me@x.io> 로')).toBe(`메일 ${emailToMarker('me@x.io')} 로`);
+    });
+
+    it('treats tab and NBSP as URL token separators', () => {
+        const s = '접속\thttps://user:pw@host.com 참고';
+        expect(encodeEmails(s)).toBe(s);
+        expect(encodeEmails('메일\u00a0me@x.io')).toBe(`메일\u00a0${emailToMarker('me@x.io')}`);
+    });
+
+    it('stays fast on long @-heavy input', () => {
+        const long = 'a'.repeat(200000) + '@' + 'b'.repeat(200000);
+        const start = Date.now();
+        expect(encodeEmails(long)).toBe(long);
+        expect(Date.now() - start).toBeLessThan(2000);
     });
 
     it('does not treat image file names as emails', () => {
@@ -88,6 +114,12 @@ describe('markers', () => {
         const html = renderEmailMarkers(`<p>${emailToMarker('a@b.com')}</p>`);
         expect(html).toContain('class="email-reveal"');
         expect(html).not.toMatch(RAW_EMAIL);
+    });
+
+    it('never inserts markup inside a tag (forged marker in an attribute)', () => {
+        const m = emailToMarker('a@b.com');
+        const html = renderEmailMarkers(`<img alt="${m}" title="x"><a href="${m}">t</a>`);
+        expect(html).toBe('<img alt="[이메일]" title="x"><a href="[이메일]">t</a>');
     });
 
     it('strips markers for plain-text descriptions', () => {

@@ -1,6 +1,5 @@
 <script lang="ts" module>
     import { createScrollSnapshot } from '$lib/utils/scroll-restore.js';
-    import { stripEmailMarkers } from '$lib/utils/email-reveal.js';
 
     // 뒤로가기 시 스크롤 위치 복원.
     // ⛔ 예전에는 rAF + setTimeout(100ms) 로 문서 높이를 보지 않고 scrollTo 했다.
@@ -15,6 +14,7 @@
     import { env as publicEnv } from '$env/dynamic/public';
     import { afterNavigate, goto, invalidateAll } from '$app/navigation';
     import { sanitizeFromBoard } from '$lib/utils/notice-link';
+    import { stripEmailMarkers } from '$lib/utils/email-reveal.js';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import * as Dialog from '$lib/components/ui/dialog/index.js';
@@ -2314,7 +2314,10 @@
                       dateCreated: data.post.created_at,
                       answerCount: comments.length,
                       answers: safeTopComments.map((c) => ({
-                          text: truncateText(c.content.replace(/<[^>]+>/g, '').trim(), 300),
+                          text: truncateText(
+                              stripEmailMarkers(c.content.replace(/<[^>]+>/g, '').trim()),
+                              300
+                          ),
                           // GSC "suggestedAnswer 의 url 누락" — 실제 댓글 DOM 앵커(c_{id})
                           url: c.id ? `${postUrl}#c_${c.id}` : undefined,
                           author: c.author,
@@ -2395,7 +2398,10 @@
                           image: ogImageUrl,
                           // 상위 원댓글 3개 (비밀·삭제·잠금·제재·차단 댓글 제외 — 마스킹 정책 준수)
                           comments: safeTopComments.map((c) => ({
-                              text: truncateText(c.content.replace(/<[^>]+>/g, '').trim(), 200),
+                              text: truncateText(
+                                  stripEmailMarkers(c.content.replace(/<[^>]+>/g, '').trim()),
+                                  200
+                              ),
                               author: c.author,
                               // GSC "comment.author 의 url 누락" 개선 — 프로필 URL
                               authorUrl: c.author_id

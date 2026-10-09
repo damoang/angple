@@ -72,6 +72,7 @@
     });
     import { highlightMentions } from '$lib/utils/mention-parser.js';
     import {
+        closeEmailReveal,
         decodeEmailMarkers,
         handleEmailRevealClick,
         renderEmailMarkers
@@ -913,7 +914,10 @@
             // JS 하이드레이션 전(앱 웹뷰 등)에는 원문 코드가 그대로 노출됐다.
             // 순수 함수라 SSR-safe. 멱등: 아래 processedComments $effect 는 원본
             // comment.content 를 다시 필터하므로 이 SSR 결과를 재처리하지 않는다.
-            const withBr = transformEmoticons(comment.content.replace(/\n/g, '<br>'));
+            // 이메일 표지 → 「이메일 보기」 버튼. 반드시 sanitize 전에(속성 문맥 주입 방지).
+            const withBr = renderEmailMarkers(
+                transformEmoticons(comment.content.replace(/\n/g, '<br>'))
+            );
             map.set(
                 comment.id,
                 normalizeHtmlMediaUrls(
@@ -932,7 +936,8 @@
                             'em',
                             'del',
                             'details',
-                            'summary'
+                            'summary',
+                            'button'
                         ],
                         ALLOWED_ATTR: [
                             'src',
@@ -945,7 +950,10 @@
                             'target',
                             'rel',
                             'data-affiliate',
-                            'data-original'
+                            'data-original',
+                            'type',
+                            'data-er',
+                            'aria-haspopup'
                         ]
                     })
                 )
@@ -953,12 +961,6 @@
         }
         return map;
     });
-
-    // 표시용 댓글 HTML — 이메일 표지는 sanitize 뒤에 「이메일 보기」 버튼으로 바꾼다
-    // (표지 값은 16진수만 허용하므로 주입 표면 없음).
-    function commentHtml(id: string | number): string {
-        return renderEmailMarkers(processedComments.get(id) ?? ssrCommentHtml.get(id) ?? '');
-    }
 
     // 댓글 내용 비동기 처리 (플러그인 필터 적용)
     $effect(() => {
@@ -978,10 +980,12 @@
                 const withMentions = highlightMentions(filtered);
                 // URL 텍스트를 자동 하이퍼링크로 변환
                 const withLinks = autoLinkUrls(withMentions);
+                // 이메일 표지 → 「이메일 보기」 버튼. 반드시 sanitize 전에(속성 문맥 주입 방지).
+                const withEmails = renderEmailMarkers(withLinks);
                 processedComments.set(
                     comment.id,
                     normalizeHtmlMediaUrls(
-                        DOMPurify.sanitize(withLinks, {
+                        DOMPurify.sanitize(withEmails, {
                             ALLOWED_TAGS: [
                                 'p',
                                 'img',
@@ -1000,7 +1004,8 @@
                                 'em',
                                 'del',
                                 'details',
-                                'summary'
+                                'summary',
+                                'button'
                             ],
                             ALLOWED_ATTR: [
                                 'src',
@@ -1028,7 +1033,9 @@
                                 'rel',
                                 'data-mention',
                                 'data-affiliate',
-                                'data-original'
+                                'data-original',
+                                'data-er',
+                                'aria-haspopup'
                             ]
                         })
                     )
@@ -1053,7 +1060,10 @@
         if (!el) return;
         const onClick = (ev: MouseEvent) => void handleEmailRevealClick(ev);
         el.addEventListener('click', onClick);
-        return () => el.removeEventListener('click', onClick);
+        return () => {
+            el.removeEventListener('click', onClick);
+            closeEmailReveal();
+        };
     });
 
     // 댓글 이미지 라이트박스 연결 (이모티콘 제외)
@@ -1972,7 +1982,9 @@
                                     style="font-size: var(--comment-font-size, 1rem);"
                                 >
                                     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                                    {@html commentHtml(comment.id)}
+                                    {@html processedComments.get(comment.id) ??
+                                        ssrCommentHtml.get(comment.id) ??
+                                        ''}
                                     {#if comment.is_restricted}
                                         <RestrictedBadge class="ml-1" />
                                     {/if}
@@ -1992,7 +2004,9 @@
                                     style="font-size: var(--comment-font-size, 1rem);"
                                 >
                                     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                                    {@html commentHtml(comment.id)}
+                                    {@html processedComments.get(comment.id) ??
+                                        ssrCommentHtml.get(comment.id) ??
+                                        ''}
                                     {#if comment.is_restricted}
                                         <RestrictedBadge class="ml-1" />
                                     {/if}

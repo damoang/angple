@@ -12,7 +12,11 @@
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
     import { enhanceWikiangLinks } from '$lib/utils/wikiang-link.js';
     import { fixMentionLinks } from '$lib/utils/mention-link-fix.js';
-    import { renderEmailMarkers, handleEmailRevealClick } from '$lib/utils/email-reveal.js';
+    import {
+        closeEmailReveal,
+        handleEmailRevealClick,
+        renderEmailMarkers
+    } from '$lib/utils/email-reveal.js';
     import {
         buildThumbnailSrcSet,
         isTransformableMediaImage,
@@ -174,6 +178,8 @@
     // DOMPurify 설정
     const PURIFY_CONFIG = {
         ALLOWED_TAGS: [
+            // 이메일 「이메일 보기」 버튼 (utils/email-reveal.ts)
+            'button',
             'h1',
             'h2',
             'h3',
@@ -261,7 +267,10 @@
             'reversed',
             'value',
             'colspan',
-            'rowspan'
+            'rowspan',
+            // 이메일 「이메일 보기」 버튼 (utils/email-reveal.ts)
+            'data-er',
+            'aria-haspopup'
         ]
     };
 
@@ -309,13 +318,13 @@
         // - 멱등: 아래 클라 $effect 는 원본 content 를 다시 파싱하므로 이 SSR 결과를
         //   재처리하지 않는다(이중 변환 없음). 라이브 렌더는 premium 파서가 최종 확정한다.
         rawHtml = transformEmoticons(rawHtml);
+        // 이메일 표지 → 「이메일 보기」 버튼. 반드시 sanitize 전에(속성 문맥 주입 방지).
+        rawHtml = renderEmailMarkers(rawHtml);
         // processEmbeds는 클라이언트 $effect에서만 실행 (SSR 부하 방지)
         // 본문 이미지 src 더블슬래시 collapse + CDN 호스트 정규화 (#12697)
-        const html = injectImageLoadingHints(
+        return injectImageLoadingHints(
             injectYoutubeStart(normalizeHtmlMediaUrls(DOMPurify.sanitize(rawHtml, PURIFY_CONFIG)))
         );
-        // 이메일 표지 → 「이메일 보기」 버튼 (sanitize 뒤 — 표지 값은 16진수만 허용)
-        return renderEmailMarkers(html);
     }
 
     // 초기 렌더링 (SSR + 클라이언트 초기값)
@@ -353,7 +362,10 @@
             if (sp && el.contains(sp)) sp.classList.toggle('dm-spoiler-open');
         };
         el.addEventListener('click', onClick);
-        return () => el.removeEventListener('click', onClick);
+        return () => {
+            el.removeEventListener('click', onClick);
+            closeEmailReveal();
+        };
     });
 
     $effect(() => {
@@ -366,12 +378,12 @@
             if (enableEmbed) rawHtml = processEmbeds(rawHtml);
 
             applyFilter<string>('post_content', rawHtml).then((filtered) => {
-                let sanitized = DOMPurify.sanitize(filtered, PURIFY_CONFIG);
+                // 이메일 표지 → 버튼. 반드시 sanitize 전에(속성 문맥 주입 방지).
+                let sanitized = DOMPurify.sanitize(renderEmailMarkers(filtered), PURIFY_CONFIG);
                 sanitized = normalizeHtmlMediaUrls(sanitized);
                 sanitized = injectYoutubeStart(sanitized);
                 sanitized = addLinkMismatchWarnings(sanitized);
                 sanitized = injectImageLoadingHints(sanitized);
-                sanitized = renderEmailMarkers(sanitized);
                 renderedHtml = sanitized;
             });
         }
