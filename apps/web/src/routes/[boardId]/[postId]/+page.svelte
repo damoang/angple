@@ -1,5 +1,6 @@
 <script lang="ts" module>
     import { createScrollSnapshot } from '$lib/utils/scroll-restore.js';
+    import { stripEmailMarkers } from '$lib/utils/email-reveal.js';
 
     // 뒤로가기 시 스크롤 위치 복원.
     // ⛔ 예전에는 rAF + setTimeout(100ms) 로 문서 높이를 보지 않고 scrollTo 했다.
@@ -2191,7 +2192,9 @@
     // SEO 설정
     // truncateText: .slice() 는 이모지(서로게이트 쌍)를 반쪽 내 GSC "잘린 유니코드"(파싱 불가) 오류가 됨
     const postDescription = $derived(
-        data.post.deleted_at ? '' : truncateText(renderedPostContent.replace(/<[^>]+>/g, ''), 160)
+        data.post.deleted_at
+            ? ''
+            : truncateText(stripEmailMarkers(renderedPostContent.replace(/<[^>]+>/g, '')), 160)
     );
 
     const seoConfig: SeoConfig = $derived.by(() => {

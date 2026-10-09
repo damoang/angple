@@ -51,6 +51,7 @@ import { getBoardAspectPreset } from '$plugins/angtt-review/lib/aspect-presets';
 import { fetchAngmapArchiveRating } from '$lib/server/angmap-archive-rating.js';
 import { getBoardOwnerContext } from '$lib/server/board-owner';
 import { resolveClientIp } from '$lib/server/rate-limit.js';
+import { encodeEmails } from '$lib/utils/email-reveal.js';
 
 /**
  * 게시글 상세 페이지 — Streaming SSR
@@ -304,6 +305,12 @@ export const load: PageServerLoad = async ({
             if (filesData.links?.length) {
                 post.linkHits = filesData.links;
             }
+        }
+
+        // 이메일 주소 수집 방지 — 본문 원문 주소를 표지로 바꿔 내려보낸다(SSR HTML·페이지 데이터 모두).
+        // 화면에선 「이메일 보기」 버튼으로 렌더된다. 수정 화면은 별도 조회라 원문 그대로.
+        if (post.content) {
+            post.content = encodeEmails(post.content);
         }
 
         // Bluesky handle → DID prefetch (#12050).

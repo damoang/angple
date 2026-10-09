@@ -12,6 +12,7 @@
     import { attachLightbox } from '$lib/components/ui/image-lightbox/index.js';
     import { enhanceWikiangLinks } from '$lib/utils/wikiang-link.js';
     import { fixMentionLinks } from '$lib/utils/mention-link-fix.js';
+    import { renderEmailMarkers, handleEmailRevealClick } from '$lib/utils/email-reveal.js';
     import {
         buildThumbnailSrcSet,
         isTransformableMediaImage,
@@ -310,9 +311,11 @@
         rawHtml = transformEmoticons(rawHtml);
         // processEmbeds는 클라이언트 $effect에서만 실행 (SSR 부하 방지)
         // 본문 이미지 src 더블슬래시 collapse + CDN 호스트 정규화 (#12697)
-        return injectImageLoadingHints(
+        const html = injectImageLoadingHints(
             injectYoutubeStart(normalizeHtmlMediaUrls(DOMPurify.sanitize(rawHtml, PURIFY_CONFIG)))
         );
+        // 이메일 표지 → 「이메일 보기」 버튼 (sanitize 뒤 — 표지 값은 16진수만 허용)
+        return renderEmailMarkers(html);
     }
 
     // 초기 렌더링 (SSR + 클라이언트 초기값)
@@ -345,6 +348,7 @@
         const el = proseEl;
         if (!el) return;
         const onClick = (ev: MouseEvent) => {
+            if (handleEmailRevealClick(ev)) return;
             const sp = (ev.target as HTMLElement | null)?.closest?.('span.dm-spoiler');
             if (sp && el.contains(sp)) sp.classList.toggle('dm-spoiler-open');
         };
@@ -367,6 +371,7 @@
                 sanitized = injectYoutubeStart(sanitized);
                 sanitized = addLinkMismatchWarnings(sanitized);
                 sanitized = injectImageLoadingHints(sanitized);
+                sanitized = renderEmailMarkers(sanitized);
                 renderedHtml = sanitized;
             });
         }

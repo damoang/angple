@@ -523,3 +523,72 @@ img[src*='/emoticons/']:not([width]) {
         filter: brightness(1.25);
     }
 }
+
+/* 이메일 수집 방지 — 본문·댓글의 「이메일 보기」 버튼과 주소 팝업(utils/email-reveal.ts).
+   팝업은 body 에 붙는 전역 요소라 컴포넌트 스코프 스타일이 닿지 않는다. */
+.email-reveal {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    padding: 0 0.5em;
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    background: var(--muted);
+    color: var(--foreground);
+    font-size: 0.875em;
+    line-height: 1.6;
+    vertical-align: baseline;
+    cursor: pointer;
+}
+
+.email-reveal::before {
+    content: '✉';
+}
+
+.email-reveal:hover {
+    background: var(--accent);
+}
+
+.email-reveal-pop {
+    position: absolute;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: calc(100vw - 16px);
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--popover);
+    color: var(--popover-foreground);
+    font-size: 0.875rem;
+    box-shadow: 0 6px 20px rgb(0 0 0 / 0.15);
+}
+
+.email-reveal-addr {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    word-break: break-all;
+    user-select: all;
+}
+
+.email-reveal-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.email-reveal-actions > button,
+.email-reveal-actions > a {
+    padding: 0.125rem 0.625rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background: transparent;
+    color: inherit;
+    font-size: 0.8125rem;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.email-reveal-actions > button:hover,
+.email-reveal-actions > a:hover {
+    background: var(--accent);
+}

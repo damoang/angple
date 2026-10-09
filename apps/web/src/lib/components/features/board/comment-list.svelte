@@ -71,6 +71,11 @@
         }
     });
     import { highlightMentions } from '$lib/utils/mention-parser.js';
+    import {
+        decodeEmailMarkers,
+        handleEmailRevealClick,
+        renderEmailMarkers
+    } from '$lib/utils/email-reveal.js';
     import { formatDate } from '$lib/utils/format-date.js';
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
     import type { ReactionItem } from '$lib/types/reaction.js';
@@ -617,7 +622,8 @@
 
     function enterEdit(target: FreeComment): void {
         editingCommentId = String(target.id);
-        editContent = target.content;
+        // 이메일 표지를 원래 주소로 되돌려 수정 저장 시 표지가 DB 에 들어가지 않게 한다.
+        editContent = decodeEmailMarkers(target.content);
         replyingToCommentId = null;
         ensureEditEditorLoaded();
     }
@@ -948,6 +954,12 @@
         return map;
     });
 
+    // 표시용 댓글 HTML — 이메일 표지는 sanitize 뒤에 「이메일 보기」 버튼으로 바꾼다
+    // (표지 값은 16진수만 허용하므로 주입 표면 없음).
+    function commentHtml(id: string | number): string {
+        return renderEmailMarkers(processedComments.get(id) ?? ssrCommentHtml.get(id) ?? '');
+    }
+
     // 댓글 내용 비동기 처리 (플러그인 필터 적용)
     $effect(() => {
         // hookVersion을 읽어서 hook 등록 시 $effect 재실행
@@ -1033,6 +1045,15 @@
         if (commentListEl) {
             tick().then(() => highlightAllCodeBlocks(commentListEl));
         }
+    });
+
+    // 이메일 「이메일 보기」 버튼 클릭 → 주소 팝업 (위임 리스너 하나)
+    $effect(() => {
+        const el = commentListEl;
+        if (!el) return;
+        const onClick = (ev: MouseEvent) => void handleEmailRevealClick(ev);
+        el.addEventListener('click', onClick);
+        return () => el.removeEventListener('click', onClick);
     });
 
     // 댓글 이미지 라이트박스 연결 (이모티콘 제외)
@@ -1951,9 +1972,7 @@
                                     style="font-size: var(--comment-font-size, 1rem);"
                                 >
                                     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                                    {@html processedComments.get(comment.id) ??
-                                        ssrCommentHtml.get(comment.id) ??
-                                        ''}
+                                    {@html commentHtml(comment.id)}
                                     {#if comment.is_restricted}
                                         <RestrictedBadge class="ml-1" />
                                     {/if}
@@ -1973,9 +1992,7 @@
                                     style="font-size: var(--comment-font-size, 1rem);"
                                 >
                                     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-                                    {@html processedComments.get(comment.id) ??
-                                        ssrCommentHtml.get(comment.id) ??
-                                        ''}
+                                    {@html commentHtml(comment.id)}
                                     {#if comment.is_restricted}
                                         <RestrictedBadge class="ml-1" />
                                     {/if}
