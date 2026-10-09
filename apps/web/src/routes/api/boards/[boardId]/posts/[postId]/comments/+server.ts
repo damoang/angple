@@ -25,6 +25,7 @@ import { isInternalAppRequest } from '$lib/server/internal-api.js';
 import { checkRateLimit, recordAttempt, resolveClientIp } from '$lib/server/rate-limit.js';
 import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
 import { prefetchBlueskyDIDs } from '$lib/server/bluesky/transform.js';
+import { encodeEmails } from '$lib/utils/email-reveal.js';
 
 interface CommentRow extends RowDataPacket {
     wr_id: number;
@@ -556,6 +557,12 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
                     c.author_image_updated_at = undefined;
                 }
             }
+        }
+
+        // 이메일 주소 수집 방지 — 응답(JSON·SSR) 어디에도 원문 주소를 남기지 않는다.
+        // 링크화(affiliate linkify)가 주소를 URL 로 오인하기 전에 먼저 표지로 바꾼다.
+        for (const c of comments) {
+            if (typeof c.content === 'string' && c.content) c.content = encodeEmails(c.content);
         }
 
         // Bluesky handle → DID prefetch (#12050).

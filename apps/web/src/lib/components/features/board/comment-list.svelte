@@ -71,6 +71,12 @@
         }
     });
     import { highlightMentions } from '$lib/utils/mention-parser.js';
+    import {
+        closeEmailReveal,
+        decodeEmailMarkers,
+        handleEmailRevealClick,
+        renderEmailMarkers
+    } from '$lib/utils/email-reveal.js';
     import { formatDate } from '$lib/utils/format-date.js';
     import { ReactionBar } from '$lib/components/features/reaction/index.js';
     import type { ReactionItem } from '$lib/types/reaction.js';
@@ -617,7 +623,8 @@
 
     function enterEdit(target: FreeComment): void {
         editingCommentId = String(target.id);
-        editContent = target.content;
+        // 이메일 표지를 원래 주소로 되돌려 수정 저장 시 표지가 DB 에 들어가지 않게 한다.
+        editContent = decodeEmailMarkers(target.content);
         replyingToCommentId = null;
         ensureEditEditorLoaded();
     }
@@ -907,7 +914,10 @@
             // JS 하이드레이션 전(앱 웹뷰 등)에는 원문 코드가 그대로 노출됐다.
             // 순수 함수라 SSR-safe. 멱등: 아래 processedComments $effect 는 원본
             // comment.content 를 다시 필터하므로 이 SSR 결과를 재처리하지 않는다.
-            const withBr = transformEmoticons(comment.content.replace(/\n/g, '<br>'));
+            // 이메일 표지 → 「이메일 보기」 버튼. 반드시 sanitize 전에(속성 문맥 주입 방지).
+            const withBr = renderEmailMarkers(
+                transformEmoticons(comment.content.replace(/\n/g, '<br>'))
+            );
             map.set(
                 comment.id,
                 normalizeHtmlMediaUrls(
@@ -926,7 +936,8 @@
                             'em',
                             'del',
                             'details',
-                            'summary'
+                            'summary',
+                            'button'
                         ],
                         ALLOWED_ATTR: [
                             'src',
@@ -939,7 +950,10 @@
                             'target',
                             'rel',
                             'data-affiliate',
-                            'data-original'
+                            'data-original',
+                            'type',
+                            'data-er',
+                            'aria-haspopup'
                         ]
                     })
                 )
@@ -966,10 +980,12 @@
                 const withMentions = highlightMentions(filtered);
                 // URL 텍스트를 자동 하이퍼링크로 변환
                 const withLinks = autoLinkUrls(withMentions);
+                // 이메일 표지 → 「이메일 보기」 버튼. 반드시 sanitize 전에(속성 문맥 주입 방지).
+                const withEmails = renderEmailMarkers(withLinks);
                 processedComments.set(
                     comment.id,
                     normalizeHtmlMediaUrls(
-                        DOMPurify.sanitize(withLinks, {
+                        DOMPurify.sanitize(withEmails, {
                             ALLOWED_TAGS: [
                                 'p',
                                 'img',
@@ -988,7 +1004,8 @@
                                 'em',
                                 'del',
                                 'details',
-                                'summary'
+                                'summary',
+                                'button'
                             ],
                             ALLOWED_ATTR: [
                                 'src',
@@ -1016,7 +1033,9 @@
                                 'rel',
                                 'data-mention',
                                 'data-affiliate',
-                                'data-original'
+                                'data-original',
+                                'data-er',
+                                'aria-haspopup'
                             ]
                         })
                     )
@@ -1033,6 +1052,18 @@
         if (commentListEl) {
             tick().then(() => highlightAllCodeBlocks(commentListEl));
         }
+    });
+
+    // 이메일 「이메일 보기」 버튼 클릭 → 주소 팝업 (위임 리스너 하나)
+    $effect(() => {
+        const el = commentListEl;
+        if (!el) return;
+        const onClick = (ev: MouseEvent) => void handleEmailRevealClick(ev);
+        el.addEventListener('click', onClick);
+        return () => {
+            el.removeEventListener('click', onClick);
+            closeEmailReveal();
+        };
     });
 
     // 댓글 이미지 라이트박스 연결 (이모티콘 제외)

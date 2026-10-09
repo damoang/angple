@@ -14,6 +14,7 @@
     import { env as publicEnv } from '$env/dynamic/public';
     import { afterNavigate, goto, invalidateAll } from '$app/navigation';
     import { sanitizeFromBoard } from '$lib/utils/notice-link';
+    import { stripEmailMarkers } from '$lib/utils/email-reveal.js';
     import { Card, CardHeader, CardContent } from '$lib/components/ui/card/index.js';
     import { Button } from '$lib/components/ui/button/index.js';
     import * as Dialog from '$lib/components/ui/dialog/index.js';
@@ -2191,7 +2192,9 @@
     // SEO 설정
     // truncateText: .slice() 는 이모지(서로게이트 쌍)를 반쪽 내 GSC "잘린 유니코드"(파싱 불가) 오류가 됨
     const postDescription = $derived(
-        data.post.deleted_at ? '' : truncateText(renderedPostContent.replace(/<[^>]+>/g, ''), 160)
+        data.post.deleted_at
+            ? ''
+            : truncateText(stripEmailMarkers(renderedPostContent.replace(/<[^>]+>/g, '')), 160)
     );
 
     const seoConfig: SeoConfig = $derived.by(() => {
@@ -2311,7 +2314,10 @@
                       dateCreated: data.post.created_at,
                       answerCount: comments.length,
                       answers: safeTopComments.map((c) => ({
-                          text: truncateText(c.content.replace(/<[^>]+>/g, '').trim(), 300),
+                          text: truncateText(
+                              stripEmailMarkers(c.content.replace(/<[^>]+>/g, '').trim()),
+                              300
+                          ),
                           // GSC "suggestedAnswer 의 url 누락" — 실제 댓글 DOM 앵커(c_{id})
                           url: c.id ? `${postUrl}#c_${c.id}` : undefined,
                           author: c.author,
@@ -2392,7 +2398,10 @@
                           image: ogImageUrl,
                           // 상위 원댓글 3개 (비밀·삭제·잠금·제재·차단 댓글 제외 — 마스킹 정책 준수)
                           comments: safeTopComments.map((c) => ({
-                              text: truncateText(c.content.replace(/<[^>]+>/g, '').trim(), 200),
+                              text: truncateText(
+                                  stripEmailMarkers(c.content.replace(/<[^>]+>/g, '').trim()),
+                                  200
+                              ),
                               author: c.author,
                               // GSC "comment.author 의 url 누락" 개선 — 프로필 URL
                               authorUrl: c.author_id
