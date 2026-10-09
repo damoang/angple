@@ -51,6 +51,7 @@
 
     let boardEl: HTMLCanvasElement;
     let nextEl: HTMLCanvasElement;
+    let rootEl: HTMLDivElement;
     let status = $state<Status>('idle');
     let score = $state(0);
     let level = $state(1);
@@ -164,18 +165,31 @@
         drawNext();
     }
 
+    /** roundRect 가 없는 브라우저(iOS 15 등)에서는 각진 사각형으로 그린다 */
+    function roundRect(
+        ctx: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        r: number
+    ) {
+        if (typeof ctx.roundRect === 'function') ctx.roundRect(x, y, w, h, r);
+        else ctx.rect(x, y, w, h);
+    }
+
     /** 칸 하나: 둥근 타일 + 왼쪽 위 작은 광택 + 조각별 무늬(색만으로 구분하지 않게) */
     function tile(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, kind: number) {
         const pad = Math.max(1, s * 0.06);
         const size = s - pad * 2;
         ctx.fillStyle = PALETTE[kind];
         ctx.beginPath();
-        ctx.roundRect(x + pad, y + pad, size, size, size * 0.24);
+        roundRect(ctx, x + pad, y + pad, size, size, size * 0.24);
         ctx.fill();
 
         ctx.fillStyle = 'rgba(255,255,255,0.4)';
         ctx.beginPath();
-        ctx.roundRect(x + pad * 2.5, y + pad * 2.5, size * 0.32, size * 0.14, size * 0.07);
+        roundRect(ctx, x + pad * 2.5, y + pad * 2.5, size * 0.32, size * 0.14, size * 0.07);
         ctx.fill();
 
         const cx = x + s / 2;
@@ -281,8 +295,13 @@
             e.preventDefault();
             return;
         }
+        // Enter/Space 는 포커스가 페이지 본문이나 게임 영역 안에 있을 때만 받는다
+        // (링크·다른 컨트롤의 Enter/Space, 페이지 스크롤을 가로채지 않게).
         // 버튼에 포커스가 있으면 버튼 자체 클릭에 맡긴다 (두 번 실행 방지)
-        if (e.target instanceof HTMLButtonElement) return;
+        const t = e.target;
+        const inGame = t instanceof Node && !!rootEl && rootEl.contains(t);
+        if (t !== document.body && t !== document.documentElement && !inGame) return;
+        if (t instanceof HTMLButtonElement) return;
         if (e.code === 'Enter' || e.code === 'Space') {
             if (status === 'paused') resume();
             else if (status === 'idle' || status === 'over') start();
@@ -328,12 +347,12 @@
     );
 </script>
 
-<div class="stack-game flex select-none flex-col items-center gap-3">
+<div bind:this={rootEl} class="stack-game flex select-none flex-col items-center gap-3">
     <div class="flex items-start justify-center gap-3">
         <div class="no-pan relative">
             <canvas
                 bind:this={boardEl}
-                class="bg-muted/40 text-border block rounded-lg border shadow-sm motion-safe:transition-shadow {pulse
+                class="bg-muted/40 text-border box-content block rounded-lg border shadow-sm motion-safe:transition-shadow {pulse
                     ? 'ring-primary/50 ring-4'
                     : ''}"
                 style="width: var(--board-w); height: calc(var(--board-w) * {ROWS / COLS});"

@@ -17,7 +17,6 @@ export interface GameEntry {
     color: string;
     /** 카드 배경 (Tailwind 클래스) */
     bgColor: string;
-    tags: string[];
 }
 
 export const GAMES: GameEntry[] = [
@@ -28,8 +27,7 @@ export const GAMES: GameEntry[] = [
         href: '/games/janggi',
         icon: Crown,
         color: 'text-amber-600',
-        bgColor: 'bg-amber-50 dark:bg-amber-950/30',
-        tags: ['보드', 'AI 대전']
+        bgColor: 'bg-amber-50 dark:bg-amber-950/30'
     },
     {
         id: 'omok',
@@ -38,8 +36,7 @@ export const GAMES: GameEntry[] = [
         href: '/games/omok',
         icon: Circle,
         color: 'text-stone-700 dark:text-stone-300',
-        bgColor: 'bg-stone-50 dark:bg-stone-900/30',
-        tags: ['보드']
+        bgColor: 'bg-stone-50 dark:bg-stone-900/30'
     },
     {
         id: 'snake',
@@ -48,8 +45,7 @@ export const GAMES: GameEntry[] = [
         href: '/games/snake',
         icon: Zap,
         color: 'text-green-600',
-        bgColor: 'bg-green-50 dark:bg-green-950/30',
-        tags: ['아케이드']
+        bgColor: 'bg-green-50 dark:bg-green-950/30'
     },
     {
         id: 'stack',
@@ -58,8 +54,7 @@ export const GAMES: GameEntry[] = [
         href: '/games/stack',
         icon: Blocks,
         color: 'text-sky-600',
-        bgColor: 'bg-sky-50 dark:bg-sky-950/30',
-        tags: ['아케이드', '퍼즐']
+        bgColor: 'bg-sky-50 dark:bg-sky-950/30'
     }
 ];
 

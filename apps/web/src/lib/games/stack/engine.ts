@@ -191,7 +191,10 @@ function tryRotate(g: Game, dir: number): boolean {
     if (BOX[p.kind] === 2) return false; // 네모는 돌려도 같다
     const rot = (p.rot + dir) & 3;
     for (const [kx, ky] of KICKS) {
+        // 위로 올리는 보정은 굳기 미루기 횟수를 쓴다 — 바닥에서 끝없이 버티지 못하게
+        if (ky < 0 && g.resets >= MAX_LOCK_RESETS) continue;
         if (fits(g, p.kind, rot, p.x + kx, p.y + ky)) {
+            if (ky < 0) g.resets++;
             p.rot = rot;
             p.x += kx;
             p.y += ky;
