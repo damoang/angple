@@ -4,7 +4,7 @@
  * 각 클라이언트는 자기 엔진(engine.ts)을 돌리고, 서버는 시드·방해 줄·판정·시간만 맡는다.
  * 여기 있는 표와 식은 서버(stack-ws)와 같은 값이어야 한다 — 바꿀 때는 양쪽을 함께 바꾼다.
  */
-import { COLS, LINES_PER_LEVEL, ROWS, TICK_MS, scoreFor } from './engine';
+import { COLS, LINES_PER_LEVEL, ROWS, scoreFor } from './engine';
 
 /** 1초당 고정 틱 수 */
 export const TICKS_PER_SEC = 60;
@@ -173,7 +173,7 @@ function isCount(v: unknown): v is number {
  *  2. level = 1 + floor(lines / 8)
  *  3. 칸 보존: 0 ≤ 4×pieces − 9×lines ≤ 162
  *  4. clears 개수 ≤ pieces ≤ ticks
- *  5. ticks ≤ floor(elapsedMs / TICK_MS) + 180
+ *  5. ticks ≤ floor(elapsedMs × 60 / 1000) + 180 (정수 계산 — 서버 Go 와 같은 값)
  *  6. 줄 점수 재계산(지울 때의 레벨 × 표) ≤ score, 나머지(낙하 점수) ≤ 2 × 30 × (pieces + 1)
  */
 export function soloClaimCheck(c: SoloClaim, elapsedMs: number): SoloCheckResult {
@@ -209,7 +209,7 @@ export function soloClaimCheck(c: SoloClaim, elapsedMs: number): SoloCheckResult
     if (cells < 0 || cells > BOARD_CELLS) reasons.push('cells');
 
     if (c.clears.length > c.pieces || c.pieces > c.ticks) reasons.push('pieces_ticks');
-    if (c.ticks > Math.floor(Math.max(0, elapsedMs) / TICK_MS) + SOLO_TICK_SLACK) {
+    if (c.ticks > Math.floor((Math.max(0, elapsedMs) * TICKS_PER_SEC) / 1000) + SOLO_TICK_SLACK) {
         reasons.push('ticks_elapsed');
     }
 
@@ -220,7 +220,11 @@ export function soloClaimCheck(c: SoloClaim, elapsedMs: number): SoloCheckResult
     return { ok: reasons.length === 0, reasons, clearScore, dropScore };
 }
 
-/* ── 웹소켓 메시지 — 봉투는 { type, data } (오목·장기와 같은 형식). 이름·필드는 서버와 같다 ── */
+/*
+ * ── 웹소켓 메시지 ──
+ * 봉투는 { type, data } — 장기 서버는 필드를 봉투에 평평하게 싣지만, 앙쌓기 서버(stack-ws)는
+ * 내용을 data 안에 넣는다. 이름·필드는 서버와 같다.
+ */
 
 export interface Envelope<T extends string, D> {
     type: T;
@@ -266,7 +270,7 @@ export interface PlayerStats {
 
 export interface OpponentInfo {
     nickname: string;
-    rating?: number;
+    rating: number;
 }
 
 export type GameOverReason =
@@ -278,6 +282,8 @@ export type GameOverReason =
     | 'disconnect'
     | 'cheat'
     | 'draw';
+
+export type GamePhase = 'ready' | 'countdown' | 'playing' | 'over';
 
 /** 서버 → 클라이언트 */
 export type ServerMessage =
@@ -296,9 +302,25 @@ export type ServerMessage =
           'matching_status',
           {
               status: 'waiting' | 'matched' | 'error';
+              rule: RuleId;
+              /** waiting·matched */
+              mode?: MatchMode;
+              /** waiting — 큐 안 순서 */
+              position?: number;
+              /** waiting — 이 모드의 참가비 */
+              entryFee?: number;
+              /** matched */
               roomId?: string;
               opponent?: OpponentInfo;
-              rule: RuleId;
+              /** matched — 이번 판에 차감된 참가비 */
+              entryFeeCharged?: number;
+              /** matched — ready 를 보낼 수 있는 시간 */
+              readyMs?: number;
+              /** error */
+              code?: string;
+              message?: string;
+              /** error — ready 시간 초과 등으로 참가비를 돌려줬는가 */
+              refunded?: boolean;
           }
       >
     | Envelope<
@@ -314,7 +336,7 @@ export type ServerMessage =
               entryFeeCharged: number;
           }
       >
-    | Envelope<'go', Empty>
+    | Envelope<'go', { roomId: string; timeLimitMs: number }>
     /** attack 전용 — 내게 쌓인 방해 줄 수 */
     | Envelope<'garbage_queued', { pending: number }>
     /** attack 전용 — 이번에 넣을 줄(≤ 8)·구멍 열 0~8·넣고 남은 대기 줄 */
@@ -325,19 +347,44 @@ export type ServerMessage =
     | Envelope<'progress', { you: { lines: number }; opp: { lines: number }; elapsedMs: number }>
     | Envelope<'opponent_disconnected', { timeout: number }>
     | Envelope<'opponent_reconnected', Empty>
-    | Envelope<'game_restored', { pending: number; opponentBoard: string; elapsedMs: number }>
+    | Envelope<
+          'game_restored',
+          {
+              roomId: string;
+              rule: RuleId;
+              seed: number;
+              phase: GamePhase;
+              pending: number;
+              /**
+               * 상대 판. 상대가 아직 한 번도 굳히지 않았으면 빈 문자열("") —
+               * decodeBoard("") 는 null 이므로 빈 판으로 다룬다.
+               */
+              opponentBoard: string;
+              elapsedMs: number;
+              lines: number;
+              opponentLines: number;
+          }
+      >
     | Envelope<
           'game_over',
           {
               /** 이긴 쪽 닉네임, 무승부면 null */
               winner: string | null;
+              youWon: boolean;
               reason: GameOverReason;
+              /** timeMs 는 sprint40 에서 목표를 채웠을 때만 */
               result: { timeMs?: number; lines: number; score: number };
               stats: PlayerStats;
+              ratingDelta: number;
+              /** 재대결 신청을 받는 시간(초) */
+              rematchSeconds: number;
+              /** 재대결 때 다시 차감되는 참가비 (없으면 0) */
+              rematchFee: number;
+              feeNotice: string;
           }
       >
-    | Envelope<'rematch_offer', { feeNotice: string }>
-    | Envelope<'rematch_canceled', { reason: string }>
+    | Envelope<'rematch_offer', { feeNotice: string; fee: number }>
+    | Envelope<'rematch_canceled', { reason: string; message?: string }>
     | Envelope<'error', { code: string; message: string }>;
 
 export type ClientMessageType = ClientMessage['type'];

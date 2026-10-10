@@ -168,4 +168,17 @@ describe('앙쌓기 엔진', () => {
         expect(g.piece.y).toBe(ROWS - 4);
         expect(fits(g, 1, 0, g.piece.x, g.piece.y)).toBe(true);
     });
+
+    it('판 밖 구멍 열은 가장 가까운 열로 맞춘다', () => {
+        const g = createGame(5);
+        addGarbage(g, 1, 99);
+        const row = (ROWS - 1) * COLS;
+        for (let c = 0; c < COLS; c++) {
+            expect(g.board[row + c]).toBe(c === COLS - 1 ? 0 : GARBAGE);
+        }
+        addGarbage(g, 1, -3);
+        for (let c = 0; c < COLS; c++) {
+            expect(g.board[row + c]).toBe(c === 0 ? 0 : GARBAGE);
+        }
+    });
 });

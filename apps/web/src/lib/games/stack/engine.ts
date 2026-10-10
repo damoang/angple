@@ -319,12 +319,14 @@ export function step(g: Game, input: number): StepResult {
 /**
  * 대전용 방해 줄 — 판 전체를 lines 줄 위로 밀고, 바닥 lines 줄을 hole 열만 빼고 GARBAGE 로 채운다.
  * 칸이 있는 줄이 판 위로 밀려 나가면 끝. 떨어지던 조각이 새 칸과 겹치면 최대 lines 칸까지
- * 위로 올려 보고, 그래도 겹치면 끝.
+ * 위로 올려 보고, 그래도 겹치면 끝. hole 이 0~COLS-1 밖이면 가장 가까운 열로 맞춘다.
  */
 export function addGarbage(g: Game, lines: number, hole: number): void {
     if (g.over) return;
     const n = Math.min(Math.floor(lines), ROWS);
     if (n <= 0) return;
+    // 판 밖 구멍 열은 가장 가까운 열로 맞춘다
+    const h = Math.min(COLS - 1, Math.max(0, Math.floor(hole) || 0));
     const b = g.board;
     const shift = n * COLS;
     // 판 위로 밀려 나갈 칸이 있는가
@@ -336,7 +338,7 @@ export function addGarbage(g: Game, lines: number, hole: number): void {
     }
     for (let i = 0; i < (ROWS - n) * COLS; i++) b[i] = b[i + shift];
     for (let r = ROWS - n; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) b[r * COLS + c] = c === hole ? 0 : GARBAGE;
+        for (let c = 0; c < COLS; c++) b[r * COLS + c] = c === h ? 0 : GARBAGE;
     }
     const p = g.piece;
     for (let up = 0; up < n && !fits(g, p.kind, p.rot, p.x, p.y); up++) p.y--;
