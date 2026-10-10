@@ -70,6 +70,32 @@ describe('maskProxyJsonTitles', () => {
         expect(out.data[0].content).toBe('댓글 z@w.net');
     });
 
+    it('masks search highlight title arrays', () => {
+        const text = JSON.stringify({
+            data: [{ title: 'a@b.com', highlight: { title: ['<em>a@b.com</em>'] } }]
+        });
+        const out = JSON.parse(maskProxyJsonTitles(text, 'search'));
+        expect(out.data[0].title).toBe('[이메일]');
+        expect(out.data[0].highlight.title).toEqual(['<em>[이메일]</em>']);
+    });
+
+    it('masks plain string titles in autocomplete responses', () => {
+        const text = JSON.stringify({ success: true, data: ['문의 a@b.com', '평범한 제목', 3] });
+        const out = JSON.parse(maskProxyJsonTitles(text, 'search/autocomplete'));
+        expect(out.data).toEqual(['문의 [이메일]', '평범한 제목', 3]);
+        expect(out.success).toBe(true);
+    });
+
+    it('leaves string data arrays alone on other paths', () => {
+        const text = JSON.stringify({ data: ['a@b.com'] });
+        expect(maskProxyJsonTitles(text, 'boards/free/posts')).toBe(text);
+    });
+
+    it('returns the original text when an address exists but nothing was masked', () => {
+        const text = '{"data": [{"title": "평범", "content": "a@b.com"}]}';
+        expect(maskProxyJsonTitles(text, 'boards/free/posts')).toBe(text);
+    });
+
     it('returns the same text when no address can be present', () => {
         const text = JSON.stringify({ data: [{ title: '평범한 제목' }] });
         expect(maskProxyJsonTitles(text)).toBe(text);

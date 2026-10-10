@@ -7,7 +7,7 @@
  * — 바꾸면 「[이메일]」 글자가 그대로 저장된다. 수정 이력(`.../revisions`)도 관리자 복원·대조용
  * 원문이라 대상이 아니다.
  */
-import { maskTitleFields } from '$lib/utils/email-reveal.js';
+import { maskEmailText, maskTitleFields } from '$lib/utils/email-reveal.js';
 
 const LIST_PATHS: readonly RegExp[] = [
     /^boards\/[^/]{1,100}\/(?:posts|notices)\/?$/,
@@ -37,11 +37,15 @@ export function isTitleMaskedProxyPath(path: string): boolean {
     return LIST_PATHS.some((re) => re.test(path));
 }
 
+/** 자동완성은 `{ data: [제목 문자열, ...] }` 모양이라 필드 이름으로 찾을 수 없다. */
+const AUTOCOMPLETE_PATH = /^search\/autocomplete\/?$/;
+
 /**
  * JSON 응답 본문의 제목 필드를 마스킹한 문자열. 주소가 있을 수 없는 본문(`@`·표지 없음)이거나
- * JSON 이 아니면 받은 그대로 돌려준다(같은 문자열 → 호출부가 헤더를 건드리지 않아도 된다).
+ * JSON 이 아니거나 실제로 바뀐 것이 없으면 받은 그대로 돌려준다
+ * (같은 문자열 → 호출부가 길이·ETag 헤더를 건드리지 않는다).
  */
-export function maskProxyJsonTitles(text: string): string {
+export function maskProxyJsonTitles(text: string, path = ''): string {
     if (!text || (text.indexOf('@') === -1 && text.indexOf('{email:') === -1)) return text;
     let parsed: unknown;
     try {
@@ -49,5 +53,16 @@ export function maskProxyJsonTitles(text: string): string {
     } catch {
         return text;
     }
-    return JSON.stringify(maskTitleFields(parsed, PROXY_TITLE_KEYS));
+    const before = JSON.stringify(parsed);
+    maskTitleFields(parsed, PROXY_TITLE_KEYS);
+    if (AUTOCOMPLETE_PATH.test(path) && parsed !== null && typeof parsed === 'object') {
+        const data = (parsed as { data?: unknown }).data;
+        if (Array.isArray(data)) {
+            for (let i = 0; i < data.length; i++) {
+                if (typeof data[i] === 'string') data[i] = maskEmailText(data[i]);
+            }
+        }
+    }
+    const after = JSON.stringify(parsed);
+    return after === before ? text : after;
 }

@@ -640,7 +640,7 @@ async function proxyRequest(
             (response.headers.get('content-type') ?? '').includes('application/json')
         ) {
             const text = await response.text();
-            const masked = maskProxyJsonTitles(text);
+            const masked = maskProxyJsonTitles(text, path);
             if (masked !== text) {
                 // 본문이 바뀌었으니 길이·검증자는 원본 것이 아니다. 캐시 헤더는 그대로 둔다.
                 responseHeaders.delete('content-length');

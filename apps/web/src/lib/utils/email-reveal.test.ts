@@ -191,6 +191,25 @@ describe('maskTitleFields', () => {
         expect(out.notices[0].title).toBe('공지 [이메일]');
     });
 
+    it('masks string arrays under a title key (search highlights)', () => {
+        const data = {
+            hits: [
+                {
+                    title: '문의 a@b.com',
+                    highlight: { title: ['<em>문의</em> a@b.com', '평범'], content: ['c@d.com'] },
+                    tags: ['e@f.com']
+                }
+            ]
+        };
+        maskTitleFields(data);
+        expect(data.hits[0].highlight.title).toEqual(['<em>문의</em> [이메일]', '평범']);
+        expect(data.hits[0].highlight.content).toEqual(['c@d.com']);
+        expect(data.hits[0].tags).toEqual(['e@f.com']);
+        // 멱등
+        maskTitleFields(data);
+        expect(data.hits[0].highlight.title).toEqual(['<em>문의</em> [이메일]', '평범']);
+    });
+
     it('accepts a custom key list', () => {
         const out = maskTitleFields({ name: 'a@b.com', title: 'c@d.com' }, ['name']);
         expect(out).toEqual({ name: '[이메일]', title: 'c@d.com' });
@@ -219,5 +238,11 @@ describe('titleEmailReviver', () => {
             wr_subject: '[이메일]',
             content: 'e@f.com'
         });
+    });
+
+    it('masks string arrays under a title key', () => {
+        const json = JSON.stringify({ highlight: { title: ['a@b.com', 1], content: ['c@d.com'] } });
+        const out = JSON.parse(json, titleEmailReviver);
+        expect(out.highlight).toEqual({ title: ['[이메일]', 1], content: ['c@d.com'] });
     });
 });
