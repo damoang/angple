@@ -22,6 +22,9 @@ const MAX_LOCK_RESETS = 12;
 /** 지운 줄 수(0~4)별 기본 점수 — 레벨을 곱한다 */
 const LINE_SCORES = [0, 100, 250, 450, 700];
 
+/** 대전에서 상대가 보낸 방해 줄의 칸 값 (조각 칸 1~7 과 겹치지 않는다) */
+export const GARBAGE = 8;
+
 /* ── 입력 비트 (한 틱에 여러 개를 OR 로 묶는다) ── */
 export const IN_LEFT = 1;
 export const IN_RIGHT = 2;
@@ -311,4 +314,31 @@ export function step(g: Game, input: number): StepResult {
         if (g.lock >= LOCK_TICKS) lockPiece(g, res);
     }
     return res;
+}
+
+/**
+ * 대전용 방해 줄 — 판 전체를 lines 줄 위로 밀고, 바닥 lines 줄을 hole 열만 빼고 GARBAGE 로 채운다.
+ * 칸이 있는 줄이 판 위로 밀려 나가면 끝. 떨어지던 조각이 새 칸과 겹치면 최대 lines 칸까지
+ * 위로 올려 보고, 그래도 겹치면 끝.
+ */
+export function addGarbage(g: Game, lines: number, hole: number): void {
+    if (g.over) return;
+    const n = Math.min(Math.floor(lines), ROWS);
+    if (n <= 0) return;
+    const b = g.board;
+    const shift = n * COLS;
+    // 판 위로 밀려 나갈 칸이 있는가
+    for (let i = 0; i < shift; i++) {
+        if (b[i] !== 0) {
+            g.over = true;
+            break;
+        }
+    }
+    for (let i = 0; i < (ROWS - n) * COLS; i++) b[i] = b[i + shift];
+    for (let r = ROWS - n; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) b[r * COLS + c] = c === hole ? 0 : GARBAGE;
+    }
+    const p = g.piece;
+    for (let up = 0; up < n && !fits(g, p.kind, p.rot, p.x, p.y); up++) p.y--;
+    if (!fits(g, p.kind, p.rot, p.x, p.y)) g.over = true;
 }
