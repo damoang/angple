@@ -4,6 +4,11 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import {
+    BOX,
+    COLS,
+    ROWS,
+    SHAPES,
+    fits,
     IN_CW,
     IN_HARD,
     IN_LEFT,
@@ -54,19 +59,123 @@ const scripts: Array<(t: number) => number> = [
     (t) => (t % 13 === 0 ? IN_RIGHT : t % 17 === 0 ? IN_CW : IN_SOFT)
 ];
 
+/* ── 줄을 실제로 지우는 판: 놓을 자리를 고르는 간단한 자동 조작 ── */
+
+interface Place {
+    rot: number;
+    x: number;
+    score: number;
+}
+
+const probe = (board: number[]) => ({ board }) as unknown as Game;
+
+/** 놓은 뒤의 판 평가 — 지운 줄은 좋고, 높이·구멍·울퉁불퉁함은 나쁘다 */
+function rate(b: number[]): number {
+    const rows: number[][] = [];
+    let cleared = 0;
+    for (let r = 0; r < ROWS; r++) {
+        const row = b.slice(r * COLS, r * COLS + COLS);
+        if (row.every((v) => v !== 0)) cleared++;
+        else rows.push(row);
+    }
+    while (rows.length < ROWS) rows.unshift(new Array<number>(COLS).fill(0));
+    let agg = 0;
+    let holes = 0;
+    let bump = 0;
+    let prev = -1;
+    for (let c = 0; c < COLS; c++) {
+        let h = 0;
+        for (let r = 0; r < ROWS; r++) {
+            if (rows[r][c] !== 0) {
+                if (h === 0) h = ROWS - r;
+            } else if (h > 0) holes++;
+        }
+        agg += h;
+        if (prev >= 0) bump += Math.abs(h - prev);
+        prev = h;
+    }
+    return 0.76 * cleared - 0.51 * agg - 0.36 * holes - 0.18 * bump;
+}
+
+/** 이 조각을 곧장 떨어뜨릴 수 있는 자리 중 가장 좋은 곳 */
+function bestPlacement(board: number[], kind: number): Place | null {
+    const pb = probe(board);
+    let best: Place | null = null;
+    const rots = BOX[kind] === 2 ? [0] : [0, 1, 2, 3];
+    for (const rot of rots) {
+        for (let x = -3; x < COLS; x++) {
+            if (!fits(pb, kind, rot, x, -2)) continue;
+            let y = -2;
+            while (fits(pb, kind, rot, x, y + 1)) y++;
+            const b = board.slice();
+            let above = false;
+            for (const [cx, cy] of SHAPES[kind][rot]) {
+                if (y + cy < 0) above = true;
+                else b[(y + cy) * COLS + x + cx] = 1;
+            }
+            if (above) continue;
+            const score = rate(b);
+            if (!best || score > best.score) best = { rot, x, score };
+        }
+    }
+    return best;
+}
+
+/** 자동 조작으로 goalLines 줄을 지우거나 판이 끝날 때까지 돌린다 (입력은 엔진 입력 비트 그대로) */
+function autoPlay(seed: number, goalLines: number): { g: Game; t: SoloTracker } {
+    const g = createGame(seed);
+    const t = createSoloTracker();
+    let target: Place | null = null;
+    let seenPieces = -1;
+    let spent = 0;
+    for (let i = 0; i < 60000 && !g.over && g.lines < goalLines; i++) {
+        if (t.pieces !== seenPieces) {
+            seenPieces = t.pieces;
+            target = bestPlacement(g.board, g.piece.kind);
+            spent = 0;
+        }
+        spent++;
+        let input = IN_HARD;
+        if (target && spent < 40) {
+            const p = g.piece;
+            if (p.rot !== target.rot) input = IN_CW;
+            else if (p.x < target.x) input = IN_RIGHT;
+            else if (p.x > target.x) input = IN_LEFT;
+        }
+        trackStep(t, step(g, input));
+    }
+    return { g, t };
+}
+
 describe('혼자하기 기록 수집', () => {
     it('엔진에서 모은 기록은 서버 검사식을 통과한다', () => {
-        let sawClears = false;
         for (const [i, script] of scripts.entries()) {
             for (const seed of [1, 2024, 0xdeadbeef]) {
                 const { g, t } = play(seed + i, script);
-                if (t.clears.length > 0) sawClears = true;
                 const claim = buildSoloClaim(g, t);
                 const res = soloClaimCheck(claim, g.tick * TICK_MS);
                 expect(res.reasons, `script ${i} seed ${seed}`).toEqual([]);
             }
         }
-        expect(sawClears).toBe(true);
+    });
+
+    it('줄을 지우며 레벨이 여러 번 오른 판도 서버 검사식(점수 재계산)을 통과한다', () => {
+        for (const seed of [3, 99, 0xc0ffee]) {
+            const { g, t } = autoPlay(seed, 40);
+            // 레벨 3 이상 = 8줄 경계를 두 번 넘었다 → 줄 점수가 서로 다른 레벨로 재계산된다
+            expect(g.lines, `seed ${seed}`).toBeGreaterThanOrEqual(16);
+            expect(g.level).toBeGreaterThanOrEqual(3);
+            expect(t.clears.reduce((a, b) => a + b, 0)).toBe(g.lines);
+            const claim = buildSoloClaim(g, t);
+            const res = soloClaimCheck(claim, g.tick * TICK_MS);
+            expect(res.reasons, `seed ${seed}`).toEqual([]);
+            expect(res.clearScore).toBeGreaterThan(0);
+            expect(res.clearScore + res.dropScore).toBe(g.score);
+
+            // 줄 점수를 낮게 속이면 걸린다
+            const low = soloClaimCheck({ ...claim, score: res.clearScore - 1 }, g.tick * TICK_MS);
+            expect(low.reasons).toContain('score_low');
+        }
     });
 
     it('진행 중에 낸 기록도 통과한다 (다시 시작 전 상태)', () => {

@@ -8,7 +8,7 @@
      *
      * ⛔ 무작위 매칭은 참가비 1,000P — 큐에 들어가기 전에 반드시 확인을 받는다.
      *    재대결도 판마다 다시 차감되므로 버튼 옆에 늘 안내한다. 초대 대전은 무료.
-     * ⛔ 대전 중에는 일시정지가 없다.
+     * ⛔ 대전 중에는 일시정지가 없다. 페이지 탭을 옮겨도 이 컴포넌트는 숨겨질 뿐 연결·판은 유지된다.
      */
     import { untrack } from 'svelte';
     import {
@@ -87,7 +87,8 @@
     type Phase = 'idle' | 'connecting' | 'queued' | 'matched' | 'countdown' | 'playing' | 'over';
     type Intent =
         | { kind: 'join'; mode: MatchMode; rule: RuleId; invite?: string }
-        | { kind: 'reconnect' };
+        | { kind: 'reconnect' }
+        | { kind: 'surrender' };
     type GameOverData = Extract<ServerMessage, { type: 'game_over' }>['data'];
 
     let boardEl: HTMLCanvasElement;
@@ -149,6 +150,22 @@
     let secTimer: ReturnType<typeof setInterval> | null = null;
     let lobbyAt = 0;
     let destroyed = false;
+    let leftoverTimer: ReturnType<typeof setTimeout> | undefined;
+
+    /**
+     * active=false 면 다른 탭이 보이는 중 — 키 입력을 받지 않는다(연결·판은 그대로).
+     * busy 는 매칭 대기·준비·대전 중인지(페이지가 탭을 떠나기 전에 확인을 받는 데 쓴다).
+     */
+    let { active = true, busy = $bindable(false) }: { active?: boolean; busy?: boolean } = $props();
+
+    $effect(() => {
+        busy =
+            phase === 'connecting' ||
+            phase === 'queued' ||
+            phase === 'matched' ||
+            phase === 'countdown' ||
+            phase === 'playing';
+    });
 
     const input = createHeldInput({ repeat: IN_LEFT | IN_RIGHT, hold: IN_SOFT });
     const loop = createLoop(stepGame, render);
@@ -323,6 +340,25 @@
         send({ type: 'ready', data: { roomId } });
     }
 
+    /** 이 화면에서 이어 할 수 없는 남은 대전을 기권한다 — 연결이 끊겨 있으면 다시 붙어서 보낸다 */
+    function surrenderLeftover() {
+        if (!confirm('남은 대전을 기권하시겠습니까? 패배로 기록됩니다.')) return;
+        message = '남은 대전 기권을 요청하는 중입니다…';
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            send({ type: 'surrender', data: {} });
+        } else {
+            void openSocket({ kind: 'surrender' });
+        }
+        clearTimeout(leftoverTimer);
+        leftoverTimer = setTimeout(() => {
+            if (!blockedInGame) return;
+            // 서버에 남은 대전이 없었다 (그사이 끝났음)
+            blockedInGame = false;
+            message = '남은 대전을 찾지 못했습니다. 이제 새로 시작할 수 있습니다.';
+            closeSocket();
+        }, 6000);
+    }
+
     function surrender() {
         if (!confirm('기권하시겠습니까? 패배로 기록되며 참가비는 돌려받지 못합니다.')) return;
         send({ type: 'surrender', data: {} });
@@ -377,6 +413,8 @@
                             ? { mode: next.mode, rule: next.rule, invite: next.invite }
                             : { mode: next.mode, rule: next.rule }
                     });
+                } else if (next?.kind === 'surrender') {
+                    send({ type: 'surrender', data: {} });
                 } else if (next?.kind === 'reconnect') {
                     send({ type: 'reconnect', data: { sessionId: prev || sessionId } });
                 }
@@ -523,6 +561,7 @@
             case 'game_over': {
                 if (!player) {
                     // 이 화면에서 시작하지 않은 남은 대전(기권 등으로 정리됨)
+                    clearTimeout(leftoverTimer);
                     blockedInGame = false;
                     message = '남아 있던 대전이 끝났습니다. 새로 시작할 수 있습니다.';
                     send({ type: 'rematch_decline', data: {} });
@@ -736,7 +775,7 @@
             const offKeys = bindKeys(
                 KEYMAP,
                 input,
-                () => phase === 'playing' && !frozen && !!player && !player.game.over
+                () => active && phase === 'playing' && !frozen && !!player && !player.game.over
             );
             const offBoard = observeSize(boardEl, () => {
                 dirty = true;
@@ -755,6 +794,7 @@
                 offOpp();
                 loop.stop();
                 if (secTimer) clearInterval(secTimer);
+                clearTimeout(leftoverTimer);
                 closeSocket();
             };
         })
@@ -775,7 +815,7 @@
             <button
                 type="button"
                 class="bg-muted text-foreground rounded-md px-3 py-1.5 text-sm font-medium"
-                onclick={surrender}>남은 대전 기권</button
+                onclick={surrenderLeftover}>남은 대전 기권</button
             >
         </div>
     {/if}

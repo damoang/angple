@@ -16,6 +16,8 @@ import type { SoloClaim } from './versus';
 export const STACK_API_BASE = '/stack-ws';
 /** 시작 요청을 기다리는 최대 시간 — 넘기면 로컬 모드로 시작한다 */
 export const SOLO_START_TIMEOUT_MS = 3000;
+/** 서버가 판 시작을 받아 주는 최소 간격(회원당) — 이보다 빨리 다시 시작하면 거절된다 */
+export const SOLO_START_GAP_MS = 5000;
 /** 기록 요청을 기다리는 최대 시간 */
 export const SOLO_FINISH_TIMEOUT_MS = 8000;
 

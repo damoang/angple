@@ -29,10 +29,14 @@
         finishSoloRun,
         startSoloRun,
         trackStep,
+        SOLO_START_GAP_MS,
         type SoloFinishResult
     } from '$lib/games/stack/solo-record.js';
     import { getStackToken } from '$lib/games/stack/auth-token.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+
+    /** active=false 면 (다른 탭이 보이는 중) 일시정지하고 키 입력을 받지 않는다 */
+    let { active = true }: { active?: boolean } = $props();
 
     const NAME = getGame('stack').name;
     const BEST_KEY = 'angple_stack_best';
@@ -72,6 +76,8 @@
     let pulse = $state(false);
     let record = $state<RecordState>('none');
     let standing = $state<SoloFinishResult | null>(null);
+    /** 기록 관련 짧은 안내 (서버 판을 못 받았을 때 등) */
+    let notice = $state('');
 
     // 반응형이 아닌 게임 상태
     let game: Game = createGame(1);
@@ -84,6 +90,8 @@
     /** 시작할 때마다 오른다 — 늦게 온 응답이 새 판을 덮지 않게 */
     let startGen = 0;
     let destroyed = false;
+    /** 마지막으로 서버에 판 시작을 요청한 시각 — 서버의 시작 간격 제한을 피해 기다린다 */
+    let lastServerStart = 0;
 
     const input = createHeldInput({ repeat: IN_LEFT | IN_RIGHT, hold: IN_SOFT });
     const loop = createLoop(tick, render);
@@ -142,15 +150,27 @@
         const gen = ++startGen;
         runId = null;
         standing = null;
+        notice = '';
         let seed: number | null = null;
         if (authStore.isAuthenticated) {
             status = 'starting';
             announce = '준비 중';
+            // 서버는 회원당 5초에 한 번만 판을 연다 — 너무 빨리 다시 시작하면 남은 시간만큼 기다린다
+            const wait = lastServerStart + SOLO_START_GAP_MS + 300 - Date.now();
+            if (wait > 0) {
+                notice = `기록 등록을 위해 ${Math.ceil(wait / 1000)}초 뒤 시작합니다`;
+                await new Promise((resolve) => setTimeout(resolve, wait));
+                if (gen !== startGen || destroyed) return;
+            }
+            lastServerStart = Date.now();
             const run = await startSoloRun(getStackToken);
             if (gen !== startGen || destroyed) return;
             if (run) {
                 runId = run.runId;
                 seed = run.seed;
+                notice = '';
+            } else {
+                notice = '기록 서버에 연결하지 못해 이번 판은 점수판에 기록되지 않습니다';
             }
         }
         record = runId ? 'server' : 'local';
@@ -166,7 +186,7 @@
         render();
         loop.start();
         // 준비하는 사이 다른 탭으로 갔으면 바로 멈춰 둔다
-        if (document.hidden) pause();
+        if (document.hidden || !active) pause();
     }
 
     function pause() {
@@ -282,7 +302,15 @@
         untrack(() => {
             reduceMotion = prefersReducedMotion();
             best = loadBest();
-            const offKeys = bindKeys(KEYMAP, input, () => status === 'playing', onCommandKey);
+            const offKeys = bindKeys(
+                KEYMAP,
+                input,
+                () => active && status === 'playing',
+                (e) => {
+                    // 다른 탭이 보이는 동안에는 시작·일시정지 키도 받지 않는다
+                    if (active) onCommandKey(e);
+                }
+            );
             const offHidden = onPageHidden(pause);
             const offSize = observeSize(boardEl, () => {
                 dirty = true;
@@ -300,6 +328,11 @@
             };
         })
     );
+
+    // 다른 탭으로 옮기면 일시정지한다 (판은 그대로 남는다)
+    $effect(() => {
+        if (!active) untrack(pause);
+    });
 </script>
 
 <div bind:this={rootEl} class="stack-game flex select-none flex-col items-center gap-3">
@@ -330,6 +363,9 @@
                         >
                     {:else if status === 'starting'}
                         <p class="text-muted-foreground text-sm">준비 중…</p>
+                        {#if notice}
+                            <p class="text-muted-foreground text-xs">{notice}</p>
+                        {/if}
                     {:else if status === 'paused'}
                         <p class="text-foreground text-lg font-bold">일시정지</p>
                         <button
@@ -399,6 +435,9 @@
                 >
                     기록 미등록
                 </p>
+                {#if notice}
+                    <p class="text-muted-foreground text-[11px] leading-tight">{notice}</p>
+                {/if}
             {/if}
             {#if status === 'playing' || status === 'paused'}
                 <button
