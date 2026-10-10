@@ -11,6 +11,8 @@ import {
     IN_SOFT,
     IN_HARD,
     SHAPES,
+    GARBAGE,
+    addGarbage,
     createGame,
     fits,
     scoreFor,
@@ -132,5 +134,51 @@ describe('앙쌓기 엔진', () => {
         const d = createGame(12345);
         const seq = (g: Game) => [g.piece.kind, g.next, ...g.bag].join(',');
         expect(seq(c)).not.toBe(seq(d));
+    });
+
+    it('방해 줄은 바닥에 차고 구멍 열만 비며, 기존 칸은 위로 밀린다', () => {
+        const g = createGame(5);
+        g.board[(ROWS - 1) * COLS + 0] = 2;
+        addGarbage(g, 3, 5);
+
+        expect(g.over).toBe(false);
+        for (let r = ROWS - 3; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                expect(g.board[r * COLS + c]).toBe(c === 5 ? 0 : GARBAGE);
+            }
+        }
+        expect(g.board[(ROWS - 4) * COLS + 0]).toBe(2);
+        for (let c = 1; c < COLS; c++) expect(g.board[(ROWS - 4) * COLS + c]).toBe(0);
+    });
+
+    it('칸이 판 위로 밀려 나가면 게임이 끝난다', () => {
+        const g = createGame(5);
+        g.board[0 * COLS + 8] = 3;
+        addGarbage(g, 1, 0);
+        expect(g.over).toBe(true);
+    });
+
+    it('떨어지던 조각이 방해 줄과 겹치면 위로 올린다', () => {
+        const g = createGame(5);
+        // 네모를 바닥(왼쪽 두 열)에 둔다
+        g.piece = { kind: 1, rot: 0, x: 0, y: ROWS - 2 };
+        addGarbage(g, 2, 8);
+
+        expect(g.over).toBe(false);
+        expect(g.piece.y).toBe(ROWS - 4);
+        expect(fits(g, 1, 0, g.piece.x, g.piece.y)).toBe(true);
+    });
+
+    it('판 밖 구멍 열은 가장 가까운 열로 맞춘다', () => {
+        const g = createGame(5);
+        addGarbage(g, 1, 99);
+        const row = (ROWS - 1) * COLS;
+        for (let c = 0; c < COLS; c++) {
+            expect(g.board[row + c]).toBe(c === COLS - 1 ? 0 : GARBAGE);
+        }
+        addGarbage(g, 1, -3);
+        for (let c = 0; c < COLS; c++) {
+            expect(g.board[row + c]).toBe(c === 0 ? 0 : GARBAGE);
+        }
     });
 });
