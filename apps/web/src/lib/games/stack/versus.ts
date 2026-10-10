@@ -220,111 +220,124 @@ export function soloClaimCheck(c: SoloClaim, elapsedMs: number): SoloCheckResult
     return { ok: reasons.length === 0, reasons, clearScore, dropScore };
 }
 
-/* ── 웹소켓 메시지 — 봉투는 { type, data } (오목·장기와 같은 형식) ── */
+/* ── 웹소켓 메시지 — 봉투는 { type, data } (오목·장기와 같은 형식). 이름·필드는 서버와 같다 ── */
 
 export interface Envelope<T extends string, D> {
     type: T;
     data: D;
 }
 
+type Empty = Record<string, never>;
+
 /** 클라이언트 → 서버 */
 export type ClientMessage =
     | Envelope<'join_matching_queue', { mode: MatchMode; rule: RuleId; invite?: string }>
-    | Envelope<'cancel_matching', Record<string, never>>
+    | Envelope<'cancel_matching', Empty>
     | Envelope<'ready', { roomId: string }>
     | Envelope<
           'lock',
           {
-              roomId: string;
               /** 1부터 하나씩 오르는 번호 */
               seq: number;
               /** 굳은 순간의 엔진 틱 */
               tick: number;
-              /** encodeBoard 결과 (줄 지운 뒤, 방해 줄 넣기 전) */
-              board: string;
               /** 이번에 지운 줄 수 0~4 */
               cleared: number;
+              /** encodeBoard 결과 (162자) */
+              board: string;
+              score: number;
+              lines: number;
           }
       >
-    | Envelope<'top_out', { roomId: string; seq: number; tick: number }>
-    | Envelope<'surrender', { roomId: string }>
-    | Envelope<'rematch', { roomId: string }>
-    | Envelope<'reconnect', { roomId: string }>
-    | Envelope<'pong', Record<string, never>>;
+    | Envelope<'topped_out', { seq: number; tick: number }>
+    | Envelope<'surrender', Empty>
+    /** 재대결 신청·수락 겸용 */
+    | Envelope<'rematch', Empty>
+    | Envelope<'rematch_decline', Empty>
+    | Envelope<'reconnect', { sessionId: string }>
+    | Envelope<'ping', Empty>;
+
+export interface PlayerStats {
+    rating: number;
+    wins: number;
+    losses: number;
+    draws: number;
+}
 
 export interface OpponentInfo {
     nickname: string;
-    rating: number;
+    rating?: number;
 }
 
 export type GameOverReason =
-    | 'top_out'
+    | 'topout'
     | 'goal'
-    | 'time_limit'
-    | 'surrender'
-    | 'afk'
+    | 'time'
+    | 'resign'
+    | 'inactivity'
     | 'disconnect'
     | 'cheat'
     | 'draw';
 
 /** 서버 → 클라이언트 */
 export type ServerMessage =
-    | Envelope<'connected', Record<string, never>>
+    | Envelope<
+          'connected',
+          {
+              mbId: string;
+              nickname: string;
+              sessionId: string;
+              /** random 매칭 참가비 */
+              entryFee: number;
+              stats: Partial<Record<RuleId, PlayerStats>>;
+          }
+      >
     | Envelope<
           'matching_status',
-          { status: string; mode: MatchMode; rule: RuleId; invite?: string }
+          {
+              status: 'waiting' | 'matched' | 'error';
+              roomId?: string;
+              opponent?: OpponentInfo;
+              rule: RuleId;
+          }
       >
-    | Envelope<'matching_canceled', { reason?: string; refunded?: boolean }>
     | Envelope<
           'game_start',
           {
               roomId: string;
               rule: RuleId;
+              ruleSpec: RuleDef;
               seed: number;
-              opponent: OpponentInfo;
-              /** ready 를 보내야 하는 남은 초 */
-              readyTimeout: number;
+              /** go 까지의 카운트다운 (3000) */
+              countdownMs: number;
               /** 이번 판에 차감된 참가비 (없으면 0) */
-              fee: number;
+              entryFeeCharged: number;
           }
       >
-    | Envelope<'countdown', { roomId: string; seconds: number }>
-    | Envelope<'go', { roomId: string }>
-    | Envelope<
-          'opponent_lock',
-          { roomId: string; board: string; lines: number; cleared: number; pending: number }
-      >
-    | Envelope<
-          'garbage',
-          {
-              roomId: string;
-              /** 이번에 넣을 줄 수 (≤ 8) */
-              lines: number;
-              /** 구멍 열 0~8 */
-              hole: number;
-              /** 넣고 남은 대기 줄 수 */
-              pending: number;
-          }
-      >
-    | Envelope<'pending_garbage', { roomId: string; pending: number }>
-    | Envelope<'level_floor', { roomId: string; level: number }>
+    | Envelope<'go', Empty>
+    /** attack 전용 — 내게 쌓인 방해 줄 수 */
+    | Envelope<'garbage_queued', { pending: number }>
+    /** attack 전용 — 이번에 넣을 줄(≤ 8)·구멍 열 0~8·넣고 남은 대기 줄 */
+    | Envelope<'garbage_apply', { lines: number; hole: number; pending: number }>
+    /** 상대 판 (초당 4회 상한) */
+    | Envelope<'opponent_state', { board: string; lines: number; score: number; pending: number }>
+    /** sprint40 전용 */
+    | Envelope<'progress', { you: { lines: number }; opp: { lines: number }; elapsedMs: number }>
+    | Envelope<'opponent_disconnected', { timeout: number }>
+    | Envelope<'opponent_reconnected', Empty>
+    | Envelope<'game_restored', { pending: number; opponentBoard: string; elapsedMs: number }>
     | Envelope<
           'game_over',
           {
-              roomId: string;
               /** 이긴 쪽 닉네임, 무승부면 null */
               winner: string | null;
               reason: GameOverReason;
-              ratingDelta: number;
+              result: { timeMs?: number; lines: number; score: number };
+              stats: PlayerStats;
           }
       >
-    | Envelope<'rematch_offer', { roomId: string; seconds: number; fee: number }>
-    | Envelope<
-          'game_restored',
-          { roomId: string; rule: RuleId; seed: number; elapsedTicks: number }
-      >
-    | Envelope<'opponent_disconnected', { roomId: string; graceSeconds: number }>
-    | Envelope<'opponent_reconnected', { roomId: string }>
+    | Envelope<'rematch_offer', { feeNotice: string }>
+    | Envelope<'rematch_canceled', { reason: string }>
     | Envelope<'error', { code: string; message: string }>;
 
 export type ClientMessageType = ClientMessage['type'];
