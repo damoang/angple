@@ -2,11 +2,12 @@
     // 앙쌓기 — 떨어지는 블록을 쌓아 줄을 지우는 퍼즐.
     // 로직은 $lib/games/stack/engine.ts(순수·결정적), 루프·입력·캔버스는 $lib/games/shell.
     // 게임 상태는 평범한 객체로 두고, 화면 숫자(HUD)만 바뀔 때 $state 에 옮긴다.
+    // 로그인 상태면 서버(stack-ws)에서 시드를 받아 시작하고 끝나면 기록을 낸다(점수판).
+    // 비로그인·실패·3초 안에 답이 없으면 지금처럼 로컬 무작위 시드로 진행한다(「기록 미등록」).
     import { untrack } from 'svelte';
     import {
         COLS,
         ROWS,
-        SHAPES,
         IN_LEFT,
         IN_RIGHT,
         IN_CW,
@@ -21,12 +22,20 @@
     import { bindKeys, createHeldInput } from '$lib/games/shell/input.js';
     import { fitCanvas, observeSize, prefersReducedMotion } from '$lib/games/shell/canvas.js';
     import { getGame } from '$lib/games/registry.js';
+    import { drawBoard, drawNext } from '$lib/games/stack/render.js';
+    import {
+        buildSoloClaim,
+        createSoloTracker,
+        finishSoloRun,
+        startSoloRun,
+        trackStep,
+        type SoloFinishResult
+    } from '$lib/games/stack/solo-record.js';
+    import { getStackToken } from '$lib/games/stack/auth-token.js';
+    import { authStore } from '$lib/stores/auth.svelte.js';
 
     const NAME = getGame('stack').name;
     const BEST_KEY = 'angple_stack_best';
-
-    /** 조각별 색 — 자체 팔레트(밝은/어두운 테마 모두에서 보이는 중간 채도) */
-    const PALETTE = ['#e8836b', '#3fa7a0', '#d9a441', '#c76aa6', '#5b8fd9', '#8fb65a', '#9a7fd1'];
 
     /** KeyboardEvent.code → 입력 비트 */
     const KEYMAP: Record<string, number> = {
@@ -47,7 +56,9 @@
         { bit: IN_HARD, text: '⤓', label: '하드 드롭' }
     ];
 
-    type Status = 'idle' | 'playing' | 'paused' | 'over';
+    type Status = 'idle' | 'starting' | 'playing' | 'paused' | 'over';
+    /** 점수판 기록 상태: local=로컬 모드(기록 미등록), server=서버 판 진행 중 */
+    type RecordState = 'none' | 'local' | 'server' | 'saving' | 'saved' | 'failed';
 
     let boardEl: HTMLCanvasElement;
     let nextEl: HTMLCanvasElement;
@@ -59,12 +70,20 @@
     let best = $state(0);
     let announce = $state('');
     let pulse = $state(false);
+    let record = $state<RecordState>('none');
+    let standing = $state<SoloFinishResult | null>(null);
 
     // 반응형이 아닌 게임 상태
     let game: Game = createGame(1);
     let dirty = true;
     let reduceMotion = false;
     let pulseTimer: ReturnType<typeof setTimeout> | undefined;
+    /** 서버가 발급한 이번 판 id (로컬 모드면 null) */
+    let runId: string | null = null;
+    let tracker = createSoloTracker();
+    /** 시작할 때마다 오른다 — 늦게 온 응답이 새 판을 덮지 않게 */
+    let startGen = 0;
+    let destroyed = false;
 
     const input = createHeldInput({ repeat: IN_LEFT | IN_RIGHT, hold: IN_SOFT });
     const loop = createLoop(tick, render);
@@ -95,6 +114,7 @@
 
     function tick() {
         const r = step(game, input.sample());
+        trackStep(tracker, r);
         if (r.dirty) dirty = true;
         if (game.score !== score) score = game.score;
         if (r.cleared > 0) {
@@ -115,8 +135,27 @@
         pulseTimer = setTimeout(() => (pulse = false), 200);
     }
 
-    function start() {
-        game = createGame(newSeed());
+    async function start() {
+        if (status === 'starting') return;
+        loop.stop();
+        input.clear();
+        const gen = ++startGen;
+        runId = null;
+        standing = null;
+        let seed: number | null = null;
+        if (authStore.isAuthenticated) {
+            status = 'starting';
+            announce = '준비 중';
+            const run = await startSoloRun(getStackToken);
+            if (gen !== startGen || destroyed) return;
+            if (run) {
+                runId = run.runId;
+                seed = run.seed;
+            }
+        }
+        record = runId ? 'server' : 'local';
+        tracker = createSoloTracker();
+        game = createGame(seed ?? newSeed());
         score = 0;
         level = 1;
         lines = 0;
@@ -126,6 +165,8 @@
         dirty = true;
         render();
         loop.start();
+        // 준비하는 사이 다른 탭으로 갔으면 바로 멈춰 둔다
+        if (document.hidden) pause();
     }
 
     function pause() {
@@ -155,134 +196,47 @@
         announce = `게임 끝. 점수 ${game.score}, 레벨 ${game.level}, ${game.lines}줄`;
         dirty = true;
         render();
+        void submitRecord();
     }
 
-    /* ── 그리기 ── */
+    /** 서버 판이면 기록을 낸다 — 실패해도 게임 화면은 그대로 */
+    async function submitRecord() {
+        const id = runId;
+        runId = null;
+        if (!id) return;
+        const gen = startGen;
+        const claim = buildSoloClaim(game, tracker);
+        record = 'saving';
+        const res = await finishSoloRun(id, claim, getStackToken);
+        if (gen !== startGen || destroyed) return;
+        standing = res;
+        record = res ? 'saved' : 'failed';
+    }
+
+    /* ── 그리기 ($lib/games/stack/render.ts) ── */
     function render() {
         if (!dirty || !boardEl || !nextEl) return;
         dirty = false;
-        drawBoard();
-        drawNext();
-    }
-
-    /** roundRect 가 없는 브라우저(iOS 15 등)에서는 각진 사각형으로 그린다 */
-    function roundRect(
-        ctx: CanvasRenderingContext2D,
-        x: number,
-        y: number,
-        w: number,
-        h: number,
-        r: number
-    ) {
-        if (typeof ctx.roundRect === 'function') ctx.roundRect(x, y, w, h, r);
-        else ctx.rect(x, y, w, h);
-    }
-
-    /** 칸 하나: 둥근 타일 + 왼쪽 위 작은 광택 + 조각별 무늬(색만으로 구분하지 않게) */
-    function tile(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, kind: number) {
-        const pad = Math.max(1, s * 0.06);
-        const size = s - pad * 2;
-        ctx.fillStyle = PALETTE[kind];
-        ctx.beginPath();
-        roundRect(ctx, x + pad, y + pad, size, size, size * 0.24);
-        ctx.fill();
-
-        ctx.fillStyle = 'rgba(255,255,255,0.4)';
-        ctx.beginPath();
-        roundRect(ctx, x + pad * 2.5, y + pad * 2.5, size * 0.32, size * 0.14, size * 0.07);
-        ctx.fill();
-
-        const cx = x + s / 2;
-        const cy = y + s / 2 + s * 0.04;
-        const m = s * 0.16;
-        ctx.strokeStyle = ctx.fillStyle = 'rgba(0,0,0,0.3)';
-        ctx.lineWidth = Math.max(1.5, s * 0.08);
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        switch (kind) {
-            case 0: // 가로 줄
-                ctx.moveTo(cx - m, cy);
-                ctx.lineTo(cx + m, cy);
-                break;
-            case 1: // 작은 네모
-                ctx.rect(cx - m * 0.7, cy - m * 0.7, m * 1.4, m * 1.4);
-                ctx.fill();
-                return;
-            case 2: // 점
-                ctx.arc(cx, cy, m * 0.75, 0, Math.PI * 2);
-                ctx.fill();
-                return;
-            case 3: // 빗금 /
-                ctx.moveTo(cx - m, cy + m);
-                ctx.lineTo(cx + m, cy - m);
-                break;
-            case 4: // 빗금 \
-                ctx.moveTo(cx - m, cy - m);
-                ctx.lineTo(cx + m, cy + m);
-                break;
-            case 5: // 고리
-                ctx.arc(cx, cy, m, 0, Math.PI * 2);
-                break;
-            default: // 더하기
-                ctx.moveTo(cx - m, cy);
-                ctx.lineTo(cx + m, cy);
-                ctx.moveTo(cx, cy - m);
-                ctx.lineTo(cx, cy + m);
-        }
-        ctx.stroke();
-    }
-
-    function drawBoard() {
         const ctx = fitCanvas(boardEl);
-        if (!ctx) return;
-        const w = boardEl.clientWidth;
-        const h = boardEl.clientHeight;
-        const s = w / COLS;
-        ctx.clearRect(0, 0, w, h);
-
-        // 격자 — 캔버스의 CSS color(text-border)를 따라가므로 테마가 바뀌어도 맞는다
-        ctx.strokeStyle = getComputedStyle(boardEl).color;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        for (let c = 1; c < COLS; c++) {
-            ctx.moveTo(Math.round(c * s) + 0.5, 0);
-            ctx.lineTo(Math.round(c * s) + 0.5, h);
+        if (ctx) {
+            const w = boardEl.clientWidth;
+            // 격자 — 캔버스의 CSS color(text-border)를 따라가므로 테마가 바뀌어도 맞는다
+            drawBoard(ctx, game.board, w / COLS, {
+                width: w,
+                height: boardEl.clientHeight,
+                grid: getComputedStyle(boardEl).color,
+                piece: status === 'idle' || game.over ? null : game.piece
+            });
         }
-        for (let r = 1; r < ROWS; r++) {
-            ctx.moveTo(0, Math.round(r * s) + 0.5);
-            ctx.lineTo(w, Math.round(r * s) + 0.5);
+        const nctx = fitCanvas(nextEl);
+        if (nctx) {
+            drawNext(
+                nctx,
+                nextEl.clientWidth,
+                nextEl.clientHeight,
+                status === 'idle' ? null : game.next
+            );
         }
-        ctx.stroke();
-
-        for (let i = 0; i < game.board.length; i++) {
-            const v = game.board[i];
-            if (v) tile(ctx, (i % COLS) * s, Math.floor(i / COLS) * s, s, v - 1);
-        }
-        if (status === 'idle' || game.over) return;
-        const p = game.piece;
-        for (const [cx, cy] of SHAPES[p.kind][p.rot]) {
-            if (p.y + cy >= 0) tile(ctx, (p.x + cx) * s, (p.y + cy) * s, s, p.kind);
-        }
-    }
-
-    function drawNext() {
-        const ctx = fitCanvas(nextEl);
-        if (!ctx) return;
-        const w = nextEl.clientWidth;
-        ctx.clearRect(0, 0, w, nextEl.clientHeight);
-        if (status === 'idle') return;
-        const cells = SHAPES[game.next][0];
-        const xs = cells.map((c) => c[0]);
-        const ys = cells.map((c) => c[1]);
-        const minX = Math.min(...xs);
-        const minY = Math.min(...ys);
-        const cw = Math.max(...xs) - minX + 1;
-        const ch = Math.max(...ys) - minY + 1;
-        const s = w / 4.5;
-        const ox = (w - cw * s) / 2;
-        const oy = (w - ch * s) / 2;
-        for (const [x, y] of cells)
-            tile(ctx, ox + (x - minX) * s, oy + (y - minY) * s, s, game.next);
     }
 
     /* ── 입력 ── */
@@ -304,7 +258,7 @@
         if (t instanceof HTMLButtonElement) return;
         if (e.code === 'Enter' || e.code === 'Space') {
             if (status === 'paused') resume();
-            else if (status === 'idle' || status === 'over') start();
+            else if (status === 'idle' || status === 'over') void start();
             else return;
             e.preventDefault();
         }
@@ -342,6 +296,7 @@
                 offHidden();
                 offSize();
                 clearTimeout(pulseTimer);
+                destroyed = true;
             };
         })
     );
@@ -369,10 +324,12 @@
                         <p class="text-muted-foreground text-xs">줄을 채우면 사라져요</p>
                         <button
                             type="button"
-                            onclick={start}
+                            onclick={() => void start()}
                             class="bg-primary text-primary-foreground rounded-md px-5 py-2 text-sm font-medium"
                             >시작</button
                         >
+                    {:else if status === 'starting'}
+                        <p class="text-muted-foreground text-sm">준비 중…</p>
                     {:else if status === 'paused'}
                         <p class="text-foreground text-lg font-bold">일시정지</p>
                         <button
@@ -384,9 +341,21 @@
                     {:else}
                         <p class="text-foreground text-lg font-bold">게임 끝</p>
                         <p class="text-muted-foreground text-sm">점수 {score}</p>
+                        {#if record === 'saving'}
+                            <p class="text-muted-foreground text-xs">기록 저장 중…</p>
+                        {:else if record === 'saved' && standing?.accepted}
+                            <p class="text-foreground text-xs">
+                                최고 기록 {standing.best.toLocaleString()}
+                                {#if standing.rankWeek}
+                                    · 이번 주 {standing.rankWeek}위
+                                {/if}
+                            </p>
+                        {:else if record !== 'none'}
+                            <p class="text-muted-foreground text-xs">기록 미등록</p>
+                        {/if}
                         <button
                             type="button"
-                            onclick={start}
+                            onclick={() => void start()}
                             class="bg-primary text-primary-foreground rounded-md px-5 py-2 text-sm font-medium"
                             >다시 하기</button
                         >
@@ -423,6 +392,14 @@
                     <dd class="text-foreground tabular-nums">{best}</dd>
                 </div>
             </dl>
+            {#if record === 'local' && (status === 'playing' || status === 'paused')}
+                <p
+                    class="text-muted-foreground text-[11px] leading-tight"
+                    title="로그인하지 않았거나 기록 서버에 연결하지 못해 점수판에 오르지 않습니다"
+                >
+                    기록 미등록
+                </p>
+            {/if}
             {#if status === 'playing' || status === 'paused'}
                 <button
                     type="button"
@@ -432,7 +409,7 @@
                 >
                 <button
                     type="button"
-                    onclick={start}
+                    onclick={() => void start()}
                     class="bg-muted text-foreground rounded-md px-2 py-1.5 text-xs font-medium"
                     >다시 시작</button
                 >
