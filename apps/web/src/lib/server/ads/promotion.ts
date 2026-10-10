@@ -8,6 +8,7 @@
 
 import { getAdsServerUrl } from './config';
 import { getRedis } from '$lib/server/redis';
+import { maskTitleFields } from '$lib/utils/email-reveal.js';
 
 const PROMOTION_CACHE_TTL_SEC = 86_400; // 24시간 (글 작성 시 무효화)
 const PROMOTION_POSTS_TIMEOUT_MS = 500;
@@ -174,7 +175,8 @@ export async function fetchPromotionPosts(): Promise<unknown> {
     try {
         const redis = getRedis();
         const cached = await redis.get(REDIS_KEY_POSTS);
-        if (cached) return JSON.parse(cached);
+        // 이메일 주소 수집 방지 — 목록에 끼워 넣는 홍보 글 제목은 「[이메일]」로 (읽을 때마다, 멱등).
+        if (cached) return maskTitleFields(JSON.parse(cached));
     } catch {
         // Redis 실패 시 ads 서버 직접 호출
     }
@@ -193,7 +195,7 @@ export async function fetchPromotionPosts(): Promise<unknown> {
             // Redis 저장 실패 무시
         }
 
-        return data;
+        return maskTitleFields(data);
     } catch (err) {
         console.error('[promotion] posts fetch failed:', err instanceof Error ? err.message : err);
         return EMPTY_RESPONSE;

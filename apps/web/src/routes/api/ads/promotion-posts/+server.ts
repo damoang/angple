@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { getAdsServerUrl } from '$lib/server/ads/config';
+import { maskTitleFields } from '$lib/utils/email-reveal.js';
 import type { RequestHandler } from './$types';
 
 // GET /api/ads/promotion-posts
@@ -11,7 +12,8 @@ export const GET: RequestHandler = async () => {
         if (!response.ok) {
             return json({ success: false, data: { posts: [], count: 0 } });
         }
-        return json(await response.json());
+        // 이메일 주소 수집 방지 — 홍보 글 제목은 「[이메일]」로.
+        return json(maskTitleFields(await response.json()));
     } catch {
         return json({ success: false, data: { posts: [], count: 0 } });
     }

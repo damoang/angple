@@ -12,6 +12,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
+import { maskEmailText } from '$lib/utils/email-reveal.js';
 
 const S3_URL = (import.meta.env.VITE_S3_URL || 'https://s3.damoang.net').replace(/\/$/, '');
 
@@ -93,7 +94,8 @@ export const GET: RequestHandler = async ({ url }) => {
                 id: row.wr_id,
                 image: normalizeImageUrl(image),
                 link: row.wr_link1 || '',
-                text: row.wr_subject || ''
+                // 이메일 주소 수집 방지 — 배너 문구(글 제목)는 「[이메일]」로.
+                text: maskEmailText(row.wr_subject || '')
             });
         }
 

@@ -217,6 +217,13 @@ function maskWalk(v: unknown, keys: ReadonlySet<string>, depth: number): void {
         const val = v[k];
         if (typeof val === 'string') {
             if (keys.has(k)) v[k] = maskEmailText(val);
+        } else if (keys.has(k) && Array.isArray(val)) {
+            // 제목 필드가 문자열 배열인 경우(검색 하이라이트 `highlight.title: string[]` 등).
+            for (let i = 0; i < val.length; i++) {
+                const item = val[i];
+                if (typeof item === 'string') val[i] = maskEmailText(item);
+                else if (item !== null && typeof item === 'object') maskWalk(item, keys, depth + 1);
+            }
         } else if (val !== null && typeof val === 'object') {
             maskWalk(val, keys, depth + 1);
         }
@@ -235,7 +242,12 @@ export function maskTitleFields<T>(data: T, keys?: Iterable<string>): T {
 
 /** `JSON.parse(text, titleEmailReviver)` — 파싱하면서 제목 필드를 마스킹한다. */
 export function titleEmailReviver(key: string, value: unknown): unknown {
-    return typeof value === 'string' && TITLE_KEYS.has(key) ? maskEmailText(value) : value;
+    if (!TITLE_KEYS.has(key)) return value;
+    if (typeof value === 'string') return maskEmailText(value);
+    if (Array.isArray(value)) {
+        return value.map((item) => (typeof item === 'string' ? maskEmailText(item) : item));
+    }
+    return value;
 }
 
 /**

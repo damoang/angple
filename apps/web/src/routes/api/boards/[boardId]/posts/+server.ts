@@ -8,6 +8,7 @@ import type { RowDataPacket } from 'mysql2';
 import pool from '$lib/server/db';
 import { isInternalAppRequest } from '$lib/server/internal-api.js';
 import { checkRateLimit, recordAttempt, resolveClientIp } from '$lib/server/rate-limit.js';
+import { maskEmailText } from '$lib/utils/email-reveal.js';
 
 interface Post {
     wr_id: number;
@@ -97,9 +98,15 @@ export const GET: RequestHandler = async ({ params, url, request, getClientAddre
 			 LIMIT ${limit} OFFSET ${offset}`
         );
 
+        // 이메일 주소 수집 방지 — 공개 목록이므로 제목은 「[이메일]」로.
+        const posts = (rows as Post[]).map((row) => ({
+            ...row,
+            wr_subject: maskEmailText(row.wr_subject)
+        }));
+
         return json({
             success: true,
-            data: rows as Post[]
+            data: posts
         });
     } catch (error) {
         console.error('Board posts API error:', error);

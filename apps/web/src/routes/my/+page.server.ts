@@ -14,6 +14,7 @@ import type {
 } from '$lib/api/types.js';
 import { env } from '$env/dynamic/private';
 import { safeJson } from '$lib/api/safe-json.js';
+import { maskTitleFields } from '$lib/utils/email-reveal.js';
 
 const BACKEND_URL = env.BACKEND_URL || 'http://localhost:8090';
 
@@ -90,7 +91,10 @@ async function loadMyPageData(
                 signal: AbortSignal.timeout(BACKEND_TIMEOUT)
             }).then(async (res) => {
                 if (!res.ok) return;
-                result.posts = parsePaginated<FreePost>(await safeJson(res), page, limit);
+                // 이메일 주소 수집 방지 — 목록 제목은 「[이메일]」로 (API 프록시와 같은 규칙).
+                result.posts = maskTitleFields(
+                    parsePaginated<FreePost>(await safeJson(res), page, limit)
+                );
             });
         } else if (tab === 'comments') {
             tabPromise = fetch(
@@ -101,7 +105,11 @@ async function loadMyPageData(
                 }
             ).then(async (res) => {
                 if (!res.ok) return;
-                result.comments = parsePaginated<MyComment>(await safeJson(res), page, limit);
+                // 댓글 목록은 원글 제목(`post_title`)만 마스킹한다.
+                result.comments = maskTitleFields(
+                    parsePaginated<MyComment>(await safeJson(res), page, limit),
+                    ['post_title']
+                );
             });
         } else if (tab === 'liked') {
             tabPromise = fetch(`${BACKEND_URL}/api/v1/my/liked-posts?page=${page}&limit=${limit}`, {
@@ -109,7 +117,9 @@ async function loadMyPageData(
                 signal: AbortSignal.timeout(BACKEND_TIMEOUT)
             }).then(async (res) => {
                 if (!res.ok) return;
-                result.likedPosts = parsePaginated<FreePost>(await safeJson(res), page, limit);
+                result.likedPosts = maskTitleFields(
+                    parsePaginated<FreePost>(await safeJson(res), page, limit)
+                );
             });
         } else if (tab === 'stats') {
             tabPromise = fetch(`${BACKEND_URL}/api/v1/my/stats`, {
