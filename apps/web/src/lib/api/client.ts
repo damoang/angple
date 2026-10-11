@@ -49,6 +49,9 @@ import type {
     RegisterRequest,
     RegisterResponse,
     PostRevision,
+    PublicRevision,
+    PublicRevisionCounts,
+    PublicRevisionList,
     PostRating,
     Scrap,
     BoardGroup,
@@ -936,6 +939,58 @@ class ApiClient {
             `/boards/${boardId}/posts/${postId}/comments/${commentId}/revisions`
         );
         return response.data;
+    }
+
+    // ========================================
+    // 공개 수정 이력 (설정된 게시판만 — 그 외 404)
+    // ========================================
+
+    private publicRevisionPath(boardId: string, postId: string, commentId?: string): string {
+        const base = `/boards/${encodeURIComponent(boardId)}/posts/${encodeURIComponent(postId)}`;
+        return commentId
+            ? `${base}/comments/${encodeURIComponent(commentId)}/public-revisions`
+            : `${base}/public-revisions`;
+    }
+
+    /** 글(commentId 없음) 또는 댓글의 공개 수정 이력 */
+    async getPublicRevisions(
+        boardId: string,
+        postId: string,
+        commentId?: string
+    ): Promise<PublicRevisionList> {
+        const response = await this.request<PublicRevision[]>(
+            this.publicRevisionPath(boardId, postId, commentId)
+        );
+        const canHide = (response as unknown as { can_hide?: boolean }).can_hide === true;
+        return { revisions: response.data ?? [], canHide };
+    }
+
+    /** 글과 그 댓글 전체의 공개 수정 횟수 — 한 번의 요청 */
+    async getPublicRevisionCounts(boardId: string, postId: string): Promise<PublicRevisionCounts> {
+        const response = await this.request<PublicRevisionCounts>(
+            `${this.publicRevisionPath(boardId, postId)}/counts`
+        );
+        return {
+            post: response.data?.post ?? 0,
+            comments: response.data?.comments ?? {}
+        };
+    }
+
+    /**
+     * 공개 수정 이력의 한 버전 숨기기
+     * 🔒 사이트 관리자 또는 게시판 관리자
+     */
+    async hidePublicRevision(
+        boardId: string,
+        postId: string,
+        version: number,
+        commentId?: string
+    ): Promise<void> {
+        await this.request<void>(
+            `${this.publicRevisionPath(boardId, postId, commentId)}/${version}/hide`,
+            { method: 'POST' },
+            WRITE_REQUEST_CONFIG
+        );
     }
 
     // ========================================

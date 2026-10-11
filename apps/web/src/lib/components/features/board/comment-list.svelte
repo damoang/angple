@@ -39,6 +39,7 @@
     import { pluginStore } from '$lib/stores/plugin.svelte';
     import { loadPluginComponent, loadPluginLib } from '$lib/utils/plugin-optional-loader';
     import RevisionHistory from '$lib/components/post/revision-history.svelte';
+    import PublicRevisionHistory from '$lib/components/post/public-revision-history.svelte';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import type { PostRevision } from '$lib/api/types.js';
     import History from '@lucide/svelte/icons/history';
@@ -138,6 +139,8 @@
          *    되살릴 때 백엔드 meta 배선부터 다시 깔아야 한다.
          */
         editPolicy?: { cost: number; grace_seconds: number };
+        /** 댓글별 공개 수정 이력 횟수(공개 대상 게시판만). 부모가 글 단위로 한 번에 받는다. */
+        publicRevisionCounts?: Record<string, number>;
     }
 
     let {
@@ -165,7 +168,8 @@
         requiredReplyLevel = 3,
         expectedTotal = 0,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars -- 부모/API 메타와의 계약 유지 (Props 주석 참조)
-        editPolicy = { cost: 50000, grace_seconds: 300 }
+        editPolicy = { cost: 50000, grace_seconds: 300 },
+        publicRevisionCounts = {}
     }: Props = $props();
 
     function findCommentById(commentId: string): FreeComment | null {
@@ -1648,6 +1652,16 @@
                                                     comment.updated_at
                                                 )}
                                             </span>
+                                        {/if}
+                                        <!-- 공개 수정 이력(공개 대상 게시판만 — 횟수는 부모가 한 번에 받는다) -->
+                                        {#if !isDeleted && (publicRevisionCounts[String(comment.id)] ?? 0) > 0}
+                                            <PublicRevisionHistory
+                                                {boardId}
+                                                {postId}
+                                                commentId={comment.id}
+                                                count={publicRevisionCounts[String(comment.id)]}
+                                                class="ml-1"
+                                            />
                                         {/if}
                                     </p>
                                 </div>

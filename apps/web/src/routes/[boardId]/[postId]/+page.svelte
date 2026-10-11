@@ -46,7 +46,14 @@
     import { isAngmapBoard as detectAngmapBoard } from '$lib/utils/angmap-link';
     import { BOARD_LIST_PAGE_SIZE } from '$lib/constants/board';
     import { ReportDialog } from '$lib/components/features/report/index.js';
-    import type { FreeComment, FreePost, LikerInfo, PostRevision } from '$lib/api/types.js';
+    import type {
+        FreeComment,
+        FreePost,
+        LikerInfo,
+        PostRevision,
+        PublicRevisionCounts
+    } from '$lib/api/types.js';
+    import { isPublicRevisionBoard } from '$lib/utils/public-revisions.js';
     import DeletedPostBanner from '$lib/components/post/deleted-post-banner.svelte';
     import { sendMentionNotifications } from '$lib/utils/mention-notify.js';
     import { insertReplyAfterParent, type CommentLike } from '$lib/utils/comment-insert.js';
@@ -1469,6 +1476,35 @@
         }
     }
 
+    // 공개 수정 이력 횟수 — 공개 대상 게시판(기본 claim)에서만, 글 하나당 한 번.
+    // 글과 그 댓글 전체 횟수를 한 요청으로 받는다(댓글마다 부르지 않는다 — N+1 없음).
+    // 이력 본문은 「수정됨 N회」를 눌렀을 때 그 글/댓글 하나만 받는다. 실패하면 표시만 빠진다.
+    // 키를 원시값으로 묶어 data 객체가 바뀌어도 같은 글이면 다시 부르지 않는다.
+    let publicRevisionCounts = $state<PublicRevisionCounts | null>(null);
+    const publicRevisionKey = $derived(
+        isPublicRevisionBoard(boardId) && data.post?.id && !data.post?.deleted_at
+            ? `${boardId}/${data.post.id}`
+            : ''
+    );
+    $effect(() => {
+        const key = publicRevisionKey;
+        publicRevisionCounts = null;
+        if (!key) return;
+        const [bid, pid] = key.split('/');
+        let cancelled = false;
+        apiClient.getPublicRevisionCounts(bid, pid).then(
+            (counts) => {
+                if (!cancelled) publicRevisionCounts = counts;
+            },
+            () => {
+                // 횟수를 못 받으면 「수정됨 N회」만 나타나지 않는다.
+            }
+        );
+        return () => {
+            cancelled = true;
+        };
+    });
+
     // 리비전 히스토리 로드
     async function loadRevisions(): Promise<void> {
         try {
@@ -2765,6 +2801,7 @@
                 {formatDate}
                 {formatTimeShort}
                 editCount={revisions.filter((r) => r.change_type === 'update').length}
+                publicRevisionCount={publicRevisionCounts?.post ?? 0}
                 {formatFileSize}
                 {postContent}
                 pageData={data}
@@ -2998,6 +3035,7 @@
                             requiredReplyLevel={data.board?.reply_level ?? 3}
                             expectedTotal={commentsTotal}
                             editPolicy={commentEditPolicy}
+                            publicRevisionCounts={publicRevisionCounts?.comments ?? {}}
                         />
                     {/if}
                     <!-- 플러그인 슬롯: 댓글 영역 직후 — Slot Catalog Sprint 2c -->

@@ -116,6 +116,8 @@ export interface ViewLayoutProps {
     // 수정/삭제 메타
     /** 수정 횟수 (update 타입 리비전 수) */
     editCount?: number;
+    /** 공개 수정 이력 횟수(공개 대상 게시판만, 0 이면 표시 안 함) */
+    publicRevisionCount?: number;
 
     // 유틸
     formatDate: (date: string) => string;

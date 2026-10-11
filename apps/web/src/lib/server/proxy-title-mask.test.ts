@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { isTitleMaskedProxyPath, maskProxyJsonTitles } from './proxy-title-mask';
+import {
+    isPublicRevisionProxyPath,
+    isTitleMaskedProxyPath,
+    maskProxyJsonTitles
+} from './proxy-title-mask';
 
 describe('isTitleMaskedProxyPath', () => {
     it('matches board post/notice lists and my post lists', () => {
@@ -103,5 +107,44 @@ describe('maskProxyJsonTitles', () => {
 
     it('falls back to the original text for invalid JSON', () => {
         expect(maskProxyJsonTitles('not json a@b.com')).toBe('not json a@b.com');
+    });
+});
+
+describe('public revision history', () => {
+    it('matches post and comment public revision lists only', () => {
+        expect(isPublicRevisionProxyPath('boards/claim/posts/12/public-revisions')).toBe(true);
+        expect(
+            isPublicRevisionProxyPath('boards/claim/posts/12/comments/34/public-revisions')
+        ).toBe(true);
+        expect(isTitleMaskedProxyPath('boards/claim/posts/12/public-revisions')).toBe(true);
+        expect(isPublicRevisionProxyPath('boards/claim/posts/12/public-revisions/counts')).toBe(
+            false
+        );
+        expect(isPublicRevisionProxyPath('boards/claim/posts/12/public-revisions/3/hide')).toBe(
+            false
+        );
+        expect(isPublicRevisionProxyPath('boards/claim/posts/12/revisions')).toBe(false);
+    });
+
+    it('encodes addresses in revision content and masks revision titles', () => {
+        const text = JSON.stringify({
+            success: true,
+            data: [
+                { version: 2, title: '연락 a@b.com', content: '<p>메일 a@b.com 으로</p>' },
+                { version: 0, title: '연락', content: '<p>지움</p>', current: true }
+            ],
+            can_hide: false
+        });
+        const out = JSON.parse(maskProxyJsonTitles(text, 'boards/claim/posts/12/public-revisions'));
+        expect(out.data[0].title).toBe('연락 [이메일]');
+        expect(out.data[0].content).not.toContain('a@b.com');
+        expect(out.data[0].content).toContain('{email:');
+        expect(out.data[1].content).toBe('<p>지움</p>');
+        expect(out.can_hide).toBe(false);
+    });
+
+    it('leaves content alone on list paths', () => {
+        const text = '{"data": [{"title": "평범", "content": "a@b.com"}]}';
+        expect(maskProxyJsonTitles(text, 'boards/claim/posts')).toBe(text);
     });
 });

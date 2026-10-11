@@ -82,6 +82,7 @@
     import { onMount, untrack } from 'svelte';
     import { EmailText } from '$lib/components/ui/email-text/index.js';
     import { stripEmailMarkers } from '$lib/utils/email-reveal.js';
+    import PublicRevisionHistory from '$lib/components/post/public-revision-history.svelte';
     import {
         buildThumbnailSrcSet,
         isTransformableMediaImage,
@@ -132,7 +133,8 @@
         // 같은 ViewLayoutProps 를 쓰기 때문에 지우면 그쪽이 조용히 깨진다.
         isSanctioned: _isSanctioned = false,
         truthroomPostId,
-        originalPostLink
+        originalPostLink,
+        publicRevisionCount = 0
     }: ViewLayoutProps = $props();
 
     // bug/13991: 공유 대표 이미지는 **원본** URL 만 쓴다. -400x225/-835x626 변형본은
@@ -658,6 +660,15 @@
                                             post.created_at
                                         )})</span
                                     >
+                                {/if}
+                                <!-- 공개 수정 이력(공개 대상 게시판만 — 횟수는 부모가 한 번에 받는다) -->
+                                {#if publicRevisionCount > 0 && !post.deleted_at}
+                                    <PublicRevisionHistory
+                                        {boardId}
+                                        postId={post.id}
+                                        count={publicRevisionCount}
+                                        class="ml-1 text-xs"
+                                    />
                                 {/if}
                                 {#if post.deleted_at && formatTimeShort}
                                     <span class="text-red-500/70"
