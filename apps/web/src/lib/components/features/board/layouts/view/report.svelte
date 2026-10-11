@@ -44,6 +44,7 @@
     import CalendarDays from '@lucide/svelte/icons/calendar-days';
     import Eye from '@lucide/svelte/icons/eye';
     import TrendingUp from '@lucide/svelte/icons/trending-up';
+    import Landmark from '@lucide/svelte/icons/landmark';
     import { authStore } from '$lib/stores/auth.svelte.js';
     import { DisciplinedContent } from '$lib/components/ui/discipline-related';
     import { AdultBlur } from '$lib/components/features/adult/index.js';
@@ -60,6 +61,7 @@
     import type { ViewLayoutProps } from '../types.js';
     import { EmailText } from '$lib/components/ui/email-text/index.js';
     import ReportCharts from './report-charts.svelte';
+    import { summarizeTakedownStats, type TakedownStats } from './report-takedown.js';
 
     const FONT_SIZES: Record<ContentFontSize, string> = {
         small: '16px',
@@ -198,6 +200,8 @@
             over3k_views?: number;
         };
         group_stats?: BoardStatEntry[]; // 소모임별 활동
+        // 외부 요청 처리 유형별 건수. 이 필드가 생기기 전 보고서엔 없다.
+        takedown_stats?: TakedownStats;
         prev_day?: {
             posts?: number;
             comments?: number;
@@ -462,6 +466,9 @@
               ]
             : []
     );
+
+    // 외부 요청 처리 — takedown_stats 가 없으면 null (섹션 미표시)
+    const takedown = $derived(summarizeTakedownStats(stats.takedown_stats));
 
     // 차트 데이터 유무
     const hasChartData = $derived(
@@ -756,6 +763,68 @@
                     daily={isDaily}
                     periodDays={stats.period_days ?? 1}
                 />
+            {/if}
+
+            <!-- 외부 요청 처리 (takedown_stats 가 있는 보고서만) -->
+            {#if takedown}
+                <div class="rounded-xl border p-5">
+                    <div class="mb-3 flex items-start gap-2">
+                        <Landmark class="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
+                        <div class="min-w-0">
+                            <h3 class="text-foreground text-sm font-medium">외부 요청 처리</h3>
+                            <p class="text-muted-foreground text-xs">
+                                유형별 처리 완료 건수
+                                {#if takedown.sinceLabel}
+                                    · 누적 {takedown.sinceLabel}
+                                {/if}
+                            </p>
+                        </div>
+                    </div>
+                    {#if takedown.weekTotal === 0}
+                        <p class="text-foreground text-sm">이번 주 처리 0건</p>
+                    {/if}
+                    {#if takedown.rows.length > 0}
+                        <table class="w-full text-sm {takedown.weekTotal === 0 ? 'mt-3' : ''}">
+                            <thead>
+                                <tr class="text-muted-foreground border-b text-xs">
+                                    <th class="py-1.5 text-left font-medium">유형</th>
+                                    {#if takedown.weekTotal > 0}
+                                        <th class="py-1.5 text-right font-medium">이번 주</th>
+                                    {/if}
+                                    <th class="py-1.5 text-right font-medium">누적</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {#each takedown.rows as row (row.key)}
+                                    <tr class="border-b">
+                                        <td class="text-foreground py-1.5">{row.label}</td>
+                                        {#if takedown.weekTotal > 0}
+                                            <td class="text-foreground py-1.5 text-right">
+                                                {row.week.toLocaleString()}
+                                            </td>
+                                        {/if}
+                                        <td class="text-foreground py-1.5 text-right">
+                                            {row.total.toLocaleString()}
+                                        </td>
+                                    </tr>
+                                {/each}
+                            </tbody>
+                            <tfoot>
+                                <tr class="text-foreground font-semibold">
+                                    <td class="py-1.5">합계</td>
+                                    {#if takedown.weekTotal > 0}
+                                        <td class="py-1.5 text-right">
+                                            {takedown.weekTotal.toLocaleString()}
+                                        </td>
+                                    {/if}
+                                    <td class="py-1.5 text-right">
+                                        {takedown.total.toLocaleString()}
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    {/if}
+                </div>
             {/if}
         {/if}
 
