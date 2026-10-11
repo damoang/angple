@@ -6,8 +6,11 @@
  * 단건 조회(`boards/{b}/posts/{id}`)는 수정 화면·다시 쓰기가 원문을 받아야 하므로 절대 바꾸지 않는다
  * — 바꾸면 「[이메일]」 글자가 그대로 저장된다. 수정 이력(`.../revisions`)도 관리자 복원·대조용
  * 원문이라 대상이 아니다.
+ *
+ * 공개 수정 이력(`.../public-revisions`)은 표시 전용이라 제목과 함께 **본문(`content`)의 이메일**도
+ * 글 본문·댓글과 같은 방식(`encodeEmails` 표지)으로 감춘다 — 화면에서는 「이메일 보기」 버튼이 된다.
  */
-import { maskEmailText, maskTitleFields } from '$lib/utils/email-reveal.js';
+import { encodeEmails, maskEmailText, maskTitleFields } from '$lib/utils/email-reveal.js';
 
 const LIST_PATHS: readonly RegExp[] = [
     /^boards\/[^/]{1,100}\/(?:posts|notices)\/?$/,
@@ -19,6 +22,15 @@ const LIST_PATHS: readonly RegExp[] = [
     /^members\/[^/]{1,100}\/activity\/?$/,
     /^promotion\/posts\/insert\/?$/
 ];
+
+/** 공개 수정 이력 목록(글·댓글). 숨기기(POST)·횟수(counts)는 본문이 없어 대상이 아니다. */
+const PUBLIC_REVISION_PATH =
+    /^boards\/[^/]{1,100}\/posts\/\d{1,12}(?:\/comments\/\d{1,12})?\/public-revisions\/?$/;
+
+/** 공개 수정 이력 경로인가(제목·본문 이메일 가림 대상). */
+export function isPublicRevisionProxyPath(path: string): boolean {
+    return PUBLIC_REVISION_PATH.test(path);
+}
 
 /**
  * 프록시 응답에서 제목으로 보고 마스킹하는 필드. 기본 제목 필드에 더해
@@ -34,7 +46,19 @@ const PROXY_TITLE_KEYS: readonly string[] = [
 
 /** 이 프록시 경로(쿼리 제외)의 GET 응답에서 제목을 마스킹하는가. */
 export function isTitleMaskedProxyPath(path: string): boolean {
-    return LIST_PATHS.some((re) => re.test(path));
+    return LIST_PATHS.some((re) => re.test(path)) || isPublicRevisionProxyPath(path);
+}
+
+/** 공개 수정 이력 응답(`{ data: [{ content }] }`)의 본문 이메일을 표지로 바꾼다. */
+function encodeRevisionContents(parsed: unknown): void {
+    if (parsed === null || typeof parsed !== 'object') return;
+    const data = (parsed as { data?: unknown }).data;
+    if (!Array.isArray(data)) return;
+    for (const item of data) {
+        if (item === null || typeof item !== 'object') continue;
+        const rec = item as { content?: unknown };
+        if (typeof rec.content === 'string') rec.content = encodeEmails(rec.content);
+    }
 }
 
 /** 자동완성은 `{ data: [제목 문자열, ...] }` 모양이라 필드 이름으로 찾을 수 없다. */
@@ -55,6 +79,7 @@ export function maskProxyJsonTitles(text: string, path = ''): string {
     }
     const before = JSON.stringify(parsed);
     maskTitleFields(parsed, PROXY_TITLE_KEYS);
+    if (isPublicRevisionProxyPath(path)) encodeRevisionContents(parsed);
     if (AUTOCOMPLETE_PATH.test(path) && parsed !== null && typeof parsed === 'object') {
         const data = (parsed as { data?: unknown }).data;
         if (Array.isArray(data)) {

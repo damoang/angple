@@ -226,6 +226,31 @@ export interface PostRevision {
     change_type: 'create' | 'update' | 'soft_delete' | 'restore';
 }
 
+/**
+ * 공개 수정 이력의 한 버전(내용 상태). 수정한 사람·IP 는 오지 않는다.
+ * 오래된 것 → 현재 순서. `current` 는 지금 보이는 내용이며 숨길 수 없다.
+ */
+export interface PublicRevision {
+    version: number;
+    title?: string;
+    content: string;
+    /** 이 내용이 된 시각(KST ISO). 없을 수 있다. */
+    edited_at?: string;
+    current: boolean;
+}
+
+export interface PublicRevisionList {
+    revisions: PublicRevision[];
+    /** 운영진(사이트·게시판 관리자)이면 버전별 숨기기 가능 */
+    canHide: boolean;
+}
+
+/** 글과 그 댓글들의 공개 수정 횟수(0 은 빠져 있다) */
+export interface PublicRevisionCounts {
+    post: number;
+    comments: Record<string, number>;
+}
+
 // 스크랩
 export interface Scrap {
     id: number;

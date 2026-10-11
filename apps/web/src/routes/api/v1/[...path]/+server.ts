@@ -92,7 +92,9 @@ function isExternalBoardReadPath(path: string, method: string): boolean {
         /^boards\/[a-zA-Z0-9_-]+\/posts\/\d+$/.test(path) ||
         /^boards\/[a-zA-Z0-9_-]+\/posts\/\d+\/files$/.test(path) ||
         /^boards\/[a-zA-Z0-9_-]+\/posts\/\d+\/likers$/.test(path) ||
-        /^boards\/[a-zA-Z0-9_-]+\/posts\/\d+\/revisions$/.test(path)
+        /^boards\/[a-zA-Z0-9_-]+\/posts\/\d+\/revisions$/.test(path) ||
+        /^boards\/[a-zA-Z0-9_-]+\/posts\/\d+\/public-revisions(?:\/counts)?$/.test(path) ||
+        /^boards\/[a-zA-Z0-9_-]+\/posts\/\d+\/comments\/\d+\/public-revisions$/.test(path)
     );
 }
 
