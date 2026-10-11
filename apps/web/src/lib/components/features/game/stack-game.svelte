@@ -34,6 +34,7 @@
     } from '$lib/games/stack/solo-record.js';
     import { getStackToken } from '$lib/games/stack/auth-token.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import StackTop10 from './stack-top10.svelte';
 
     /** active=false 면 (다른 탭이 보이는 중) 일시정지하고 키 입력을 받지 않는다 */
     let { active = true }: { active?: boolean } = $props();
@@ -78,6 +79,8 @@
     let standing = $state<SoloFinishResult | null>(null);
     /** 기록 관련 짧은 안내 (서버 판을 못 받았을 때 등) */
     let notice = $state('');
+    /** 기록이 점수판에 들어갈 때마다 1씩 — 아래 TOP 10 을 한 번 다시 불러온다 */
+    let top10Refresh = $state(0);
 
     // 반응형이 아닌 게임 상태
     let game: Game = createGame(1);
@@ -231,6 +234,7 @@
         if (gen !== startGen || destroyed) return;
         standing = res;
         record = res ? 'saved' : 'failed';
+        if (res?.accepted) top10Refresh++;
     }
 
     /* ── 그리기 ($lib/games/stack/render.ts) ── */
@@ -481,6 +485,8 @@
     <p class="text-muted-foreground text-center text-xs">
         ← → 이동 · ↑/X 회전 · Z 반대 회전 · ↓ 천천히 · 스페이스 바로 내리기 · P/Esc 일시정지
     </p>
+
+    <StackTop10 visible={active} refresh={top10Refresh} />
 </div>
 
 <style>

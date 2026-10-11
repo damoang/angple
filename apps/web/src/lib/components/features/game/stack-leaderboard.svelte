@@ -1,32 +1,21 @@
 <script lang="ts">
     /**
      * 앙쌓기 점수판 — 공개 GET /stack-ws/leaderboard?board=… (인증 불요, 닉네임만 공개).
-     * 각 표는 처음 열 때 한 번만 불러온다(서버·CDN 이 60초 캐시한다).
+     * 각 표는 처음 열 때 한 번만 불러온다(서버·CDN 이 60초 캐시한다). 표마다 10줄.
      */
     import { untrack } from 'svelte';
-    import { STACK_API_BASE } from '$lib/games/stack/solo-record.js';
+    import StackLeaderboardTable from './stack-leaderboard-table.svelte';
+    import {
+        fetchLeaderboard,
+        type BoardId,
+        type SoloRow,
+        type VersusRow
+    } from '$lib/games/stack/leaderboard.js';
 
-    type BoardId = 'solo_week' | 'solo_all' | 'vs_attack' | 'vs_sprint40';
-
-    interface SoloRow {
-        rank: number;
-        nickname: string;
-        score: number;
-        lines: number;
-        level: number;
-    }
-    interface VersusRow {
-        rank: number;
-        nickname: string;
-        rating: number;
-        wins: number;
-        losses: number;
-        draws: number;
-    }
     type Loaded =
         | { state: 'loading' }
         | { state: 'error' }
-        | { state: 'ok'; rows: Array<SoloRow | VersusRow>; weekStart?: string };
+        | { state: 'ok'; rows: Array<SoloRow | VersusRow>; weekStart?: string; at: number };
 
     const BOARDS: Array<{ id: BoardId; label: string; versus: boolean }> = [
         { id: 'solo_week', label: '이번 주', versus: false },
@@ -45,14 +34,12 @@
         if (boards[id]) return;
         boards[id] = { state: 'loading' };
         try {
-            const r = await fetch(`${STACK_API_BASE}/leaderboard?board=${id}`);
-            if (!r.ok) throw new Error(String(r.status));
-            const body = await r.json();
-            const rows = Array.isArray(body?.rows) ? body.rows : [];
+            const data = await fetchLeaderboard(id);
             boards[id] = {
                 state: 'ok',
-                rows,
-                weekStart: typeof body?.weekStart === 'string' ? body.weekStart : undefined
+                rows: data.rows,
+                weekStart: data.weekStart,
+                at: Date.now()
             };
         } catch {
             boards[id] = { state: 'error' };
@@ -67,10 +54,6 @@
     function retry() {
         delete boards[current];
         void load(current);
-    }
-
-    function medal(rank: number): string {
-        return rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : String(rank);
     }
 
     // 처음 열 때 기본 표 하나만 불러온다 — 반응형 값을 읽지 않는 1회 설치
@@ -100,11 +83,11 @@
 
     <p class="text-muted-foreground text-xs">
         {#if current === 'solo_week'}
-            혼자하기 이번 주 최고 점수 (월요일 0시에 새로 시작)
+            혼자하기 이번 주 최고 점수 TOP 10 (월요일 0시에 새로 시작, 한국 시간)
         {:else if current === 'solo_all'}
-            혼자하기 역대 최고 점수 (한 사람당 최고 기록 하나)
+            혼자하기 역대 최고 점수 TOP 10 (한 사람당 최고 기록 하나, 한국 시간)
         {:else}
-            {meta.label} 대전 레이팅
+            {meta.label} 대전 레이팅 TOP 10
         {/if}
     </p>
 
@@ -124,39 +107,6 @@
                 : '아직 기록이 없습니다. 로그인하고 혼자하기를 끝까지 해 보세요!'}
         </p>
     {:else}
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="text-muted-foreground border-b text-left text-xs">
-                    <th class="w-10 py-1.5 pr-2">순위</th>
-                    <th class="py-1.5 pr-2">앙님</th>
-                    {#if meta.versus}
-                        <th class="py-1.5 pr-2 text-right">전적</th>
-                        <th class="py-1.5 text-right">레이팅</th>
-                    {:else}
-                        <th class="py-1.5 pr-2 text-right">줄</th>
-                        <th class="py-1.5 text-right">점수</th>
-                    {/if}
-                </tr>
-            </thead>
-            <tbody>
-                {#each view.rows as row, i (i)}
-                    <tr class="border-b border-dashed last:border-0">
-                        <td class="py-1.5 pr-2">{medal(row.rank || i + 1)}</td>
-                        <td class="max-w-[9rem] truncate py-1.5 pr-2">{row.nickname}</td>
-                        {#if 'rating' in row}
-                            <td class="whitespace-nowrap py-1.5 pr-2 text-right tabular-nums">
-                                {row.wins}승 {row.losses}패{row.draws ? ` ${row.draws}무` : ''}
-                            </td>
-                            <td class="py-1.5 text-right font-medium tabular-nums">{row.rating}</td>
-                        {:else}
-                            <td class="py-1.5 pr-2 text-right tabular-nums">{row.lines}</td>
-                            <td class="py-1.5 text-right font-medium tabular-nums"
-                                >{row.score.toLocaleString()}</td
-                            >
-                        {/if}
-                    </tr>
-                {/each}
-            </tbody>
-        </table>
+        <StackLeaderboardTable rows={view.rows} versus={meta.versus} now={view.at} />
     {/if}
 </div>
