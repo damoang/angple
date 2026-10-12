@@ -244,13 +244,20 @@ function createUiSettingsStore() {
         }, SERVER_SYNC_DEBOUNCE_MS);
     }
 
-    function save() {
+    /** 로컬(L1)에만 기록 — 서버로 보내지 않는다. */
+    function persistLocal() {
         if (!browser) return;
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
         } catch {
             // ignore
         }
+    }
+
+    /** 사용자의 실제 설정 변경 저장 — 로컬 기록 + 서버(L2) 디바운스 write-through */
+    function save() {
+        if (!browser) return;
+        persistLocal();
         // 로그인 회원은 서버(L2)로 디바운스 write-through — save() 를 블록하지 않음
         scheduleServerSync();
     }
@@ -572,12 +579,16 @@ function createUiSettingsStore() {
          * 서버(L2) 설정을 로컬에 병합. 로그인 회원은 서버가 진실 원본이므로
          * 서버 값이 우선한다(server wins). 병합 후 localStorage 에도 반영.
          * null/비객체면 no-op(서버에 저장값 없음 = 첫 도입).
+         *
+         * ⛔ 여기서 save() 를 부르지 않는다. 서버에서 막 받은 값을 그대로 다시 PUT 하게 되어
+         *    로그인 회원 페이지 로드마다 같은 내용의 쓰기가 생긴다. 로컬만 갱신하고,
+         *    사용자가 실제로 설정을 바꿀 때(각 setter 의 save())만 서버로 보낸다.
          */
         mergeServerSettings(server: Partial<UiSettings> | null): void {
             if (!browser) return;
             if (!server || typeof server !== 'object') return;
             settings = { ...settings, ...server };
-            save();
+            persistLocal();
             applyCSS();
         },
 

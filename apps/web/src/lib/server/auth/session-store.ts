@@ -9,7 +9,9 @@
 import { randomBytes, createHash } from 'crypto';
 import pool from '$lib/server/db.js';
 import { TieredCache } from '$lib/server/cache.js';
+import { getRedis } from '$lib/server/redis.js';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { LAST_ACTIVE_UPDATE_INTERVAL_MS, acquireTouchSlot } from './session-touch.js';
 
 /** 세션 수명: 30일 */
 const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
@@ -17,8 +19,17 @@ const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 /** 슬라이딩 윈도우: 마지막 활동 후 15일 이내에 재접속하면 갱신 */
 const SESSION_REFRESH_THRESHOLD_MS = 15 * 24 * 60 * 60 * 1000;
 
-/** last_active_at 업데이트 간격: 5분 */
-const LAST_ACTIVE_UPDATE_INTERVAL = 5 * 60 * 1000;
+/**
+ * last_active_at 업데이트 간격: 1시간 (파드 간 Redis 스로틀 공유 — session-touch.ts).
+ *
+ * last_active_at 을 읽는 곳은 아래 getSession() 의 15일 슬라이딩 판정뿐이다
+ * (그 밖에는 운영 점검용 「최근 14일 활동」 집계 정도로, 시간 단위 정밀도가 필요 없다).
+ * 활동 중인 세션의 last_active_at 은 최대 약 2시간(캐시 미스 시 표식 초기화 + 간격) 늦을 수 있는데,
+ * 15일(=360시간) 판정에서 이 오차는 「15일 직전에 돌아온 사용자」의 갱신 시점을
+ * 최대 2시간 앞당기거나 미루는 정도라 만료·로그아웃 동작은 바뀌지 않는다.
+ * expires_at 연장(슬라이딩)과 만료 삭제는 스로틀 없이 그대로 수행한다.
+ */
+const LAST_ACTIVE_UPDATE_INTERVAL = LAST_ACTIVE_UPDATE_INTERVAL_MS;
 
 export interface SessionData {
     sessionId: string; // 원본 세션 ID (쿠키에 저장, DB에는 해시만)
@@ -99,6 +110,27 @@ export async function createSession(
 }
 
 /**
+ * last_active_at 터치 (fire-and-forget, 요청을 막거나 실패시키지 않음).
+ * 간격 안에서 다른 파드가 이미 갱신했으면 생략한다. Redis 장애면 파드별 판정대로 갱신한다.
+ */
+function touchLastActive(sessionIdHash: string): void {
+    void (async () => {
+        let redis: ReturnType<typeof getRedis> | null = null;
+        try {
+            redis = getRedis();
+        } catch {
+            // Redis 클라이언트 생성 실패 → 파드별 판정으로 폴백
+        }
+        const slot = redis ? await acquireTouchSlot(redis, sessionIdHash) : 'error';
+        if (slot === 'taken') return;
+        await pool.query<ResultSetHeader>(
+            `UPDATE angple_sessions SET last_active_at = NOW() WHERE session_id_hash = ?`,
+            [sessionIdHash]
+        );
+    })().catch(() => {});
+}
+
+/**
  * 세션 조회 (유효성 검증 포함, 2-tier 캐시)
  * - L1(Map) 히트: 0ms
  * - L2(Redis) 히트: 1-3ms
@@ -111,15 +143,13 @@ export async function getSession(sessionId: string): Promise<SessionData | null>
     // 1. 2-tier 캐시 확인 (L1 → L2)
     const cached = await sessionCache.get(sessionIdHash);
     if (cached) {
-        // last_active_at 비동기 업데이트 (5분 간격, fire-and-forget)
+        // last_active_at 비동기 업데이트 (1시간 간격, fire-and-forget)
         // L1 entry mutate — sessionCache evict 시 자연 cleanup. L2(Redis) 는 다음 miss 후 fresh set.
+        // 파드별 표식으로 1차 거르고, 파드 간 중복은 Redis 스로틀로 거른다.
         const lastUpdate = cached.lastDbUpdate ?? 0;
         if (now - lastUpdate > LAST_ACTIVE_UPDATE_INTERVAL) {
             cached.lastDbUpdate = now;
-            pool.query<ResultSetHeader>(
-                `UPDATE angple_sessions SET last_active_at = NOW() WHERE session_id_hash = ?`,
-                [sessionIdHash]
-            ).catch(() => {});
+            touchLastActive(sessionIdHash);
         }
         return cached;
     }
@@ -159,10 +189,7 @@ export async function getSession(sessionId: string): Promise<SessionData | null>
             [newExpiresAt, sessionIdHash]
         ).catch(() => {});
     } else if (nowDate.getTime() - lastActive.getTime() > LAST_ACTIVE_UPDATE_INTERVAL) {
-        pool.query<ResultSetHeader>(
-            `UPDATE angple_sessions SET last_active_at = NOW() WHERE session_id_hash = ?`,
-            [sessionIdHash]
-        ).catch(() => {});
+        touchLastActive(sessionIdHash);
     }
 
     const sessionData: SessionData = {

@@ -25,6 +25,7 @@ import {
 import { grantLoginXP } from '$lib/server/auth/xp-grant.js';
 import { grantLoginPoint } from '$lib/server/auth/point-grant.js';
 import { checkAndPromoteMember } from '$lib/server/auth/auto-promotion.js';
+import { needsLoginTimestampUpdate } from '$lib/server/auth/login-day.js';
 import { generateAccessToken } from '$lib/server/auth/jwt.js';
 import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 import {
@@ -584,33 +585,35 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                         jwtCache.set(session.mbId, { token, expiry: now + JWT_CACHE_TTL });
                     }
 
-                    // 일일 로그인 갱신: mb_today_login이 오늘이 아니면 업데이트 + XP/포인트/승급
+                    // 일일 로그인 갱신: mb_today_login 이 오늘(KST)이 아니면 업데이트 + XP/포인트/승급
                     // 페이지 네비게이션 요청에서만 실행 (API/데이터 요청 제외)
+                    //
+                    // ⛔ 접속 시각 쓰기만 하루 1회(KST)로 묶는다. XP·포인트·승급 호출은 예전처럼
+                    //    매번 시도하고, 하루 1회 판정은 각 함수 안의 가드(UTC 날짜 키)가 그대로 맡는다.
+                    //    예전 비교는 mysql2 가 주는 Date 를 문자열로만 처리해 거의 항상 참이었으므로,
+                    //    보상 호출을 이 판정에 묶으면 보상 날짜 경계(UTC 00:00 = KST 09:00)가 바뀐다.
                     if (!event.url.pathname.startsWith('/api/') && !isSvelteKitDataRequest(event)) {
-                        const todayStr = new Date().toISOString().split('T')[0];
-                        const raw = member.mb_today_login;
-                        const lastLogin =
-                            raw && typeof raw === 'string' ? raw.split(' ')[0].split('T')[0] : '';
-                        if (lastLogin !== todayStr) {
-                            const clientIp = safeGetClientAddress(event) || '';
-                            // fire-and-forget: 응답 지연 방지
-                            void (async () => {
-                                try {
+                        const needsTimestamp = needsLoginTimestampUpdate(member.mb_today_login);
+                        const clientIp = safeGetClientAddress(event) || '';
+                        // fire-and-forget: 응답 지연 방지
+                        void (async () => {
+                            try {
+                                if (needsTimestamp) {
                                     await updateLoginTimestamp(
                                         member.mb_id,
                                         clientIp,
                                         member.mb_leave_reason
                                     );
-                                    await Promise.allSettled([
-                                        grantLoginXP(member.mb_id),
-                                        grantLoginPoint(member.mb_id)
-                                    ]);
-                                    await checkAndPromoteMember(member.mb_id);
-                                } catch {
-                                    // 로그인 갱신 실패는 무시
                                 }
-                            })();
-                        }
+                                await Promise.allSettled([
+                                    grantLoginXP(member.mb_id),
+                                    grantLoginPoint(member.mb_id)
+                                ]);
+                                await checkAndPromoteMember(member.mb_id);
+                            } catch {
+                                // 로그인 갱신 실패는 무시
+                            }
+                        })();
                     }
 
                     // 서브도메인 SSO: damoang_jwt 쿠키 자동 갱신
