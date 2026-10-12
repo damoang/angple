@@ -2,18 +2,28 @@
     // 오목 게임 - Gomoku (Five in a Row)
     // 포팅: /home/damoang/www/omok/js/main.js
 
+    import { onDestroy } from 'svelte';
+    import {
+        SIZE,
+        EMPTY,
+        BLACK,
+        WHITE,
+        DIFFICULTIES,
+        DIFFICULTY_SETTINGS,
+        checkWin,
+        createBoard,
+        isDifficulty,
+        type Difficulty
+    } from '$lib/games/omok/ai';
+    import { createAiClient } from '$lib/games/omok/ai-client';
+
     /* ── 상수 ── */
-    const SIZE = 15;
     const CELL = 36;
     const PAD = CELL;
     const W = PAD * 2 + (SIZE - 1) * CELL;
     const H = W;
-    const EMPTY = 0,
-        BLACK = 1,
-        WHITE = 2;
     const STAR_POINTS = [3, 7, 11];
-
-    type Difficulty = 'easy' | 'medium' | 'hard';
+    const DIFFICULTY_KEY = 'angple_omok_difficulty';
 
     /* ── 상태 ── */
     let canvas: HTMLCanvasElement;
@@ -28,197 +38,63 @@
     let difficulty = $state<Difficulty>('medium');
     let lastMove = $state<{ x: number; y: number } | null>(null);
     let isSingle = $state(true);
+    /** 새 판을 시작하면 오르는 번호 — 이전 판의 늦게 온 AI 수를 버린다 */
+    let gameId = 0;
 
-    function createBoard(): number[][] {
-        return Array.from({ length: SIZE }, () => Array(SIZE).fill(EMPTY));
+    // 고른 난이도 기억 — 저장소가 막힌 브라우저(사생활 모드 등)에서도 게임은 그대로 된다
+    $effect(() => {
+        try {
+            const saved = localStorage.getItem(DIFFICULTY_KEY);
+            if (isDifficulty(saved)) difficulty = saved;
+        } catch {
+            // 무시 — 기본값(중급)
+        }
+    });
+
+    function saveDifficulty() {
+        try {
+            localStorage.setItem(DIFFICULTY_KEY, difficulty);
+        } catch {
+            // 무시
+        }
     }
 
-    /* ── 승리 판정 ── */
-    function checkWin(
-        b: number[][],
-        x: number,
-        y: number,
-        player: number
-    ): [number, number][] | null {
-        const dirs: [number, number][] = [
-            [1, 0],
-            [0, 1],
-            [1, 1],
-            [1, -1]
-        ];
-        for (const [dx, dy] of dirs) {
-            const line: [number, number][] = [[x, y]];
-            for (let d = 1; d < 5; d++) {
-                const nx = x + dx * d,
-                    ny = y + dy * d;
-                if (nx < 0 || nx >= SIZE || ny < 0 || ny >= SIZE || b[ny][nx] !== player) break;
-                line.push([nx, ny]);
-            }
-            for (let d = 1; d < 5; d++) {
-                const nx = x - dx * d,
-                    ny = y - dy * d;
-                if (nx < 0 || nx >= SIZE || ny < 0 || ny >= SIZE || b[ny][nx] !== player) break;
-                line.push([nx, ny]);
-            }
-            if (line.length >= 5) return line;
+    // 고급 탐색은 Worker 에서 — 생각하는 동안에도 화면이 멈추지 않는다
+    const ai = createAiClient();
+
+    onDestroy(() => {
+        gameId++;
+        ai.dispose();
+    });
+
+    async function playAiMove(myGame: number) {
+        if (myGame !== gameId) return;
+        // $state 프록시는 Worker 로 못 보낸다 — 평범한 배열로 복사
+        const snapshot = $state.snapshot(board);
+        const move = await ai.request(snapshot, difficulty);
+        // 그사이 「다시 시작」했으면 이전 판의 수는 버린다
+        if (myGame !== gameId) return;
+        if (gameOverState || board[move.y][move.x] !== EMPTY) {
+            thinking = false;
+            return;
         }
-        return null;
-    }
+        board[move.y][move.x] = WHITE;
+        moveCount++;
+        lastMove = move;
 
-    /* ── AI ── */
-    const PATTERNS: Record<string, number> = {
-        '11111': 1000000,
-        '011110': 50000,
-        '011112': 5000,
-        '211110': 5000,
-        '01110': 5000,
-        '010110': 3000,
-        '011010': 3000,
-        '001112': 500,
-        '211100': 500,
-        '00110': 500,
-        '01100': 500,
-        '01010': 500,
-        '010010': 300
-    };
-
-    function evaluateDir(
-        b: number[][],
-        x: number,
-        y: number,
-        dx: number,
-        dy: number,
-        player: number
-    ): number {
-        // 해당 방향 라인 추출 (최대 9칸)
-        let line = '';
-        for (let i = -4; i <= 4; i++) {
-            const nx = x + dx * i,
-                ny = y + dy * i;
-            if (nx < 0 || nx >= SIZE || ny < 0 || ny >= SIZE) {
-                line += '2';
-            } else if (b[ny][nx] === player) {
-                line += '1';
-            } else if (b[ny][nx] === EMPTY) {
-                line += '0';
-            } else {
-                line += '2';
-            }
+        const aiWin = checkWin(board, move.x, move.y, WHITE);
+        if (aiWin) {
+            winningLine = aiWin;
+            gameOverState = true;
+            winnerState = WHITE;
+        } else if (moveCount >= SIZE * SIZE) {
+            gameOverState = true;
+            winnerState = 0;
+        } else {
+            currentPlayer = BLACK;
         }
-        let score = 0;
-        for (const [pat, val] of Object.entries(PATTERNS)) {
-            let idx = 0;
-            while ((idx = line.indexOf(pat, idx)) !== -1) {
-                score += val;
-                idx++;
-            }
-        }
-        return score;
-    }
-
-    function evaluatePosition(b: number[][], x: number, y: number, player: number): number {
-        let score = 0;
-        const dirs: [number, number][] = [
-            [1, 0],
-            [0, 1],
-            [1, 1],
-            [1, -1]
-        ];
-        for (const [dx, dy] of dirs) {
-            score += evaluateDir(b, x, y, dx, dy, player);
-        }
-        // 중앙 보너스
-        const center = Math.floor(SIZE / 2);
-        const dist = Math.abs(x - center) + Math.abs(y - center);
-        score += Math.max(0, (14 - dist) * 2);
-        return score;
-    }
-
-    function getAiMove(b: number[][]): { x: number; y: number } {
-        const depthMap: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3 };
-        const depth = depthMap[difficulty];
-
-        // 후보 위치: 기존 돌 근처 2칸 이내
-        const candidates = new Set<string>();
-        for (let y = 0; y < SIZE; y++) {
-            for (let x = 0; x < SIZE; x++) {
-                if (b[y][x] !== EMPTY) {
-                    for (let dy = -2; dy <= 2; dy++) {
-                        for (let dx = -2; dx <= 2; dx++) {
-                            const nx = x + dx,
-                                ny = y + dy;
-                            if (nx >= 0 && nx < SIZE && ny >= 0 && ny < SIZE && b[ny][nx] === EMPTY)
-                                candidates.add(`${nx},${ny}`);
-                        }
-                    }
-                }
-            }
-        }
-
-        if (candidates.size === 0) {
-            return { x: 7, y: 7 }; // 첫 수: 정중앙
-        }
-
-        let bestScore = -Infinity;
-        let bestMove = { x: 7, y: 7 };
-
-        for (const key of candidates) {
-            const [cx, cy] = key.split(',').map(Number);
-
-            // 즉시 승리 체크
-            b[cy][cx] = WHITE;
-            if (checkWin(b, cx, cy, WHITE)) {
-                b[cy][cx] = EMPTY;
-                return { x: cx, y: cy };
-            }
-            b[cy][cx] = EMPTY;
-
-            // 상대 즉시 승리 차단
-            b[cy][cx] = BLACK;
-            if (checkWin(b, cx, cy, BLACK)) {
-                b[cy][cx] = EMPTY;
-                bestMove = { x: cx, y: cy };
-                bestScore = 999999;
-                continue;
-            }
-            b[cy][cx] = EMPTY;
-
-            // 평가
-            b[cy][cx] = WHITE;
-            let score = evaluatePosition(b, cx, cy, WHITE) * 1.1;
-            b[cy][cx] = EMPTY;
-
-            b[cy][cx] = BLACK;
-            score += evaluatePosition(b, cx, cy, BLACK);
-            b[cy][cx] = EMPTY;
-
-            if (depth >= 2) {
-                // 간단한 2수 선읽기
-                b[cy][cx] = WHITE;
-                let threatBonus = 0;
-                for (const key2 of candidates) {
-                    if (key2 === key) continue;
-                    const [cx2, cy2] = key2.split(',').map(Number);
-                    if (b[cy2][cx2] !== EMPTY) continue;
-                    b[cy2][cx2] = WHITE;
-                    if (checkWin(b, cx2, cy2, WHITE)) threatBonus += 10000;
-                    b[cy2][cx2] = EMPTY;
-                }
-                score += threatBonus * 0.5;
-                b[cy][cx] = EMPTY;
-            }
-
-            // 난이도별 랜덤
-            if (difficulty === 'easy') score += Math.random() * 2000;
-            else if (difficulty === 'medium') score += Math.random() * 200;
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestMove = { x: cx, y: cy };
-            }
-        }
-
-        return bestMove;
+        board = [...board];
+        thinking = false;
     }
 
     /* ── 돌 놓기 ── */
@@ -251,28 +127,9 @@
 
         if (isSingle && currentPlayer === WHITE) {
             thinking = true;
-            requestAnimationFrame(() => {
-                setTimeout(() => {
-                    const move = getAiMove(board);
-                    board[move.y][move.x] = WHITE;
-                    moveCount++;
-                    lastMove = move;
-
-                    const aiWin = checkWin(board, move.x, move.y, WHITE);
-                    if (aiWin) {
-                        winningLine = aiWin;
-                        gameOverState = true;
-                        winnerState = WHITE;
-                    } else if (moveCount >= SIZE * SIZE) {
-                        gameOverState = true;
-                        winnerState = 0;
-                    } else {
-                        currentPlayer = BLACK;
-                    }
-                    board = [...board];
-                    thinking = false;
-                }, 150);
-            });
+            // 사람 돌이 먼저 그려지도록 한 박자 쉬고 생각한다
+            const myGame = gameId;
+            setTimeout(() => void playAiMove(myGame), 150);
         }
     }
 
@@ -429,6 +286,7 @@
     });
 
     function startGame() {
+        gameId++;
         board = createBoard();
         currentPlayer = BLACK;
         gameOverState = false;
@@ -457,10 +315,15 @@
             <span>2인 대전</span>
         </label>
         {#if isSingle}
-            <select bind:value={difficulty} class="border-border rounded border px-2 py-1 text-sm">
-                <option value="easy">쉬움</option>
-                <option value="medium">보통</option>
-                <option value="hard">어려움</option>
+            <select
+                bind:value={difficulty}
+                onchange={saveDifficulty}
+                aria-label="AI 난이도"
+                class="border-border bg-background text-foreground rounded border px-2 py-1 text-sm"
+            >
+                {#each DIFFICULTIES as d (d)}
+                    <option value={d}>{DIFFICULTY_SETTINGS[d].label}</option>
+                {/each}
             </select>
         {/if}
         <button
