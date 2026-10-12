@@ -1122,7 +1122,7 @@
                         <dt class="text-muted-foreground">레벨</dt>
                         <dd class="font-bold tabular-nums">{level}</dd>
                     </div>
-                    {#if activeRule.speedUp}
+                    {#if activeRule.id === 'survival'}
                         <div class="flex justify-between">
                             <dt class="text-muted-foreground">속도</dt>
                             <dd class="font-bold tabular-nums">{speedStep}단계</dd>
