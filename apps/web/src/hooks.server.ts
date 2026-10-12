@@ -26,8 +26,8 @@ import { grantLoginXP } from '$lib/server/auth/xp-grant.js';
 import { grantLoginPoint } from '$lib/server/auth/point-grant.js';
 import { checkAndPromoteMember } from '$lib/server/auth/auto-promotion.js';
 import {
-    createLoginRewardMemo,
-    runDailyLoginRewards,
+    createLoginMemos,
+    runLoginRewards,
     shouldWriteLoginTimestamp
 } from '$lib/server/auth/login-activity.js';
 import { getRedis } from '$lib/server/redis.js';
@@ -106,8 +106,8 @@ const JWT_CACHE_TTL = 5 * 60 * 1000; // 5분
 // 10000이면 최악의 경우에도 ~8 MB (entry ~800B × 10k) 로 상한 고정.
 const MAX_JWT_CACHE_SIZE = 10000;
 
-/** 일일 로그인 보상 호출 메모(Redis 오류 시 파드별 폴백) — login-activity.ts */
-const loginRewardMemo = createLoginRewardMemo();
+/** 로그인 보상·승급 판정 호출 메모(Redis 오류 시 파드별 폴백) — login-activity.ts */
+const loginMemos = createLoginMemos();
 
 // 만료 entry 주기적 정리 — 4/22 prod 메모리 누수 근본 원인.
 // 기존 eviction은 size >= MAX일 때만 실행되어, size < MAX면 만료된 entry가
@@ -598,9 +598,10 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                     //
                     // - 접속 시각(mb_today_login·mb_login_ip): 저장값이 오늘(KST)이 아니거나,
                     //   마지막 기록 후 30분이 지났으면(Redis 표식, 파드 간 공유) 쓴다.
-                    // - XP·포인트·승급: 회원당 UTC 날짜별 1회만 호출한다(Redis 메모, 오류 시 파드별 메모).
+                    // - XP·포인트: 회원당 UTC 날짜별 1회만 호출한다(Redis 메모, 오류 시 파드별 메모).
                     //   지급 여부의 정본은 각 함수 안의 하루 1회 가드(UTC 날짜 키)이며,
                     //   보상 날짜 경계는 지금과 같은 UTC 00:00(= KST 09:00)이다.
+                    // - 승급 판정: 회원당 30분에 1회 호출한다 — 하루 중간에 조건을 채워도 30분 안에 승급.
                     if (!event.url.pathname.startsWith('/api/') && !isSvelteKitDataRequest(event)) {
                         const clientIp = safeGetClientAddress(event) || '';
                         const requestDate = new Date();
@@ -626,8 +627,8 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                                         member.mb_leave_reason
                                     );
                                 }
-                                await runDailyLoginRewards(
-                                    loginRewardMemo,
+                                await runLoginRewards(
+                                    loginMemos,
                                     redis,
                                     member.mb_id,
                                     { grantLoginXP, grantLoginPoint, checkAndPromoteMember },

@@ -4,11 +4,14 @@
  * 1) 접속 시각(mb_today_login·mb_login_ip): 저장값이 오늘(KST)이 아니면 쓰고, 오늘이어도
  *    30분에 한 번은 쓴다. 30분 간격은 Redis `SET login:touch:{mb_id} 1 NX EX 1800` 로 파드 간 공유.
  *    Redis 오류면 「오늘(KST) 아님」 판정만으로 쓴다(요청은 절대 실패시키지 않음).
- * 2) XP·포인트·승급: 회원당 UTC 날짜별 1회만 호출한다(메모 키 `login:reward:{mb_id}:{UTC 날짜}`).
- *    지급 여부의 정본은 각 함수 안의 하루 1회 가드(UTC 날짜 키)이고, 메모는 같은 날 반복 호출
- *    (승급 판정의 쓰기 커넥션 FOR UPDATE 트랜잭션 포함)을 줄이기만 한다. 보상 날짜 경계는
- *    지금과 같은 UTC 00:00(= KST 09:00) 이다. 호출이 실패하면 메모를 풀어 다음 로드에서 재시도.
- *    Redis 오류면 파드별 메모(같은 키)로 폴백한다.
+ * 2) XP·포인트: 회원당 UTC 날짜별 1회만 호출한다(메모 키 `login:reward:{mb_id}:{UTC 날짜}`).
+ *    지급 여부의 정본은 각 함수 안의 하루 1회 가드(UTC 날짜 키)이고, 메모는 같은 날 반복 호출만
+ *    줄인다. 보상 날짜 경계는 지금과 같은 UTC 00:00(= KST 09:00) 이다.
+ * 3) 승급 판정: 회원당 30분에 1회 호출한다(`SET login:promote:{mb_id} 1 NX EX 1800`).
+ *    하루 중간에 조건을 채운 회원도 30분 안에 승급되도록 날짜가 아닌 30분 간격으로 묶는다
+ *    (쓰기 커넥션 FOR UPDATE 트랜잭션이 페이지 로드마다 생기는 것만 줄인다).
+ * 2)·3) 모두 호출이 실패하면 메모를 풀어 다음 로드에서 재시도하고, Redis 오류면 파드별 메모
+ * (같은 날짜·30분 구간 키)로 폴백한다.
  */
 import { needsLoginTimestampUpdate } from './login-day.js';
 
@@ -35,6 +38,18 @@ export function loginTouchKey(mbId: string): string {
 
 export function loginRewardKey(mbId: string, now: Date): string {
     return `login:reward:${mbId}:${utcDateString(now)}`;
+}
+
+/** 승급 판정 호출 간격(초) — 30분 */
+export const LOGIN_PROMOTE_INTERVAL_SEC = 30 * 60;
+
+export function loginPromoteKey(mbId: string): string {
+    return `login:promote:${mbId}`;
+}
+
+/** 파드별 폴백용 30분 구간 번호 */
+export function promoteBucket(now: Date): string {
+    return String(Math.floor(now.getTime() / (LOGIN_PROMOTE_INTERVAL_SEC * 1000)));
 }
 
 /**
@@ -68,19 +83,34 @@ export interface LoginRewardFns {
 /** 파드별 폴백 메모 상한 — 넘으면 비운다(가드는 함수 안에 있으므로 비워도 안전) */
 const LOCAL_MEMO_MAX = 20_000;
 
+interface CallMemoSpec {
+    /** Redis 키 */
+    redisKey(mbId: string, now: Date): string;
+    /** Redis TTL(초) */
+    ttlSec: number;
+    /** 파드별 폴백의 구간(바뀌면 폴백 메모를 비운다) */
+    localBucket(now: Date): string;
+}
+
 /**
- * 회원·UTC 날짜별 보상 호출 메모. Redis 를 우선 쓰고, 오류면 파드별 Set 으로 폴백한다.
+ * 「이 회원에 대해 이 구간에 처음인가」 메모. Redis SET NX EX 를 우선 쓰고,
+ * 오류면 파드별 Set(구간이 바뀌면 비움)으로 폴백한다.
  */
-export function createLoginRewardMemo() {
-    let localDate = '';
+function createCallMemo(spec: CallMemoSpec) {
+    let localBucketId = '';
     const local = new Set<string>();
 
-    function localAcquire(key: string, now: Date): boolean {
-        const date = utcDateString(now);
-        if (date !== localDate) {
+    function localKey(mbId: string, now: Date): string {
+        return `${spec.redisKey(mbId, now)}:${spec.localBucket(now)}`;
+    }
+
+    function localAcquire(mbId: string, now: Date): boolean {
+        const bucket = spec.localBucket(now);
+        if (bucket !== localBucketId) {
             local.clear();
-            localDate = date;
+            localBucketId = bucket;
         }
+        const key = localKey(mbId, now);
         if (local.has(key)) return false;
         if (local.size >= LOCAL_MEMO_MAX) local.clear();
         local.add(key);
@@ -88,22 +118,27 @@ export function createLoginRewardMemo() {
     }
 
     return {
-        /** 오늘(UTC) 이 회원의 보상 호출 권한을 처음 잡으면 true */
+        /** 이 구간에 이 회원의 호출 권한을 처음 잡으면 true */
         async acquire(
             redis: LoginActivityRedis | null,
             mbId: string,
             now: Date = new Date()
         ): Promise<boolean> {
-            const key = loginRewardKey(mbId, now);
             if (redis) {
                 try {
-                    const res = await redis.set(key, '1', 'EX', LOGIN_REWARD_MEMO_TTL_SEC, 'NX');
+                    const res = await redis.set(
+                        spec.redisKey(mbId, now),
+                        '1',
+                        'EX',
+                        spec.ttlSec,
+                        'NX'
+                    );
                     return res === 'OK';
                 } catch {
                     // Redis 오류 → 파드별 메모
                 }
             }
-            return localAcquire(key, now);
+            return localAcquire(mbId, now);
         },
 
         /** 호출 실패 시 메모를 풀어 다음 로드에서 다시 시도하게 한다 */
@@ -112,11 +147,10 @@ export function createLoginRewardMemo() {
             mbId: string,
             now: Date = new Date()
         ): Promise<void> {
-            const key = loginRewardKey(mbId, now);
-            local.delete(key);
+            local.delete(localKey(mbId, now));
             if (!redis) return;
             try {
-                await redis.del(key);
+                await redis.del(spec.redisKey(mbId, now));
             } catch {
                 // 무시 — TTL 로 정리됨
             }
@@ -124,28 +158,67 @@ export function createLoginRewardMemo() {
     };
 }
 
-export type LoginRewardMemo = ReturnType<typeof createLoginRewardMemo>;
+export type LoginCallMemo = ReturnType<typeof createCallMemo>;
+
+/** XP·포인트 호출 메모 — 회원·UTC 날짜별 1회 */
+export function createLoginRewardMemo(): LoginCallMemo {
+    return createCallMemo({
+        redisKey: loginRewardKey,
+        ttlSec: LOGIN_REWARD_MEMO_TTL_SEC,
+        localBucket: utcDateString
+    });
+}
+
+/** 승급 판정 호출 메모 — 회원당 30분에 1회 */
+export function createLoginPromoteMemo(): LoginCallMemo {
+    return createCallMemo({
+        redisKey: (mbId) => loginPromoteKey(mbId),
+        ttlSec: LOGIN_PROMOTE_INTERVAL_SEC,
+        localBucket: promoteBucket
+    });
+}
+
+export interface LoginMemos {
+    reward: LoginCallMemo;
+    promote: LoginCallMemo;
+}
+
+export function createLoginMemos(): LoginMemos {
+    return { reward: createLoginRewardMemo(), promote: createLoginPromoteMemo() };
+}
 
 /**
- * 일일 로그인 보상(XP·포인트) + 승급 판정을 회원·UTC 날짜별 1회만 호출한다.
- * @returns 이번에 호출했으면 true(메모에 막혔으면 false)
+ * 로그인 보상(XP·포인트, UTC 날짜별 1회) → 승급 판정(30분에 1회) 순서로 호출한다.
+ * 보상이 먼저여야 같은 로드에서 늘어난 XP·접속일로 승급을 판정한다(기존 순서와 같음).
+ * @returns 이번에 각각 호출했는지
  */
-export async function runDailyLoginRewards(
-    memo: LoginRewardMemo,
+export async function runLoginRewards(
+    memos: LoginMemos,
     redis: LoginActivityRedis | null,
     mbId: string,
     fns: LoginRewardFns,
     now: Date = new Date()
-): Promise<boolean> {
-    if (!(await memo.acquire(redis, mbId, now))) return false;
-
-    const results = await Promise.allSettled([fns.grantLoginXP(mbId), fns.grantLoginPoint(mbId)]);
-    let ok = results.every((r) => r.status === 'fulfilled');
-    try {
-        await fns.checkAndPromoteMember(mbId);
-    } catch {
-        ok = false;
+): Promise<{ rewards: boolean; promote: boolean }> {
+    let rewards = false;
+    if (await memos.reward.acquire(redis, mbId, now)) {
+        rewards = true;
+        const results = await Promise.allSettled([
+            fns.grantLoginXP(mbId),
+            fns.grantLoginPoint(mbId)
+        ]);
+        if (results.some((r) => r.status === 'rejected')) {
+            await memos.reward.release(redis, mbId, now);
+        }
     }
-    if (!ok) await memo.release(redis, mbId, now);
-    return true;
+
+    let promote = false;
+    if (await memos.promote.acquire(redis, mbId, now)) {
+        promote = true;
+        try {
+            await fns.checkAndPromoteMember(mbId);
+        } catch {
+            await memos.promote.release(redis, mbId, now);
+        }
+    }
+    return { rewards, promote };
 }
