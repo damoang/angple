@@ -6,6 +6,8 @@
  */
 
 import { browser } from '$app/environment';
+import { serverBlobLacksKeys } from '$lib/utils/ui-settings-sync';
+import { UI_SETTINGS_DEFAULTS } from './ui-settings-defaults';
 
 const STORAGE_KEY = 'angple_ui_settings';
 
@@ -81,41 +83,7 @@ export interface UiSettings {
     messageDeny: boolean;
 }
 
-const DEFAULTS: UiSettings = {
-    titleBold: false,
-    listView: 'classic',
-    lineHeight: 'normal',
-    fontFamily: 'default',
-    contentFontSize: 'base',
-    commentFontSize: 'inherit',
-    hideMyProfile: false,
-    contentBlur: true,
-    hidePostList: false,
-    hideReadNotices: false,
-    // 기본 켜짐 — 고정 공지가 여러 개인 게시판에서 읽은 공지가 목록 최상단을 계속
-    // 차지하는 것이 본래 문제였다. 개수는 알려주고 언제든 펼칠 수 있으므로 정보 손실이 없다.
-    collapseReadNotices: true,
-    muteKeywords: [],
-    showNewComments: true,
-    enableKeyboardShortcuts: true,
-    showShortcutBadge: true,
-    showShortcutButtons: false,
-    shortcutButtonSize: 'medium',
-    listFontSize: 'base',
-    recommendFontSize: 'base',
-    pinSearch: false,
-    pinMemoSearch: false,
-    enableTouchGestures: false,
-    swipeThreshold: 50,
-    doubleTapInterval: 300,
-    hideBlockedComments: false,
-    hideMemo: false,
-    hideMemoInList: false,
-    blurMemo: false,
-    expandMemoInList: true,
-    memoColorLabels: {},
-    messageDeny: false
-};
+const DEFAULTS: UiSettings = UI_SETTINGS_DEFAULTS;
 
 // ⛔ normal 은 현재 라이브 하드코딩(markdown .prose p / tiptap p = 1.8)과 **같은 값**이어야 한다.
 //    #13456: 이 설정은 그동안 --content-line-height 를 읽는 CSS 가 0곳이라 죽어 있었다.
@@ -244,13 +212,20 @@ function createUiSettingsStore() {
         }, SERVER_SYNC_DEBOUNCE_MS);
     }
 
-    function save() {
+    /** 로컬(L1)에만 기록 — 서버로 보내지 않는다. */
+    function persistLocal() {
         if (!browser) return;
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
         } catch {
             // ignore
         }
+    }
+
+    /** 사용자의 실제 설정 변경 저장 — 로컬 기록 + 서버(L2) 디바운스 write-through */
+    function save() {
+        if (!browser) return;
+        persistLocal();
         // 로그인 회원은 서버(L2)로 디바운스 write-through — save() 를 블록하지 않음
         scheduleServerSync();
     }
@@ -572,13 +547,20 @@ function createUiSettingsStore() {
          * 서버(L2) 설정을 로컬에 병합. 로그인 회원은 서버가 진실 원본이므로
          * 서버 값이 우선한다(server wins). 병합 후 localStorage 에도 반영.
          * null/비객체면 no-op(서버에 저장값 없음 = 첫 도입).
+         *
+         * ⛔ 여기서 save() 를 부르지 않는다. 서버에서 막 받은 값을 그대로 다시 PUT 하게 되어
+         *    로그인 회원 페이지 로드마다 같은 내용의 쓰기가 생긴다. 로컬만 갱신하고,
+         *    사용자가 실제로 설정을 바꿀 때(각 setter 의 save())만 서버로 보낸다.
+         *    예외: 서버 blob 에 없는 설정 키(새로 추가된 항목)가 있으면 한 번 올려 채운다.
          */
         mergeServerSettings(server: Partial<UiSettings> | null): void {
             if (!browser) return;
             if (!server || typeof server !== 'object') return;
+            const needsBackfill = serverBlobLacksKeys(Object.keys(DEFAULTS), server);
             settings = { ...settings, ...server };
-            save();
+            persistLocal();
             applyCSS();
+            if (needsBackfill) scheduleServerSync();
         },
 
         /** 현재 로컬 설정을 서버에 즉시 올림(첫 로그인 마이그레이션용). */

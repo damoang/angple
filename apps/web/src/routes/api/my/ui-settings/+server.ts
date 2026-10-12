@@ -12,45 +12,9 @@ import type { RequestHandler } from './$types';
 import { getAuthUser } from '$lib/server/auth';
 import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api.js';
 import { getMemberUiSettings, putMemberUiSettings } from '$lib/server/ui-settings-store';
+import { UI_SETTINGS_ALLOWED_KEYS } from '$lib/server/ui-settings-keys';
 
-/**
- * 허용된 UiSettings 최상위 키 화이트리스트.
- * stores/ui-settings.svelte.ts 의 UiSettings 인터페이스와 동일하게 유지한다.
- * 알 수 없는 키는 오류 대신 드롭(forward-compatible).
- */
-const ALLOWED_KEYS = new Set<string>([
-    'titleBold',
-    'listView',
-    'lineHeight',
-    'fontFamily',
-    'contentFontSize',
-    'commentFontSize',
-    'hideMyProfile',
-    'contentBlur',
-    'hidePostList',
-    'hideReadNotices',
-    'collapseReadNotices',
-    'muteKeywords',
-    'showNewComments',
-    'enableKeyboardShortcuts',
-    'showShortcutBadge',
-    'showShortcutButtons',
-    'shortcutButtonSize',
-    'enableTouchGestures',
-    'swipeThreshold',
-    'doubleTapInterval',
-    'listFontSize',
-    'recommendFontSize',
-    'pinSearch',
-    'pinMemoSearch',
-    'hideBlockedComments',
-    'hideMemo',
-    'hideMemoInList',
-    'blurMemo',
-    'expandMemoInList',
-    'memoColorLabels',
-    'messageDeny'
-]);
+const ALLOWED_KEYS = UI_SETTINGS_ALLOWED_KEYS;
 
 /** 남용 방어 상한 */
 const MAX_JSON_BYTES = 16384;

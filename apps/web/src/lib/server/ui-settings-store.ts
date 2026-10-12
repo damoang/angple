@@ -92,6 +92,22 @@ export async function getMemberUiSettings(mbId: string): Promise<Record<string, 
 }
 
 /**
+ * UI 설정 upsert.
+ *
+ * 같은 값을 다시 저장하면 행이 바뀌지 않게 한다 — settings 가 JSON 으로 같으면 updated_at 도 유지.
+ * - settings 는 JSON 컬럼이고 VALUES(settings) 를 CAST(... AS JSON) 으로 맞춰 양쪽 모두 JSON 이므로
+ *   `<=>` 는 JSON 값 비교(키 순서·공백과 무관)가 된다. MySQL 8 에서 동작한다.
+ * - ⛔ updated_at 할당을 settings 할당보다 **앞에** 둬야 한다. ON DUPLICATE KEY UPDATE 는
+ *   왼쪽부터 차례로 적용되므로, 순서가 바뀌면 비교 시점의 settings 가 이미 새 값이라 항상 같다고 나온다.
+ * updated_at 은 기록용이며 기기 간 동기화 판정에 쓰지 않는다(클라이언트는 GET 의 settings 만 본다).
+ */
+export const UPSERT_SQL = `INSERT INTO g5_da_member_ui_settings (mb_id, settings, updated_at)
+             VALUES (?, ?, NOW())
+             ON DUPLICATE KEY UPDATE
+                 updated_at = IF(settings <=> CAST(VALUES(settings) AS JSON), updated_at, NOW()),
+                 settings = VALUES(settings)`;
+
+/**
  * 회원 UI 설정 저장 (MySQL upsert + Redis 캐시 갱신).
  * 성공 시 true, 장애/실패 시 false. 절대 throw 하지 않음.
  */
@@ -102,12 +118,7 @@ export async function putMemberUiSettings(
     if (!mbId) return false;
     const payload = JSON.stringify(settings);
     try {
-        await pool.query(
-            `INSERT INTO g5_da_member_ui_settings (mb_id, settings, updated_at)
-             VALUES (?, ?, NOW())
-             ON DUPLICATE KEY UPDATE settings = VALUES(settings), updated_at = NOW()`,
-            [mbId, payload]
-        );
+        await pool.query(UPSERT_SQL, [mbId, payload]);
     } catch {
         // 테이블 미생성/DB 장애 → 저장 실패(localStorage는 그대로 유지)
         return false;
