@@ -117,14 +117,21 @@ function categoryType(caName: string): CandidateType | null {
     return CATEGORY_TYPE[key] ?? null;
 }
 
-/** 제목 앞의 종류 접두어를 떼고 그 종류를 돌려준다 */
-function stripTypePrefix(subject: string): { rest: string; type: CandidateType | null } {
+/**
+ * 제목 앞의 종류 접두어를 떼고 그 종류를 돌려준다.
+ * ⛔ 영화 카테고리의 「애니 …」 는 접두가 아니라 제목일 수 있다(「애니 기븐 선데이」 = Any Given
+ *    Sunday). 그래서 영화 카테고리에서는 괄호 없는 「애니」 를 접두로 보지 않는다.
+ */
+function stripTypePrefix(
+    subject: string,
+    category: string
+): { rest: string; type: CandidateType | null } {
     const bracket = subject.match(BRACKET_PREFIX_RE);
     if (bracket) {
         return { rest: subject.slice(bracket[0].length), type: KEYWORD_TYPE[bracket[1]] ?? null };
     }
     const word = subject.match(WORD_PREFIX_RE);
-    if (word) {
+    if (word && !(word[1] === '애니' && category === '영화')) {
         return { rest: subject.slice(word[0].length), type: KEYWORD_TYPE[word[1]] ?? null };
     }
     return { rest: subject, type: null };
@@ -379,7 +386,7 @@ export function extractTitleCandidate(
     const original = collapse(subject ?? '');
     if (!original) return null;
 
-    const { rest, type: prefixType } = stripTypePrefix(original);
+    const { rest, type: prefixType } = stripTypePrefix(original, category);
     const quoted = firstQuoted(rest);
     const raw = quoted ?? cutAtReviewMarker(rest);
 

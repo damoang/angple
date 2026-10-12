@@ -76,11 +76,18 @@
     let tab = $state<Tab>('pending');
     let items = $state<EntityItem[]>([]);
     let counts = $state<Record<string, number>>({});
-    let targets = $state<MergeTarget[]>([]);
     let tmdbEnabled = $state(false);
     let loading = $state(false);
     let busy = $state(false);
     let notice = $state<{ kind: 'ok' | 'error'; text: string } | null>(null);
+
+    // ── 쪽·검색 (대기 후보가 수백 개라 서버에서 나눠 받는다) ──
+    const PAGE_SIZE = 30;
+    let pageNo = $state(1);
+    let total = $state(0);
+    let searchInput = $state('');
+    let searchQuery = $state('');
+    const pageCount = $derived(Math.max(1, Math.ceil(total / PAGE_SIZE)));
 
     // ── 편집·수동 등록 폼 ──
     let formOpen = $state(false);
@@ -112,16 +119,8 @@
     let mergeSource = $state<EntityItem | null>(null);
     let mergeFilter = $state('');
     let mergeTargetId = $state(0);
-
-    const mergeCandidates = $derived.by(() => {
-        const q = mergeFilter.trim().toLowerCase();
-        return targets
-            .filter((t) => t.id !== mergeSource?.id)
-            .filter(
-                (t) => !q || t.title.toLowerCase().includes(q) || t.slug.toLowerCase().includes(q)
-            )
-            .slice(0, 50);
-    });
+    let mergeCandidates = $state<MergeTarget[]>([]);
+    let mergeTimer: ReturnType<typeof setTimeout> | undefined;
 
     function typeLabel(type: string): string {
         return ENTITY_TYPE_LABELS[type as EntityType] ?? type;
@@ -147,11 +146,23 @@
     async function load(): Promise<void> {
         loading = true;
         try {
-            const body = await api(`/api/admin/angtt/entities?status=${tab}`);
+            const params = new URLSearchParams({
+                status: tab,
+                page: String(pageNo),
+                pageSize: String(PAGE_SIZE)
+            });
+            if (searchQuery) params.set('q', searchQuery);
+            const body = await api(`/api/admin/angtt/entities?${params}`);
             items = (body.items as EntityItem[]) ?? [];
             counts = (body.counts as Record<string, number>) ?? {};
-            targets = (body.targets as MergeTarget[]) ?? [];
+            total = Number(body.total ?? 0);
             tmdbEnabled = body.tmdbEnabled === true;
+            // 마지막 쪽의 항목을 다 처리해 비었으면 한 쪽 앞으로
+            const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+            if (items.length === 0 && pageNo > lastPage) {
+                pageNo = lastPage;
+                await load();
+            }
         } catch (err) {
             showError(err);
         } finally {
@@ -163,6 +174,26 @@
         if (tab === next) return;
         tab = next;
         notice = null;
+        pageNo = 1;
+        load();
+    }
+
+    function runSearch(): void {
+        searchQuery = searchInput.trim();
+        pageNo = 1;
+        load();
+    }
+
+    function clearSearch(): void {
+        searchInput = '';
+        if (!searchQuery) return;
+        runSearch();
+    }
+
+    function goPage(next: number): void {
+        const target = Math.min(pageCount, Math.max(1, next));
+        if (target === pageNo) return;
+        pageNo = target;
         load();
     }
 
@@ -358,13 +389,36 @@
     function openMerge(item: EntityItem): void {
         mergeSource = item;
         mergeFilter = '';
+        mergeCandidates = [];
         mergeTargetId = 0;
         mergeOpen = true;
+        loadMergeTargets();
+    }
+
+    /** 병합 대상 검색 — 활성 작품을 합칠 때는 활성 대상만 */
+    async function loadMergeTargets(): Promise<void> {
+        const source = mergeSource;
+        if (!source) return;
+        const params = new URLSearchParams({ mode: 'targets', exclude: String(source.id) });
+        if (mergeFilter.trim()) params.set('q', mergeFilter.trim());
+        if (source.status === 'active') params.set('activeOnly', '1');
+        try {
+            const body = await api(`/api/admin/angtt/entities?${params}`);
+            mergeCandidates = (body.targets as MergeTarget[]) ?? [];
+            if (!mergeCandidates.some((t) => t.id === mergeTargetId)) mergeTargetId = 0;
+        } catch (err) {
+            showError(err);
+        }
+    }
+
+    function onMergeFilterInput(): void {
+        clearTimeout(mergeTimer);
+        mergeTimer = setTimeout(loadMergeTargets, 250);
     }
 
     async function doMerge(): Promise<void> {
         const source = mergeSource;
-        const target = targets.find((t) => t.id === mergeTargetId);
+        const target = mergeCandidates.find((t) => t.id === mergeTargetId);
         if (!source || !target) return;
         if (
             !confirm(
@@ -442,13 +496,38 @@
         </div>
     {/if}
 
+    <form
+        class="flex flex-wrap items-center gap-2"
+        role="search"
+        onsubmit={(e) => {
+            e.preventDefault();
+            runSearch();
+        }}
+    >
+        <Input
+            class="min-w-0 flex-1"
+            bind:value={searchInput}
+            placeholder="작품명·slug·별칭 검색"
+            aria-label="작품 검색"
+        />
+        <Button size="sm" type="submit" variant="outline" disabled={loading}>검색</Button>
+        {#if searchQuery}
+            <Button size="sm" variant="ghost" onclick={clearSearch}>초기화</Button>
+        {/if}
+        <span class="text-muted-foreground w-full text-xs tabular-nums sm:w-auto">
+            {searchQuery ? `「${searchQuery}」 ` : ''}{total}개
+        </span>
+    </form>
+
     {#if loading && items.length === 0}
         <p class="text-muted-foreground py-8 text-center text-sm">불러오는 중…</p>
     {:else if items.length === 0}
         <Card class="bg-background">
             <CardContent class="py-10 text-center">
                 <Film class="text-muted-foreground mx-auto mb-3 h-10 w-10" />
-                <p class="text-muted-foreground text-sm">이 탭에 작품이 없습니다.</p>
+                <p class="text-muted-foreground text-sm">
+                    {searchQuery ? '검색 결과가 없습니다.' : '이 탭에 작품이 없습니다.'}
+                </p>
             </CardContent>
         </Card>
     {:else}
@@ -564,6 +643,24 @@
                 </Card>
             {/each}
         </div>
+    {/if}
+
+    {#if total > PAGE_SIZE}
+        <nav class="flex items-center justify-center gap-2 pt-1" aria-label="쪽 이동">
+            <Button
+                size="sm"
+                variant="outline"
+                disabled={loading || pageNo <= 1}
+                onclick={() => goPage(pageNo - 1)}>이전</Button
+            >
+            <span class="text-muted-foreground text-sm tabular-nums">{pageNo} / {pageCount}</span>
+            <Button
+                size="sm"
+                variant="outline"
+                disabled={loading || pageNo >= pageCount}
+                onclick={() => goPage(pageNo + 1)}>다음</Button
+            >
+        </nav>
     {/if}
 </div>
 
@@ -734,7 +831,16 @@
             </Dialog.Description>
         </Dialog.Header>
         <div class="space-y-2">
-            <Input bind:value={mergeFilter} placeholder="작품명·slug 검색" />
+            <Input
+                bind:value={mergeFilter}
+                oninput={onMergeFilterInput}
+                placeholder="작품명·slug·별칭 검색"
+            />
+            {#if mergeSource?.status === 'active'}
+                <p class="text-muted-foreground text-xs">
+                    활성 작품은 활성 작품에만 합칠 수 있습니다.
+                </p>
+            {/if}
             <ul class="max-h-64 space-y-1 overflow-y-auto">
                 {#each mergeCandidates as t (t.id)}
                     <li>

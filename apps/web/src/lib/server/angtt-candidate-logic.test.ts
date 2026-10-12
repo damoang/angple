@@ -219,6 +219,15 @@ describe('extractTitleCandidate — 규칙', () => {
 
     it('카테고리를 판단할 수 없어도 제목 접두가 있으면 그 종류로', () => {
         expect(extractTitleCandidate('애니 "룩백" 후기', '만화')?.type).toBe('animation');
+        expect(extractTitleCandidate('[애니] 룩백 후기', '영화')?.type).toBe('animation');
+    });
+
+    it('⛔ 영화 카테고리의 「애니 …」 는 접두가 아니다 — 「애니 기븐 선데이」(Any Given Sunday)', () => {
+        const got = extractTitleCandidate('애니 기븐 선데이 ( 1999 )  (노스포)', '영화');
+        expect(got?.title).toBe('애니 기븐 선데이');
+        expect(got?.type).toBe('movie');
+        expect(extractTitleCandidate('애니 "룩백" 후기', '영화')?.title).toBe('룩백');
+        expect(extractTitleCandidate('애니 "룩백" 후기', '영화')?.type).toBe('movie');
         expect(extractTitleCandidate('다큐 "어느 가족"', '')?.type).toBe('documentary');
     });
 

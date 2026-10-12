@@ -152,12 +152,58 @@ export interface AdminEntityRow {
 
 export interface AdminEntityList {
     items: AdminEntityRow[];
+    /** 상태별 전체 개수 (탭 배지) */
     counts: Record<string, number>;
-    /** 병합 대상으로 고를 수 있는 작품 (active·pending) */
-    targets: { id: number; title: string; slug: string; status: string }[];
+    /** 이 탭·검색 조건의 전체 개수 (페이지 계산용) */
+    total: number;
+    page: number;
+    pageSize: number;
 }
 
-export async function listEntitiesForAdmin(status: AdminEntityStatus): Promise<AdminEntityList> {
+export interface MergeTarget {
+    id: number;
+    title: string;
+    slug: string;
+    status: string;
+}
+
+/** 목록 한 쪽 크기 상한 */
+export const ADMIN_PAGE_SIZE_MAX = 100;
+
+/** LIKE 패턴 — 사용자 입력의 와일드카드(% _ \\)는 글자 그대로 찾는다 */
+function likePattern(q: string): string {
+    return `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+}
+
+/** 작품명·slug·별칭 검색 조건 (q 가 비면 조건 없음) */
+function searchClause(q: string): { sql: string; params: unknown[] } {
+    const query = q.trim().slice(0, 100);
+    if (!query) return { sql: '', params: [] };
+    const like = likePattern(query);
+    return {
+        sql: ` AND (e.canonical_title LIKE ? OR e.slug LIKE ?
+                    OR JSON_SEARCH(e.aliases, 'one', ?) IS NOT NULL)`,
+        params: [like, like, like]
+    };
+}
+
+export async function listEntitiesForAdmin(
+    status: AdminEntityStatus,
+    opts: { q?: string; page?: number; pageSize?: number } = {}
+): Promise<AdminEntityList> {
+    const pageSize = Math.max(
+        1,
+        Math.min(ADMIN_PAGE_SIZE_MAX, Math.floor(Number(opts.pageSize) || 30))
+    );
+    const page = Math.max(1, Math.floor(Number(opts.page) || 1));
+    const search = searchClause(opts.q ?? '');
+
+    const [totalRows] = await pool.query(
+        `SELECT COUNT(*) AS cnt FROM angple_entities e WHERE e.status = ?${search.sql}`,
+        [status, ...search.params]
+    );
+    const total = Number((totalRows as { cnt?: number }[])[0]?.cnt ?? 0);
+
     const [rows] = await pool.query(
         `SELECT e.id, e.type, e.canonical_title, e.slug, e.aliases, e.poster_url, e.external_ids,
                 e.meta, DATE_FORMAT(e.release_date, '%Y-%m-%d') AS release_date, e.status,
@@ -165,10 +211,10 @@ export async function listEntitiesForAdmin(status: AdminEntityStatus): Promise<A
                 DATE_FORMAT(e.created_at, '%Y-%m-%d %H:%i') AS created_at,
                 (SELECT COUNT(*) FROM angple_entity_posts p WHERE p.entity_id = e.id) AS link_count
            FROM angple_entities e
-          WHERE e.status = ?
+          WHERE e.status = ?${search.sql}
           ORDER BY e.id DESC
-          LIMIT 300`,
-        [status]
+          LIMIT ? OFFSET ?`,
+        [status, ...search.params, pageSize, (page - 1) * pageSize]
     );
 
     const items: AdminEntityRow[] = (rows as Record<string, unknown>[]).map((r) => {
@@ -194,7 +240,7 @@ export async function listEntitiesForAdmin(status: AdminEntityStatus): Promise<A
         };
     });
 
-    // 근거 원글 제목 — 한 번에 조회
+    // 근거 원글 제목 — 이 쪽 분량만 한 번에 조회
     const wrIds = [...new Set(items.flatMap((i) => i.sourcePosts.map((p) => p.wrId)))];
     if (wrIds.length > 0) {
         const [postRows] = await pool.query(
@@ -220,20 +266,32 @@ export async function listEntitiesForAdmin(status: AdminEntityStatus): Promise<A
         counts[String(c.status)] = Number(c.cnt);
     }
 
-    const [targetRows] = await pool.query(
-        `SELECT id, canonical_title, slug, status FROM angple_entities
-          WHERE status IN ('active', 'pending')
-          ORDER BY status = 'active' DESC, canonical_title
-          LIMIT 2000`
+    return { items, counts, total, page, pageSize };
+}
+
+/**
+ * 병합 대상 검색 — 활성·대기 작품 중 검색어에 맞는 것 최대 50개 (활성 먼저).
+ * 원본이 활성이면 활성 대상만 고를 수 있다(mergeEntity 와 같은 규칙).
+ */
+export async function searchMergeTargets(
+    q: string,
+    opts: { excludeId?: number; activeOnly?: boolean } = {}
+): Promise<MergeTarget[]> {
+    const search = searchClause(q);
+    const statuses = opts.activeOnly ? ['active'] : ['active', 'pending'];
+    const [rows] = await pool.query(
+        `SELECT e.id, e.canonical_title, e.slug, e.status FROM angple_entities e
+          WHERE e.status IN (?) AND e.id <> ?${search.sql}
+          ORDER BY e.status = 'active' DESC, e.canonical_title
+          LIMIT 50`,
+        [statuses, Number(opts.excludeId) || 0, ...search.params]
     );
-    const targets = (targetRows as Record<string, unknown>[]).map((t) => ({
+    return (rows as Record<string, unknown>[]).map((t) => ({
         id: Number(t.id),
         title: String(t.canonical_title ?? ''),
         slug: String(t.slug ?? ''),
         status: String(t.status)
     }));
-
-    return { items, counts, targets };
 }
 
 /* ------------------------------------------------------------------ *
@@ -508,6 +566,13 @@ export async function mergeEntity(
         }
         if (!['pending', 'active'].includes(target.status)) {
             throw new EntityAdminError(409, '병합 대상은 활성 또는 대기 작품이어야 합니다.');
+        }
+        // 활성 작품의 연결 글·별점이 대기 작품으로 옮겨가면 공개 화면에서 사라진다
+        if (source.status === 'active' && target.status !== 'active') {
+            throw new EntityAdminError(
+                409,
+                '활성 작품은 활성 작품에만 병합할 수 있습니다. 대상을 먼저 승인하세요.'
+            );
         }
 
         // 1) 연결 글 이전 (강한 role 유지)

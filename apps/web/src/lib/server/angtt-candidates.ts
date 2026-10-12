@@ -102,11 +102,30 @@ export async function insertPendingCandidate(
         } catch (err) {
             if (!isDuplicateKey(err)) throw err;
             const msg = String((err as { message?: string }).message ?? '');
-            if (!msg.includes('uq_slug')) return null; // (type, 작품명) 중복 — 만들지 않는다
+            if (!msg.includes('uq_slug')) {
+                // (type, 작품명) 중복 — 같은 제목의 글 두 개가 동시에 저장되면 생긴다.
+                // 먼저 만들어진 후보가 대기 중이면 이 글을 그 후보의 근거로 붙인다(글을 잃지 않는다).
+                return attachToSameTitle(candidate, wrIds);
+            }
             taken.add(slug.toLowerCase());
         }
     }
     return null;
+}
+
+/** 같은 (type, 작품명)의 대기 후보에 근거 원글을 붙인다. 대기 후보가 아니면 null */
+async function attachToSameTitle(
+    candidate: TitleCandidate,
+    wrIds: readonly number[]
+): Promise<number | null> {
+    const [rows] = await pool.query(
+        `SELECT id, status FROM angple_entities WHERE type = ? AND canonical_title = ? LIMIT 1`,
+        [candidate.type, candidate.title]
+    );
+    const row = (rows as { id: number; status: string }[])[0];
+    if (!row || row.status !== 'pending') return null;
+    for (const wrId of wrIds) await attachToPending(Number(row.id), wrId, candidate.seasons);
+    return Number(row.id);
 }
 
 /** pending 후보에 근거 원글을 더한다 (행 잠금 후 갱신) */

@@ -1,7 +1,9 @@
 /**
  * 앙티티 작품 관리 API — 목록·수동 등록 (관리자 전용)
  *
- * GET  ?status=pending|active|rejected|merged  → 목록 + 상태별 개수 + 병합 대상 + TMDB 사용 가능 여부
+ * GET  ?status=pending|active|rejected|merged&q=&page=&pageSize=
+ *      → 한 쪽 목록 + 전체 개수 + 상태별 개수 + TMDB 사용 가능 여부
+ * GET  ?mode=targets&q=&exclude=<id>&activeOnly=1 → 병합 대상 검색(최대 50)
  * POST {canonicalTitle, type, slug?, aliases?, releaseDate?, posterUrl?, status?, …} → 수동 등록
  */
 import { json } from '@sveltejs/kit';
@@ -11,6 +13,7 @@ import {
     EntityAdminError,
     createEntity,
     listEntitiesForAdmin,
+    searchMergeTargets,
     type AdminEntityStatus,
     type CreateEntityInput
 } from '$lib/server/angtt-entity-admin';
@@ -37,12 +40,31 @@ export const GET: RequestHandler = async ({ locals, url }) => {
     const denied = requireAdmin(locals);
     if (denied) return denied;
 
+    const q = url.searchParams.get('q') ?? '';
+
+    // 병합 대상 검색 (병합 다이얼로그)
+    if (url.searchParams.get('mode') === 'targets') {
+        try {
+            const targets = await searchMergeTargets(q, {
+                excludeId: Number(url.searchParams.get('exclude')) || 0,
+                activeOnly: url.searchParams.get('activeOnly') === '1'
+            });
+            return json({ success: true, targets }, { headers: NO_STORE });
+        } catch (err) {
+            return fail(err);
+        }
+    }
+
     const raw = url.searchParams.get('status') ?? 'pending';
     const status = (STATUSES as readonly string[]).includes(raw)
         ? (raw as AdminEntityStatus)
         : 'pending';
     try {
-        const data = await listEntitiesForAdmin(status);
+        const data = await listEntitiesForAdmin(status, {
+            q,
+            page: Number(url.searchParams.get('page')) || 1,
+            pageSize: Number(url.searchParams.get('pageSize')) || 30
+        });
         return json(
             { success: true, ...data, tmdbEnabled: isTmdbEnabled() },
             { headers: NO_STORE }

@@ -27,7 +27,13 @@
     onMount(() => {
         authActions.initAuth();
     });
+
+    function onWindowKeydown(e: KeyboardEvent): void {
+        if (e.key === 'Escape' && mobileNavOpen) mobileNavOpen = false;
+    }
 </script>
+
+<svelte:window onkeydown={onWindowKeydown} />
 
 <svelte:head>
     <title>관리자 - {import.meta.env.VITE_SITE_NAME || 'Angple'}</title>
@@ -61,6 +67,7 @@
     {:else if showSidebar}
         <div class="flex h-screen overflow-hidden">
             <div
+                id="admin-sidebar"
                 class="{mobileNavOpen
                     ? 'fixed inset-y-0 left-0 z-40 flex'
                     : 'hidden'} md:static md:z-auto md:flex"
@@ -79,7 +86,9 @@
                 <button
                     type="button"
                     class="text-muted-foreground hover:text-foreground mb-3 text-sm md:hidden"
-                    onclick={() => (mobileNavOpen = true)}>☰ 관리자 메뉴</button
+                    aria-expanded={mobileNavOpen}
+                    aria-controls="admin-sidebar"
+                    onclick={() => (mobileNavOpen = !mobileNavOpen)}>☰ 관리자 메뉴</button
                 >
                 {@render children?.()}
             </main>
