@@ -23,12 +23,16 @@ jobs:
             echo "=== df ==="
             df -h / || true
             df -i / | tail -1 || true
+            echo "=== whoami / sudo ==="
+            id -un; sudo -n true 2>/dev/null && echo "sudo: yes" || echo "sudo: no"
             echo "=== top-level (depth 1) ==="
-            sudo -n timeout 300 du -xh --max-depth=1 / 2>/dev/null | sort -rh | head -15 \
-              || timeout 300 du -xh --max-depth=1 / 2>/dev/null | sort -rh | head -15 || true
-            echo "=== depth 2 ==="
-            sudo -n timeout 300 du -xh --max-depth=2 / 2>/dev/null | sort -rh | head -25 \
-              || timeout 300 du -xh --max-depth=2 / 2>/dev/null | sort -rh | head -25 || true
+            timeout 300 du -xh --max-depth=1 / 2>/dev/null | sort -rh | head -15
+            echo "=== /home, /var, /opt (depth 2) ==="
+            timeout 300 du -xh --max-depth=2 /home /var /opt /tmp 2>/dev/null | sort -rh | head -30
+            echo "=== /var/lib/docker subdirs ==="
+            timeout 120 du -xh --max-depth=1 /var/lib/docker 2>/dev/null | sort -rh | head -10
+            echo "=== largest files >1G ==="
+            timeout 300 find / -xdev -type f -size +1G -printf '%s %p\n' 2>/dev/null | sort -rn | head -20 | awk '{printf "%.1fG %s\n", $1/1073741824, $2}'
             echo "=== docker ==="
             docker system df 2>/dev/null || sudo -n docker system df 2>/dev/null || true
             echo "=== journal ==="
