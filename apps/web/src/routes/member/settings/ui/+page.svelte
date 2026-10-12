@@ -62,6 +62,8 @@
     import BellRing from '@lucide/svelte/icons/bell-ring';
     import { apiClient } from '$lib/api/index.js';
     import type { NotificationPreferences } from '$lib/api/types.js';
+    import Tag from '@lucide/svelte/icons/tag';
+    import { KEYWORD_ALERT_MAX_COUNT, validateKeywordAlert } from '$lib/utils/keyword-alert.js';
 
     import MyNav from '$lib/components/features/my/my-nav.svelte';
 
@@ -315,6 +317,7 @@
         noti_like: true,
         noti_follow: true,
         noti_board_subscribe: true,
+        noti_keyword: true,
         like_threshold: 1
     });
     let notiMerge = $state(true);
@@ -347,6 +350,102 @@
             }
             notiSaving = false;
         }, 300);
+    }
+
+    // 키워드 알림 — 새 글 제목에 키워드가 들어가면 알림 (서버 저장, /api/my/keyword-alerts)
+    interface KeywordAlert {
+        id: number;
+        keyword: string;
+    }
+
+    let keywordAlerts = $state<KeywordAlert[]>([]);
+    let keywordInput = $state('');
+    let keywordLoading = $state(false);
+    let keywordLoadFailed = $state(false);
+    let keywordBusy = $state(false);
+    let keywordRequested = false;
+
+    // 알림 탭을 열 때 한 번만 불러온다 — 다른 탭만 보는 방문에는 요청하지 않는다.
+    $effect(() => {
+        if (activeTab === 'notification' && !keywordRequested) {
+            keywordRequested = true;
+            loadKeywordAlerts();
+        }
+    });
+
+    async function loadKeywordAlerts() {
+        if (!browser) return;
+        keywordLoading = true;
+        keywordLoadFailed = false;
+        try {
+            const res = await fetch('/api/my/keyword-alerts');
+            const json = await res.json();
+            if (res.ok && json.success) {
+                keywordAlerts = json.data.keywords;
+            } else {
+                keywordLoadFailed = true;
+            }
+        } catch {
+            keywordLoadFailed = true;
+        }
+        keywordLoading = false;
+    }
+
+    async function addKeywordAlert() {
+        if (keywordBusy) return;
+        // 서버와 같은 규칙으로 먼저 걸러 즉시 알려준다. 최종 판정은 서버.
+        const result = validateKeywordAlert(
+            keywordInput,
+            keywordAlerts.map((k) => k.keyword)
+        );
+        if (!result.ok) {
+            if (result.error === 'duplicate') toast.info(result.message);
+            else toast.warning(result.message);
+            return;
+        }
+        keywordBusy = true;
+        try {
+            const res = await fetch('/api/my/keyword-alerts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keyword: result.keyword })
+            });
+            const json = await res.json().catch(() => null);
+            if (res.ok && json?.success) {
+                keywordAlerts = json.data.keywords;
+                keywordInput = '';
+            } else {
+                toast.warning(json?.message || '키워드를 추가하지 못했습니다.');
+            }
+        } catch {
+            toast.error('키워드를 추가하지 못했습니다.');
+        }
+        keywordBusy = false;
+    }
+
+    async function removeKeywordAlert(id: number) {
+        try {
+            const res = await fetch(`/api/my/keyword-alerts?id=${id}`, { method: 'DELETE' });
+            const json = await res.json().catch(() => null);
+            if (res.ok && json?.success) {
+                keywordAlerts = json.data.keywords;
+            } else if (res.status === 404) {
+                // 이미 지워졌다 — 화면에서도 뺀다
+                keywordAlerts = keywordAlerts.filter((k) => k.id !== id);
+            } else {
+                toast.warning(json?.message || '키워드를 삭제하지 못했습니다.');
+            }
+        } catch {
+            toast.error('키워드를 삭제하지 못했습니다.');
+        }
+    }
+
+    function handleKeywordKeydown(e: KeyboardEvent) {
+        // 한글 조합 중 Enter 는 조합 확정이다 — 여기서 추가하면 마지막 글자가 두 번 들어간다.
+        if (e.key === 'Enter' && !e.isComposing) {
+            e.preventDefault();
+            addKeywordAlert();
+        }
     }
 
     // ⛔ localStorage 기반 설정을 {#if} 구조 조건에 그대로 쓰면 하이드레이션이 깨진다.
@@ -1324,6 +1423,89 @@
                         {#if notiSaving}
                             <p class="text-muted-foreground text-right text-xs">저장 중...</p>
                         {/if}
+                    {/if}
+                </CardContent>
+            </Card>
+
+            <!-- 키워드 알림 — 새 글 제목에 등록한 키워드가 들어가면 알림 -->
+            <Card>
+                <CardHeader>
+                    <CardTitle class="flex items-center gap-2">
+                        <Tag class="h-5 w-5" />
+                        키워드 알림
+                    </CardTitle>
+                    <CardDescription>
+                        새 글 제목에 키워드가 들어가면 알려드립니다(전체 게시판, 시간당 최대 20건).
+                        <span
+                            class:text-destructive={keywordAlerts.length >= KEYWORD_ALERT_MAX_COUNT}
+                            >(현재 {keywordAlerts.length}/{KEYWORD_ALERT_MAX_COUNT})</span
+                        >
+                    </CardDescription>
+                </CardHeader>
+                <CardContent class="space-y-3">
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="min-w-0">
+                            <Label>키워드 알림 받기</Label>
+                            <p class="text-muted-foreground text-xs">
+                                끄면 키워드를 지우지 않고 알림만 멈춥니다
+                            </p>
+                        </div>
+                        <Switch
+                            checked={notiPrefs.noti_keyword}
+                            disabled={notiLoading}
+                            onCheckedChange={(v) => saveNotiPrefs({ noti_keyword: v })}
+                        />
+                    </div>
+                    <Separator />
+                    <div class="flex gap-2">
+                        <Input
+                            bind:value={keywordInput}
+                            placeholder="알림 받을 키워드 (2~30자)"
+                            onkeydown={handleKeywordKeydown}
+                            class="min-w-0 flex-1"
+                        />
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={keywordBusy ||
+                                keywordLoading ||
+                                keywordLoadFailed ||
+                                keywordAlerts.length >= KEYWORD_ALERT_MAX_COUNT}
+                            onclick={addKeywordAlert}
+                        >
+                            <Plus class="mr-1 h-4 w-4" />
+                            추가
+                        </Button>
+                    </div>
+                    {#if keywordLoading}
+                        <p class="text-muted-foreground text-xs">로딩 중...</p>
+                    {:else if keywordLoadFailed}
+                        <div class="flex items-center gap-2">
+                            <p class="text-muted-foreground text-xs">
+                                키워드 목록을 불러오지 못했습니다.
+                            </p>
+                            <Button variant="ghost" size="sm" onclick={loadKeywordAlerts}>
+                                다시 시도
+                            </Button>
+                        </div>
+                    {:else if keywordAlerts.length > 0}
+                        <div class="flex flex-wrap gap-1.5">
+                            {#each keywordAlerts as item (item.id)}
+                                <Badge variant="secondary" class="max-w-full gap-1 break-all pr-1">
+                                    {item.keyword}
+                                    <button
+                                        type="button"
+                                        onclick={() => removeKeywordAlert(item.id)}
+                                        class="hover:bg-foreground/10 shrink-0 rounded-full p-0.5"
+                                        aria-label="키워드 삭제: {item.keyword}"
+                                    >
+                                        <XIcon class="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            {/each}
+                        </div>
+                    {:else}
+                        <p class="text-muted-foreground text-xs">등록된 키워드가 없습니다.</p>
                     {/if}
                 </CardContent>
             </Card>

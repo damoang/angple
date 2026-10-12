@@ -38,6 +38,8 @@ export type NotificationType =
     | 'memo'
     | 'subscribe'
     | 'follow'
+    // 등록한 키워드가 새 글 제목에 들어갔을 때 (백엔드 ph_to_case='keyword')
+    | 'keyword'
     | 'digest'
     | 'levelup'
     // 여러 종류가 한 줄로 묶인 알림. 대상(글/댓글)만 구분해 준다 — bug/13332
@@ -64,6 +66,7 @@ const META: Record<NotificationType, NotificationTypeMeta> = {
     memo: { emoji: '✉️', color: 'text-orange-500', label: '쪽지' },
     subscribe: { emoji: '📄✍️', color: 'text-sky-600', label: '구독 게시판 새 글' },
     follow: { emoji: '👤✍️', color: 'text-teal-600', label: '팔로우한 분의 새 글' },
+    keyword: { emoji: '📄🏷️', color: 'text-emerald-600', label: '키워드가 들어간 새 글' },
     digest: { emoji: '📰', color: 'text-amber-600', label: '새 글 요약' },
     levelup: { emoji: '⭐', color: 'text-yellow-500', label: '레벨업' },
     // 여러 종류가 섞인 묶음 — bug/13332

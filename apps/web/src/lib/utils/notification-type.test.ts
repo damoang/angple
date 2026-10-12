@@ -82,9 +82,10 @@ describe('getNotificationLabel', () => {
             'mention',
             'memo',
             'subscribe',
-            'follow'
+            'follow',
+            'keyword'
         ].map(getNotificationLabel);
-        expect(new Set(labels).size).toBe(8);
+        expect(new Set(labels).size).toBe(9);
     });
 });
 
@@ -93,5 +94,20 @@ describe('getNotificationColor', () => {
         expect(getNotificationColor('like')).not.toBe(getNotificationColor('like_comment'));
         expect(getNotificationColor('comment')).not.toBe(getNotificationColor('reply'));
         expect(getNotificationColor('subscribe')).not.toBe(getNotificationColor('follow'));
+    });
+});
+
+describe('키워드 알림(keyword)', () => {
+    it('표식·색·이름을 가지며 모르는 타입으로 폴백하지 않는다', () => {
+        expect(getNotificationEmoji('keyword')).not.toBe('');
+        expect(getNotificationLabel('keyword')).not.toBe('알림');
+        expect(getNotificationColor('keyword')).not.toBe('text-muted-foreground');
+    });
+
+    it('글에 관한 알림이라 첫 글자가 📄 이고, 구독·팔로우 새 글과 구분된다', () => {
+        expect(firstGlyph(getNotificationEmoji('keyword'))).toBe('📄');
+        expect(getNotificationEmoji('keyword')).not.toBe(getNotificationEmoji('subscribe'));
+        expect(getNotificationEmoji('keyword')).not.toBe(getNotificationEmoji('follow'));
+        expect(getNotificationColor('keyword')).not.toBe(getNotificationColor('subscribe'));
     });
 });

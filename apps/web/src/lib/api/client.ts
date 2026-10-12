@@ -94,6 +94,25 @@ const NOTIFICATION_READ_CONFIG: Partial<RetryConfig> = {
     timeout: 10000
 };
 
+// 알림 설정 기본값. 응답에 없는 필드는 켬(true)으로 본다 — 새 필드(noti_keyword 등)를
+// 아직 내려주지 않는 백엔드와 함께 배포돼도 토글이 「꺼짐」으로 잘못 보이지 않게 한다.
+const NOTIFICATION_PREFERENCE_DEFAULTS: NotificationPreferences = {
+    noti_comment: true,
+    noti_reply: true,
+    noti_mention: true,
+    noti_like: true,
+    noti_follow: true,
+    noti_board_subscribe: true,
+    noti_keyword: true,
+    like_threshold: 1
+};
+
+function withNotificationPreferenceDefaults(
+    data: Partial<NotificationPreferences> | null | undefined
+): NotificationPreferences {
+    return { ...NOTIFICATION_PREFERENCE_DEFAULTS, ...(data ?? {}) };
+}
+
 // v2 API URL은 세션 기반 인증에서는 SvelteKit 프록시가 내부 JWT를 주입하므로
 // 클라이언트에서 직접 사용할 일이 줄어듦 (exchangeToken 등 레거시 호환용으로 유지)
 
@@ -2251,17 +2270,7 @@ class ApiClient {
      */
     async getNotificationPreferences(): Promise<NotificationPreferences> {
         const response = await this.request<NotificationPreferences>('/notifications/preferences');
-        return (
-            response.data ?? {
-                noti_comment: true,
-                noti_reply: true,
-                noti_mention: true,
-                noti_like: true,
-                noti_follow: true,
-                noti_board_subscribe: true,
-                like_threshold: 1
-            }
-        );
+        return withNotificationPreferenceDefaults(response.data);
     }
 
     /**
@@ -2274,7 +2283,7 @@ class ApiClient {
             method: 'PUT',
             body: JSON.stringify(prefs)
         });
-        return response.data;
+        return withNotificationPreferenceDefaults(response.data);
     }
 
     // ==================== 쪽지 API ====================

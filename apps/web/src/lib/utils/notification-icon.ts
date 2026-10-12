@@ -18,6 +18,7 @@ import MessageSquare from '@lucide/svelte/icons/message-square';
 import Newspaper from '@lucide/svelte/icons/newspaper';
 import Reply from '@lucide/svelte/icons/reply';
 import Star from '@lucide/svelte/icons/star';
+import Tag from '@lucide/svelte/icons/tag';
 import UserPlus from '@lucide/svelte/icons/user-plus';
 
 export function getNotificationIcon(type: string) {
@@ -37,6 +38,8 @@ export function getNotificationIcon(type: string) {
             return FileText;
         case 'follow':
             return UserPlus;
+        case 'keyword':
+            return Tag;
         case 'digest':
             return Newspaper;
         case 'levelup':
