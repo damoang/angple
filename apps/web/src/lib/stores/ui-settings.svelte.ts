@@ -6,6 +6,7 @@
  */
 
 import { browser } from '$app/environment';
+import { serverBlobLacksKeys } from '$lib/utils/ui-settings-sync';
 
 const STORAGE_KEY = 'angple_ui_settings';
 
@@ -583,13 +584,16 @@ function createUiSettingsStore() {
          * ⛔ 여기서 save() 를 부르지 않는다. 서버에서 막 받은 값을 그대로 다시 PUT 하게 되어
          *    로그인 회원 페이지 로드마다 같은 내용의 쓰기가 생긴다. 로컬만 갱신하고,
          *    사용자가 실제로 설정을 바꿀 때(각 setter 의 save())만 서버로 보낸다.
+         *    예외: 서버 blob 에 없는 설정 키(새로 추가된 항목)가 있으면 한 번 올려 채운다.
          */
         mergeServerSettings(server: Partial<UiSettings> | null): void {
             if (!browser) return;
             if (!server || typeof server !== 'object') return;
+            const needsBackfill = serverBlobLacksKeys(Object.keys(DEFAULTS), server);
             settings = { ...settings, ...server };
             persistLocal();
             applyCSS();
+            if (needsBackfill) scheduleServerSync();
         },
 
         /** 현재 로컬 설정을 서버에 즉시 올림(첫 로그인 마이그레이션용). */

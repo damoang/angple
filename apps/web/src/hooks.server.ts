@@ -25,7 +25,12 @@ import {
 import { grantLoginXP } from '$lib/server/auth/xp-grant.js';
 import { grantLoginPoint } from '$lib/server/auth/point-grant.js';
 import { checkAndPromoteMember } from '$lib/server/auth/auto-promotion.js';
-import { needsLoginTimestampUpdate } from '$lib/server/auth/login-day.js';
+import {
+    createLoginRewardMemo,
+    runDailyLoginRewards,
+    shouldWriteLoginTimestamp
+} from '$lib/server/auth/login-activity.js';
+import { getRedis } from '$lib/server/redis.js';
 import { generateAccessToken } from '$lib/server/auth/jwt.js';
 import { setDamoangSSOCookie } from '$lib/server/auth/sso-cookie.js';
 import {
@@ -100,6 +105,9 @@ const JWT_CACHE_TTL = 5 * 60 * 1000; // 5분
 // 5분 TTL + 60s cleanup이면 정상 운영 동시 세션 < 5000,
 // 10000이면 최악의 경우에도 ~8 MB (entry ~800B × 10k) 로 상한 고정.
 const MAX_JWT_CACHE_SIZE = 10000;
+
+/** 일일 로그인 보상 호출 메모(Redis 오류 시 파드별 폴백) — login-activity.ts */
+const loginRewardMemo = createLoginRewardMemo();
 
 // 만료 entry 주기적 정리 — 4/22 prod 메모리 누수 근본 원인.
 // 기존 eviction은 size >= MAX일 때만 실행되어, size < MAX면 만료된 entry가
@@ -585,31 +593,46 @@ async function authenticateSSR(event: Parameters<Handle>[0]['event']): Promise<v
                         jwtCache.set(session.mbId, { token, expiry: now + JWT_CACHE_TTL });
                     }
 
-                    // 일일 로그인 갱신: mb_today_login 이 오늘(KST)이 아니면 업데이트 + XP/포인트/승급
+                    // 접속 기록 + 일일 로그인 보상 (판정 로직: $lib/server/auth/login-activity.ts)
                     // 페이지 네비게이션 요청에서만 실행 (API/데이터 요청 제외)
                     //
-                    // ⛔ 접속 시각 쓰기만 하루 1회(KST)로 묶는다. XP·포인트·승급 호출은 예전처럼
-                    //    매번 시도하고, 하루 1회 판정은 각 함수 안의 가드(UTC 날짜 키)가 그대로 맡는다.
-                    //    예전 비교는 mysql2 가 주는 Date 를 문자열로만 처리해 거의 항상 참이었으므로,
-                    //    보상 호출을 이 판정에 묶으면 보상 날짜 경계(UTC 00:00 = KST 09:00)가 바뀐다.
+                    // - 접속 시각(mb_today_login·mb_login_ip): 저장값이 오늘(KST)이 아니거나,
+                    //   마지막 기록 후 30분이 지났으면(Redis 표식, 파드 간 공유) 쓴다.
+                    // - XP·포인트·승급: 회원당 UTC 날짜별 1회만 호출한다(Redis 메모, 오류 시 파드별 메모).
+                    //   지급 여부의 정본은 각 함수 안의 하루 1회 가드(UTC 날짜 키)이며,
+                    //   보상 날짜 경계는 지금과 같은 UTC 00:00(= KST 09:00)이다.
                     if (!event.url.pathname.startsWith('/api/') && !isSvelteKitDataRequest(event)) {
-                        const needsTimestamp = needsLoginTimestampUpdate(member.mb_today_login);
                         const clientIp = safeGetClientAddress(event) || '';
+                        const requestDate = new Date();
                         // fire-and-forget: 응답 지연 방지
                         void (async () => {
                             try {
-                                if (needsTimestamp) {
+                                let redis: ReturnType<typeof getRedis> | null = null;
+                                try {
+                                    redis = getRedis();
+                                } catch {
+                                    // Redis 클라이언트 생성 실패 → 폴백 판정
+                                }
+                                const writeTimestamp = await shouldWriteLoginTimestamp(
+                                    redis,
+                                    member.mb_id,
+                                    member.mb_today_login,
+                                    requestDate
+                                );
+                                if (writeTimestamp) {
                                     await updateLoginTimestamp(
                                         member.mb_id,
                                         clientIp,
                                         member.mb_leave_reason
                                     );
                                 }
-                                await Promise.allSettled([
-                                    grantLoginXP(member.mb_id),
-                                    grantLoginPoint(member.mb_id)
-                                ]);
-                                await checkAndPromoteMember(member.mb_id);
+                                await runDailyLoginRewards(
+                                    loginRewardMemo,
+                                    redis,
+                                    member.mb_id,
+                                    { grantLoginXP, grantLoginPoint, checkAndPromoteMember },
+                                    requestDate
+                                );
                             } catch {
                                 // 로그인 갱신 실패는 무시
                             }
