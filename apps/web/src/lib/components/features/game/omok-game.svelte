@@ -71,10 +71,15 @@
         if (myGame !== gameId) return;
         // $state 프록시는 Worker 로 못 보낸다 — 평범한 배열로 복사
         const snapshot = $state.snapshot(board);
-        const move = await ai.request(snapshot, difficulty);
-        // 그사이 「다시 시작」했으면 이전 판의 수는 버린다
+        let move: { x: number; y: number } | null = null;
+        try {
+            move = await ai.request(snapshot, difficulty);
+        } catch {
+            move = null;
+        }
+        // 그사이 「다시 시작」했거나 판이 사라졌으면 이전 판의 수는 버린다
         if (myGame !== gameId) return;
-        if (gameOverState || board[move.y][move.x] !== EMPTY) {
+        if (!move || gameOverState || board[move.y][move.x] !== EMPTY) {
             thinking = false;
             return;
         }
