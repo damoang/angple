@@ -67,6 +67,20 @@ describe('앙쌓기 대전 규칙', () => {
         expect(isRuleId('marathon')).toBe(false);
     });
 
+    it('규칙표: 2분 점수전은 방해 줄 없음·목표 없음·2분·가속 없음', () => {
+        expect(RULES.score120).toEqual({
+            id: 'score120',
+            label: '2분 점수전',
+            garbage: false,
+            goalLines: null,
+            timeLimitSec: 120,
+            speedUp: null
+        });
+        expect(RULE_IDS).toEqual(['attack', 'sprint40', 'survival', 'score120']);
+        expect(isRuleId('score120')).toBe(true);
+        expect(isRuleId('score60')).toBe(false);
+    });
+
     it('판 직렬화는 162자 0~8 이고 그대로 되돌아온다', () => {
         const g = createGame(9);
         g.board[0] = 1;
@@ -107,6 +121,13 @@ describe('앙쌓기 대전 규칙', () => {
         expect(levelFloor(RULES.survival, sec(49))).toBe(2);
         expect(levelFloor(RULES.survival, sec(50))).toBe(3);
         expect(levelFloor(RULES.survival, sec(210))).toBe(11);
+    });
+
+    it('최소 레벨: 2분 점수전은 끝까지 1', () => {
+        const sec = (s: number) => s * 60;
+        expect(levelFloor(RULES.score120, 0)).toBe(1);
+        expect(levelFloor(RULES.score120, sec(60))).toBe(1);
+        expect(levelFloor(RULES.score120, sec(120))).toBe(1);
     });
 
     it('대전 칸 보존식', () => {
