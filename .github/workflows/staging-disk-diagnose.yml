@@ -1,0 +1,37 @@
+name: Staging Disk Diagnose
+
+# 스테이징 서버 디스크 사용 현황 조회(읽기 전용). 아무것도 지우지 않는다.
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/staging-disk-diagnose.yml'
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Inspect staging disk usage
+        uses: appleboy/ssh-action@v1.2.4
+        with:
+          host: ${{ secrets.DEV_SERVER_HOST }}
+          username: ${{ secrets.DEV_SERVER_USER }}
+          key: ${{ secrets.DEV_SERVER_SSH_KEY }}
+          command_timeout: 12m
+          script: |
+            echo "=== df ==="
+            df -h / || true
+            df -i / | tail -1 || true
+            echo "=== top-level (depth 1) ==="
+            sudo -n timeout 300 du -xh --max-depth=1 / 2>/dev/null | sort -rh | head -15 \
+              || timeout 300 du -xh --max-depth=1 / 2>/dev/null | sort -rh | head -15 || true
+            echo "=== depth 2 ==="
+            sudo -n timeout 300 du -xh --max-depth=2 / 2>/dev/null | sort -rh | head -25 \
+              || timeout 300 du -xh --max-depth=2 / 2>/dev/null | sort -rh | head -25 || true
+            echo "=== docker ==="
+            docker system df 2>/dev/null || sudo -n docker system df 2>/dev/null || true
+            echo "=== journal ==="
+            journalctl --disk-usage 2>/dev/null || sudo -n journalctl --disk-usage 2>/dev/null || true
+            echo "=== deleted-but-open files (top 10 by size) ==="
+            sudo -n lsof -nP +L1 2>/dev/null | awk 'NR>1{print $7, $1, $NF}' | sort -rn | head -10 || true
