@@ -22,6 +22,7 @@
         Sparkles,
         Award,
         Plug,
+        Film,
         Image as ImageIcon
     } from '@lucide/svelte/icons';
 
@@ -119,6 +120,11 @@
             title: '투표 관리',
             href: '/admin/polls',
             icon: ChartBar
+        },
+        {
+            title: '앙티티 작품',
+            href: '/admin/angtt/entities',
+            icon: Film
         },
         {
             title: '플러그인',

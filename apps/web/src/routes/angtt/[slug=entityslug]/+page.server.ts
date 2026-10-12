@@ -15,6 +15,7 @@ import {
     getEntityConnectedPosts,
     getEntityRating
 } from '$plugins/angtt-review/lib/entities.server';
+import { isTmdbImageUrl } from '$lib/angtt-entity-presets';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
     const slug = params.slug;
@@ -31,5 +32,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
         getEntityAspects(entity.id, locals.user?.id)
     ]);
 
-    return { entity, posts, rating, aspects };
+    // TMDB 포스터를 쓰면 이용 약관상 출처 표기가 필요하다(페이지 하단)
+    const posterFromTmdb = isTmdbImageUrl(entity.posterUrl);
+
+    return { entity, posts, rating, aspects, posterFromTmdb };
 };
