@@ -199,7 +199,8 @@ export async function resolveEntityByTags(tags: string[]): Promise<ResolveEntity
         const entityId = aliasMap.get(c.key);
         if (entityId != null) {
             const entity = await getEntityById(entityId);
-            if (entity) return { entity };
+            // 대기·거절·병합 작품은 공개 화면에 내보내지 않는다
+            if (entity && entity.status === 'active') return { entity };
         }
     }
     return { notFound: true, query: candidates[0].raw };
@@ -392,7 +393,7 @@ export async function getSuggestionStatus(
         `SELECT e.slug, e.canonical_title AS title
            FROM angple_entity_posts ep
            JOIN angple_entities e ON e.id = ep.entity_id
-          WHERE ep.bo_table = ? AND ep.wr_id = ?
+          WHERE ep.bo_table = ? AND ep.wr_id = ? AND e.status = 'active'
           LIMIT 1`,
         [boardId, wrId]
     );
@@ -403,7 +404,8 @@ export async function getSuggestionStatus(
         `SELECT e.slug, e.canonical_title AS title, s.mb_id
            FROM angple_entity_post_suggestions s
            JOIN angple_entities e ON e.id = s.entity_id
-          WHERE s.bo_table = ? AND s.wr_id = ? AND s.withdrawn_at IS NULL`,
+          WHERE s.bo_table = ? AND s.wr_id = ? AND s.withdrawn_at IS NULL
+            AND e.status = 'active'`,
         [boardId, wrId]
     );
 
@@ -464,6 +466,39 @@ export async function putEntityRating(
     );
 
     return getEntityRating(entityId, mbId);
+}
+
+/** 트랜잭션 연결·풀 공용 최소 인터페이스 (plugins/ 에서 mysql2 타입을 못 읽는 관례 회피) */
+export interface EntitySqlRunner {
+    query(sql: string, values?: unknown): Promise<unknown>;
+}
+
+/**
+ * 작품 비정규화 집계(rating_count·rating_avg·review_post_count)를 다시 계산한다.
+ *
+ * 연결 글이 늘거나(승인·후기 연결) 작품이 합쳐질 때(병합) 호출한다.
+ * 별점은 putEntityRating 과 **같은 통합 규칙**(UNIFIED_RATING_ROWS, 회원당 1표)을 쓴다.
+ * 트랜잭션 안에서 부를 때는 그 연결을 넘긴다.
+ */
+export async function refreshEntityAggregates(
+    entityId: number,
+    db: EntitySqlRunner = pool
+): Promise<void> {
+    await db.query(
+        `UPDATE angple_entities
+         SET rating_count = (
+                SELECT COUNT(*) FROM (${UNIFIED_RATING_ROWS}) a WHERE rn = 1
+             ),
+             rating_avg = (
+                SELECT COALESCE(AVG(rating), 0) FROM (${UNIFIED_RATING_ROWS}) b WHERE rn = 1
+             ),
+             review_post_count = (
+                SELECT COUNT(*) FROM angple_entity_posts p
+                 WHERE p.entity_id = ? AND p.role = 'review'
+             )
+         WHERE id = ?`,
+        [...unifiedParams(entityId), ...unifiedParams(entityId), entityId, entityId]
+    );
 }
 
 /** 항목별 평점 집계 행(+요청자 본인 값) */

@@ -13,6 +13,7 @@ import { invalidateBoardCache } from '$lib/server/ssr-cache.js';
 import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api.js';
 import { checkCertification } from '$lib/server/certification';
 import { autoLinkAngttEntity, linkEntityFromTags } from '$lib/server/angtt-auto-link';
+import { registerAngttCandidate } from '$lib/server/angtt-candidates';
 import { isTitleMaskedProxyPath, maskProxyJsonTitles } from '$lib/server/proxy-title-mask.js';
 
 /**
@@ -368,10 +369,16 @@ async function autoLinkAngtt(path: string, response: Response): Promise<void> {
     const wrId = data?.data?.id || data?.data?.wr_id;
     if (!wrId) return;
 
-    await autoLinkAngttEntity(postMatch[1], wrId);
-    // 작성자가 확정한 태그(제안 칩 [연결] 또는 수동 입력) → 작품 링크.
-    // 자동 연결과 별개 경로: 태그가 있으면 role='mention' 을 추가한다(IGNORE 로 중복 무해).
-    await linkEntityFromTags(postMatch[1], wrId);
+    try {
+        await autoLinkAngttEntity(postMatch[1], wrId);
+        // 작성자가 확정한 태그(제안 칩 [연결] 또는 수동 입력) → 작품 링크.
+        // 자동 연결과 별개 경로: 태그가 있으면 role='mention' 을 추가한다(IGNORE 로 중복 무해).
+        await linkEntityFromTags(postMatch[1], wrId);
+    } finally {
+        // angtt 원글 → 작품 후보(pending) 등록. 위 연결이 끝난 뒤에 돌아야 이미 연결된 글을
+        // 건너뛴다. 위에서 실패해도 실행되며, 이 함수 자체는 throw 하지 않는다.
+        await registerAngttCandidate(postMatch[1], Number(wrId), 'create');
+    }
 }
 
 /**
@@ -382,7 +389,12 @@ async function autoLinkAngtt(path: string, response: Response): Promise<void> {
 async function linkAngttOnEdit(path: string): Promise<void> {
     const editMatch = path.match(/^boards\/([a-zA-Z0-9_-]+)\/posts\/(\d+)$/);
     if (!editMatch) return;
-    await linkEntityFromTags(editMatch[1], Number(editMatch[2]));
+    try {
+        await linkEntityFromTags(editMatch[1], Number(editMatch[2]));
+    } finally {
+        // 수정 시에도 후보가 없으면 1회 등록(active 작품 신규 연결은 하지 않음). throw 없음.
+        await registerAngttCandidate(editMatch[1], Number(editMatch[2]), 'edit');
+    }
 }
 
 // 공통 프록시 로직

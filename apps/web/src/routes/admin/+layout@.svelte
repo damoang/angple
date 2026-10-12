@@ -17,6 +17,13 @@
     );
     const showSidebar = $derived(!isLoginPage && !isAdminRoot && !data.accessDenied);
 
+    // 좁은 화면: 고정폭 사이드바가 본문을 밀어내므로 평소엔 숨기고 「메뉴」 버튼으로 연다
+    let mobileNavOpen = $state(false);
+    $effect(() => {
+        void $page.url.pathname;
+        mobileNavOpen = false;
+    });
+
     onMount(() => {
         authActions.initAuth();
     });
@@ -53,8 +60,27 @@
         </div>
     {:else if showSidebar}
         <div class="flex h-screen overflow-hidden">
-            <AdminSidebar pluginEntries={data.pluginAdminMenuEntries ?? []} />
-            <main class="flex-1 overflow-y-auto p-6">
+            <div
+                class="{mobileNavOpen
+                    ? 'fixed inset-y-0 left-0 z-40 flex'
+                    : 'hidden'} md:static md:z-auto md:flex"
+            >
+                <AdminSidebar pluginEntries={data.pluginAdminMenuEntries ?? []} />
+            </div>
+            {#if mobileNavOpen}
+                <button
+                    type="button"
+                    class="fixed inset-0 z-30 bg-black/40 md:hidden"
+                    aria-label="메뉴 닫기"
+                    onclick={() => (mobileNavOpen = false)}
+                ></button>
+            {/if}
+            <main class="min-w-0 flex-1 overflow-y-auto p-4 md:p-6">
+                <button
+                    type="button"
+                    class="text-muted-foreground hover:text-foreground mb-3 text-sm md:hidden"
+                    onclick={() => (mobileNavOpen = true)}>☰ 관리자 메뉴</button
+                >
                 {@render children?.()}
             </main>
         </div>

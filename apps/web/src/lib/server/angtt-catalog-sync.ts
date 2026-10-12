@@ -53,7 +53,7 @@ interface TmdbMovie {
     release_date?: string | null;
 }
 
-function tmdbKey(): string | null {
+export function tmdbKey(): string | null {
     // ⛔ 폴백을 만들지 말 것. `env.A || env.B` 는 사고 기계다 — 어느 값이 쓰였는지
     //    아무도 모르게 된다. SOPS 가 단일 근원이고, 없으면 없는 것이다.
     const k = process.env.TMDB_API_KEY;

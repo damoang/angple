@@ -68,6 +68,8 @@
         drama: '드라마',
         netflix: 'NETFLIX',
         documentary: '다큐',
+        variety: '예능',
+        animation: '애니',
         webtoon: '웹툰',
         comic: '만화',
         novel: '소설',
@@ -79,11 +81,15 @@
     const typeLabel = $derived(TYPE_LABEL[entity.type] ?? entity.type);
     const releaseYear = $derived(entity.releaseDate ? String(entity.releaseDate).slice(0, 4) : '');
 
+    /** external_ids 중 점수가 아닌 식별자 — 점수 칩으로 내보내지 않는다 */
+    const EXTERNAL_ID_KEYS: ReadonlySet<string> = new Set(['tmdb', 'tmdb_type', 'imdb', 'kobis']);
+
     /** 외부 점수 칩 (external_ids 가 있을 때만 "참고용"으로 하단 표시) */
     const externalChips = $derived.by(() => {
         const ext = entity.externalIds;
         if (!ext || typeof ext !== 'object') return [];
         return Object.entries(ext)
+            .filter(([source]) => !EXTERNAL_ID_KEYS.has(source))
             .filter(([, v]) => v != null && v !== '')
             .map(([source, value]) => ({ source, value: String(value) }));
     });
@@ -615,5 +621,12 @@
                 외부 점수는 참고용이며, 다모앙 커뮤니티 별점과 합산하지 않습니다.
             </p>
         </div>
+    {/if}
+
+    {#if data.posterFromTmdb}
+        <p class="text-muted-foreground mt-6 text-center text-xs">
+            포스터 출처: TMDB — This product uses the TMDB API but is not endorsed or certified by
+            TMDB.
+        </p>
     {/if}
 </div>
