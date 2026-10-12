@@ -11,7 +11,7 @@ export const TICKS_PER_SEC = 60;
 
 /* ── 대전 모드 ── */
 
-export type RuleId = 'attack' | 'sprint40';
+export type RuleId = 'attack' | 'sprint40' | 'survival';
 export type MatchMode = 'random' | 'favorite';
 
 export interface SpeedUp {
@@ -50,6 +50,14 @@ export const RULES: Record<RuleId, RuleDef> = {
         goalLines: 40,
         timeLimitSec: 300,
         speedUp: null
+    },
+    survival: {
+        id: 'survival',
+        label: '생존전',
+        garbage: false,
+        goalLines: null,
+        timeLimitSec: 600,
+        speedUp: { startSec: 30, everySec: 20 }
     }
 };
 

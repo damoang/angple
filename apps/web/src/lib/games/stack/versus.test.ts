@@ -19,10 +19,12 @@ import {
 import {
     ATTACK,
     RULES,
+    RULE_IDS,
     attackFor,
     cellBalanceOk,
     decodeBoard,
     encodeBoard,
+    isRuleId,
     levelFloor,
     offsetAttack,
     soloClaimCheck,
@@ -49,6 +51,20 @@ describe('앙쌓기 대전 규칙', () => {
         expect(RULES.sprint40.garbage).toBe(false);
         expect(RULES.sprint40.goalLines).toBe(40);
         expect(RULES.sprint40.timeLimitSec).toBe(300);
+    });
+
+    it('규칙표: 생존전은 방해 줄 없음·목표 없음·10분·30초부터 20초마다 빨라짐', () => {
+        expect(RULES.survival).toEqual({
+            id: 'survival',
+            label: '생존전',
+            garbage: false,
+            goalLines: null,
+            timeLimitSec: 600,
+            speedUp: { startSec: 30, everySec: 20 }
+        });
+        expect(RULE_IDS).toContain('survival');
+        expect(isRuleId('survival')).toBe(true);
+        expect(isRuleId('marathon')).toBe(false);
     });
 
     it('판 직렬화는 162자 0~8 이고 그대로 되돌아온다', () => {
@@ -81,6 +97,16 @@ describe('앙쌓기 대전 규칙', () => {
         expect(levelFloor(RULES.attack, sec(150))).toBe(3);
         expect(levelFloor(RULES.attack, sec(600))).toBe(18);
         expect(levelFloor(RULES.sprint40, sec(300))).toBe(1);
+    });
+
+    it('최소 레벨: 생존전은 30초부터 20초마다 +1', () => {
+        const sec = (s: number) => s * 60;
+        expect(levelFloor(RULES.survival, sec(29))).toBe(1);
+        expect(levelFloor(RULES.survival, sec(30) - 1)).toBe(1);
+        expect(levelFloor(RULES.survival, sec(30))).toBe(2);
+        expect(levelFloor(RULES.survival, sec(49))).toBe(2);
+        expect(levelFloor(RULES.survival, sec(50))).toBe(3);
+        expect(levelFloor(RULES.survival, sec(210))).toBe(11);
     });
 
     it('대전 칸 보존식', () => {
