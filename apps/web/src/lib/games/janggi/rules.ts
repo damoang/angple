@@ -376,6 +376,11 @@ export function legalTargets(pcs: JanggiPiece[], index: number): Point[] {
     return getMoves(p, board).filter((m) => !isCheck(applyMove(pcs, index, m), p.team));
 }
 
+/** team 의 합법수 전부 — 두고 나서 자기 궁이 장군인 수는 뺀다. */
+export function getLegalMoves(pcs: JanggiPiece[], team: number): MoveCandidate[] {
+    return getAllMoves(pcs, team).filter((m) => !isCheck(applyMove(pcs, m.index, m.to), team));
+}
+
 /** 표시용 글자 — [한자, 한글]. 궁은 진영 글자. */
 export function pieceGlyph(kind: number, team: number): [string, string] {
     switch (kind) {

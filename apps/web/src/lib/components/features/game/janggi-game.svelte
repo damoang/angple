@@ -6,6 +6,7 @@
      * 그리기 = janggi-board.svelte (온라인 대전과 같은 보드).
      */
     import { onDestroy } from 'svelte';
+    import { toast } from 'svelte-sonner';
     import JanggiBoard from './janggi-board.svelte';
     import JanggiSetupPicker from './janggi-setup-picker.svelte';
     import {
@@ -16,6 +17,7 @@
         TEAM,
         applyMove,
         getBoard,
+        getLegalMoves,
         getMoves,
         initPieces,
         isCheck,
@@ -111,6 +113,7 @@
     /* ── 게임 시작/리셋 ── */
     function startGame() {
         generation++;
+        ai?.reset();
         if (isSingle) hanSetup = SETUPS[Math.floor(Math.random() * SETUPS.length)];
         pieces = initPieces(mySetup, hanSetup);
         selectedIndex = null;
@@ -127,6 +130,7 @@
 
     function backToSetup() {
         generation++;
+        ai?.reset();
         thinking = false;
         selectedIndex = null;
         targets = [];
@@ -169,19 +173,33 @@
         const gen = generation;
         thinking = true;
         if (!ai) ai = createJanggiAi();
-        const res = await ai.think(pieces, TEAM.HAN, difficulty);
-        if (gen !== generation) return; // 그사이 새 판
+        const outcome = await ai.think(pieces, TEAM.HAN, difficulty);
+        if (gen !== generation || outcome.kind === 'cancelled') return; // 그사이 새 판
         thinking = false;
-        if (!res) {
+
+        if (outcome.kind === 'move') {
+            const res = outcome.result;
+            const p = pieces[res.index];
+            if (p && p.alive && p.team === TEAM.HAN && p.x === res.from.x && p.y === res.from.y) {
+                playMove(res.index, res.to);
+                return;
+            }
+        }
+
+        const legal = getLegalMoves(pieces, TEAM.HAN);
+        if (outcome.kind === 'none' || legal.length === 0) {
+            // 둘 수 있는 합법수가 없다 = 외통
             gameOver = true;
             winner = TEAM.CHO;
+            checkTeam = null;
+            message = '';
             return;
         }
-        const p = pieces[res.index];
-        if (!p || !p.alive || p.team !== TEAM.HAN || p.x !== res.from.x || p.y !== res.from.y) {
-            return;
-        }
-        playMove(res.index, res.to);
+
+        // 탐색 실패 — 승패를 내지 않고 아무 합법수나 둔다.
+        toast.error('AI 계산 중 문제가 생겨 임의의 수를 둡니다.');
+        const pick = legal[Math.floor(Math.random() * legal.length)];
+        playMove(pick.index, pick.to);
     }
 
     /* ── 클릭 ── */

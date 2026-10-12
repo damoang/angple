@@ -12,7 +12,15 @@ import {
     searchBestMove,
     type SearchResult
 } from './ai';
-import { KIND, TEAM, applyMove, getAllMoves, initPieces, type JanggiPiece } from './rules';
+import {
+    KIND,
+    TEAM,
+    applyMove,
+    getLegalMoves,
+    initPieces,
+    isCheck,
+    type JanggiPiece
+} from './rules';
 
 const { GUNG, CHA, SA, JOLE } = KIND;
 const { CHO, HAN } = TEAM;
@@ -31,7 +39,8 @@ function isLegal(pcs: JanggiPiece[], team: number, r: SearchResult | null): bool
     const p = pcs[r.index];
     if (!p || !p.alive || p.team !== team) return false;
     if (p.x !== r.from.x || p.y !== r.from.y) return false;
-    return getAllMoves(pcs, team).some(
+    // 합법수 = 두고 나서 자기 궁이 장군이 아닌 수
+    return getLegalMoves(pcs, team).some(
         (m) => m.index === r.index && m.to.x === r.to.x && m.to.y === r.to.y
     );
 }
@@ -118,7 +127,9 @@ describe('searchBestMove — 합법성', () => {
 
     it('중급·고급 수는 탐색 깊이를 보고한다', () => {
         const pcs = initPieces();
-        const normal = searchBestMove(pcs, HAN, 'normal', { random: seeded(3) });
+        // 가짜 시계 — 실제 시간과 무관하게 상한에 걸리지 않는다
+        const frozen = () => 0;
+        const normal = searchBestMove(pcs, HAN, 'normal', { random: seeded(3), now: frozen });
         expect(normal?.depth).toBe(3);
         const hard = searchBestMove(pcs, HAN, 'hard', { random: seeded(3), maxDepth: 2 });
         expect(hard?.depth).toBe(2);
@@ -163,6 +174,41 @@ describe('searchBestMove — 판단', () => {
         for (const d of DIFFICULTIES) {
             const r = searchBestMove(pcs, HAN, d, { random: () => 0 });
             expect(r?.to).toEqual({ x: 4, y: 8 });
+        }
+    });
+});
+
+describe('searchBestMove — 장군 대응', () => {
+    // 초 차가 한 궁을 장군 — 한은 반드시 장군을 풀어야 한다
+    const inCheck: JanggiPiece[] = [
+        { kind: GUNG, team: HAN, x: 4, y: 1, alive: true },
+        { kind: GUNG, team: CHO, x: 3, y: 9, alive: true },
+        { kind: CHA, team: CHO, x: 4, y: 6, alive: true },
+        { kind: JOLE, team: HAN, x: 0, y: 3, alive: true },
+        { kind: JOLE, team: HAN, x: 8, y: 3, alive: true }
+    ];
+
+    it('초급도 장군을 방치하지 않는다', () => {
+        expect(isCheck(inCheck, HAN)).toBe(true);
+        for (let seed = 1; seed <= 30; seed++) {
+            const r = searchBestMove(inCheck, HAN, 'easy', { random: seeded(seed) });
+            expect(isLegal(inCheck, HAN, r)).toBe(true);
+            expect(isCheck(applyMove(inCheck, r!.index, r!.to), HAN)).toBe(false);
+        }
+    });
+
+    it('합법수가 없으면(외통) null', () => {
+        // 한 궁 (4,0) — 초 차 두 대가 0·1 줄을 막고, 궁성 밖으로는 못 나간다
+        const mated: JanggiPiece[] = [
+            { kind: GUNG, team: HAN, x: 4, y: 0, alive: true },
+            { kind: GUNG, team: CHO, x: 3, y: 9, alive: true },
+            { kind: CHA, team: CHO, x: 0, y: 0, alive: true },
+            { kind: CHA, team: CHO, x: 0, y: 1, alive: true },
+            { kind: CHA, team: CHO, x: 0, y: 2, alive: true }
+        ];
+        expect(getLegalMoves(mated, HAN)).toHaveLength(0);
+        for (const d of DIFFICULTIES) {
+            expect(searchBestMove(mated, HAN, d, { now: () => 0 })).toBeNull();
         }
     });
 });

@@ -153,6 +153,19 @@ class Searcher {
         this.now = now;
     }
 
+    /** team 의 궁이 공격받는지(궁이 없으면 true). */
+    kingAttacked(team: number): boolean {
+        const king = this.pcs.find((p) => p.alive && p.kind === KIND.GUNG && p.team === team);
+        if (!king) return true;
+        for (const p of this.pcs) {
+            if (!p.alive || p.team === team) continue;
+            for (const m of getMoves(p, this.board)) {
+                if (m.x === king.x && m.y === king.y) return true;
+            }
+        }
+        return false;
+    }
+
     genMoves(team: number): SearchMove[] {
         const out: SearchMove[] = [];
         for (let i = 0; i < this.pcs.length; i++) {
@@ -220,7 +233,15 @@ class Searcher {
         pv: { index: number; to: Point } | null,
         random: () => number
     ): { move: SearchMove; score: number } | null {
-        const moves = this.genMoves(team);
+        // 루트는 합법수만 — 두고 나서 자기 궁이 장군이면 제외(궁을 잡아 끝내는 수는 허용)
+        const moves = this.genMoves(team).filter((m) => {
+            const undo = this.make(m);
+            const ok =
+                (undo.captured !== null && undo.captured.kind === KIND.GUNG) ||
+                !this.kingAttacked(team);
+            this.unmake(m, undo);
+            return ok;
+        });
         if (moves.length === 0) return null;
         if (this.cfg.ordering && pv) {
             const at = moves.findIndex(
@@ -250,7 +271,7 @@ class Searcher {
 }
 
 /**
- * team 이 둘 최선수를 찾는다. 둘 수가 없으면 null.
+ * team 이 둘 최선수를 찾는다. 합법수(자기 궁을 장군에 두지 않는 수)가 없으면 null(= 외통).
  * 시간 상한을 넘기면 마지막으로 끝난 깊이의 결과를 돌려준다(첫 깊이는 상한과 무관하게 끝낸다).
  */
 export function searchBestMove(
