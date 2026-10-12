@@ -360,9 +360,12 @@
 
     let keywordAlerts = $state<KeywordAlert[]>([]);
     let keywordInput = $state('');
-    let keywordLoading = $state(false);
+    // 첫 응답 전에 「등록된 키워드가 없습니다」가 잠깐 보이지 않도록 로딩 상태로 시작한다.
+    let keywordLoading = $state(true);
     let keywordLoadFailed = $state(false);
     let keywordBusy = $state(false);
+    // 삭제 요청 중인 키워드 id — 같은 칩을 두 번 눌러 요청이 겹치지 않게 한다.
+    let keywordDeleting = $state<number[]>([]);
     let keywordRequested = false;
 
     // 알림 탭을 열 때 한 번만 불러온다 — 다른 탭만 보는 방문에는 요청하지 않는다.
@@ -424,6 +427,8 @@
     }
 
     async function removeKeywordAlert(id: number) {
+        if (keywordDeleting.includes(id)) return;
+        keywordDeleting = [...keywordDeleting, id];
         try {
             const res = await fetch(`/api/my/keyword-alerts?id=${id}`, { method: 'DELETE' });
             const json = await res.json().catch(() => null);
@@ -438,6 +443,7 @@
         } catch {
             toast.error('키워드를 삭제하지 못했습니다.');
         }
+        keywordDeleting = keywordDeleting.filter((d) => d !== id);
     }
 
     function handleKeywordKeydown(e: KeyboardEvent) {
@@ -1496,6 +1502,7 @@
                                     <button
                                         type="button"
                                         onclick={() => removeKeywordAlert(item.id)}
+                                        disabled={keywordDeleting.includes(item.id)}
                                         class="hover:bg-foreground/10 shrink-0 rounded-full p-0.5"
                                         aria-label="키워드 삭제: {item.keyword}"
                                     >

@@ -50,6 +50,11 @@ function isDuplicateEntry(error: unknown): boolean {
     return (error as { code?: string } | null)?.code === 'ER_DUP_ENTRY';
 }
 
+function isDeadlock(error: unknown): boolean {
+    const e = error as { code?: string; errno?: number } | null;
+    return e?.code === 'ER_LOCK_DEADLOCK' || e?.errno === 1213;
+}
+
 /** GET: 내 키워드 목록 */
 export const GET: RequestHandler = async ({ cookies, request }) => {
     if (!isInternalAppRequest(request)) return internalOnlyErrorResponse();
@@ -113,6 +118,18 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
                         success: false,
                         error: 'duplicate',
                         message: keywordAlertErrorMessage('duplicate')
+                    },
+                    { status: 409 }
+                );
+            }
+            // 같은 회원의 동시 추가끼리 INSERT … SELECT 잠금이 엇갈리면 교착으로 한쪽이 진다.
+            // 서버 오류가 아니라 「다시 시도」로 풀리는 충돌이다.
+            if (isDeadlock(error)) {
+                return json(
+                    {
+                        success: false,
+                        error: 'conflict',
+                        message: '동시에 여러 요청이 처리되고 있습니다. 잠시 후 다시 시도해 주세요.'
                     },
                     { status: 409 }
                 );

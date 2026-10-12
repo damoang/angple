@@ -182,6 +182,21 @@ describe('POST', () => {
         expect((await res.json()).error).toBe('duplicate');
     });
 
+    it('교착(ER_LOCK_DEADLOCK / 1213)은 500 이 아니라 409 — 다시 시도 안내', async () => {
+        query.mockImplementationOnce(async () => [[]]); // 목록 조회
+        query.mockImplementationOnce(async () => {
+            throw Object.assign(new Error('Deadlock found'), {
+                code: 'ER_LOCK_DEADLOCK',
+                errno: 1213
+            });
+        });
+        const res = await POST(event('POST', { body: { keyword: '맥북' } }));
+        const body = await res.json();
+        expect(res.status).toBe(409);
+        expect(body.error).toBe('conflict');
+        expect(body.message).toContain('다시 시도');
+    });
+
     it('INSERT 는 내 mb_id 로만 한다', async () => {
         authUser = { mb_id: 'member_b' };
         await POST(event('POST', { body: { keyword: '맥북', mb_id: 'member_a' } }));
