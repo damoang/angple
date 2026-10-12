@@ -7,6 +7,7 @@
 
 import { browser } from '$app/environment';
 import { serverBlobLacksKeys } from '$lib/utils/ui-settings-sync';
+import { UI_SETTINGS_DEFAULTS } from './ui-settings-defaults';
 
 const STORAGE_KEY = 'angple_ui_settings';
 
@@ -82,41 +83,7 @@ export interface UiSettings {
     messageDeny: boolean;
 }
 
-const DEFAULTS: UiSettings = {
-    titleBold: false,
-    listView: 'classic',
-    lineHeight: 'normal',
-    fontFamily: 'default',
-    contentFontSize: 'base',
-    commentFontSize: 'inherit',
-    hideMyProfile: false,
-    contentBlur: true,
-    hidePostList: false,
-    hideReadNotices: false,
-    // 기본 켜짐 — 고정 공지가 여러 개인 게시판에서 읽은 공지가 목록 최상단을 계속
-    // 차지하는 것이 본래 문제였다. 개수는 알려주고 언제든 펼칠 수 있으므로 정보 손실이 없다.
-    collapseReadNotices: true,
-    muteKeywords: [],
-    showNewComments: true,
-    enableKeyboardShortcuts: true,
-    showShortcutBadge: true,
-    showShortcutButtons: false,
-    shortcutButtonSize: 'medium',
-    listFontSize: 'base',
-    recommendFontSize: 'base',
-    pinSearch: false,
-    pinMemoSearch: false,
-    enableTouchGestures: false,
-    swipeThreshold: 50,
-    doubleTapInterval: 300,
-    hideBlockedComments: false,
-    hideMemo: false,
-    hideMemoInList: false,
-    blurMemo: false,
-    expandMemoInList: true,
-    memoColorLabels: {},
-    messageDeny: false
-};
+const DEFAULTS: UiSettings = UI_SETTINGS_DEFAULTS;
 
 // ⛔ normal 은 현재 라이브 하드코딩(markdown .prose p / tiptap p = 1.8)과 **같은 값**이어야 한다.
 //    #13456: 이 설정은 그동안 --content-line-height 를 읽는 CSS 가 0곳이라 죽어 있었다.
