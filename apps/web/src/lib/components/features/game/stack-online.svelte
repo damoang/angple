@@ -180,8 +180,12 @@
     const RULE_DESC: Record<RuleId, string> = {
         attack: '줄을 지워 상대에게 방해 줄을 보냅니다. 먼저 넘치면 패배',
         sprint40: '40줄을 먼저 지우면 승리. 5분이 지나면 줄이 많은 쪽 승리',
-        survival: '방해 줄 없이 점점 빨라집니다. 오래 버티는 쪽 승리'
+        survival: '방해 줄 없이 점점 빨라집니다. 오래 버티는 쪽 승리',
+        score120: '2분 동안 점수가 높은 쪽 승리. 먼저 넘치면 패배'
     };
+    /** 점수전에서 앞선 쪽 점수 색 */
+    const myLeadClass = $derived(score > oppScore ? 'text-primary' : '');
+    const oppLeadClass = $derived(oppScore > score ? 'text-amber-600 dark:text-amber-400' : '');
 
     /* ── 서버 연결 ── */
 
@@ -856,7 +860,7 @@
             <div
                 role="radiogroup"
                 aria-label="대전 방식"
-                class="grid grid-cols-1 gap-2 sm:grid-cols-3"
+                class="grid grid-cols-1 gap-2 sm:grid-cols-2"
             >
                 {#each RULE_IDS as id (id)}
                     <button
@@ -1034,6 +1038,24 @@
             </div>
         {/if}
 
+        {#if activeRule.id === 'score120'}
+            <!-- 점수전 — 두 사람 점수를 나란히 크게 -->
+            <div class="grid w-full grid-cols-2 gap-2" aria-label="점수 비교">
+                <div class="rounded-md border px-2 py-1 text-center">
+                    <p class="text-muted-foreground text-xs">나</p>
+                    <p class="text-lg font-bold tabular-nums {myLeadClass}">
+                        {score.toLocaleString()}
+                    </p>
+                </div>
+                <div class="rounded-md border px-2 py-1 text-center">
+                    <p class="text-muted-foreground text-xs">상대</p>
+                    <p class="text-lg font-bold tabular-nums {oppLeadClass}">
+                        {oppScore.toLocaleString()}
+                    </p>
+                </div>
+            </div>
+        {/if}
+
         <div class="flex items-start justify-center gap-2">
             {#if activeRule.garbage}
                 <!-- 가비지 미터 — 내게 쌓인 방해 줄 -->
@@ -1100,9 +1122,16 @@
                         role="img"
                         aria-label="상대 게임판"
                     ></canvas>
-                    <p class="text-muted-foreground mt-0.5 tabular-nums">
-                        {oppLines}줄 · {oppScore.toLocaleString()}
-                    </p>
+                    {#if activeRule.id === 'score120'}
+                        <p class="mt-0.5 text-sm font-bold tabular-nums">
+                            {oppScore.toLocaleString()}
+                        </p>
+                        <p class="text-muted-foreground tabular-nums">{oppLines}줄</p>
+                    {:else}
+                        <p class="text-muted-foreground mt-0.5 tabular-nums">
+                            {oppLines}줄 · {oppScore.toLocaleString()}
+                        </p>
+                    {/if}
                     {#if activeRule.garbage && oppPending > 0}
                         <p class="tabular-nums text-red-600 dark:text-red-400">
                             받을 줄 {oppPending}

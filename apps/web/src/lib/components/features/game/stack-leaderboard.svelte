@@ -22,7 +22,8 @@
         { id: 'solo_all', label: '역대', versus: false },
         { id: 'vs_attack', label: '공격 모드', versus: true },
         { id: 'vs_sprint40', label: '40줄', versus: true },
-        { id: 'vs_survival', label: '생존전', versus: true }
+        { id: 'vs_survival', label: '생존전', versus: true },
+        { id: 'vs_score120', label: '점수전', versus: true }
     ];
 
     let current = $state<BoardId>('solo_week');
@@ -66,7 +67,11 @@
 </script>
 
 <div class="space-y-3">
-    <div class="grid grid-cols-5 gap-1 rounded-lg border p-1" role="tablist" aria-label="점수판">
+    <div
+        class="grid grid-cols-3 gap-1 rounded-lg border p-1 sm:grid-cols-6"
+        role="tablist"
+        aria-label="점수판"
+    >
         {#each BOARDS as b (b.id)}
             <button
                 type="button"
