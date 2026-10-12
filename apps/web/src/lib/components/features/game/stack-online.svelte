@@ -26,6 +26,7 @@
         RULES,
         RULE_IDS,
         isRuleId,
+        levelFloor,
         type ClientMessage,
         type MatchMode,
         type OpponentInfo,
@@ -118,6 +119,8 @@
     let score = $state(0);
     let lines = $state(0);
     let level = $state(1);
+    /** 시간이 지나면 빨라지는 규칙의 현재 최소 레벨(속도 단계) — 엔진 틱 기준 */
+    let speedStep = $state(1);
     let pending = $state(0);
     let timeLeft = $state(0);
     let oppLines = $state(0);
@@ -173,6 +176,12 @@
     const inGame = $derived(phase === 'countdown' || phase === 'playing' || phase === 'over');
     const goal = $derived(activeRule.goalLines);
     const ruleStats = $derived(myStats[rule]);
+
+    const RULE_DESC: Record<RuleId, string> = {
+        attack: '줄을 지워 상대에게 방해 줄을 보냅니다. 먼저 넘치면 패배',
+        sprint40: '40줄을 먼저 지우면 승리. 5분이 지나면 줄이 많은 쪽 승리',
+        survival: '방해 줄 없이 점점 빨라집니다. 오래 버티는 쪽 승리'
+    };
 
     /* ── 서버 연결 ── */
 
@@ -470,6 +479,7 @@
                 score = 0;
                 lines = 0;
                 level = 1;
+                speedStep = 1;
                 pending = 0;
                 oppLines = 0;
                 oppScore = 0;
@@ -640,6 +650,8 @@
         if (g.score !== score) score = g.score;
         if (g.lines !== lines) lines = g.lines;
         if (g.level !== level) level = g.level;
+        const floorNow = levelFloor(player.rule, g.tick);
+        if (floorNow !== speedStep) speedStep = floorNow;
         const left = remainingSeconds(timeLimitMs, g.tick);
         if (left !== timeLeft) timeLeft = left;
         if (r.cleared > 0) announce = `${r.cleared}줄 지움`;
@@ -841,7 +853,11 @@
         {/if}
 
         <div class="space-y-3 rounded-lg border p-3">
-            <div role="radiogroup" aria-label="대전 방식" class="grid grid-cols-2 gap-2">
+            <div
+                role="radiogroup"
+                aria-label="대전 방식"
+                class="grid grid-cols-1 gap-2 sm:grid-cols-3"
+            >
                 {#each RULE_IDS as id (id)}
                     <button
                         type="button"
@@ -857,9 +873,7 @@
                     >
                         <span class="block text-sm font-semibold">{RULES[id].label}</span>
                         <span class="text-muted-foreground block text-[11px] leading-tight">
-                            {id === 'attack'
-                                ? '줄을 지워 상대에게 방해 줄을 보냅니다. 먼저 넘치면 패배'
-                                : '40줄을 먼저 지우면 승리. 5분이 지나면 줄이 많은 쪽 승리'}
+                            {RULE_DESC[id]}
                         </span>
                         {#if lobby && (lobby[id] ?? 0) > 0}
                             <span
@@ -1108,6 +1122,12 @@
                         <dt class="text-muted-foreground">레벨</dt>
                         <dd class="font-bold tabular-nums">{level}</dd>
                     </div>
+                    {#if activeRule.speedUp}
+                        <div class="flex justify-between">
+                            <dt class="text-muted-foreground">속도</dt>
+                            <dd class="font-bold tabular-nums">{speedStep}단계</dd>
+                        </div>
+                    {/if}
                 </dl>
             </div>
         </div>

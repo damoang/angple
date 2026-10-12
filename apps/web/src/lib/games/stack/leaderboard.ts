@@ -9,7 +9,7 @@
  */
 import { STACK_API_BASE } from './solo-record';
 
-export type BoardId = 'solo_week' | 'solo_all' | 'vs_attack' | 'vs_sprint40';
+export type BoardId = 'solo_week' | 'solo_all' | 'vs_attack' | 'vs_sprint40' | 'vs_survival';
 
 /** 점수판 한 장에 보여 주는 줄 수 */
 export const LEADERBOARD_SIZE = 10;
