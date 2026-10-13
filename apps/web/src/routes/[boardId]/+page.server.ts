@@ -21,6 +21,11 @@ import { extractFirstImage } from '$lib/components/features/adult/thumbnail-util
 import { getCachedBoard, resolveCanonicalBoardId } from '$lib/server/board-cache.js';
 import { resolveGivingMeta } from '$lib/features/giving/model.js';
 import { searchByBoard } from '$lib/server/sphinx-search.js';
+import {
+    excludeWithdrawnAuthorHits,
+    isAuthorSearchField,
+    isWithdrawnSearchTerm
+} from '$lib/server/withdrawn-authors.js';
 import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-mask.js';
 import { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
@@ -604,6 +609,18 @@ export const load: PageServerLoad = async ({
                 const sort = (searchSort === 'relevance' ? 'relevance' : 'date') as
                     | 'date'
                     | 'relevance';
+                // 작성자 계열 검색: 탈퇴 회원 정보 비노출 정책을 작성자 검색에도 적용한다.
+                // 검색어가 탈퇴 회원의 아이디·닉네임과 같거나 판정에 실패하면 빈 결과
+                // (일반 「결과 없음」과 같은 모양). 이 경우 백엔드 폴백으로 넘기지 않는다.
+                const isAuthorSearch = isAuthorSearchField(searchField);
+                const emptySearch = { data: [], meta: { page, limit, total: 0 } };
+                if (isAuthorSearch) {
+                    try {
+                        if (await isWithdrawnSearchTerm(searchQuery!)) return emptySearch;
+                    } catch {
+                        return emptySearch;
+                    }
+                }
                 const sphinxResult = await searchByBoard(
                     boardId,
                     searchField!,
@@ -612,6 +629,18 @@ export const load: PageServerLoad = async ({
                     limit,
                     sort
                 );
+                // 작성자 계열 검색: 작성자가 탈퇴 회원인 글·댓글을 뺀다(부분 일치 포함).
+                // 총 건수는 이번 페이지에서 뺀 만큼만 보정한다(전수 보정은 Sphinx 재질의 필요).
+                if (isAuthorSearch) {
+                    try {
+                        const kept = await excludeWithdrawnAuthorHits(boardId, sphinxResult);
+                        sphinxResult.ids = kept.ids;
+                        sphinxResult.parentIds = kept.parentIds;
+                        sphinxResult.total = Math.max(0, sphinxResult.total - kept.removed);
+                    } catch {
+                        return emptySearch;
+                    }
+                }
                 // 댓글 검색(comment / comment_author)이면 parentIds로 부모 글 fetch
                 // 한 글에 댓글 여러 개 매칭 시 dedupe 필요 (Set), 첫 등장 순서 유지
                 // 댓글 검색 여부: parentIds가 있으면 댓글 매칭 → 부모 글로 재조회.

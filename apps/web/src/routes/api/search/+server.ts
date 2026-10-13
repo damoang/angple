@@ -19,6 +19,12 @@ import { searchAllBoards, buildMatchExpr } from '$lib/server/sphinx-search.js';
 import { findDisciplinedIds, DISCIPLINED_TITLE } from '$lib/server/discipline-mask.js';
 import { isSecretOption } from '$lib/server/secret-option.js';
 import { maskEmailText } from '$lib/utils/email-reveal.js';
+import {
+    findWithdrawnMemberIds,
+    isAuthorSearchField,
+    isWithdrawnAuthor,
+    isWithdrawnSearchTerm
+} from '$lib/server/withdrawn-authors.js';
 import type { RowDataPacket } from 'mysql2';
 
 /** 본문(wr_content)을 매칭하지 않는 검색 필드 — sphinx-search.ts buildMatchExpr 와 일치 */
@@ -55,6 +61,11 @@ interface BoardFileRow extends RowDataPacket {
     wr_id: number;
 }
 
+interface SearchAuthorRow extends RowDataPacket {
+    wr_id: number;
+    mb_id: string;
+}
+
 export const GET: RequestHandler = async ({ url, locals }) => {
     if (!locals.user) {
         return json({ success: false, error: '로그인이 필요합니다.' }, { status: 401 });
@@ -83,6 +94,21 @@ export const GET: RequestHandler = async ({ url, locals }) => {
         //    본문을 보지 않는 필드만 명시하고 나머지(알 수 없는 값 포함)는 본문 매칭으로 본다.
         const matchesBody = !NON_BODY_FIELDS.has(field);
 
+        // 작성자 계열 검색: 탈퇴 회원 정보 비노출 정책을 작성자 검색에도 적용한다.
+        // 검색어가 탈퇴 회원의 아이디·닉네임과 같으면 검색하지 않고 빈 결과를 돌려준다.
+        // 판정에 실패하면 빈 결과(비노출 우선). 응답 모양은 일반 「결과 없음」과 같다.
+        const isAuthorSearch = isAuthorSearchField(field);
+        const emptyResult = () => {
+            return json({ success: true, data: { results: [], total: 0, query } });
+        };
+        if (isAuthorSearch) {
+            try {
+                if (await isWithdrawnSearchTerm(query)) return emptyResult();
+            } catch {
+                return emptyResult();
+            }
+        }
+
         // 1) Sphinx에서 검색 (최대 200건)
         const { rows: sphinxRows } = await searchAllBoards(field, query, 200);
 
@@ -101,6 +127,45 @@ export const GET: RequestHandler = async ({ url, locals }) => {
                 boardMap.set(boardId, []);
             }
             boardMap.get(boardId)!.push(row);
+        }
+
+        // 2-1) 작성자 계열 검색: 작성자가 탈퇴 회원인 글·댓글을 뺀다(부분 일치 포함).
+        //      게시판별 집계·총 건수가 뺀 결과 기준이 되도록 그룹 단계에서 거른다.
+        if (isAuthorSearch) {
+            const authorOf = new Map<string, string>();
+            // 작성자를 확인하지 못한 행은 내보내지 않는다.
+            const unresolved = new Set<string>();
+            const authorLookups = [...boardMap].map(async ([boardId, rows]) => {
+                const ids = rows.map((r) => r.wr_id);
+                const ph = ids.map(() => '?').join(',');
+                try {
+                    const [authorRows] = await readPool.execute<SearchAuthorRow[]>(
+                        `SELECT wr_id, mb_id FROM g5_write_${boardId} WHERE wr_id IN (${ph})`,
+                        ids
+                    );
+                    for (const a of authorRows) {
+                        authorOf.set(`${boardId}:${a.wr_id}`, a.mb_id);
+                    }
+                } catch {
+                    for (const id of ids) unresolved.add(`${boardId}:${id}`);
+                }
+            });
+            await Promise.all(authorLookups);
+            let withdrawn: Set<string>;
+            try {
+                withdrawn = await findWithdrawnMemberIds(authorOf.values());
+            } catch {
+                return emptyResult();
+            }
+            for (const [boardId, rows] of [...boardMap]) {
+                const kept = rows.filter((row) => {
+                    const key = `${boardId}:${row.wr_id}`;
+                    return !unresolved.has(key) && !isWithdrawnAuthor(withdrawn, authorOf.get(key));
+                });
+                if (kept.length) boardMap.set(boardId, kept);
+                else boardMap.delete(boardId);
+            }
+            if (!boardMap.size) return emptyResult();
         }
 
         // 3) 게시판 이름 조회 + 작성자 정보 + 첨부파일 병렬 조회
