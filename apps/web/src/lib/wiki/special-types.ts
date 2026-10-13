@@ -1,4 +1,10 @@
-import type { WikiPageSummary, WikiCategory, WikiTag, WikiSearchResult, PaginatedResult } from '$lib/server/wiki';
+import type {
+    WikiPageSummary,
+    WikiCategory,
+    WikiTag,
+    WikiSearchResult,
+    PaginatedResult
+} from '$lib/server/wiki';
 export type SpecialPageData =
     | { type: 'RecentChanges'; pages: WikiPageSummary[] }
     | { type: 'AllPages'; result: PaginatedResult<WikiPageSummary>; sort: string }
@@ -14,4 +20,3 @@ export type SpecialPageData =
     | { type: 'Search'; query: string; result: PaginatedResult<WikiSearchResult> }
     | { type: 'NewPage' }
     | { type: 'Unknown'; name: string };
-

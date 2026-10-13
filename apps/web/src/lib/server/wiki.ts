@@ -211,16 +211,22 @@ export async function getPageTree(): Promise<WikiTreeNode[]> {
              LIMIT 2000`
         );
         const seen = new Set<string>();
-        return rows.filter(r => { if (seen.has(r.title)) return false; seen.add(r.title); return true; }).map((r) => ({
-            id: r.id,
-            page_id: r.page_id ?? null,
-            path: r.path,
-            title: r.title,
-            depth: r.depth ?? 0,
-            parent_id: r.parent_id ?? null,
-            is_folder: !!r.is_folder,
-            sort_order: r.sort_order ?? 0
-        })) as WikiTreeNode[];
+        return rows
+            .filter((r) => {
+                if (seen.has(r.title)) return false;
+                seen.add(r.title);
+                return true;
+            })
+            .map((r) => ({
+                id: r.id,
+                page_id: r.page_id ?? null,
+                path: r.path,
+                title: r.title,
+                depth: r.depth ?? 0,
+                parent_id: r.parent_id ?? null,
+                is_folder: !!r.is_folder,
+                sort_order: r.sort_order ?? 0
+            })) as WikiTreeNode[];
     });
 }
 
@@ -760,7 +766,13 @@ export async function updateWikiPage(
         if (pageRows.length === 0) {
             throw new Error('페이지를 찾을 수 없습니다.');
         }
-        const currentPage = pageRows[0] as { path: string; content_raw: string | null; content: string | null; content_type: string; namespace_id: number };
+        const currentPage = pageRows[0] as {
+            path: string;
+            content_raw: string | null;
+            content: string | null;
+            content_type: string;
+            namespace_id: number;
+        };
         if (currentPage.namespace_id === 8) error(403, '시스템 문서는 편집할 수 없습니다.');
         const prevSize = Buffer.byteLength(currentPage.content_raw || '', 'utf8');
         const delta = newSize - prevSize;
@@ -772,13 +784,34 @@ export async function updateWikiPage(
         );
         const maxVersion = (versionRows[0] as { max_version: number | null }).max_version || 0;
         if (input.base_revision !== undefined && input.base_revision !== maxVersion) {
-            error(409, '다른 편집자가 먼저 저장했습니다. 작성한 내용을 복사한 뒤 문서를 다시 열어 병합해 주세요.');
+            error(
+                409,
+                '다른 편집자가 먼저 저장했습니다. 작성한 내용을 복사한 뒤 문서를 다시 열어 병합해 주세요.'
+            );
         }
         // Preserve a readable baseline for imports whose rendered body differs from their old source/revision.
-        const [previous] = await connection.execute<RowDataPacket[]>('SELECT content, content_raw, content_type FROM wikiang_revisions WHERE page_id=? ORDER BY version_number DESC LIMIT 1', [pageId]);
-        const needsSnapshot = !previous.length || previous[0].content !== currentPage.content || previous[0].content_raw !== currentPage.content_raw || previous[0].content_type !== currentPage.content_type;
+        const [previous] = await connection.execute<RowDataPacket[]>(
+            'SELECT content, content_raw, content_type FROM wikiang_revisions WHERE page_id=? ORDER BY version_number DESC LIMIT 1',
+            [pageId]
+        );
+        const needsSnapshot =
+            !previous.length ||
+            previous[0].content !== currentPage.content ||
+            previous[0].content_raw !== currentPage.content_raw ||
+            previous[0].content_type !== currentPage.content_type;
         if (needsSnapshot) {
-            await connection.execute(`INSERT INTO wikiang_revisions (page_id, content, content_raw, content_type, version_number, comment, size, delta) VALUES (?, ?, ?, ?, ?, ?, ?, 0)`, [pageId, currentPage.content, currentPage.content_raw, currentPage.content_type, maxVersion + 1, '이관 문서 편집 전 원문 보존', prevSize]);
+            await connection.execute(
+                `INSERT INTO wikiang_revisions (page_id, content, content_raw, content_type, version_number, comment, size, delta) VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
+                [
+                    pageId,
+                    currentPage.content,
+                    currentPage.content_raw,
+                    currentPage.content_type,
+                    maxVersion + 1,
+                    '이관 문서 편집 전 원문 보존',
+                    prevSize
+                ]
+            );
         }
         const newVersionNumber = maxVersion + (needsSnapshot ? 2 : 1);
 
@@ -979,6 +1012,9 @@ export async function syncWikiPageLinks(
 }
 
 export async function getWikiVersion(pageId: number): Promise<number> {
-    const [rows] = await pool.execute<RowDataPacket[]>('SELECT COALESCE(MAX(version_number),0) AS version FROM wikiang_revisions WHERE page_id=?', [pageId]);
+    const [rows] = await pool.execute<RowDataPacket[]>(
+        'SELECT COALESCE(MAX(version_number),0) AS version FROM wikiang_revisions WHERE page_id=?',
+        [pageId]
+    );
     return Number(rows[0].version);
 }

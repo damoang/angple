@@ -3,10 +3,8 @@ import { error } from '@sveltejs/kit';
 import {
     getWikiPage,
     getWikiVersion,
-
     getPageRevisions,
     getRevisionPair,
-
     type WikiRevision
 } from '$lib/server/wiki';
 
@@ -40,7 +38,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
         const newIdNum = parseInt(newId, 10);
         if (!isNaN(oldIdNum) && !isNaN(newIdNum)) {
             diffData = await getRevisionPair(oldIdNum, newIdNum);
-            if (diffData.old?.page_id !== wikiPage.id || diffData.new?.page_id !== wikiPage.id) error(404, '이 문서의 편집 버전이 아닙니다.');
+            if (diffData.old?.page_id !== wikiPage.id || diffData.new?.page_id !== wikiPage.id)
+                error(404, '이 문서의 편집 버전이 아닙니다.');
         }
     }
 

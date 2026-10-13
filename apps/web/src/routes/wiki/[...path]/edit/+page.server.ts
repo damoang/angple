@@ -14,7 +14,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
     // 기존 페이지 조회 (없으면 신규 문서)
     const wikiPage = await getWikiPageForEdit(`/${path}`);
-    if (!wikiPage && await getWikiPage(`/${path}`)) error(403, '시스템 문서는 편집할 수 없습니다.');
+    if (!wikiPage && (await getWikiPage(`/${path}`)))
+        error(403, '시스템 문서는 편집할 수 없습니다.');
 
     // 경로에서 제목 추출 (신규 문서용)
     const titleFromPath = path.split('/').pop() || path;

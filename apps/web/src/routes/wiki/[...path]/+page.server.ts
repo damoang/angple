@@ -13,13 +13,7 @@ import {
     parseWikilinks,
     getExistingPagePaths,
     getBacklinks,
-    getIncomingLinks,
-
-    type WikiPageSummary,
-    type WikiCategory,
-    type WikiTag,
-    type WikiSearchResult,
-    type PaginatedResult
+    getIncomingLinks
 } from '$lib/server/wiki';
 
 // Special 페이지 타입 정의
@@ -70,7 +64,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
     }
 
     // 본문에서 [[..]] 추출 → 존재 여부 set + 백링크 동시 조회
-    const wikilinks = parseWikilinks(wikiPage.content_raw || wikiPage.content || '');
+    const wikilinks = parseWikilinks(wikiPage.content || wikiPage.content_raw || '');
     const [existingSet, backlinks] = await Promise.all([
         getExistingPagePaths(wikilinks.map((l) => l.to_path)),
         getBacklinks(wikiPage.id, wikiPage.path, 50)
@@ -96,7 +90,8 @@ async function handleSpecialPage(pageName: string, url: URL): Promise<SpecialPag
     const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit')) || 50));
 
     switch (pageName) {
-        case 'NewPage': return { type: 'NewPage' };
+        case 'NewPage':
+            return { type: 'NewPage' };
         case 'RecentChanges': {
             const pages = await getRecentPages(50);
             return { type: 'RecentChanges', pages };
@@ -114,7 +109,7 @@ async function handleSpecialPage(pageName: string, url: URL): Promise<SpecialPag
         }
 
         case 'AllPages': {
-            const sort = (url.searchParams.get('sort') || 'title') as 'title' | 'updated';
+            const sort = url.searchParams.get('sort') === 'updated' ? 'updated' : 'title';
             const result = await getAllPages(offset, limit, sort);
             return { type: 'AllPages', result, sort };
         }

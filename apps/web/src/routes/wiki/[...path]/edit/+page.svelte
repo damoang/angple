@@ -20,10 +20,24 @@
     let isSaving = $state(false);
     let errorMessage = $state<string | null>(null);
 
-    const dirty = $derived(title !== data.suggestedTitle || content !== initialContent || description !== (data.wikiPage?.description || ''));
+    const dirty = $derived(
+        title !== data.suggestedTitle ||
+            content !== initialContent ||
+            description !== (data.wikiPage?.description || '')
+    );
     let saved = false;
-    beforeNavigate(({ cancel }) => { if (dirty && !saved && !confirm('저장하지 않은 편집 내용이 있습니다. 나가시겠습니까?')) cancel(); });
-    onMount(() => on(window, 'beforeunload', event => { if (dirty && !saved) { event.preventDefault(); event.returnValue = ''; } }));
+    beforeNavigate(({ cancel }) => {
+        if (dirty && !saved && !confirm('저장하지 않은 편집 내용이 있습니다. 나가시겠습니까?'))
+            cancel();
+    });
+    onMount(() =>
+        on(window, 'beforeunload', (event) => {
+            if (dirty && !saved) {
+                event.preventDefault();
+                event.returnValue = '';
+            }
+        })
+    );
 
     async function handleSave() {
         if (!title.trim()) {
@@ -52,13 +66,19 @@
             if (data.isNew) {
                 response = await fetch('/api/wiki/pages', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', ...(data.csrfToken ? { 'X-CSRF-Token': data.csrfToken } : {}) },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(data.csrfToken ? { 'X-CSRF-Token': data.csrfToken } : {})
+                    },
                     body: JSON.stringify({ ...body, path: data.path })
                 });
             } else {
                 response = await fetch(`/api/wiki/pages/${data.wikiPage!.id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', ...(data.csrfToken ? { 'X-CSRF-Token': data.csrfToken } : {}) },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(data.csrfToken ? { 'X-CSRF-Token': data.csrfToken } : {})
+                    },
                     body: JSON.stringify(body)
                 });
             }
@@ -106,7 +126,8 @@
         <p class="edit-path">{data.path}</p>
         {#if !data.isNew && data.wikiPage?.content_type === 'html'}
             <p class="edit-notice">
-                이 문서는 HTML 원문을 그대로 편집합니다. 표·이미지·링크가 유지되는지 미리보기에서 확인해주세요.
+                이 문서는 HTML 원문을 그대로 편집합니다. 표·이미지·링크가 유지되는지 미리보기에서
+                확인해주세요.
             </p>
         {/if}
     </header>
@@ -115,7 +136,10 @@
         <div class="error-banner" role="alert">{errorMessage}</div>
     {/if}
 
-    <p class="hint">익명 편집이 가능합니다. 편집 이력에는 익명 식별자가 남으며 원본 IP는 공개되지 않습니다. 저장 전 출처와 저작권을 확인해주세요.</p>
+    <p class="hint">
+        익명 편집이 가능합니다. 편집 이력에는 익명 식별자가 남으며 원본 IP는 공개되지 않습니다. 저장
+        전 출처와 저작권을 확인해주세요.
+    </p>
     <div class="edit-form">
         <div class="form-group">
             <label for="title" class="form-label">제목</label>
@@ -133,8 +157,10 @@
         </div>
 
         <div class="form-group">
-            <label for="wiki-content-source" class="form-label">내용 ({contentType === 'html' ? 'HTML' : '마크다운'})</label>
-            <MarkdownEditor bind:value={content} {contentType} />
+            <label for="wiki-content-source" class="form-label"
+                >내용 ({contentType === 'html' ? 'HTML' : '마크다운'})</label
+            >
+            <MarkdownEditor bind:value={content} {contentType} path={data.path} />
             <p class="hint">
                 💡 위키링크 <code>[[문서명]]</code>, 굵게 <code>**굵게**</code>, 헤딩
                 <code>## 제목</code>

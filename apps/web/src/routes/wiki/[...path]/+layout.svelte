@@ -27,11 +27,24 @@
         </main>
     </div>
 
-    <footer class="wiki-bottom"><a href="/위키앙:이용_규칙">이용 규칙</a><a href="/위키앙:저작권">저작권</a><a href="/도움말">도움말</a><span>함께 읽고 고치는 지식사전, 위키앙</span></footer>
+    <footer class="wiki-bottom">
+        <a href="/위키앙:이용_규칙">이용 규칙</a><a href="/위키앙:저작권">저작권</a><a
+            href="/도움말">도움말</a
+        ><span>함께 읽고 고치는 지식사전, 위키앙</span>
+    </footer>
 </div>
 
 <style>
-    .wiki-bottom { display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; padding:1.5rem; border-top:1px solid var(--border); font-size:.85rem; color:var(--muted-foreground); }
+    .wiki-bottom {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: center;
+        padding: 1.5rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.85rem;
+        color: var(--muted-foreground);
+    }
     .wiki-layout {
         display: flex;
         flex-direction: column;

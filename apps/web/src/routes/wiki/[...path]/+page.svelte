@@ -20,12 +20,13 @@
     import FilePlusIcon from '@lucide/svelte/icons/file-plus';
     import SearchIcon from '@lucide/svelte/icons/search';
 
-
     const { data }: { data: PageData } = $props();
 
     const existingPaths = $derived(new Set<string>(data.existingWikilinkPaths || []));
     const source = $derived(data.wikiPage?.content ?? data.wikiPage?.content_raw ?? '');
-    const headings = $derived(renderWiki(source, data.wikiPage?.content_type, existingPaths).headings);
+    const headings = $derived(
+        renderWiki(source, data.wikiPage?.content_type, existingPaths).headings
+    );
     const pageUrl = $derived(wikiHref(data.wikiPage?.path || ''));
 </script>
 
@@ -147,7 +148,12 @@
 
             <div class="wiki-content">
                 {#if source}
-                    <WikiContent content={source} contentType={data.wikiPage.content_type} {existingPaths} path={data.wikiPage.path} />
+                    <WikiContent
+                        content={source}
+                        contentType={data.wikiPage.content_type}
+                        {existingPaths}
+                        path={data.wikiPage.path}
+                    />
                 {:else}<p>이 문서는 아직 내용이 없습니다. 편집으로 내용을 보완해주세요.</p>{/if}
             </div>
 
@@ -199,6 +205,7 @@
         margin-bottom: 1.25rem;
     }
     .wiki-title {
+        overflow-wrap: anywhere;
         font-size: 1.9rem;
         font-weight: 700;
         line-height: 1.2;

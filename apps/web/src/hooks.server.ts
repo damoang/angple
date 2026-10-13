@@ -460,7 +460,12 @@ export const handle: Handle = async ({ event, resolve }) => {
     if (event.request.method === 'GET' || event.request.method === 'HEAD') {
         if (pathname === '/search') redirect(302, '/Special:Search' + event.url.search);
         const canonical = canonicalWikiPath(pathname);
-        if (/^\/(?:w|wiki)(?:\/|$)/.test(pathname) || pathname.includes('%ED%8A%B9%EC%88%98%3A') || pathname.startsWith('/특수:') || legacyWikiPath(decodeWikiPath(pathname)) !== decodeWikiPath(pathname)) {
+        if (
+            /^\/(?:w|wiki)(?:\/|$)/.test(pathname) ||
+            pathname.includes('%ED%8A%B9%EC%88%98%3A') ||
+            pathname.startsWith('/특수:') ||
+            legacyWikiPath(decodeWikiPath(pathname)) !== decodeWikiPath(pathname)
+        ) {
             if (canonical !== pathname) redirect(308, canonical + event.url.search);
         }
     }
@@ -643,6 +648,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
     // --- 비로그인 SSR 응답 캐시 (홈 + 게시판 목록 + 글 상세) ---
     // Pod 재시작 시 캐시 자동 소멸 → 배포 시 구 JS 경로 문제 없음
+    const isWikiRoute = event.route.id?.startsWith('/wiki') ?? false;
     const isHomePage = pathname === '/';
     const isBoardList = isBoardListPath(pathname, event.url.searchParams);
     const isPostDetail = isPostDetailPath(pathname);
@@ -651,6 +657,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     const assetRecoveryBust = event.url.searchParams.get('_v') || '';
     const bypassSsrCacheForRecovery = assetRecoveryBust.length > 0;
     const isAnonymousPublicHtml =
+        !isWikiRoute &&
         !hasSessionCookie &&
         !bypassSsrCacheForRecovery &&
         (isHomePage || isBoardList || isPostDetail);
@@ -816,10 +823,14 @@ export const handle: Handle = async ({ event, resolve }) => {
     } else if (!event.locals.user && isPublicCacheablePath(pathname)) {
         // 비로그인 사용자의 공개 페이지: CDN 캐시 30초, stale 60초
         response.headers.set('Cache-Control', publicHtmlCacheControl);
-    } else if (!event.locals.user && isBoardListPath(pathname, event.url.searchParams)) {
+    } else if (
+        !isWikiRoute &&
+        !event.locals.user &&
+        isBoardListPath(pathname, event.url.searchParams)
+    ) {
         // 비로그인 사용자의 게시판 목록: CDN 캐시 30초, stale 60초
         response.headers.set('Cache-Control', publicHtmlCacheControl);
-    } else if (!event.locals.user && isPostDetailPath(pathname)) {
+    } else if (!isWikiRoute && !event.locals.user && isPostDetailPath(pathname)) {
         // 비로그인 사용자의 글 상세: CDN 캐시 30초, stale 60초
         response.headers.set('Cache-Control', publicHtmlCacheControl);
     } else {

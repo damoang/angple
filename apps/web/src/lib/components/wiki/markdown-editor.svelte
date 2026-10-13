@@ -1,10 +1,12 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
     import WikiContent from './wiki-content.svelte';
     import type { WikiFormat } from '$lib/wiki/render';
 
     interface Props {
         value: string;
         contentType?: WikiFormat;
+        path?: string;
         placeholder?: string;
         existingWikilinkPaths?: string[];
         onChange?: (v: string) => void;
@@ -13,6 +15,7 @@
     let {
         value = $bindable(''),
         contentType = 'markdown',
+        path = '',
         placeholder = '마크다운으로 작성하세요. 위키링크는 [[문서명]] 형식입니다.',
         existingWikilinkPaths = [],
         onChange
@@ -20,8 +23,17 @@
 
     let textareaEl: HTMLTextAreaElement | undefined = $state();
     let showPreview = $state(false);
-    const existingSet = $derived(existingWikilinkPaths.length ? new Set(existingWikilinkPaths) : undefined);
-    function update(v: string) { value = v; onChange?.(v); }
+    let ready = $state(false);
+    onMount(() => {
+        ready = true;
+    });
+    const existingSet = $derived(
+        existingWikilinkPaths.length ? new Set(existingWikilinkPaths) : undefined
+    );
+    function update(v: string) {
+        value = v;
+        onChange?.(v);
+    }
 
     function insertAtCursor(before: string, after = before, placeholderText = '') {
         if (!textareaEl) return;
@@ -81,7 +93,12 @@
 
 <div class="md-editor">
     <div class="md-toolbar">
-        <button type="button" class="md-tool preview-toggle" onclick={() => showPreview = !showPreview}>{showPreview ? '원문 편집' : '미리보기'}</button>
+        <button
+            type="button"
+            class="md-tool preview-toggle"
+            onclick={() => (showPreview = !showPreview)}
+            >{showPreview ? '원문 편집' : '미리보기'}</button
+        >
         {#each buttons as b (b.label)}
             <button type="button" class="md-tool" title={b.title} onclick={b.click}>
                 {b.label}
@@ -91,6 +108,7 @@
     <div class="md-split" class:show-preview={showPreview}>
         <textarea
             id="wiki-content-source"
+            disabled={!ready}
             aria-label="문서 내용"
             bind:this={textareaEl}
             class="md-textarea"
@@ -102,7 +120,7 @@
         ></textarea>
         <div class="md-preview">
             {#if value}
-                <WikiContent content={value} {contentType} existingPaths={existingSet} />
+                <WikiContent content={value} {contentType} {path} existingPaths={existingSet} />
             {:else}
                 <p class="md-preview-empty">미리보기는 여기에 표시됩니다.</p>
             {/if}
@@ -181,11 +199,19 @@
     .md-preview :global(a.wiki-link.red-link) {
         color: #b91c1c;
     }
-    .preview-toggle { display:none; }
+    .preview-toggle {
+        display: none;
+    }
     @media (max-width: 768px) {
-        .preview-toggle { display:block; }
-        .show-preview .md-textarea { display:none; }
-        .show-preview .md-preview { display:block; }
+        .preview-toggle {
+            display: block;
+        }
+        .show-preview .md-textarea {
+            display: none;
+        }
+        .show-preview .md-preview {
+            display: block;
+        }
         .md-split {
             grid-template-columns: 1fr;
         }

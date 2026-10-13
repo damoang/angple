@@ -21,7 +21,10 @@
         try {
             const response = await fetch(`/api/wiki/pages/${data.wikiPage.id}/revert`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', ...(data.csrfToken ? { 'X-CSRF-Token': data.csrfToken } : {}) },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(data.csrfToken ? { 'X-CSRF-Token': data.csrfToken } : {})
+                },
                 body: JSON.stringify({ revisionId, baseRevision: data.baseRevision })
             });
             const result = await response.json();
@@ -208,83 +211,86 @@
                     <p class="error-message">{revertError}</p>
                 {/if}
 
-                <table class="revision-table">
-                    <thead>
-                        <tr>
-                            <th class="col-select">이전</th>
-                            <th class="col-select">현재</th>
-                            <th class="col-date">날짜</th>
-                            <th class="col-author">편집자</th>
-                            <th class="col-size">크기</th>
-                            <th class="col-comment">편집 요약</th>
-                            <th class="col-action">작업</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {#each data.revisions as revision, index}
-                            <tr class:current={index === 0}>
-                                <td class="col-select">
-                                    {#if index < data.revisions.length - 1}
-                                        <input
-                                            type="radio"
-                                            name="oldid"
-                                            value={revision.id}
-                                            checked={selectedOld === revision.id}
-                                            onchange={() => (selectedOld = revision.id)}
-                                        />
-                                    {/if}
-                                </td>
-                                <td class="col-select">
-                                    {#if index > 0}
-                                        <input
-                                            type="radio"
-                                            name="diff"
-                                            value={revision.id}
-                                            checked={selectedNew === revision.id}
-                                            onchange={() => (selectedNew = revision.id)}
-                                        />
-                                    {/if}
-                                </td>
-                                <td class="col-date">
-                                    <span class="version-badge">v{revision.version_number}</span>
-                                    {formatDate(revision.version_date)}
-                                </td>
-                                <td class="col-author">
-                                    {authorLabel(revision)}
-                                </td>
-                                <td class="col-size">
-                                    {formatSize(revision.size)}
-                                    <span class={getDeltaClass(revision.delta)}>
-                                        ({formatDelta(revision.delta)})
-                                    </span>
-                                </td>
-                                <td class="col-comment">
-                                    {#if revision.is_minor}
-                                        <span class="minor-badge">사소한 편집</span>
-                                    {/if}
-                                    {revision.comment || ''}
-                                </td>
-                                <td class="col-action">
-                                    {#if index > 0}
-                                        <button
-                                            type="button"
-                                            class="revert-button"
-                                            disabled={revertingId !== null}
-                                            onclick={() =>
-                                                revert(revision.id, revision.version_number)}
-                                        >
-                                            {revertingId === revision.id
-                                                ? '되돌리는 중…'
-                                                : '되돌리기'}
-                                        </button>
-                                    {:else}
-                                        <span class="current-label">현재</span>
-                                    {/if}
-                                </td>
+                <div class="revision-scroll">
+                    <table class="revision-table">
+                        <thead>
+                            <tr>
+                                <th class="col-select">이전</th>
+                                <th class="col-select">현재</th>
+                                <th class="col-date">날짜</th>
+                                <th class="col-author">편집자</th>
+                                <th class="col-size">크기</th>
+                                <th class="col-comment">편집 요약</th>
+                                <th class="col-action">작업</th>
                             </tr>
-                        {/each}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {#each data.revisions as revision, index}
+                                <tr class:current={index === 0}>
+                                    <td class="col-select">
+                                        {#if index < data.revisions.length - 1}
+                                            <input
+                                                type="radio"
+                                                name="oldid"
+                                                value={revision.id}
+                                                checked={selectedOld === revision.id}
+                                                onchange={() => (selectedOld = revision.id)}
+                                            />
+                                        {/if}
+                                    </td>
+                                    <td class="col-select">
+                                        {#if index > 0}
+                                            <input
+                                                type="radio"
+                                                name="diff"
+                                                value={revision.id}
+                                                checked={selectedNew === revision.id}
+                                                onchange={() => (selectedNew = revision.id)}
+                                            />
+                                        {/if}
+                                    </td>
+                                    <td class="col-date">
+                                        <span class="version-badge">v{revision.version_number}</span
+                                        >
+                                        {formatDate(revision.version_date)}
+                                    </td>
+                                    <td class="col-author">
+                                        {authorLabel(revision)}
+                                    </td>
+                                    <td class="col-size">
+                                        {formatSize(revision.size)}
+                                        <span class={getDeltaClass(revision.delta)}>
+                                            ({formatDelta(revision.delta)})
+                                        </span>
+                                    </td>
+                                    <td class="col-comment">
+                                        {#if revision.is_minor}
+                                            <span class="minor-badge">사소한 편집</span>
+                                        {/if}
+                                        {revision.comment || ''}
+                                    </td>
+                                    <td class="col-action">
+                                        {#if index > 0}
+                                            <button
+                                                type="button"
+                                                class="revert-button"
+                                                disabled={revertingId !== null}
+                                                onclick={() =>
+                                                    revert(revision.id, revision.version_number)}
+                                            >
+                                                {revertingId === revision.id
+                                                    ? '되돌리는 중…'
+                                                    : '되돌리기'}
+                                            </button>
+                                        {:else}
+                                            <span class="current-label">현재</span>
+                                        {/if}
+                                    </td>
+                                </tr>
+                            {/each}
+                        </tbody>
+                    </table>
+                </div>
             {:else}
                 <p class="empty-message">이 문서의 편집 이력이 없습니다.</p>
             {/if}
@@ -293,6 +299,10 @@
 </div>
 
 <style>
+    .revision-scroll {
+        max-width: 100%;
+        overflow-x: auto;
+    }
     .history-page {
         max-width: 100%;
     }

@@ -54,6 +54,8 @@
         margin-bottom: 0.75rem;
     }
     .crumb {
+        overflow-wrap: anywhere;
+        min-width: 0;
         color: var(--muted-foreground, #6b7280);
         text-decoration: none;
     }

@@ -1,2 +1,11 @@
 import type { RequestHandler } from './$types';
-export const GET: RequestHandler = async () => new Response('<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>https://wikiang.org/sitemap-wiki.xml</loc></sitemap></sitemapindex>', { headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=300' } });
+export const GET: RequestHandler = async () =>
+    new Response(
+        '<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>https://wikiang.org/sitemap-wiki.xml</loc></sitemap></sitemapindex>',
+        {
+            headers: {
+                'Content-Type': 'application/xml; charset=utf-8',
+                'Cache-Control': 'public, max-age=300'
+            }
+        }
+    );
