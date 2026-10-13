@@ -2,7 +2,7 @@ if (process.env.GITHUB_ACTIONS !== 'true')
     throw new Error('QA browsers run on GitHub Actions only.');
 const { createRequire } = require('node:module');
 const req = createRequire(process.cwd() + '/apps/web/package.json');
-const { chromium } = req('playwright');
+const { chromium, expect } = req('@playwright/test');
 const fs = require('node:fs');
 const dir = process.env.QA_OUTPUT || 'qa-results';
 const base = process.env.QA_BASE || 'http://127.0.0.1:43120';
@@ -20,6 +20,21 @@ const base = process.env.QA_BASE || 'http://127.0.0.1:43120';
             });
             const errors = [];
             p.on('pageerror', (e) => errors.push(e.message));
+            await p.goto(base + '/%EB%8C%80%EB%AC%B8', { waitUntil: 'domcontentloaded' });
+            await expect(p.getByRole('heading', { name: '주제로 둘러보기' })).toBeVisible();
+            await expect(p.locator('.topic')).toHaveCount(4);
+            if (width <= 900) {
+                await p.locator('.mobile-explore summary').click();
+                await expect(p.locator('.mobile-explore .wiki-tree')).toBeVisible();
+                await p.locator('.mobile-explore summary').click();
+            } else {
+                await expect(p.locator('.wiki-nav')).toBeVisible();
+            }
+            await p.getByRole('button', { name: '화면 색상 전환' }).click();
+            await expect(p.locator('html')).toHaveClass(/dark/);
+            await p.screenshot({ path: dir + `/home-dark-${width}.png`, fullPage: true });
+            await p.getByRole('button', { name: '화면 색상 전환' }).click();
+            await expect(p.locator('html')).not.toHaveClass(/dark/);
             for (const doc of pages) {
                 const r = await p.goto(
                     base + doc.path.split('/').map(encodeURIComponent).join('/'),
@@ -47,6 +62,28 @@ const base = process.env.QA_BASE || 'http://127.0.0.1:43120';
                         document.querySelector('.wiki-content')?.innerText || ''
                     )
                 }));
+                if (doc.id === 5) {
+                    if (width <= 1200) await p.locator('.mobile-toc summary').click();
+                    const toc = p.locator(width <= 1200 ? '.mobile-toc' : '.wiki-toc-rail');
+                    const first = toc.locator('a').first();
+                    await expect(first).toBeVisible();
+                    const target = await first.getAttribute('href');
+                    await first.click();
+                    await expect
+                        .poll(() =>
+                            p.evaluate((hash) => {
+                                const heading = document.getElementById(
+                                    decodeURIComponent(hash.slice(1))
+                                );
+                                return heading
+                                    ? Math.abs(heading.getBoundingClientRect().top) < innerHeight
+                                    : false;
+                            }, target)
+                        )
+                        .toBe(true);
+                    if (width <= 1200) await p.locator('.mobile-toc summary').click();
+                    await p.evaluate(() => scrollTo(0, 0));
+                }
                 results.push({ width, id: doc.id, path: doc.path, status: r.status(), ...result });
                 if ([1, 5, 6, 15, 20, 79, 102].includes(doc.id))
                     await p.screenshot({

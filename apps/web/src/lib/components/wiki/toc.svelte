@@ -15,8 +15,13 @@
         const el = document.getElementById(slug);
         if (el) {
             e.preventDefault();
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            history.replaceState(null, '', `#${slug}`);
+            el.scrollIntoView({
+                behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                    ? 'instant'
+                    : 'smooth',
+                block: 'start'
+            });
+            window.location.hash = slug;
             active = slug;
         }
     }
@@ -44,9 +49,8 @@
 
 <style>
     .wiki-toc {
-        position: sticky;
-        top: 5rem;
-        max-height: calc(100vh - 7rem);
+        margin-top: 0.8rem;
+        max-height: min(65vh, 650px);
         overflow-y: auto;
         font-size: 0.85rem;
         border-left: 2px solid var(--border, #e5e7eb);

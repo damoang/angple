@@ -7,6 +7,7 @@
      *  - 헤딩(h2~h4)에 id 주입 → 우측 TOC 앵커 스크롤.
      */
     import type { PageData } from './$types';
+    import WikiHome from '$lib/components/wiki/wiki-home.svelte';
     import WikiContent from '$lib/components/wiki/wiki-content.svelte';
     import SpecialPage from '$lib/components/wiki/special-page.svelte';
     import Toc from '$lib/components/wiki/toc.svelte';
@@ -27,6 +28,7 @@
     const headings = $derived(
         renderWiki(source, data.wikiPage?.content_type, existingPaths).headings
     );
+    const isHome = $derived(data.wikiPage?.path === '/대문');
     const pageUrl = $derived(wikiHref(data.wikiPage?.path || ''));
 </script>
 
@@ -127,13 +129,14 @@
         </article>
     </div>
 {:else if data.wikiPage}
-    <div class="wiki-shell">
+    <div class="wiki-shell" class:home-shell={isHome}>
         <article class="wiki-main">
             <Breadcrumbs path={data.wikiPage.path} />
 
             <header class="wiki-header">
                 <h1 class="wiki-title">{data.wikiPage.title}</h1>
-                <div class="wiki-actions">
+                <nav class="wiki-actions" aria-label="문서 도구">
+                    <a class="wiki-action current" href={pageUrl} aria-current="page">읽기</a>
                     <a class="wiki-action" href={`${pageUrl}/edit`}>
                         <PencilIcon class="h-3.5 w-3.5" /> 편집
                     </a>
@@ -143,11 +146,31 @@
                     <a class="wiki-action" href={wikiHref('/토론' + data.wikiPage.path)}>
                         <MessageSquareIcon class="h-3.5 w-3.5" /> 토론
                     </a>
-                </div>
+                </nav>
             </header>
 
+            {#if !isHome && headings.length >= 3}<details class="mobile-toc">
+                    <summary>목차 <span>{headings.length}개 항목</span></summary><Toc
+                        items={headings}
+                    />
+                </details>{/if}
+
             <div class="wiki-content">
-                {#if source}
+                {#if isHome && data.home}
+                    <WikiHome
+                        total={data.home.total}
+                        recent={data.home.items}
+                        nodes={data.pageTree ?? []}
+                    />
+                    <details class="home-about">
+                        <summary>위키앙 소개 문서 읽기</summary><WikiContent
+                            content={source}
+                            contentType={data.wikiPage.content_type}
+                            {existingPaths}
+                            path={data.wikiPage.path}
+                        />
+                    </details>
+                {:else if source}
                     <WikiContent
                         content={source}
                         contentType={data.wikiPage.content_type}
@@ -164,7 +187,7 @@
             </footer>
         </article>
 
-        {#if headings.length >= 3}
+        {#if !isHome && headings.length >= 3}
             <aside class="wiki-toc-rail">
                 <Toc items={headings} />
             </aside>
@@ -173,9 +196,60 @@
 {/if}
 
 <style>
+    .wiki-action.current {
+        border-color: var(--primary);
+        color: var(--primary);
+        font-weight: 650;
+    }
+    .mobile-toc {
+        display: none;
+        margin: 0 0 1.5rem;
+        border: 1px solid var(--border);
+        padding: 0.7rem 1rem;
+        background: var(--muted);
+    }
+    .mobile-toc summary {
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 650;
+    }
+    .mobile-toc summary span {
+        font-size: 0.72rem;
+        font-weight: 400;
+        color: var(--muted-foreground);
+        margin-left: 0.5rem;
+    }
+    .home-about {
+        border-top: 1px solid var(--border);
+        padding-top: 1rem;
+    }
+    .home-about summary {
+        cursor: pointer;
+        color: var(--muted-foreground);
+        font-size: 0.82rem;
+    }
+    @media (max-width: 1200px) {
+        .mobile-toc {
+            display: block;
+        }
+    }
+    @media (max-width: 600px) {
+        .wiki-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+        .wiki-title {
+            font-size: 1.7rem;
+            margin-bottom: 0.3rem;
+        }
+        .wiki-actions {
+            width: 100%;
+        }
+    }
+
     .wiki-shell {
         display: flex;
-        gap: 2rem;
+        gap: 1.8rem;
         align-items: flex-start;
         max-width: 1100px;
         margin: 0 auto;
@@ -185,10 +259,12 @@
         min-width: 0;
     }
     .wiki-toc-rail {
-        flex: 0 0 13.5rem;
-        width: 13.5rem;
+        flex: 0 0 11rem;
+        width: 11rem;
+        position: sticky;
+        top: 1.5rem;
     }
-    @media (max-width: 1024px) {
+    @media (max-width: 1200px) {
         .wiki-toc-rail {
             display: none;
         }
@@ -200,16 +276,17 @@
         justify-content: space-between;
         flex-wrap: wrap;
         gap: 0.5rem;
-        border-bottom: 2px solid var(--border, #e5e7eb);
-        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border, #e5e7eb);
+        padding-bottom: 0;
         margin-bottom: 1.25rem;
     }
     .wiki-title {
         overflow-wrap: anywhere;
-        font-size: 1.9rem;
+        font-family: Georgia, 'Noto Serif KR', serif;
+        font-size: 2rem;
         font-weight: 700;
         line-height: 1.2;
-        margin: 0;
+        margin: 0 0 0.85rem;
     }
     .wiki-actions {
         display: flex;
@@ -219,11 +296,11 @@
         display: inline-flex;
         align-items: center;
         gap: 0.25rem;
-        padding: 0.25rem 0.6rem;
+        padding: 0.75rem 0.55rem;
         font-size: 0.8rem;
         color: var(--muted-foreground, #6b7280);
-        border: 1px solid var(--border, #e5e7eb);
-        border-radius: 0.375rem;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
         text-decoration: none;
         white-space: nowrap;
     }
@@ -301,7 +378,7 @@
         align-items: center;
         gap: 0.4rem;
         padding: 0.5rem 1rem;
-        background: white;
+        background: var(--background);
         color: var(--foreground, #0f172a);
         border: 1px solid var(--border, #e5e7eb);
         border-radius: 0.375rem;
