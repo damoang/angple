@@ -1,12 +1,12 @@
 <script lang="ts">
     /**
-     * 앙쌓기 점수판 표 — 순위 탭과 혼자하기 아래 TOP 10 이 같이 쓴다.
-     * 혼자하기: 순위 · 닉네임 · 점수 · 기록 시각(KST) / 대전: 순위 · 닉네임 · 전적 · 레이팅.
+     * 점수판 표 — 앙쌓기 순위 탭·혼자하기 아래 TOP 10, 뱀 게임 랭킹 카드가 같이 쓴다.
+     * 점수 줄(혼자하기·뱀): 순위 · 닉네임 · 점수 · 기록 시각(KST) / 대전: 순위 · 닉네임 · 전적 · 레이팅.
      * 폭이 고정된 표라 좁은 화면(360px)에서도 넘치지 않고 긴 닉네임은 말줄임한다.
      */
     import {
         formatAchievedAt,
-        type SoloRow,
+        type ScoreRow,
         type VersusRow
     } from '$lib/games/stack/leaderboard.js';
 
@@ -15,7 +15,7 @@
         versus = false,
         now
     }: {
-        rows: Array<SoloRow | VersusRow>;
+        rows: Array<ScoreRow | VersusRow>;
         versus?: boolean;
         /** 「오늘」 판단 기준 시각(ms) — 불러온 시각을 넘긴다 */
         now: number;

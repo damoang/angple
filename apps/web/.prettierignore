@@ -14,3 +14,6 @@ src/lib/components/widget-renderer/widget-wrapper.svelte
 # prettier-plugin-tailwindcss CI vs local format 불일치 회피
 # (gitignore syntax: [id] 는 character class 라 wildcard 로 표기)
 src/routes/admin/themes/*-settings/+page.svelte
+
+# 뱀 게임 공용 테스트 벡터 — 서버 저장소에 같은 파일이 있다(한 판 = 한 줄, 기계 생성)
+src/lib/games/snake/testdata/

@@ -8,14 +8,14 @@
     import {
         fetchLeaderboard,
         type BoardId,
-        type SoloRow,
+        type ScoreRow,
         type VersusRow
     } from '$lib/games/stack/leaderboard.js';
 
     type Loaded =
         | { state: 'loading' }
         | { state: 'error' }
-        | { state: 'ok'; rows: Array<SoloRow | VersusRow>; weekStart?: string; at: number };
+        | { state: 'ok'; rows: Array<ScoreRow | VersusRow>; weekStart?: string; at: number };
 
     const BOARDS: Array<{ id: BoardId; label: string; versus: boolean }> = [
         { id: 'solo_week', label: '이번 주', versus: false },
