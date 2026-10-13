@@ -127,6 +127,9 @@
     let particles: Particle[] = [];
     let shakeUntil = 0;
     let lastFrame = 0;
+    /** 벽돌 층 — 벽돌이 바뀔 때만 다시 그려 두고 매 프레임에는 통째로 붙인다 */
+    let brickLayer: HTMLCanvasElement | null = null;
+    let bricksDirty = true;
 
     const input = createHeldInput({ repeat: 0, hold: IN_LEFT | IN_RIGHT });
     const loop = createLoop(tick, render);
@@ -189,6 +192,7 @@
 
     function handleEvents(ev: StepEvent[]) {
         for (const e of ev) {
+            if (e.type === 'brick' || e.type === 'clear') bricksDirty = true;
             if (e.type === 'brick' && e.broken) {
                 burst(e.col, e.row, e.kind);
             } else if (e.type === 'catch') {
@@ -232,6 +236,7 @@
         launchQueued = false;
         drag = null;
         particles = [];
+        bricksDirty = true;
         newBest = false;
         syncHud();
         status = 'playing';
@@ -240,6 +245,10 @@
         render(1);
         loop.start();
         if (document.hidden) pause();
+        // 판 아래(막대 줄)가 화면 밖이면 현황 줄이 머리글 바로 아래 오도록 올린다
+        if (boardEl.getBoundingClientRect().bottom > window.innerHeight) {
+            rootEl.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' });
+        }
     }
 
     function pause() {
@@ -252,9 +261,20 @@
         render(1);
     }
 
+    /** 직전 틱 위치를 지금 위치로 — 다시 시작할 때 보간이 한 틱 뒤로 튀지 않게 */
+    function settlePrev() {
+        game.paddlePrevX = game.paddleX;
+        for (const b of game.balls) {
+            b.px = b.x;
+            b.py = b.y;
+        }
+        for (const it of game.items) it.py = it.y;
+    }
+
     function resume() {
         if (status !== 'paused') return;
         input.clear();
+        settlePrev();
         status = 'playing';
         announce = '계속';
         loop.start();
@@ -337,6 +357,30 @@
         }
     }
 
+    /** 벽돌 층을 캔버스 크기에 맞춰 준비한다 (벽돌이 바뀌었거나 크기가 바뀌었을 때만 다시 그림) */
+    function readyBrickLayer(w: number, h: number, k: number): HTMLCanvasElement | null {
+        const dpr = Math.min(window.devicePixelRatio || 1, 3);
+        const pw = Math.round(w * dpr);
+        const ph = Math.round(h * dpr);
+        if (pw <= 0 || ph <= 0) return null;
+        brickLayer ??= document.createElement('canvas');
+        if (brickLayer.width !== pw || brickLayer.height !== ph) {
+            brickLayer.width = pw;
+            brickLayer.height = ph;
+            bricksDirty = true;
+        }
+        if (bricksDirty) {
+            const lctx = brickLayer.getContext('2d');
+            if (!lctx) return null;
+            lctx.setTransform(1, 0, 0, 1, 0, 0);
+            lctx.clearRect(0, 0, pw, ph);
+            lctx.setTransform(dpr * k, 0, 0, dpr * k, 0, 0);
+            drawBricks(lctx);
+            bricksDirty = false;
+        }
+        return brickLayer;
+    }
+
     function drawItems(ctx: CanvasRenderingContext2D, alpha: number) {
         if (game.items.length === 0) return;
         ctx.font = 'bold 9px system-ui, sans-serif';
@@ -380,13 +424,17 @@
         const dt = lastFrame ? Math.min(0.05, (now - lastFrame) / 1000) : 0;
         lastFrame = now;
         const a = status === 'playing' ? Math.min(1, Math.max(0, alpha)) : 1;
-        const k = canvasEl.clientWidth / FIELD_W;
-        ctx.clearRect(0, 0, canvasEl.clientWidth, canvasEl.clientHeight);
+        const cw = canvasEl.clientWidth;
+        const ch = canvasEl.clientHeight;
+        const k = cw / FIELD_W;
+        const layer = readyBrickLayer(cw, ch, k);
+        ctx.clearRect(0, 0, cw, ch);
         ctx.save();
         ctx.scale(k, k);
         if (now < shakeUntil) ctx.translate((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6);
 
-        drawBricks(ctx);
+        if (layer) ctx.drawImage(layer, 0, 0, cw / k, ch / k);
+        else drawBricks(ctx);
         drawItems(ctx, a);
 
         // 막대
@@ -430,12 +478,25 @@
         return ((clientX - rect.left) * FIELD_W) / rect.width;
     }
 
+    /**
+     * 버튼 클릭 처리 — 누른 뒤 포커스를 버튼에서 빼서, 이어지는 스페이스·엔터가 그 버튼을 다시 누르지 않고
+     * 게임(발사·일시정지)으로 가게 한다.
+     */
+    function press(fn: () => void) {
+        return (e: MouseEvent) => {
+            (e.currentTarget as HTMLElement | null)?.blur();
+            fn();
+        };
+    }
+
     function requestLaunch() {
         if (status === 'playing' && game.attached) launchQueued = true;
     }
 
     function onPointerDown(e: PointerEvent) {
         if (status !== 'playing') return;
+        // 버튼·링크는 그 자체 동작에 맡긴다
+        if (e.target instanceof Element && e.target.closest('button, a')) return;
         if (e.pointerType === 'mouse') {
             if (e.button !== 0) return;
             targetX = clampTarget(toLogicalX(e.clientX));
@@ -443,7 +504,7 @@
             return;
         }
         e.preventDefault();
-        boardEl.setPointerCapture?.(e.pointerId);
+        rootEl.setPointerCapture?.(e.pointerId);
         drag = {
             id: e.pointerId,
             startX: e.clientX,
@@ -511,7 +572,7 @@
             readColors();
             const offKeys = bindKeys(KEYMAP, input, () => status === 'playing', onCommandKey);
             const offHidden = onPageHidden(pause);
-            // 판 위 끌기·탭·마우스 (판 자체는 그림이라 리스너를 직접 붙인다)
+            // 게임 영역 전체(판 + 둘레)의 끌기·탭·마우스 — 영역이 그림·글이라 리스너를 직접 붙인다
             const pointer: Array<[string, (e: PointerEvent) => void]> = [
                 ['pointerdown', onPointerDown],
                 ['pointermove', onPointerMove],
@@ -519,8 +580,18 @@
                 ['pointercancel', onPointerCancel]
             ];
             for (const [type, fn] of pointer) {
-                boardEl.addEventListener(type, fn as EventListener, { passive: false });
+                rootEl.addEventListener(type, fn as EventListener, { passive: false });
             }
+            // 움직임 줄이기 설정은 게임 중에도 바뀔 수 있다
+            const motion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+            const onMotion = () => {
+                reduceMotion = !!motion?.matches;
+                if (reduceMotion) {
+                    particles = [];
+                    shakeUntil = 0;
+                }
+            };
+            motion?.addEventListener?.('change', onMotion);
             const offSize = observeSize(boardEl, () => {
                 readColors();
                 render(1);
@@ -545,8 +616,9 @@
                 offHidden();
                 offSize();
                 mo?.disconnect();
+                motion?.removeEventListener?.('change', onMotion);
                 for (const [type, fn] of pointer) {
-                    boardEl.removeEventListener(type, fn as EventListener);
+                    rootEl.removeEventListener(type, fn as EventListener);
                 }
                 clearTimeout(bannerTimer);
             };
@@ -554,7 +626,11 @@
     );
 </script>
 
-<div bind:this={rootEl} class="flex select-none flex-col items-center gap-3">
+<div
+    bind:this={rootEl}
+    class="game-area flex select-none flex-col items-center gap-3"
+    class:no-pan={status === 'playing'}
+>
     <dl class="board grid grid-cols-4 gap-2 text-center text-sm" aria-label="{NAME} 현황">
         <div>
             <dt class="text-muted-foreground text-xs">점수</dt>
@@ -582,7 +658,7 @@
         </div>
     </dl>
 
-    <div bind:this={boardEl} class="board no-pan relative">
+    <div bind:this={boardEl} class="board field no-pan relative">
         <canvas
             bind:this={canvasEl}
             class="bg-muted/40 text-foreground block h-full w-full rounded-lg border shadow-sm"
@@ -623,7 +699,7 @@
                     <p class="text-muted-foreground text-xs">막대로 공을 튕겨 벽돌을 모두 깨세요</p>
                     <button
                         type="button"
-                        onclick={start}
+                        onclick={press(start)}
                         class="bg-primary text-primary-foreground rounded-md px-5 py-2 text-sm font-medium"
                         >시작</button
                     >
@@ -631,7 +707,7 @@
                     <p class="text-foreground text-lg font-bold">일시정지</p>
                     <button
                         type="button"
-                        onclick={resume}
+                        onclick={press(resume)}
                         class="bg-primary text-primary-foreground rounded-md px-5 py-2 text-sm font-medium"
                         >계속</button
                     >
@@ -646,7 +722,7 @@
                     </p>
                     <button
                         type="button"
-                        onclick={start}
+                        onclick={press(start)}
                         class="bg-primary text-primary-foreground rounded-md px-5 py-2 text-sm font-medium"
                         >다시 하기</button
                     >
@@ -659,13 +735,13 @@
         <div class="flex gap-2">
             <button
                 type="button"
-                onclick={() => (status === 'playing' ? pause() : resume())}
+                onclick={press(() => (status === 'playing' ? pause() : resume()))}
                 class="bg-muted text-foreground rounded-md px-3 py-1.5 text-xs font-medium"
                 >{status === 'playing' ? '일시정지' : '계속'}</button
             >
             <button
                 type="button"
-                onclick={start}
+                onclick={press(start)}
                 class="bg-muted text-foreground rounded-md px-3 py-1.5 text-xs font-medium"
                 >다시 시작</button
             >
@@ -679,19 +755,32 @@
 </div>
 
 <style>
-    /* 논리 판 360×540(2:3)을 기기 폭에 맞춰 키운다 — PC 에서는 화면 높이 안에 들어오게 */
+    /*
+     * 논리 판 360×540(2:3)을 기기 폭에 맞춰 키운다. 단, 판 전체(아래 막대 줄 포함)가 화면 높이 안에 들어오게
+     * 높이 예산으로도 줄인다: 판 높이 ≤ 100svh − 8rem.
+     *   8rem(128px) = 고정 머리글 64 + 여백 8 (아래 scroll-margin-top 4.5rem) + 현황 줄 약 36 + 간격 12 = 120, 여유 8.
+     *   판 폭 = 높이 × 2/3 이므로 폭 상한 = (100svh − 8rem) × 2/3.
+     * 360×640 폰: 폭 상한 = (640 − 128) × 2/3 ≈ 341 → 실제 폭은 칸 폭(360 − 좌우 여백 32 = 328)이
+     *   더 작아 328, 판 높이 492. 72 + 48 + 492 = 612 ≤ 640.
+     *   주소창이 보여 svh 가 560 이면 폭 288·높이 432 → 72 + 48 + 432 = 552 ≤ 560.
+     * 아주 낮은 화면에서도 너무 작아지지 않게 폭은 16rem 이상. PC 에서는 27rem(432px) 이 상한.
+     */
     .board {
-        width: min(100%, 27rem);
-    }
-    .board.no-pan {
-        aspect-ratio: 2 / 3;
+        width: min(100%, 27rem, max(16rem, calc((100vh - 8rem) * 2 / 3)));
     }
     @supports (height: 100svh) {
         .board {
-            width: min(100%, 27rem, max(18rem, calc((100svh - 13rem) * 2 / 3)));
+            width: min(100%, 27rem, max(16rem, calc((100svh - 8rem) * 2 / 3)));
         }
     }
-    /* 게임판 위에서는 화면이 스크롤·확대되지 않는다 */
+    .field {
+        aspect-ratio: 2 / 3;
+    }
+    /* 시작할 때 이 영역을 머리글 바로 아래로 올린다 */
+    .game-area {
+        scroll-margin-top: 4.5rem;
+    }
+    /* 게임 중에는 게임 영역에서 화면이 스크롤·확대되지 않는다 (게임 밖은 그대로 스크롤) */
     .no-pan {
         touch-action: none;
         overscroll-behavior: contain;

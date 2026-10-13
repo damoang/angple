@@ -33,6 +33,7 @@ import {
     step,
     type Ball,
     type Game,
+    type GameLog,
     type StepEvent
 } from './engine';
 import {
@@ -204,7 +205,10 @@ describe('결정성', () => {
     it('기록으로 다시 돌리면(replay) 같은 판이 나온다', () => {
         for (const seed of [3, 99, 2024]) {
             const g = botRun(seed, 12000);
-            const r = replay(seed, g.log, g.tick);
+            const res = replay(seed, g.log, g.tick);
+            expect(res.ok).toBe(true);
+            expect(res.error).toBe('');
+            const r = res.game;
             expect(r.tick).toBe(g.tick);
             expect(r.score).toBe(g.score);
             expect(JSON.stringify(r)).toBe(JSON.stringify(g));
@@ -249,6 +253,24 @@ describe('충돌', () => {
         expect(b.sx).toBe(-1);
         expect(b.sy).toBe(1);
         expect(g.hp[5 * BRICK_COLS + 4]).toBe(1);
+    });
+
+    it('정확히 이음매 위에서 맞으면 번호가 작은 벽돌 하나만 맞는다', () => {
+        const g = createGame(1);
+        blank(g);
+        sentinel(g);
+        setBrick(g, 4, 5, BRICK_NORMAL);
+        setBrick(g, 5, 5, BRICK_NORMAL);
+        const [, , rt, bt] = brickRect(4, 5);
+        // 속력 1152·각도 1 이면 한 걸음에 가로 50·세로 573 단위 — 12번째 걸음에서 닿고,
+        // 그 직전(11번째) 중심 x 가 정확히 이음매(rt)가 되도록 출발점을 잡는다
+        const b = fly(g, (rt - 11 * 50) / S, bt / S + 30, 1, 1, -1);
+        const ev = runUntil(g, 300, has('brick'), 60);
+        const hits = ev.filter((e) => e.type === 'brick');
+        expect(hits).toHaveLength(1);
+        expect(hits[0]).toMatchObject({ col: 4, row: 5 });
+        expect(g.kinds[5 * BRICK_COLS + 5]).toBe(BRICK_NORMAL);
+        expect(b.sy).toBe(1);
     });
 
     it('두 벽돌의 이음매에 맞으면 한 개만 맞고 세로로만 튕긴다', () => {
@@ -676,9 +698,65 @@ describe('입력 기록', () => {
     it('봇 판에서 아이템·클리어가 실제로 일어나고 재연과 맞는다', () => {
         const g = botRun(8, 30000, { jitter: 6 });
         expect(g.bricksBroken).toBeGreaterThan(10);
-        const r = replay(8, g.log, g.tick);
+        const res = replay(8, g.log, g.tick);
+        expect(res.ok).toBe(true);
+        const r = res.game;
         expect(r.score).toBe(g.score);
         expect(r.stagesCleared).toBe(g.stagesCleared);
+    });
+});
+
+describe('재연 기록 검사', () => {
+    /** 짧은 정상 판: 40틱에 x=200 으로 옮기고 50틱에 발사, 200틱까지 */
+    function sample(): { log: GameLog; ticks: number } {
+        const g = createGame(9);
+        for (let t = 0; t < 200; t++) step(g, { x: t < 40 ? 180 : 200, launch: t === 50 });
+        return { log: g.log, ticks: g.tick };
+    }
+
+    it('엔진이 남긴 기록은 통과한다', () => {
+        const { log, ticks } = sample();
+        expect(log).toEqual({ moves: [40, 200], launches: [50] });
+        expect(replay(9, log, ticks).ok).toBe(true);
+    });
+
+    it('어긋난 기록은 이유와 함께 거부한다', () => {
+        const cases: Array<[GameLog, number, string]> = [
+            [{ moves: [40], launches: [] }, 200, 'bad-log'],
+            [{ moves: [40.5, 200], launches: [] }, 200, 'bad-log'],
+            [{ moves: [40, 200], launches: [] }, -1, 'bad-ticks'],
+            [{ moves: [40, 200], launches: [] }, MAX_TICKS + 1, 'bad-ticks'],
+            [{ moves: [40, 200, 40, 210], launches: [] }, 200, 'tick-order'],
+            [{ moves: [40, 200, 30, 210], launches: [] }, 200, 'tick-order'],
+            [{ moves: [], launches: [50, 50] }, 200, 'tick-order'],
+            [{ moves: [40, 361], launches: [] }, 200, 'x-range'],
+            [{ moves: [40, -1], launches: [] }, 200, 'x-range'],
+            [{ moves: [40, 180], launches: [] }, 200, 'x-unchanged'],
+            [{ moves: [40, 200, 41, 200], launches: [] }, 200, 'x-unchanged'],
+            [{ moves: [250, 200], launches: [] }, 200, 'tick-range'],
+            [{ moves: [], launches: [200] }, 200, 'tick-range'],
+            [{ moves: [], launches: [50, 60] }, 200, 'launch-detached']
+        ];
+        for (const [log, ticks, error] of cases) {
+            const res = replay(9, log, ticks);
+            expect(res.ok).toBe(false);
+            expect(res.error).toBe(error);
+        }
+    });
+
+    it('판이 끝난 뒤의 틱까지 길이를 주장하면 거부한다', () => {
+        // 공이 있는 반대쪽 끝으로 막대를 피해 목숨 3개를 다 잃는다
+        const g = createGame(4);
+        for (let t = 0; t < 50000 && !g.over; t++) {
+            const ball = g.balls[0];
+            const x = ball && ball.x < (FIELD_W / 2) * S ? FIELD_W : 0;
+            step(g, { x, launch: g.attached });
+        }
+        expect(g.over).toBe(true);
+        expect(replay(4, g.log, g.tick).ok).toBe(true);
+        const res = replay(4, g.log, g.tick + 10);
+        expect(res.ok).toBe(false);
+        expect(res.error).toBe('length');
     });
 });
 

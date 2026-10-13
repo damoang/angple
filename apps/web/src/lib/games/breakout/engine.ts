@@ -20,13 +20,14 @@
  *   검사한다(벽돌 두께 16 + 공 지름 10 보다 훨씬 작으므로 빠른 공도 벽돌을 뚫고 지나가지 못한다).
  * - 벽돌에 닿으면 그 걸음을 되돌리고, 직전 위치가 벽돌의 어느 쪽이었는지로 튕길 방향을 정한다
  *   (위·아래 면 = 세로 반전, 옆면 = 가로 반전, 모서리 = 벽돌 쪽으로 향하던 성분만 반전).
- *   한 걸음에 면과 모서리가 같이 닿으면(벽돌 두 개의 이음매) 면만 친다.
+ *   한 걸음에 면과 모서리가 같이 닿으면(벽돌 두 개의 이음매) 면만 친다. 같은 줄의 면 두 개에 닿으면
+ *   직전 중심을 안쪽에 품은 벽돌 하나만(정확히 경계 위면 번호가 작은 벽돌) 친다.
  * - 막대: 맞은 자리가 가운데에서 멀수록 비스듬히(5°~60°) 튕긴다. 정확히 수직(0°)은 없다.
  *
  * 입력 기록(GameLog) — 2단계 서버 재연용, 아직 어디에도 보내지 않는다.
  * - moves: [틱, x, 틱, x, …] 막대 목표 x(논리 px 정수 0~360)가 「바뀐 틱만」. 처음 값은 180.
  * - launches: [틱, …] 공을 실제로 쏜 틱.
- * - 판 길이는 game.tick. replay(seed, log, tick) 으로 같은 판을 다시 만든다.
+ * - 판 길이는 game.tick. replay(seed, log, tick) 으로 같은 판을 다시 만든다(어긋난 기록은 거부).
  */
 import {
     BRICK_NONE,
@@ -413,6 +414,35 @@ const FACE_Y = 1;
 const FACE_X = 2;
 const CORNER = 3;
 
+/** 면 충돌 k 에서 직전 중심이 벽돌 안쪽(경계 제외)에 있는가 — 가로 면은 x, 세로 면은 y 로 본다 */
+function centerInside(k: number, ox: number, oy: number): boolean {
+    const i = hitIdx[k];
+    const col = i % BRICK_COLS;
+    const [l, t, rt, bt] = brickRect(col, (i - col) / BRICK_COLS);
+    return hitFace[k] === FACE_Y ? ox > l && ox < rt : oy > t && oy < bt;
+}
+
+/**
+ * 이음매 — 같은 줄의 위·아래 면(또는 같은 칸의 옆면)에 둘 이상 닿았으면 하나만 친다.
+ * 직전 중심을 안쪽에 품은 벽돌이 이기고, 둘 다(정확히 경계 위) 같으면 번호가 작은 벽돌이 이긴다.
+ * k 가 진 쪽이면 true.
+ */
+function losesSeam(k: number, ox: number, oy: number): boolean {
+    const face = hitFace[k];
+    const i = hitIdx[k];
+    const line = face === FACE_Y ? (i - (i % BRICK_COLS)) / BRICK_COLS : i % BRICK_COLS;
+    const mine = centerInside(k, ox, oy);
+    for (let j = 0; j < hitIdx.length; j++) {
+        if (j === k || hitFace[j] !== face) continue;
+        const o = hitIdx[j];
+        const other = face === FACE_Y ? (o - (o % BRICK_COLS)) / BRICK_COLS : o % BRICK_COLS;
+        if (other !== line) continue;
+        const theirs = centerInside(j, ox, oy);
+        if ((theirs && !mine) || (theirs === mine && o < i)) return true;
+    }
+    return false;
+}
+
 /**
  * 벽돌 충돌 — 공이 (ox,oy) 에서 지금 위치로 한 걸음 왔다. 닿은 벽돌이 있으면 방향을 바꾸고
  * 벽돌을 맞힌 뒤 true (부르는 쪽이 걸음을 되돌린다).
@@ -453,6 +483,7 @@ function collideBricks(g: Game, b: Ball, ox: number, oy: number, ev: StepEvent[]
     for (let k = 0; k < hitIdx.length; k++) {
         const face = hitFace[k];
         if (anyFace && face === CORNER) continue;
+        if (face !== CORNER && losesSeam(k, ox, oy)) continue;
         const i = hitIdx[k];
         const col = i % BRICK_COLS;
         const [l, t, rt, bt] = brickRect(col, (i - col) / BRICK_COLS);
@@ -689,27 +720,88 @@ export function step(g: Game, input: StepInput): StepEvent[] {
     return ev;
 }
 
+/** 재연 거부 이유 */
+export type ReplayError =
+    | ''
+    /** 기록 모양이 틀림(배열 아님·정수 아님·moves 길이 홀수) */
+    | 'bad-log'
+    /** 판 길이가 0~MAX_TICKS 정수가 아님 */
+    | 'bad-ticks'
+    /** 틱이 커지는 순서가 아니거나 같은 틱이 두 번 */
+    | 'tick-order'
+    /** 막대 x 가 0~360 밖 */
+    | 'x-range'
+    /** 바로 앞 값과 같은 x (엔진은 바뀐 틱만 남긴다) */
+    | 'x-unchanged'
+    /** 판 길이를 넘는 틱의 입력 */
+    | 'tick-range'
+    /** 공이 붙어 있지 않은 틱의 발사 */
+    | 'launch-detached'
+    /** 판이 끝난 틱과 판 길이가 다름 */
+    | 'length';
+
+export interface ReplayResult {
+    ok: boolean;
+    error: ReplayError;
+    /** 거부된 경우 거부 직전까지 돌린 판 */
+    game: Game;
+}
+
+function isTickList(v: unknown): v is number[] {
+    return Array.isArray(v) && v.every((n) => Number.isSafeInteger(n));
+}
+
+/** 기록 모양만 본다 (판을 돌리지 않고 알 수 있는 것) */
+function checkLog(log: GameLog, ticks: number): ReplayError {
+    if (!log || !isTickList(log.moves) || !isTickList(log.launches)) return 'bad-log';
+    if (log.moves.length % 2 !== 0) return 'bad-log';
+    if (!Number.isSafeInteger(ticks) || ticks < 0 || ticks > MAX_TICKS) return 'bad-ticks';
+    let prevTick = -1;
+    let prevX = START_X;
+    for (let k = 0; k < log.moves.length; k += 2) {
+        const t = log.moves[k];
+        const x = log.moves[k + 1];
+        if (t <= prevTick) return 'tick-order';
+        if (t >= ticks) return 'tick-range';
+        if (x < 0 || x > FIELD_W) return 'x-range';
+        if (x === prevX) return 'x-unchanged';
+        prevTick = t;
+        prevX = x;
+    }
+    prevTick = -1;
+    for (const t of log.launches) {
+        if (t <= prevTick) return 'tick-order';
+        if (t >= ticks) return 'tick-range';
+        prevTick = t;
+    }
+    return '';
+}
+
 /**
- * 입력 기록으로 판을 처음부터 다시 돌린다 — ticks 틱(또는 판이 끝날 때)까지.
- * moves·launches 의 틱은 커지는 순서여야 한다.
+ * 입력 기록으로 판을 처음부터 다시 돌린다 — 판 길이 ticks 까지.
+ * 기록이 엔진이 남기는 모양과 다르면(순서·범위·중복·붙어 있지 않을 때 발사·길이) 조용히 넘기지 않고
+ * ok=false 와 이유를 돌려준다.
  */
-export function replay(seed: number, log: GameLog, ticks: number): Game {
+export function replay(seed: number, log: GameLog, ticks: number): ReplayResult {
     const g = createGame(seed);
+    const bad = checkLog(log, ticks);
+    if (bad) return { ok: false, error: bad, game: g };
     let x = START_X;
     let mi = 0;
     let li = 0;
-    const limit = Math.min(ticks, MAX_TICKS);
-    for (let t = 0; t < limit && !g.over; t++) {
-        while (mi + 1 < log.moves.length && log.moves[mi] === t) {
+    for (let t = 0; t < ticks; t++) {
+        if (g.over) return { ok: false, error: 'length', game: g };
+        if (mi < log.moves.length && log.moves[mi] === t) {
             x = log.moves[mi + 1];
             mi += 2;
         }
         let launch = false;
-        while (li < log.launches.length && log.launches[li] === t) {
+        if (li < log.launches.length && log.launches[li] === t) {
+            if (!g.attached) return { ok: false, error: 'launch-detached', game: g };
             launch = true;
             li++;
         }
         step(g, { x, launch });
     }
-    return g;
+    return { ok: true, error: '', game: g };
 }
