@@ -70,6 +70,9 @@ jobs:
             - name: Every published document at 375, 768 and 1440 pixels
               if: ${{ !cancelled() && steps.start.outcome == 'success' }}
               run: node scripts/wikiang/browser-qa.cjs
+            - name: Document-by-document review report
+              if: ${{ !cancelled() && steps.start.outcome == 'success' }}
+              run: node scripts/wikiang/report.cjs
             - uses: actions/upload-artifact@v4
               if: always()
               with:
