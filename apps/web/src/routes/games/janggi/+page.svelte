@@ -1,6 +1,7 @@
 <script lang="ts">
     import JanggiGame from '$lib/components/features/game/janggi-game.svelte';
     import JanggiOnline from '$lib/components/features/game/janggi-online.svelte';
+    import GameRankingCard from '$lib/components/features/game/game-ranking-card.svelte';
     import { SeoHead } from '$lib/seo/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
 
@@ -23,6 +24,9 @@
         <h1 class="text-foreground mt-2 text-2xl font-bold">장기</h1>
         <p class="text-muted-foreground text-sm">AI 연습 또는 앙님들과 온라인 대국</p>
     </div>
+
+    <!-- 온라인 대전 랭킹 — 실패·빈 응답이면 스스로 숨는다 -->
+    <GameRankingCard game="janggi" title="장기" />
 
     <div class="bg-muted mb-4 inline-flex gap-1 rounded-lg p-1">
         <button
