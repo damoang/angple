@@ -426,7 +426,8 @@
                 // 복원은 직전 국면이 없다 — 먹은 말은 점수 큰 순, 둔 수는 모름
                 captureOrder = fallbackOrder(pieces);
                 moveCount = null;
-                lastCheckTeam = isCheck(pieces, currentTeam) ? currentTeam : null;
+                inCheck = isCheck(pieces, currentTeam);
+                lastCheckTeam = inCheck ? currentTeam : null;
                 flash.clear();
                 phase = 'playing';
                 startTurnCountdown(90);

@@ -81,7 +81,7 @@
         class="jc-label shrink-0 text-xs font-bold {capturer === TEAM.CHO ? 'jc-cho' : 'jc-han'}"
         aria-hidden="true">{teamLabel}</span
     >
-    <div class="flex min-w-0 flex-nowrap items-center gap-1" aria-hidden="true">
+    <div class="flex min-w-0 flex-nowrap items-center gap-1 overflow-hidden" aria-hidden="true">
         {#each groups as g (g.kind + '-' + g.team)}
             {@const glyph = pieceGlyph(g.kind, g.team)}
             <svg

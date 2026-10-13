@@ -386,7 +386,10 @@
             {/if}
         </div>
 
-        <p class="sr-only" aria-live="polite">{flash.current?.text ?? ''}</p>
+        <!-- 장군은 위 상태 줄이 이미 읽어 준다 — 여기서는 멍군만 -->
+        <p class="sr-only" aria-live="polite">
+            {flash.current?.tone === 'block' ? flash.current.text : ''}
+        </p>
 
         <div class="flex w-full flex-col items-center gap-1.5">
             <!-- 위 = 한 자리: 한이 잡은 초 말 / 아래 = 초 자리: 초가 잡은 한 말 -->
