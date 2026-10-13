@@ -29,11 +29,9 @@ jobs:
             timeout 300 du -xh --max-depth=1 / 2>/dev/null | sort -rh | head -15
             echo "=== /home, /var, /opt (depth 2) ==="
             timeout 300 du -xh --max-depth=2 /home /var /opt /tmp 2>/dev/null | sort -rh | head -30
-            echo "=== /var/lib/docker subdirs (read-only mount) ==="
-            timeout 300 docker run --rm -v /var/lib/docker:/d:ro alpine:3.20 sh -c \
-              'du -xh -d1 /d 2>/dev/null | sort -rh | head -10; echo "--- largest container logs ---"; find /d/containers -name "*-json.log" -size +100M -exec du -h {} + 2>/dev/null | sort -rh | head -15' || true
-            echo "=== container name for each large log ==="
-            docker ps -a --no-trunc --format '{{.ID}} {{.Names}} {{.Status}}' 2>/dev/null | cut -c1-12,65- | head -110
+            echo "=== whole disk as root (read-only mount, excl. docker) ==="
+            timeout 600 docker run --rm -v /:/h:ro alpine:3.20 sh -c \
+              'du -xh -d1 /h 2>/dev/null | sort -rh | head -12; echo "--- depth 3 ---"; du -xh -d3 --exclude=/h/var/lib/docker /h 2>/dev/null | sort -rh | head -40; echo "--- files >2G ---"; find /h -xdev -type f -size +2G -exec du -h {} + 2>/dev/null | sort -rh | head -20' || true
             echo "=== largest files >1G ==="
             timeout 300 find / -xdev -type f -size +1G -printf '%s %p\n' 2>/dev/null | sort -rn | head -20 | awk '{printf "%.1fG %s\n", $1/1073741824, $2}'
             echo "=== docker ==="
