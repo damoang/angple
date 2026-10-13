@@ -244,6 +244,9 @@
         font-size: 0.875rem;
         font-weight: 500;
     }
+    .wiki-edit-page :global(input[type='text']) {
+        color: var(--foreground);
+    }
     .hint {
         margin: 0.25rem 0 0;
         font-size: 0.75rem;

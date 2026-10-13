@@ -180,6 +180,18 @@ if (base !== 'http://127.0.0.1:43120' || process.env.DB_NAME !== 'wikiang_qa')
         await expect(page.locator('#wiki-content-source')).toBeEnabled();
         await page.getByRole('button', { name: '화면 색상 전환' }).click();
         await expect(page.locator('html')).toHaveClass(/dark/);
+        await expect
+            .poll(() =>
+                page.evaluate(() => {
+                    const source = document.querySelector('#wiki-content-source');
+                    return ['title', 'description', 'comment'].every(
+                        (id) =>
+                            getComputedStyle(document.getElementById(id)).color ===
+                            getComputedStyle(source).color
+                    );
+                })
+            )
+            .toBe(true);
         await page.screenshot({ path: out + '/editor-dark-375.png', fullPage: true });
         await page.reload();
         await expect(page.locator('html')).toHaveClass(/dark/);
