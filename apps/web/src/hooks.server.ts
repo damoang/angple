@@ -816,7 +816,10 @@ export const handle: Handle = async ({ event, resolve }) => {
     const hasExplicitPublicCache =
         existingCacheControl?.includes('public') && pathname.startsWith('/api/');
 
-    if (hasExplicitPublicCache) {
+    if (isWikiRoute || pathname.startsWith('/api/wiki/')) {
+        // A freshly saved document must never reopen a cached 'new document' editor.
+        response.headers.set('Cache-Control', 'no-store');
+    } else if (hasExplicitPublicCache) {
         // API 핸들러가 설정한 Cache-Control 유지 (celebration, banners, levels, reactions, init 등)
     } else if (event.url.pathname.startsWith('/_app/immutable')) {
         // SvelteKit이 이미 설정 → 그대로 유지
