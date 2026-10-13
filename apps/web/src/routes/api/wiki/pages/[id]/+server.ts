@@ -1,3 +1,4 @@
+import { readWikiInput, wikiWriteError } from '$lib/server/wiki-input';
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { updateWikiPage, getWikiPageById, isIpBlocked, makeWikiAuthor } from '$lib/server/wiki';
@@ -44,27 +45,8 @@ export const PUT: RequestHandler = async ({ params, request, locals, getClientAd
             error(404, { message: '문서를 찾을 수 없습니다.' });
         }
 
-        const body = await request.json();
-        const { title, content, content_raw, content_type, description, comment, is_minor } = body;
-
-        // 필수 필드 검증
-        if (!title) {
-            error(400, { message: '제목은 필수입니다.' });
-        }
-
-        const result = await updateWikiPage(
-            pageId,
-            {
-                title,
-                content: content || '',
-                content_raw: content_raw || content || '',
-                content_type: content_type || 'html',
-                description,
-                comment: comment || '',
-                is_minor: is_minor || false
-            },
-            makeWikiAuthor(userId, ip)
-        );
+        const { input } = await readWikiInput(request, false);
+        const result = await updateWikiPage(pageId, input, makeWikiAuthor(userId, ip));
 
         return json({
             success: true,
@@ -74,8 +56,6 @@ export const PUT: RequestHandler = async ({ params, request, locals, getClientAd
             path: existingPage.path
         });
     } catch (err) {
-        console.error('Wiki page update error:', err);
-        const message = err instanceof Error ? err.message : '문서 수정에 실패했습니다.';
-        error(500, { message });
+        wikiWriteError(err);
     }
 };

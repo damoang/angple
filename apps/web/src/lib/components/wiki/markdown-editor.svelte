@@ -1,8 +1,12 @@
 <script lang="ts">
-    import { Markdown } from '$lib/components/ui/markdown/index.js';
+    import { onMount } from 'svelte';
+    import WikiContent from './wiki-content.svelte';
+    import type { WikiFormat } from '$lib/wiki/render';
 
     interface Props {
         value: string;
+        contentType?: WikiFormat;
+        path?: string;
         placeholder?: string;
         existingWikilinkPaths?: string[];
         onChange?: (v: string) => void;
@@ -10,55 +14,25 @@
 
     let {
         value = $bindable(''),
+        contentType = 'markdown',
+        path = '',
         placeholder = '마크다운으로 작성하세요. 위키링크는 [[문서명]] 형식입니다.',
         existingWikilinkPaths = [],
         onChange
     }: Props = $props();
 
-    let preview = $state(value);
-    let debounceTimer: ReturnType<typeof setTimeout> | undefined;
     let textareaEl: HTMLTextAreaElement | undefined = $state();
-
-    const existingSet = $derived(new Set(existingWikilinkPaths));
-
-    function encodePath(p: string): string {
-        const trimmed = p.replace(/^\/+/, '');
-        return '/' + trimmed.split('/').map(encodeURIComponent).join('/');
-    }
-
-    // 미리보기 단계의 [[..]] 변환 — 메인 페이지 transformWikilinks 와 동일 로직
-    function transform(content: string): string {
-        if (!content) return content;
-        const placeholders: string[] = [];
-        let stripped = content.replace(/```[\s\S]*?```|`[^`\n]+`/g, (m) => {
-            placeholders.push(m);
-            return `\x00CODE${placeholders.length - 1}\x00`;
-        });
-        stripped = stripped.replace(
-            /\[\[([^\]\n|]+?)(?:\|([^\]\n]+))?\]\]/g,
-            (full, raw: string, label?: string) => {
-                const trimmed = raw.trim();
-                if (!trimmed) return full;
-                const path = trimmed.startsWith('/') ? trimmed : '/' + trimmed;
-                const display = (label?.trim() || trimmed.replace(/^\//, '').replace(/_/g, ' '))
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;');
-                const exists = existingSet.has(path);
-                const href = encodePath(path);
-                const cls = exists ? 'wiki-link' : 'wiki-link red-link';
-                return `<a class="${cls}" href="${href}">${display}</a>`;
-            }
-        );
-        return stripped.replace(/\x00CODE(\d+)\x00/g, (_, i) => placeholders[parseInt(i, 10)]);
-    }
-
+    let showPreview = $state(false);
+    let ready = $state(false);
+    onMount(() => {
+        ready = true;
+    });
+    const existingSet = $derived(
+        existingWikilinkPaths.length ? new Set(existingWikilinkPaths) : undefined
+    );
     function update(v: string) {
         value = v;
         onChange?.(v);
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            preview = transform(v);
-        }, 150);
     }
 
     function insertAtCursor(before: string, after = before, placeholderText = '') {
@@ -119,14 +93,23 @@
 
 <div class="md-editor">
     <div class="md-toolbar">
+        <button
+            type="button"
+            class="md-tool preview-toggle"
+            onclick={() => (showPreview = !showPreview)}
+            >{showPreview ? '원문 편집' : '미리보기'}</button
+        >
         {#each buttons as b (b.label)}
             <button type="button" class="md-tool" title={b.title} onclick={b.click}>
                 {b.label}
             </button>
         {/each}
     </div>
-    <div class="md-split">
+    <div class="md-split" class:show-preview={showPreview}>
         <textarea
+            id="wiki-content-source"
+            disabled={!ready}
+            aria-label="문서 내용"
             bind:this={textareaEl}
             class="md-textarea"
             {placeholder}
@@ -136,8 +119,8 @@
             spellcheck="false"
         ></textarea>
         <div class="md-preview">
-            {#if preview}
-                <Markdown content={preview} />
+            {#if value}
+                <WikiContent content={value} {contentType} {path} existingPaths={existingSet} />
             {:else}
                 <p class="md-preview-empty">미리보기는 여기에 표시됩니다.</p>
             {/if}
@@ -216,7 +199,19 @@
     .md-preview :global(a.wiki-link.red-link) {
         color: #b91c1c;
     }
+    .preview-toggle {
+        display: none;
+    }
     @media (max-width: 768px) {
+        .preview-toggle {
+            display: block;
+        }
+        .show-preview .md-textarea {
+            display: none;
+        }
+        .show-preview .md-preview {
+            display: block;
+        }
         .md-split {
             grid-template-columns: 1fr;
         }

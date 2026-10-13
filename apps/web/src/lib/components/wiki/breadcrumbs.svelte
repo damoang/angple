@@ -20,7 +20,7 @@
         parts.forEach((p, i) => {
             acc += '/' + encodeURIComponent(p);
             out.push({
-                label: decodeURIComponent(p).replace(/_/g, ' '),
+                label: p.replace(/_/g, ' '),
                 href: acc,
                 current: i === parts.length - 1
             });
@@ -54,6 +54,8 @@
         margin-bottom: 0.75rem;
     }
     .crumb {
+        overflow-wrap: anywhere;
+        min-width: 0;
         color: var(--muted-foreground, #6b7280);
         text-decoration: none;
     }

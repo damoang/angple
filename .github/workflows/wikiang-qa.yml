@@ -1,0 +1,81 @@
+name: Wikiang QA
+on:
+    pull_request:
+        branches: [feat/wiki-theme]
+permissions:
+    contents: read
+concurrency:
+    group: wikiang-qa-${{ github.ref }}
+    cancel-in-progress: true
+jobs:
+    qa:
+        name: Wikiang build, content and editing QA
+        runs-on: ubuntu-latest
+        timeout-minutes: 40
+        services:
+            mysql:
+                image: mysql:8.0
+                env:
+                    MYSQL_ROOT_PASSWORD: ci-only-password
+                    MYSQL_DATABASE: wikiang_qa
+                ports: ['3306:3306']
+                options: >-
+                    --health-cmd="mysqladmin ping -pci-only-password"
+                    --health-interval=10s --health-timeout=5s --health-retries=10
+            redis:
+                image: redis:7-alpine
+                ports: ['6379:6379']
+        env:
+            DB_HOST: 127.0.0.1
+            DB_PORT: '3306'
+            DB_USER: root
+            DB_PASSWORD: ci-only-password
+            DB_NAME: wikiang_qa
+            REDIS_HOST: 127.0.0.1
+            REDIS_PORT: '6379'
+            WIKIANG_IP_HASH_SALT: ci-only-public-fixture
+            PORT: '43120'
+            HOST: 127.0.0.1
+            ORIGIN: http://127.0.0.1:43120
+            QA_BASE: http://127.0.0.1:43120
+            QA_OUTPUT: qa-results
+            NODE_OPTIONS: --max-old-space-size=6144
+        steps:
+            - uses: actions/checkout@v4
+            - uses: pnpm/action-setup@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '22'
+                  cache: pnpm
+            - run: pnpm install --frozen-lockfile
+            - run: pnpm --filter './packages/*' build
+            - run: pnpm --filter web check
+            - run: pnpm --filter web exec vitest run --project server src/lib/wiki/render.test.ts
+            - run: pnpm build
+            - run: pnpm --filter web exec playwright install --with-deps chromium
+            - run: node scripts/wikiang/seed.cjs
+            - name: Start isolated built app
+              id: start
+              run: |
+                  mkdir -p qa-results
+                  cd apps/web
+                  node build/index.js > ../../qa-results/server.log 2>&1 &
+                  for attempt in $(seq 1 60); do
+                    if curl -fsS http://127.0.0.1:43120/Special:AllPages >/dev/null; then exit 0; fi
+                    sleep 2
+                  done
+                  exit 1
+            - name: Real editor create, update, conflict and revert
+              run: node scripts/wikiang/editing-qa.cjs
+            - name: Every published document at 375, 768 and 1440 pixels
+              if: ${{ !cancelled() && steps.start.outcome == 'success' }}
+              run: node scripts/wikiang/browser-qa.cjs
+            - name: Document-by-document review report
+              if: ${{ !cancelled() && steps.start.outcome == 'success' }}
+              run: node scripts/wikiang/report.cjs
+            - uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: wikiang-qa-evidence
+                  path: qa-results/
+                  retention-days: 14
