@@ -1,6 +1,18 @@
 <script lang="ts">
     import { authStore } from '$lib/stores/auth.svelte';
     import { onMount } from 'svelte';
+    import BookOpen from '@lucide/svelte/icons/book-open';
+    import Search from '@lucide/svelte/icons/search';
+    import Sun from '@lucide/svelte/icons/sun';
+    import Moon from '@lucide/svelte/icons/moon';
+    import { page } from '$app/stores';
+    import { decodeWikiPath } from '$lib/wiki/paths';
+    const links = [
+        { href: '/대문', label: '대문' },
+        { href: '/Special:AllPages', label: '모든 문서' },
+        { href: '/Special:RecentChanges', label: '최근 바뀜' },
+        { href: '/Special:Categories', label: '분류' }
+    ];
 
     let dark = $state(false);
     let ready = $state(false);
@@ -26,108 +38,232 @@
     }
 </script>
 
-<header>
+<header class="site-header">
+    <a class="skip" href="#wiki-main">본문으로 건너뛰기</a>
     <div class="top">
-        <a class="brand" href="/대문">위키앙<span>함께 만드는 지식사전</span></a>
-        <form action="/Special:Search" method="GET">
+        <a class="brand" href="/대문" aria-label="위키앙 대문">
+            <span class="brand-mark"><BookOpen size={28} strokeWidth={1.5} /></span>
+            <span>위키앙<small>함께 쓰는 지식사전</small></span>
+        </a>
+        <form action="/Special:Search" method="GET" role="search">
+            <Search size={18} aria-hidden="true" />
             <input
                 name="q"
                 aria-label="위키 문서 검색"
-                placeholder="문서 검색"
+                placeholder="위키앙에서 검색"
                 required
                 maxlength="200"
-            /><button>검색</button>
+            />
+            <button class="search-button">검색</button>
         </form>
-        <button class="theme" onclick={toggleTheme} disabled={!ready} aria-label="화면 색상 전환"
-            >{dark ? '☀' : '☾'}</button
-        >
+        <div class="personal">
+            <button
+                class="theme"
+                onclick={toggleTheme}
+                disabled={!ready}
+                aria-label="화면 색상 전환"
+                title={dark ? '밝은 화면' : '어두운 화면'}
+            >
+                {#if dark}<Sun size={20} />{:else}<Moon size={20} />{/if}
+            </button>
+            {#if authStore.user}<span class="account"
+                    >{authStore.user.mb_name || authStore.user.mb_id}</span
+                >{:else}<a class="account" href="/login">로그인</a>{/if}
+        </div>
     </div>
-    <nav aria-label="위키 메뉴">
-        <a href="/대문">대문</a><a href="/Special:AllPages">모든 문서</a><a
-            href="/Special:RecentChanges">최근 바뀜</a
-        ><a href="/Special:Categories">분류</a><a href="/Special:NewPage">새 문서</a><a
-            href="/도움말">도움말</a
-        ><a href="https://damoang.net">다모앙 ↗</a>{#if authStore.user}<span
-                >{authStore.user.mb_name || authStore.user.mb_id}</span
-            >{:else}<a href="/login">로그인</a>{/if}
-    </nav>
+    <div class="nav-row">
+        <nav aria-label="위키 메뉴">
+            {#each links as link}<a
+                    href={link.href}
+                    aria-current={decodeWikiPath($page.url.pathname) === link.href
+                        ? 'page'
+                        : undefined}>{link.label}</a
+                >{/each}
+        </nav>
+        <a class="contribute" href="/Special:NewPage">+ 새 문서</a>
+    </div>
 </header>
 
 <style>
-    header {
-        border-bottom: 1px solid var(--border);
+    .site-header {
         background: var(--background);
+        border-bottom: 1px solid var(--border);
     }
-    .top {
-        max-width: 1400px;
+    .top,
+    .nav-row {
+        max-width: 1480px;
         margin: auto;
-        padding: 1rem;
+        padding: 0 2rem;
         display: flex;
-        gap: 1rem;
         align-items: center;
     }
+    .top {
+        min-height: 94px;
+        gap: 2.5rem;
+    }
     .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        font-size: 1.65rem;
         font-weight: 800;
-        font-size: 1.6rem;
-        color: var(--primary);
+        letter-spacing: -0.06em;
         white-space: nowrap;
     }
-    .brand span {
+    .brand-mark {
+        display: grid;
+        place-items: center;
+        width: 46px;
+        height: 46px;
+        border: 1px solid var(--border);
+        border-radius: 50%;
+        color: var(--primary);
+    }
+    small {
         display: block;
-        font-size: 0.7rem;
-        font-weight: 400;
+        margin-top: 0.1rem;
         color: var(--muted-foreground);
+        font-size: 0.68rem;
+        font-weight: 400;
+        letter-spacing: 0.04em;
     }
     form {
         display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        max-width: 560px;
         flex: 1;
-        max-width: 600px;
-        margin-left: auto;
-        gap: 0.4rem;
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding-left: 0.9rem;
+        color: var(--muted-foreground);
+        background: var(--background);
+    }
+    form:focus-within {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
     }
     input {
         min-width: 0;
         width: 100%;
-        padding: 0.55rem 0.7rem;
-        border: 1px solid var(--border);
-        border-radius: 0.4rem;
-        background: var(--muted);
+        padding: 0.65rem 0;
+        color: var(--foreground);
+        background: transparent;
+        outline: none;
+        font-size: 0.9rem;
     }
     button {
-        padding: 0.5rem 0.65rem;
-        flex-shrink: 0;
-        border-radius: 0.4rem;
-        background: var(--muted);
         cursor: pointer;
+        flex-shrink: 0;
+    }
+    .search-button {
+        align-self: stretch;
+        border-left: 1px solid var(--border);
+        background: var(--muted);
+        padding: 0 1rem;
+        font-size: 0.85rem;
+        color: var(--foreground);
+    }
+    .personal {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-left: auto;
+    }
+    .theme {
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+    }
+    .theme:hover {
+        background: var(--muted);
+    }
+    .account {
+        font-size: 0.82rem;
+        color: var(--primary);
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .nav-row {
+        justify-content: space-between;
+        gap: 0.75rem;
     }
     nav {
         display: flex;
-        flex-wrap: wrap;
-        gap: 0.3rem 1rem;
-        max-width: 1400px;
-        padding: 0 1rem 0.8rem;
-        margin: auto;
-        font-size: 0.85rem;
+        gap: 1.65rem;
     }
     nav a {
-        padding: 0.25rem 0;
+        padding: 0.7rem 0 0.8rem;
+        border-bottom: 2px solid transparent;
+        font-size: 0.85rem;
+        color: var(--muted-foreground);
+        white-space: nowrap;
+    }
+    nav a[aria-current='page'] {
+        border-color: var(--primary);
+        color: var(--primary);
+        font-weight: 650;
     }
     nav a:hover {
         color: var(--primary);
-        text-decoration: underline;
     }
-    @media (max-width: 500px) {
-        .top {
-            gap: 0.5rem;
+    .contribute {
+        font-size: 0.82rem;
+        color: var(--primary);
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .skip {
+        position: absolute;
+        left: 1rem;
+        top: -100px;
+        z-index: 100;
+        padding: 0.8rem;
+        background: var(--background);
+        color: var(--primary);
+    }
+    .skip:focus {
+        top: 1rem;
+    }
+    @media (max-width: 768px) {
+        .top,
+        .nav-row {
+            padding: 0 1rem;
         }
-        .brand span {
-            display: none;
+        .top {
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            padding-top: 1rem;
+            padding-bottom: 0.9rem;
         }
         .brand {
-            font-size: 1.3rem;
+            font-size: 1.35rem;
         }
-        .theme {
-            padding: 0.4rem;
+        .brand-mark {
+            width: 38px;
+            height: 38px;
+        }
+        .brand small {
+            font-size: 0.62rem;
+        }
+        form {
+            order: 3;
+            flex-basis: 100%;
+            max-width: none;
+        }
+        nav {
+            gap: 1rem;
+        }
+        nav a,
+        .contribute {
+            font-size: 0.78rem;
+        }
+        .personal {
+            gap: 0.5rem;
         }
     }
 </style>

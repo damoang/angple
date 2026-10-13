@@ -45,7 +45,8 @@
 
 <style>
     .wiki-prose {
-        line-height: 1.8;
+        line-height: 1.85;
+        font-size: 0.97rem;
         overflow-wrap: anywhere;
         min-width: 0;
     }
@@ -55,7 +56,9 @@
         margin: 1.3em 0 0.6em;
     }
     .wiki-prose :global(h2) {
-        font-size: 1.4rem;
+        font-family: Georgia, 'Noto Serif KR', serif;
+        font-size: 1.45rem;
+        padding-bottom: 0.3rem;
         font-weight: 700;
         margin: 1.4em 0 0.6em;
         border-bottom: 1px solid var(--border);

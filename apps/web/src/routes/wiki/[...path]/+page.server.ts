@@ -70,7 +70,10 @@ export const load: PageServerLoad = async ({ params, url }) => {
         getBacklinks(wikiPage.id, wikiPage.path, 50)
     ]);
 
+    const home = wikiPage.path === '/대문' ? await getAllPages(0, 5, 'updated') : null;
+
     return {
+        home,
         isSpecialPage: false,
         specialType: null,
         specialData: null,

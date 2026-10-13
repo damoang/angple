@@ -87,14 +87,20 @@
                     class="twist"
                     class:open
                     onclick={() => toggle(node.id)}
-                    aria-label="펼치기"
+                    aria-label={`${node.title} ${open ? '접기' : '펼치기'}`}
+                    aria-expanded={open}
                 >
                     <ChevronRight class="h-3 w-3" />
                 </button>
             {:else}
                 <span class="twist-spacer"></span>
             {/if}
-            <a href={href(node.path)} class="label" title={node.title}>
+            <a
+                href={href(node.path)}
+                class="label"
+                title={node.title}
+                aria-current={isCur ? 'page' : undefined}
+            >
                 <FileTextIcon class="ic h-3 w-3" />
                 <span class="txt">{node.title}</span>
             </a>
