@@ -4,7 +4,8 @@
      *
      * 서버: cmd/janggi-ws (angple-backend, internal/janggi_srv) — 행마 합법성·장군·
      * 외통 판정은 전부 서버가 한다. 이 컴포넌트는 from/to 좌표만 보내고 서버가
-     * 확정한 국면(pieces)을 그린다. 클라이언트에 규칙 계산이 없다.
+     * 확정한 국면(pieces)을 그린다. 클라이언트 규칙 계산은 「이동 가능한 칸」 안내뿐이다
+     * (보드 = janggi-board.svelte, AI 연습판과 같은 컴포넌트).
      *
      * ⛔ 참가비 1,000P — 큐 진입 전 동의 필수(오목과 동일 원칙).
      * 대기실 4종(대기현황·연습판·초대링크·랭킹)도 오목과 동일하게 제공한다.
@@ -16,44 +17,13 @@
     import { onDestroy } from 'svelte';
     // 대기 중 연습판 — props 없는 독립 컴포넌트(로컬 AI)
     import JanggiGame from './janggi-game.svelte';
-
-    const COLS = 9;
-    const ROWS = 10;
-    const CELL = 52;
-    const PAD = 34;
-    const W = PAD * 2 + (COLS - 1) * CELL;
-    const H = PAD * 2 + (ROWS - 1) * CELL;
+    import JanggiBoard from './janggi-board.svelte';
+    import { legalTargets, type JanggiPiece } from '$lib/games/janggi/rules';
 
     // 서버 엔진과 동일 코드값 (internal/janggi)
     const TEAM_CHO = 1;
-    const TEAM_HAN = 2;
-    const KIND_TEXT: Record<number, [string, string]> = {
-        1: ['楚', '漢'], // 궁
-        2: ['車', '車'],
-        3: ['象', '象'],
-        4: ['馬', '馬'],
-        5: ['士', '士'],
-        6: ['包', '包'],
-        7: ['卒', '兵']
-    };
-    function pieceRadius(kind: number): number {
-        if (kind === 1) return 23;
-        if (kind === 5 || kind === 7) return 15;
-        return 19;
-    }
-    function fontSize(kind: number): number {
-        if (kind === 1) return 26;
-        if (kind === 5 || kind === 7) return 14;
-        return 18;
-    }
 
-    interface Piece {
-        kind: number;
-        team: number;
-        x: number;
-        y: number;
-        alive: boolean;
-    }
+    type Piece = JanggiPiece;
 
     type Phase = 'idle' | 'connecting' | 'queued' | 'playing' | 'over';
 
@@ -358,36 +328,18 @@
 
     let lastMove = $state<{ fx: number; fy: number; tx: number; ty: number } | null>(null);
 
-    // 실물 장기알은 팔각형이다 — 반지름 r 팔각 꼭짓점(22.5° 오프셋, 평평한 변이 위로)
-    function oct(cx: number, cy: number, r: number): string {
-        const pts: string[] = [];
-        for (let i = 0; i < 8; i++) {
-            const a = (Math.PI / 4) * i + Math.PI / 8;
-            pts.push(`${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`);
-        }
-        return pts.join(' ');
-    }
-
-    // 전통 장기판의 귀점(포·졸 자리 교차 표시)
-    const POINT_MARKS: Array<[number, number]> = [
-        [1, 2],
-        [7, 2],
-        [0, 3],
-        [2, 3],
-        [4, 3],
-        [6, 3],
-        [8, 3],
-        [1, 7],
-        [7, 7],
-        [0, 6],
-        [2, 6],
-        [4, 6],
-        [6, 6],
-        [8, 6]
-    ];
-
-    const px = (x: number) => PAD + x * CELL;
-    const py = (y: number) => PAD + y * CELL;
+    // 보드 표시용 — 규칙 판정은 서버가 하고, 여기서는 이동 가능한 칸 안내만 계산한다.
+    const boardLastMove = $derived(
+        lastMove
+            ? { from: { x: lastMove.fx, y: lastMove.fy }, to: { x: lastMove.tx, y: lastMove.ty } }
+            : null
+    );
+    const boardTargets = $derived.by(() => {
+        if (!selected || !isMyTurn) return [];
+        const sel = selected;
+        const idx = pieces.findIndex((p) => p.alive && p.x === sel.x && p.y === sel.y);
+        return idx >= 0 ? legalTargets(pieces, idx) : [];
+    });
 </script>
 
 <Card.Root>
@@ -567,176 +519,16 @@
                 </p>
             {/if}
 
-            <div class="overflow-x-auto">
-                <svg
-                    viewBox="0 0 {W} {H}"
-                    class="mx-auto block max-w-full rounded-xl shadow-md"
-                    style="max-width:{W}px"
-                    role="img"
-                    aria-label="장기판"
-                >
-                    <defs>
-                        <linearGradient id="wood" x1="0" y1="0" x2="1" y2="1">
-                            <stop offset="0" stop-color="#e8c48c" />
-                            <stop offset="0.5" stop-color="#dcb478" />
-                            <stop offset="1" stop-color="#d0a465" />
-                        </linearGradient>
-                        <radialGradient id="pcho" cx="0.35" cy="0.3" r="1">
-                            <stop offset="0" stop-color="#fdf6e3" />
-                            <stop offset="1" stop-color="#e8d9b5" />
-                        </radialGradient>
-                        <radialGradient id="phan" cx="0.35" cy="0.3" r="1">
-                            <stop offset="0" stop-color="#fdf2ec" />
-                            <stop offset="1" stop-color="#ecd6c6" />
-                        </radialGradient>
-                    </defs>
-                    <rect width={W} height={H} rx="12" fill="url(#wood)" />
-                    <rect
-                        x={PAD - 14}
-                        y={PAD - 14}
-                        width={W - (PAD - 14) * 2}
-                        height={H - (PAD - 14) * 2}
-                        fill="none"
-                        stroke="#5c3d1e"
-                        stroke-width="2.5"
-                        rx="3"
-                    />
-                    <!-- 판 선 -->
-                    {#each Array(ROWS) as _, r (r)}
-                        <line
-                            x1={px(0)}
-                            y1={py(r)}
-                            x2={px(COLS - 1)}
-                            y2={py(r)}
-                            stroke="#6b4a24"
-                            stroke-width="1.1"
-                        />
-                    {/each}
-                    {#each Array(COLS) as _, c (c)}
-                        <line
-                            x1={px(c)}
-                            y1={py(0)}
-                            x2={px(c)}
-                            y2={py(ROWS - 1)}
-                            stroke="#6b4a24"
-                            stroke-width="1.1"
-                        />
-                    {/each}
-                    <!-- 궁성 대각선 -->
-                    <line
-                        x1={px(3)}
-                        y1={py(0)}
-                        x2={px(5)}
-                        y2={py(2)}
-                        stroke="#6b4a24"
-                        stroke-width="1.1"
-                    />
-                    <line
-                        x1={px(5)}
-                        y1={py(0)}
-                        x2={px(3)}
-                        y2={py(2)}
-                        stroke="#6b4a24"
-                        stroke-width="1.1"
-                    />
-                    <line
-                        x1={px(3)}
-                        y1={py(7)}
-                        x2={px(5)}
-                        y2={py(9)}
-                        stroke="#6b4a24"
-                        stroke-width="1.1"
-                    />
-                    <line
-                        x1={px(5)}
-                        y1={py(7)}
-                        x2={px(3)}
-                        y2={py(9)}
-                        stroke="#6b4a24"
-                        stroke-width="1.1"
-                    />
-                    <!-- 귀점 -->
-                    {#each POINT_MARKS as [mx, my] (mx + '-' + my)}
-                        <circle cx={px(mx)} cy={py(my)} r="2.6" fill="#6b4a24" opacity="0.55" />
-                    {/each}
-
-                    <!-- 마지막 수 표시 -->
-                    {#if lastMove}
-                        <circle
-                            cx={px(lastMove.fx)}
-                            cy={py(lastMove.fy)}
-                            r="5"
-                            fill="#2563eb"
-                            opacity="0.35"
-                        />
-                        <circle
-                            cx={px(lastMove.tx)}
-                            cy={py(lastMove.ty)}
-                            r={CELL / 2 - 5}
-                            fill="none"
-                            stroke="#2563eb"
-                            stroke-width="2.5"
-                            opacity="0.55"
-                        />
-                    {/if}
-
-                    <!-- 클릭 판 -->
-                    {#each Array(ROWS) as _, r (r)}
-                        {#each Array(COLS) as _, c (c)}
-                            <circle
-                                cx={px(c)}
-                                cy={py(r)}
-                                r={CELL / 2 - 2}
-                                fill="transparent"
-                                style="cursor:{isMyTurn ? 'pointer' : 'default'}"
-                                role="button"
-                                tabindex="-1"
-                                onclick={() => clickPoint(c, r)}
-                            />
-                        {/each}
-                    {/each}
-
-                    <!-- 선택 표시 -->
-                    {#if selected}
-                        <circle
-                            cx={px(selected.x)}
-                            cy={py(selected.y)}
-                            r={CELL / 2 - 3}
-                            fill="none"
-                            stroke="#16a34a"
-                            stroke-width="3"
-                        />
-                    {/if}
-
-                    <!-- 기물 (팔각) -->
-                    {#each pieces.filter((p) => p.alive) as p (p.team + '-' + p.kind + '-' + p.x + '-' + p.y)}
-                        <g style="pointer-events:none">
-                            <polygon
-                                points={oct(px(p.x), py(p.y) + 1.5, pieceRadius(p.kind))}
-                                fill="#00000022"
-                            />
-                            <polygon
-                                points={oct(px(p.x), py(p.y), pieceRadius(p.kind))}
-                                fill={p.team === TEAM_CHO ? 'url(#pcho)' : 'url(#phan)'}
-                                stroke={p.team === TEAM_CHO ? '#14532d' : '#991b1b'}
-                                stroke-width="2"
-                            />
-                            <text
-                                x={px(p.x)}
-                                y={py(p.y)}
-                                text-anchor="middle"
-                                dominant-baseline="central"
-                                font-size={fontSize(p.kind)}
-                                font-weight="800"
-                                fill={p.team === TEAM_CHO ? '#14532d' : '#991b1b'}
-                                style="text-shadow:0 1px 0 #ffffff88"
-                            >
-                                {KIND_TEXT[p.kind]?.[p.team === TEAM_CHO ? 0 : 1] ?? '?'}
-                            </text>
-                        </g>
-                    {/each}
-                </svg>
-            </div>
+            <JanggiBoard
+                {pieces}
+                {selected}
+                targets={boardTargets}
+                lastMove={boardLastMove}
+                checkTeam={inCheck ? currentTeam : null}
+                interactive={isMyTurn}
+                onPointClick={clickPoint}
+                label="장기판 — 온라인 대전"
+            />
 
             {#if phase === 'playing'}
                 <div class="flex justify-end">
