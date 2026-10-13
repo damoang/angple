@@ -6,6 +6,7 @@
      * 외통 판정은 전부 서버가 한다. 이 컴포넌트는 from/to 좌표만 보내고 서버가
      * 확정한 국면(pieces)을 그린다. 클라이언트 규칙 계산은 「이동 가능한 칸」 안내뿐이다
      * (보드 = janggi-board.svelte, AI 연습판과 같은 컴포넌트).
+     * 먹은 말 줄·장군/멍군 알림·끝 이유 문구는 받은 국면·game_over.reason 으로 화면만 꾸민다.
      *
      * ⛔ 참가비 1,000P — 큐 진입 전 동의 필수(오목과 동일 원칙).
      * 대기실 4종(대기현황·연습판·초대링크·랭킹)도 오목과 동일하게 제공한다.
@@ -20,7 +21,19 @@
     import JanggiGame from './janggi-game.svelte';
     import JanggiBoard from './janggi-board.svelte';
     import JanggiSetupPicker from './janggi-setup-picker.svelte';
-    import { isSetup, legalTargets, type JanggiPiece, type Setup } from '$lib/games/janggi/rules';
+    import JanggiCaptured from './janggi-captured.svelte';
+    import {
+        TEAM,
+        isCheck,
+        isSetup,
+        legalTargets,
+        type JanggiPiece,
+        type Setup
+    } from '$lib/games/janggi/rules';
+    import { boardScore, fallbackOrder, nextCaptureOrder } from '$lib/games/janggi/captured';
+    import { checkEvent, isCheckmate, otherTeam } from '$lib/games/janggi/check-events';
+    import { endText, isScoreReason, type EndScores } from '$lib/games/janggi/end-reason';
+    import { CheckFlash } from '$lib/games/janggi/flash.svelte';
     import {
         opponentSetup,
         parseSetupChoose,
@@ -50,12 +63,17 @@
     let queuePosition = $state(0);
     let turnLeft = $state(0);
     let inCheck = $state(false);
-    let result = $state<{ youWon: boolean; reason: string } | null>(null);
+    let result = $state<{ youWon: boolean; reason: string; scores: EndScores | null } | null>(null);
     let myStats = $state<{ wins: number; losses: number; draws: number; rating: number } | null>(
         null
     );
     let agreed = $state(false);
     let selected = $state<{ x: number; y: number } | null>(null);
+    // 먹은 말 순서·둔 수(재접속하면 수는 모른다 → null)·직전 장군 받던 진영·장군/멍군 알림
+    let captureOrder = $state<number[]>([]);
+    let moveCount = $state<number | null>(0);
+    let lastCheckTeam: number | null = null;
+    const flash = new CheckFlash();
     let socket: WebSocket | null = null;
     let turnTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -157,6 +175,13 @@
     }
 
     const isMyTurn = $derived(phase === 'playing' && currentTeam === myTeam);
+
+    // 끝 배너·결과 문구(이유 · 수 · 점수 판정 점수)
+    const endInfo = $derived(
+        result
+            ? endText(result.reason, result.youWon, { moves: moveCount, scores: result.scores })
+            : null
+    );
 
     // ── 대기 현황·랭킹·연습판·초대 (오목 대기실 4종과 동일 구성) ──────────
     let lobbyWaiting = $state<number | null>(null);
@@ -352,17 +377,37 @@
                 selected = null;
                 lastMove = null;
                 result = null;
+                captureOrder = fallbackOrder(pieces);
+                moveCount = 0;
+                lastCheckTeam = null;
+                flash.clear();
                 phase = 'playing';
                 startTurnCountdown(msg.turnSeconds ?? 90);
                 break;
-            case 'move':
+            case 'move': {
                 if (msg.from && msg.to) {
                     lastMove = { fx: msg.from.x, fy: msg.from.y, tx: msg.to.x, ty: msg.to.y };
                 }
+                const prev = pieces;
                 pieces = msg.pieces ?? pieces;
+                captureOrder = nextCaptureOrder(captureOrder, prev, pieces);
+                if (moveCount !== null) moveCount++;
                 currentTeam = msg.currentTeam ?? currentTeam;
                 inCheck = msg.check === true;
                 selected = null;
+                // 장군·멍군 — 서버는 외통 수에 check:false 를 보내고 game_over 로 끝낸다.
+                // 그 순간엔 알림 대신 끝 배너가 떠야 하므로 같은 규칙으로 외통을 미리 본다.
+                const mover = moveTeam(msg);
+                if (mover) {
+                    const opp = otherTeam(mover);
+                    const nowCheck = inCheck ? opp : null;
+                    const mate = !inCheck && isCheckmate(pieces, opp);
+                    const ev = checkEvent(lastCheckTeam, mover, nowCheck, mate);
+                    lastCheckTeam = nowCheck;
+                    if (ev) flash.show(ev);
+                } else {
+                    lastCheckTeam = null;
+                }
                 if (msg.passed) {
                     message = '상대가 둘 수 있는 수가 없어 한 수 쉬었습니다.';
                 } else {
@@ -370,6 +415,7 @@
                 }
                 startTurnCountdown(90);
                 break;
+            }
             case 'game_restored':
                 stopSetupTimer();
                 setups = parseSetups(msg.gameState?.setups ?? msg.setups) ?? setups;
@@ -377,6 +423,12 @@
                 myTeam = msg.gameState?.playerTeam ?? myTeam;
                 pieces = msg.gameState?.pieces ?? pieces;
                 currentTeam = msg.gameState?.currentTeam ?? currentTeam;
+                // 복원은 직전 국면이 없다 — 먹은 말은 점수 큰 순, 둔 수는 모름
+                captureOrder = fallbackOrder(pieces);
+                moveCount = null;
+                inCheck = isCheck(pieces, currentTeam);
+                lastCheckTeam = inCheck ? currentTeam : null;
+                flash.clear();
                 phase = 'playing';
                 startTurnCountdown(90);
                 break;
@@ -388,7 +440,15 @@
                 break;
             case 'game_over':
                 phase = 'over';
-                result = { youWon: msg.youWon === true, reason: msg.reason ?? '' };
+                flash.clear();
+                result = {
+                    youWon: msg.youWon === true,
+                    reason: msg.reason ?? '',
+                    // 점수 판정 — 마지막 국면으로 서버와 같은 점수(한 덤 포함)를 다시 센다
+                    scores: isScoreReason(msg.reason ?? '')
+                        ? { cho: boardScore(pieces, TEAM.CHO), han: boardScore(pieces, TEAM.HAN) }
+                        : null
+                };
                 myStats = msg.stats ?? myStats;
                 if (turnTimer) clearInterval(turnTimer);
                 stopSetupTimer();
@@ -403,6 +463,15 @@
                 message = msg.message ?? '오류가 발생했습니다.';
                 break;
         }
+    }
+
+    // 이번 수를 둔 진영 — 서버가 team 을 싣는다. 없으면 도착 칸의 말로 본다.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function moveTeam(msg: any): number {
+        if (msg.team === TEAM.CHO || msg.team === TEAM.HAN) return msg.team;
+        if (!msg.to) return 0;
+        const p = pieces.find((q) => q.alive && q.x === msg.to.x && q.y === msg.to.y);
+        return p ? p.team : 0;
     }
 
     function cancelQueue() {
@@ -455,9 +524,14 @@
         message = '';
         result = null;
         inCheck = false;
+        captureOrder = [];
+        moveCount = 0;
+        lastCheckTeam = null;
+        flash.clear();
     }
 
     onDestroy(() => {
+        flash.clear();
         if (turnTimer) clearInterval(turnTimer);
         stopSetupTimer();
         socket?.close();
@@ -704,16 +778,24 @@
                 <p class="text-muted-foreground text-xs">{opponentSetupLine}</p>
             {/if}
 
-            <JanggiBoard
-                {pieces}
-                {selected}
-                targets={boardTargets}
-                lastMove={boardLastMove}
-                checkTeam={inCheck ? currentTeam : null}
-                interactive={isMyTurn}
-                onPointClick={clickPoint}
-                label="장기판 — 온라인 대전"
-            />
+            <p class="sr-only" aria-live="polite">{flash.current?.text ?? ''}</p>
+            <div class="flex w-full flex-col items-center gap-1.5">
+                <!-- 판은 뒤집지 않는다: 위 = 한 자리(한이 잡은 말), 아래 = 초 자리(초가 잡은 말) -->
+                <JanggiCaptured {pieces} order={captureOrder} capturer={TEAM.HAN} />
+                <JanggiBoard
+                    {pieces}
+                    {selected}
+                    targets={boardTargets}
+                    lastMove={boardLastMove}
+                    checkTeam={inCheck ? currentTeam : null}
+                    flash={flash.current}
+                    banner={endInfo ? { text: endInfo.banner, tone: endInfo.tone } : null}
+                    interactive={isMyTurn}
+                    onPointClick={clickPoint}
+                    label="장기판 — 온라인 대전"
+                />
+                <JanggiCaptured {pieces} order={captureOrder} capturer={TEAM.CHO} />
+            </div>
 
             {#if phase === 'playing'}
                 <div class="flex justify-end">
@@ -721,11 +803,10 @@
                 </div>
             {/if}
 
-            {#if phase === 'over' && result}
+            {#if phase === 'over' && result && endInfo}
                 <div class="space-y-2 rounded-lg border p-4 text-center">
-                    <p class="text-lg font-bold">
-                        {result.youWon ? '🎉 승리!' : result.reason === 'draw' ? '무승부' : '패배'}
-                    </p>
+                    <p class="text-lg font-bold">{endInfo.banner}</p>
+                    <p class="text-muted-foreground text-sm">{endInfo.detail}</p>
                     {#if myStats}
                         <p class="text-muted-foreground text-sm">
                             전적 {myStats.wins}승 {myStats.losses}패 {myStats.draws}무 · 점수 {myStats.rating}
