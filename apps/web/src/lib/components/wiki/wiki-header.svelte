@@ -1,6 +1,29 @@
 <script lang="ts">
     import { authStore } from '$lib/stores/auth.svelte';
-    import { mode, toggleMode } from 'mode-watcher';
+    import { onMount } from 'svelte';
+
+    let dark = $state(false);
+    let ready = $state(false);
+    onMount(() => {
+        dark =
+            document.documentElement.classList.contains('dark') ||
+            document.documentElement.classList.contains('amoled');
+        ready = true;
+    });
+
+    function toggleTheme() {
+        dark = !dark;
+        document.documentElement.classList.remove('amoled');
+        document.documentElement.classList.toggle('dark', dark);
+        // Match app.html's early theme restoration and the shared header's storage keys.
+        const theme = dark ? 'dark' : 'light';
+        try {
+            localStorage.setItem('themeMode', theme);
+        } catch {
+            // Cookie persistence still works when browser storage is unavailable.
+        }
+        document.cookie = `angple_theme_mode=${theme};path=/;max-age=31536000;SameSite=Lax`;
+    }
 </script>
 
 <header>
@@ -15,8 +38,8 @@
                 maxlength="200"
             /><button>검색</button>
         </form>
-        <button class="theme" onclick={toggleMode} aria-label="화면 색상 전환"
-            >{mode.current === 'dark' ? '☀' : '☾'}</button
+        <button class="theme" onclick={toggleTheme} disabled={!ready} aria-label="화면 색상 전환"
+            >{dark ? '☀' : '☾'}</button
         >
     </div>
     <nav aria-label="위키 메뉴">

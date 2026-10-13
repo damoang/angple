@@ -181,7 +181,10 @@ if (base !== 'http://127.0.0.1:43120' || process.env.DB_NAME !== 'wikiang_qa')
         await page.getByRole('button', { name: '화면 색상 전환' }).click();
         await expect(page.locator('html')).toHaveClass(/dark/);
         await page.screenshot({ path: out + '/editor-dark-375.png', fullPage: true });
+        await page.reload();
+        await expect(page.locator('html')).toHaveClass(/dark/);
         await page.getByRole('button', { name: '화면 색상 전환' }).click();
+        await expect(page.locator('html')).not.toHaveClass(/dark/);
         checks.push('Mobile dark editor is readable and toggles without losing source');
         for (const width of [375, 768, 1440]) {
             await page.setViewportSize({ width, height: 900 });
