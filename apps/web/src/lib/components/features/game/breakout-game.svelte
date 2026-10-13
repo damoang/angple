@@ -658,7 +658,7 @@
         </div>
     </dl>
 
-    <div bind:this={boardEl} class="board field no-pan relative">
+    <div bind:this={boardEl} class="board field relative" class:no-pan={status === 'playing'}>
         <canvas
             bind:this={canvasEl}
             class="bg-muted/40 text-foreground block h-full w-full rounded-lg border shadow-sm"
