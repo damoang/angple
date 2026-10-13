@@ -690,16 +690,18 @@ export async function createWikiPage(
         // 1. 페이지 생성 (익명이면 author_id=NULL)
         const [pageResult] = await connection.execute<ResultSetHeader>(
             `INSERT INTO wikiang_pages
-             (path, title, content, content_raw, content_type, description, author_id, is_published, namespace_id, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 1, 0, NOW(), NOW())`,
+             (path, slug, title, content, content_raw, content_type, description, author_id, is_published, namespace_id, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())`,
             [
                 normalizedPath,
+                normalizedPath.split('/').pop() || input.title,
                 input.title,
                 input.content,
                 input.content_raw,
                 contentType,
                 input.description || null,
-                author.userId
+                author.userId,
+                normalizedPath.startsWith('/토론/') ? 1 : 0
             ]
         );
         const pageId = pageResult.insertId;

@@ -25,7 +25,7 @@
         ><a href="/Special:Categories">분류</a><a href="/Special:NewPage">새 문서</a><a
             href="/도움말">도움말</a
         ><a href="https://damoang.net">다모앙 ↗</a>{#if authStore.user}<span
-                >{authStore.user.mb_nick || authStore.user.mb_id}</span
+                >{authStore.user.mb_name || authStore.user.mb_id}</span
             >{:else}<a href="/login">로그인</a>{/if}
     </nav>
 </header>
