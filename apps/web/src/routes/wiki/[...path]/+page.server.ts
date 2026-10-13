@@ -14,7 +14,7 @@ import {
     getExistingPagePaths,
     getBacklinks,
     getIncomingLinks,
-    type WikiPage,
+
     type WikiPageSummary,
     type WikiCategory,
     type WikiTag,
@@ -23,20 +23,7 @@ import {
 } from '$lib/server/wiki';
 
 // Special 페이지 타입 정의
-type SpecialPageData =
-    | { type: 'RecentChanges'; pages: WikiPageSummary[] }
-    | { type: 'AllPages'; result: PaginatedResult<WikiPageSummary>; sort: string }
-    | { type: 'Categories'; categories: WikiCategory[] }
-    | {
-          type: 'Category';
-          category: WikiCategory | null;
-          categoryId: number;
-          result: PaginatedResult<WikiPageSummary>;
-      }
-    | { type: 'Tags'; tags: WikiTag[] }
-    | { type: 'Tag'; tag: WikiTag | null; tagId: number; result: PaginatedResult<WikiPageSummary> }
-    | { type: 'Search'; query: string; result: PaginatedResult<WikiSearchResult> }
-    | { type: 'Unknown'; name: string };
+import type { SpecialPageData } from '$lib/wiki/special-types';
 
 export const load: PageServerLoad = async ({ params, url }) => {
     const path = params.path || '';
@@ -60,7 +47,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 
     if (!wikiPage) {
         // 404 대신 wiki-aware not-found 페이지로 — 새 문서 생성 흐름 + incoming-link + 유사 검색
-        const decodedPath = decodeURIComponent(requestedPath);
+        const decodedPath = requestedPath;
         const title = decodedPath.split('/').filter(Boolean).pop() || decodedPath;
         const searchKey = title.replace(/_/g, ' ').replace(/[<>"'%]/g, '');
         const [incomingLinks, searchResult] = await Promise.all([
@@ -105,10 +92,11 @@ export const load: PageServerLoad = async ({ params, url }) => {
  */
 async function handleSpecialPage(pageName: string, url: URL): Promise<SpecialPageData> {
     // URL 파라미터 파싱
-    const offset = parseInt(url.searchParams.get('offset') || '0', 10);
-    const limit = parseInt(url.searchParams.get('limit') || '50', 10);
+    const offset = Math.max(0, Number(url.searchParams.get('offset')) || 0);
+    const limit = Math.min(100, Math.max(1, Number(url.searchParams.get('limit')) || 50));
 
     switch (pageName) {
+        case 'NewPage': return { type: 'NewPage' };
         case 'RecentChanges': {
             const pages = await getRecentPages(50);
             return { type: 'RecentChanges', pages };
@@ -119,10 +107,10 @@ async function handleSpecialPage(pageName: string, url: URL): Promise<SpecialPag
             if (page) {
                 // 한글 경로를 URL 인코딩
                 const encodedPath = page.path.split('/').map(encodeURIComponent).join('/');
-                redirect(302, `/wiki${encodedPath}`);
+                redirect(302, encodedPath);
             }
             // 페이지가 없으면 메인으로
-            redirect(302, '/wiki');
+            redirect(302, '/');
         }
 
         case 'AllPages': {

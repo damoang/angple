@@ -1,3 +1,4 @@
+import { error } from '@sveltejs/kit';
 /**
  * Wiki 페이지 조회 모듈 (wikiang_* 테이블 전용)
  *
@@ -159,7 +160,7 @@ export async function getWikiPage(path: string): Promise<WikiPage | null> {
             `SELECT id, path, title, content, content_raw, content_type,
                     description, author_id, created_at, updated_at
              FROM wikiang_pages
-             WHERE path = ? AND is_published = 1
+             WHERE path = ? AND is_published = 1 AND is_private = 0
              LIMIT 1`,
             [normalizedPath]
         );
@@ -170,11 +171,11 @@ export async function getWikiPage(path: string): Promise<WikiPage | null> {
 }
 
 export async function getRecentPages(limit: number = 10): Promise<WikiPageSummary[]> {
-    const safeLimit = Math.max(1, Math.min(100, Math.floor(limit)));
+    const safeLimit = Math.max(1, Math.min(100, Math.floor(Number.isFinite(limit) ? limit : 50)));
     const [rows] = await readPool.query<RowDataPacket[]>(
         `SELECT id, path, title, description, updated_at
          FROM wikiang_pages
-         WHERE is_published = 1 AND namespace_id = 0
+         WHERE is_published = 1 AND is_private = 0 AND namespace_id = 0
          ORDER BY updated_at DESC
          LIMIT ${safeLimit}`
     );
@@ -202,13 +203,15 @@ const treeCache = createCache<WikiTreeNode[]>({ ttl: 300_000, maxSize: 2 });
 export async function getPageTree(): Promise<WikiTreeNode[]> {
     return treeCache.getOrSet('tree:ko', async () => {
         const [rows] = await readPool.query<RowDataPacket[]>(
-            `SELECT id, page_id, path, title, depth, parent_id, is_folder, sort_order
-             FROM wikiang_page_tree
-             WHERE locale = 'ko'
-             ORDER BY sort_order, title
+            `SELECT id, id AS page_id, path, title, 0 AS depth, NULL AS parent_id, 0 AS is_folder, 0 AS sort_order
+             FROM wikiang_pages
+             WHERE locale = 'ko' AND is_published = 1 AND is_private = 0 AND namespace_id = 0
+               AND path NOT LIKE '/위키앙_관리/%' AND path NOT LIKE '/삭제예정:%'
+             ORDER BY title, CHAR_LENGTH(path), id
              LIMIT 2000`
         );
-        return rows.map((r) => ({
+        const seen = new Set<string>();
+        return rows.filter(r => { if (seen.has(r.title)) return false; seen.add(r.title); return true; }).map((r) => ({
             id: r.id,
             page_id: r.page_id ?? null,
             path: r.path,
@@ -234,7 +237,7 @@ export async function getPageRevisions(
     pageId: number,
     limit: number = 50
 ): Promise<WikiRevision[]> {
-    const safeLimit = Math.max(1, Math.min(500, Math.floor(limit)));
+    const safeLimit = Math.max(1, Math.min(500, Math.floor(Number.isFinite(limit) ? limit : 50)));
 
     return revisionCache.getOrSet(`revisions:${pageId}:${safeLimit}`, async () => {
         const [rows] = await readPool.query<RowDataPacket[]>(
@@ -325,9 +328,10 @@ const categoryCache = createCache<WikiCategory[]>({ ttl: 300_000, maxSize: 10 })
 export async function getCategories(): Promise<WikiCategory[]> {
     return categoryCache.getOrSet('all', async () => {
         const [rows] = await readPool.query<RowDataPacket[]>(
-            `SELECT id, name, slug, description, parent_id, page_count
-             FROM wikiang_categories
-             ORDER BY name ASC`
+            `SELECT c.id, c.name, c.slug, c.description, c.parent_id,
+                    (SELECT COUNT(*) FROM wikiang_page_categories pc JOIN wikiang_pages p ON p.id=pc.page_id
+                     WHERE pc.category_id=c.id AND p.is_published=1 AND p.is_private=0) AS page_count
+             FROM wikiang_categories c ORDER BY c.name ASC`
         );
         return rows as WikiCategory[];
     });
@@ -341,22 +345,22 @@ export async function getPagesByCategory(
     offset: number = 0,
     limit: number = 50
 ): Promise<PaginatedResult<WikiPageSummary>> {
-    const safeOffset = Math.max(0, Math.floor(offset));
-    const safeLimit = Math.max(1, Math.min(100, Math.floor(limit)));
+    const safeOffset = Math.max(0, Math.floor(Number.isFinite(offset) ? offset : 0));
+    const safeLimit = Math.max(1, Math.min(100, Math.floor(Number.isFinite(limit) ? limit : 50)));
 
     const [[countResult], [rows]] = await Promise.all([
         readPool.execute<RowDataPacket[]>(
             `SELECT COUNT(*) as total
              FROM wikiang_page_categories pc
              JOIN wikiang_pages p ON pc.page_id = p.id
-             WHERE pc.category_id = ? AND p.is_published = 1`,
+             WHERE pc.category_id = ? AND p.is_published = 1 AND p.is_private = 0`,
             [categoryId]
         ),
         readPool.query<RowDataPacket[]>(
             `SELECT p.id, p.path, p.title, p.description, p.updated_at
              FROM wikiang_page_categories pc
              JOIN wikiang_pages p ON pc.page_id = p.id
-             WHERE pc.category_id = ? AND p.is_published = 1
+             WHERE pc.category_id = ? AND p.is_published = 1 AND p.is_private = 0
              ORDER BY pc.sort_key ASC, p.title ASC
              LIMIT ${safeLimit} OFFSET ${safeOffset}`,
             [categoryId]
@@ -387,10 +391,10 @@ export async function getTags(): Promise<WikiTag[]> {
     return tagCache.getOrSet('all', async () => {
         const [rows] = await readPool.query<RowDataPacket[]>(
             `SELECT t.id, t.tag, t.slug, t.title,
-                    COUNT(pt.page_id) as page_count
+                    COUNT(p.id) as page_count
              FROM wikiang_tags t
              LEFT JOIN wikiang_page_tags pt ON t.id = pt.tag_id
-             LEFT JOIN wikiang_pages p ON pt.page_id = p.id AND p.is_published = 1
+             LEFT JOIN wikiang_pages p ON pt.page_id = p.id AND p.is_published = 1 AND p.is_private = 0
              GROUP BY t.id
              ORDER BY t.tag ASC`
         );
@@ -406,22 +410,22 @@ export async function getPagesByTag(
     offset: number = 0,
     limit: number = 50
 ): Promise<PaginatedResult<WikiPageSummary>> {
-    const safeOffset = Math.max(0, Math.floor(offset));
-    const safeLimit = Math.max(1, Math.min(100, Math.floor(limit)));
+    const safeOffset = Math.max(0, Math.floor(Number.isFinite(offset) ? offset : 0));
+    const safeLimit = Math.max(1, Math.min(100, Math.floor(Number.isFinite(limit) ? limit : 50)));
 
     const [[countResult], [rows]] = await Promise.all([
         readPool.execute<RowDataPacket[]>(
             `SELECT COUNT(*) as total
              FROM wikiang_page_tags pt
              JOIN wikiang_pages p ON pt.page_id = p.id
-             WHERE pt.tag_id = ? AND p.is_published = 1`,
+             WHERE pt.tag_id = ? AND p.is_published = 1 AND p.is_private = 0`,
             [tagId]
         ),
         readPool.query<RowDataPacket[]>(
             `SELECT p.id, p.path, p.title, p.description, p.updated_at
              FROM wikiang_page_tags pt
              JOIN wikiang_pages p ON pt.page_id = p.id
-             WHERE pt.tag_id = ? AND p.is_published = 1
+             WHERE pt.tag_id = ? AND p.is_published = 1 AND p.is_private = 0
              ORDER BY p.title ASC
              LIMIT ${safeLimit} OFFSET ${safeOffset}`,
             [tagId]
@@ -451,8 +455,8 @@ export async function searchPages(
     offset: number = 0,
     limit: number = 20
 ): Promise<PaginatedResult<WikiSearchResult>> {
-    const safeOffset = Math.max(0, Math.floor(offset));
-    const safeLimit = Math.max(1, Math.min(100, Math.floor(limit)));
+    const safeOffset = Math.max(0, Math.floor(Number.isFinite(offset) ? offset : 0));
+    const safeLimit = Math.max(1, Math.min(100, Math.floor(Number.isFinite(limit) ? limit : 50)));
 
     // 빈 쿼리 처리
     if (!query || query.trim().length === 0) {
@@ -469,7 +473,7 @@ export async function searchPages(
         readPool.execute<RowDataPacket[]>(
             `SELECT COUNT(*) as total
              FROM wikiang_pages
-             WHERE is_published = 1
+             WHERE is_published = 1 AND is_private = 0 AND namespace_id = 0
                AND (title LIKE ? OR content_raw LIKE ? OR description LIKE ?)`,
             [likePattern, likePattern, likePattern]
         ),
@@ -482,7 +486,7 @@ export async function searchPages(
                     END as score,
                     SUBSTRING(content_raw, 1, 200) as snippet
              FROM wikiang_pages
-             WHERE is_published = 1
+             WHERE is_published = 1 AND is_private = 0 AND namespace_id = 0
                AND (title LIKE ? OR content_raw LIKE ? OR description LIKE ?)
              ORDER BY score DESC, updated_at DESC
              LIMIT ${safeLimit} OFFSET ${safeOffset}`,
@@ -512,7 +516,7 @@ export async function getRandomPage(): Promise<WikiPageSummary | null> {
     const [rows] = await readPool.query<RowDataPacket[]>(
         `SELECT id, path, title, description, updated_at
          FROM wikiang_pages
-         WHERE is_published = 1 AND namespace_id = 0
+         WHERE is_published = 1 AND is_private = 0 AND namespace_id = 0
          ORDER BY RAND()
          LIMIT 1`
     );
@@ -529,18 +533,18 @@ export async function getAllPages(
     limit: number = 50,
     sortBy: 'title' | 'updated' = 'title'
 ): Promise<PaginatedResult<WikiPageSummary>> {
-    const safeOffset = Math.max(0, Math.floor(offset));
-    const safeLimit = Math.max(1, Math.min(200, Math.floor(limit)));
+    const safeOffset = Math.max(0, Math.floor(Number.isFinite(offset) ? offset : 0));
+    const safeLimit = Math.max(1, Math.min(200, Math.floor(Number.isFinite(limit) ? limit : 50)));
     const orderClause = sortBy === 'updated' ? 'updated_at DESC' : 'title ASC';
 
     const [[countResult], [rows]] = await Promise.all([
         readPool.query<RowDataPacket[]>(
-            `SELECT COUNT(*) as total FROM wikiang_pages WHERE is_published = 1 AND namespace_id = 0`
+            `SELECT COUNT(*) as total FROM wikiang_pages WHERE is_published = 1 AND is_private = 0 AND namespace_id = 0`
         ),
         readPool.query<RowDataPacket[]>(
             `SELECT id, path, title, description, updated_at
              FROM wikiang_pages
-             WHERE is_published = 1 AND namespace_id = 0
+             WHERE is_published = 1 AND is_private = 0 AND namespace_id = 0
              ORDER BY ${orderClause}
              LIMIT ${safeLimit} OFFSET ${safeOffset}`
         )
@@ -565,7 +569,7 @@ export async function getWikiPageById(pageId: number): Promise<WikiPage | null> 
         `SELECT id, path, title, content, content_raw, content_type,
                 description, author_id, created_at, updated_at
          FROM wikiang_pages
-         WHERE id = ? AND is_published = 1
+         WHERE id = ? AND is_published = 1 AND is_private = 0
          LIMIT 1`,
         [pageId]
     );
@@ -586,7 +590,7 @@ export async function getWikiPageById(pageId: number): Promise<WikiPage | null> 
  */
 export async function revertWikiPage(
     pageId: number,
-    ref: { revisionId?: number; versionNumber?: number },
+    ref: { revisionId?: number; versionNumber?: number; baseRevision: number },
     author: WikiAuthor
 ): Promise<{ revisionId: number; versionNumber: number; path: string; sourceVersion: number }> {
     // 1. 대상 리비전 로드
@@ -617,6 +621,7 @@ export async function revertWikiPage(
             content_type: target.content_type,
             description: page.description || undefined,
             comment: `되돌리기: v${target.version_number}`,
+            base_revision: ref.baseRevision,
             is_minor: false
         },
         author
@@ -637,7 +642,7 @@ export async function getPageIdByPath(path: string): Promise<number | null> {
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
 
     const [rows] = await readPool.execute<RowDataPacket[]>(
-        `SELECT id FROM wikiang_pages WHERE path = ? AND is_published = 1 LIMIT 1`,
+        `SELECT id FROM wikiang_pages WHERE path = ? AND is_published = 1 AND is_private = 0 LIMIT 1`,
         [normalizedPath]
     );
 
@@ -657,6 +662,7 @@ export interface WikiPageInput {
     description?: string;
     comment?: string;
     is_minor?: boolean;
+    base_revision?: number;
 }
 
 /**
@@ -720,6 +726,7 @@ export async function createWikiPage(
 
         // 캐시 무효화
         wikiCache.delete(`page:${normalizedPath}`);
+        treeCache.delete('tree:ko');
 
         return { pageId, revisionId: revResult.insertId };
     } catch (error) {
@@ -747,13 +754,14 @@ export async function updateWikiPage(
 
         // 1. 현재 페이지 정보 조회 (이전 크기, 경로)
         const [pageRows] = await connection.execute<RowDataPacket[]>(
-            `SELECT path, content_raw FROM wikiang_pages WHERE id = ? LIMIT 1`,
+            `SELECT path, content, content_raw, content_type, namespace_id FROM wikiang_pages WHERE id = ? AND is_published=1 AND is_private=0 LIMIT 1 FOR UPDATE`,
             [pageId]
         );
         if (pageRows.length === 0) {
             throw new Error('페이지를 찾을 수 없습니다.');
         }
-        const currentPage = pageRows[0] as { path: string; content_raw: string | null };
+        const currentPage = pageRows[0] as { path: string; content_raw: string | null; content: string | null; content_type: string; namespace_id: number };
+        if (currentPage.namespace_id === 8) error(403, '시스템 문서는 편집할 수 없습니다.');
         const prevSize = Buffer.byteLength(currentPage.content_raw || '', 'utf8');
         const delta = newSize - prevSize;
 
@@ -763,7 +771,16 @@ export async function updateWikiPage(
             [pageId]
         );
         const maxVersion = (versionRows[0] as { max_version: number | null }).max_version || 0;
-        const newVersionNumber = maxVersion + 1;
+        if (input.base_revision !== undefined && input.base_revision !== maxVersion) {
+            error(409, '다른 편집자가 먼저 저장했습니다. 작성한 내용을 복사한 뒤 문서를 다시 열어 병합해 주세요.');
+        }
+        // Preserve a readable baseline for imports whose rendered body differs from their old source/revision.
+        const [previous] = await connection.execute<RowDataPacket[]>('SELECT content, content_raw, content_type FROM wikiang_revisions WHERE page_id=? ORDER BY version_number DESC LIMIT 1', [pageId]);
+        const needsSnapshot = !previous.length || previous[0].content !== currentPage.content || previous[0].content_raw !== currentPage.content_raw || previous[0].content_type !== currentPage.content_type;
+        if (needsSnapshot) {
+            await connection.execute(`INSERT INTO wikiang_revisions (page_id, content, content_raw, content_type, version_number, comment, size, delta) VALUES (?, ?, ?, ?, ?, ?, ?, 0)`, [pageId, currentPage.content, currentPage.content_raw, currentPage.content_type, maxVersion + 1, '이관 문서 편집 전 원문 보존', prevSize]);
+        }
+        const newVersionNumber = maxVersion + (needsSnapshot ? 2 : 1);
 
         // 3. 페이지 업데이트
         await connection.execute(
@@ -809,6 +826,7 @@ export async function updateWikiPage(
 
         // 캐시 무효화
         wikiCache.delete(`page:${currentPage.path}`);
+        treeCache.delete('tree:ko');
         revisionCache.delete(`revisions:${pageId}:50`);
         revisionCache.delete(`revisions:${pageId}:100`);
 
@@ -831,7 +849,7 @@ export async function getWikiPageForEdit(path: string): Promise<WikiPage | null>
         `SELECT id, path, title, content, content_raw, content_type,
                 description, author_id, created_at, updated_at
          FROM wikiang_pages
-         WHERE path = ?
+         WHERE path = ? AND is_published=1 AND is_private=0 AND namespace_id != 8
          LIMIT 1`,
         [normalizedPath]
     );
@@ -874,7 +892,7 @@ export async function getExistingPagePaths(paths: string[]): Promise<Set<string>
     const placeholders = unique.map(() => '?').join(',');
     const [rows] = await readPool.query<RowDataPacket[]>(
         `SELECT path FROM wikiang_pages
-         WHERE is_published = 1 AND path IN (${placeholders})`,
+         WHERE is_published = 1 AND is_private = 0 AND path IN (${placeholders})`,
         unique
     );
     return new Set(rows.map((r) => r.path as string));
@@ -893,7 +911,7 @@ export async function getBacklinks(
          FROM wikiang_page_links l
          JOIN wikiang_pages p ON p.id = l.from_page_id
          WHERE (l.to_page_id = ? OR l.to_path = ?)
-           AND p.is_published = 1 AND p.id != ?
+           AND p.is_published = 1 AND p.is_private = 0 AND p.id != ?
          ORDER BY p.title
          LIMIT ?`,
         [pageId, path, pageId, limit]
@@ -910,7 +928,7 @@ export async function getIncomingLinks(path: string, limit = 50): Promise<WikiPa
         `SELECT DISTINCT p.id, p.path, p.title, p.description, p.updated_at
          FROM wikiang_page_links l
          JOIN wikiang_pages p ON p.id = l.from_page_id
-         WHERE l.to_path = ? AND p.is_published = 1
+         WHERE l.to_path = ? AND p.is_published = 1 AND p.is_private = 0
          ORDER BY p.title
          LIMIT ?`,
         [path, limit]
@@ -958,4 +976,9 @@ export async function syncWikiPageLinks(
          VALUES ${tuples.join(', ')}`,
         values
     );
+}
+
+export async function getWikiVersion(pageId: number): Promise<number> {
+    const [rows] = await pool.execute<RowDataPacket[]>('SELECT COALESCE(MAX(version_number),0) AS version FROM wikiang_revisions WHERE page_id=?', [pageId]);
+    return Number(rows[0].version);
 }

@@ -21,8 +21,8 @@
         try {
             const response = await fetch(`/api/wiki/pages/${data.wikiPage.id}/revert`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ revisionId })
+                headers: { 'Content-Type': 'application/json', ...(data.csrfToken ? { 'X-CSRF-Token': data.csrfToken } : {}) },
+                body: JSON.stringify({ revisionId, baseRevision: data.baseRevision })
             });
             const result = await response.json();
             if (!response.ok) {
@@ -140,6 +140,7 @@
 </script>
 
 <svelte:head>
+    <meta name="robots" content="noindex, follow" />
     <title>이력: {data.wikiPage.title} - 위키앙</title>
 </svelte:head>
 

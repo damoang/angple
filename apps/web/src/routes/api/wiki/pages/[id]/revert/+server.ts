@@ -50,6 +50,7 @@ export const POST: RequestHandler = async ({ params, request, locals, getClientA
         }
 
         const body = await request.json();
+        if (!Number.isInteger(body.baseRevision) || body.baseRevision < 0) error(400, '기준 버전이 필요합니다. 역사를 다시 열어주세요.');
         const revisionId =
             body.revisionId != null ? parseInt(String(body.revisionId), 10) : undefined;
         const versionNumber =
@@ -65,6 +66,7 @@ export const POST: RequestHandler = async ({ params, request, locals, getClientA
         const result = await revertWikiPage(
             pageId,
             {
+                baseRevision: body.baseRevision,
                 revisionId: Number.isNaN(revisionId as number) ? undefined : revisionId,
                 versionNumber: Number.isNaN(versionNumber as number) ? undefined : versionNumber
             },

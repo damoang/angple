@@ -4,12 +4,10 @@
      * 본문(마크다운 원문)에서 h2~h4 추출. 헤딩 3개 미만이면 표시 안 함.
      * 앵커 slug 는 본문 헤딩 element 의 id 와 동일 (heading-slug.ts 공용).
      */
-    import { parseMarkdownHeadings, type TocItem } from './heading-slug';
+    import { type TocItem } from './heading-slug';
     import ListIcon from '@lucide/svelte/icons/list';
 
-    let { content = '' }: { content: string } = $props();
-
-    const items = $derived<TocItem[]>(parseMarkdownHeadings(content));
+    let { items = [] }: { items: TocItem[] } = $props();
 
     let active = $state('');
 

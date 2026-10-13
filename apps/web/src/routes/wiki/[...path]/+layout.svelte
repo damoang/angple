@@ -5,8 +5,8 @@
      *  루트 +layout.svelte 가 위키 라우트에 한해 DefaultLayout(보드 사이드바)을 우회하므로
      *  여기서 위키 chrome 을 직접 구성한다.
      */
-    import Header from '$lib/components/layout/header.svelte';
-    import Footer from '$lib/components/layout/footer.svelte';
+    import WikiHeader from '$lib/components/wiki/wiki-header.svelte';
+
     import PageTree from '$lib/components/wiki/page-tree.svelte';
     import { page } from '$app/stores';
 
@@ -16,7 +16,7 @@
 </script>
 
 <div class="wiki-layout">
-    <Header />
+    <WikiHeader />
 
     <div class="wiki-body">
         <aside class="wiki-nav">
@@ -27,10 +27,11 @@
         </main>
     </div>
 
-    <Footer />
+    <footer class="wiki-bottom"><a href="/위키앙:이용_규칙">이용 규칙</a><a href="/위키앙:저작권">저작권</a><a href="/도움말">도움말</a><span>함께 읽고 고치는 지식사전, 위키앙</span></footer>
 </div>
 
 <style>
+    .wiki-bottom { display:flex; flex-wrap:wrap; gap:1rem; justify-content:center; padding:1.5rem; border-top:1px solid var(--border); font-size:.85rem; color:var(--muted-foreground); }
     .wiki-layout {
         display: flex;
         flex-direction: column;

@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { getWikiPageForEdit } from '$lib/server/wiki';
+import { getWikiPageForEdit, getWikiPage, getWikiVersion } from '$lib/server/wiki';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
     const path = params.path || '';
@@ -14,15 +14,17 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
     // 기존 페이지 조회 (없으면 신규 문서)
     const wikiPage = await getWikiPageForEdit(`/${path}`);
+    if (!wikiPage && await getWikiPage(`/${path}`)) error(403, '시스템 문서는 편집할 수 없습니다.');
 
     // 경로에서 제목 추출 (신규 문서용)
-    const titleFromPath = decodeURIComponent(path.split('/').pop() || path);
+    const titleFromPath = path.split('/').pop() || path;
 
     // 로그인 회원이면 회원 정보, 익명이면 null
     const userId = locals.user?.id ? parseInt(locals.user.id, 10) : null;
 
     return {
         wikiPage,
+        baseRevision: wikiPage ? await getWikiVersion(wikiPage.id) : 0,
         isNew: !wikiPage,
         path: `/${path}`,
         suggestedTitle: wikiPage?.title || titleFromPath,

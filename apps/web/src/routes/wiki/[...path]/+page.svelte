@@ -7,144 +7,31 @@
      *  - 헤딩(h2~h4)에 id 주입 → 우측 TOC 앵커 스크롤.
      */
     import type { PageData } from './$types';
-    import { Markdown } from '$lib/components/ui/markdown/index.js';
+    import WikiContent from '$lib/components/wiki/wiki-content.svelte';
+    import SpecialPage from '$lib/components/wiki/special-page.svelte';
     import Toc from '$lib/components/wiki/toc.svelte';
     import Breadcrumbs from '$lib/components/wiki/breadcrumbs.svelte';
     import BacklinksPanel from '$lib/components/wiki/backlinks-panel.svelte';
-    import { slugify } from '$lib/components/wiki/heading-slug';
+    import { renderWiki } from '$lib/wiki/render';
+    import { wikiHref } from '$lib/wiki/paths';
     import PencilIcon from '@lucide/svelte/icons/pencil';
     import HistoryIcon from '@lucide/svelte/icons/history';
     import MessageSquareIcon from '@lucide/svelte/icons/message-square';
     import FilePlusIcon from '@lucide/svelte/icons/file-plus';
     import SearchIcon from '@lucide/svelte/icons/search';
-    import { tick } from 'svelte';
+
 
     const { data }: { data: PageData } = $props();
 
-    // 존재하는 위키링크 path set (data 에서 받음)
     const existingPaths = $derived(new Set<string>(data.existingWikilinkPaths || []));
-
-    function encodePath(p: string): string {
-        const trimmed = p.replace(/^\/+/, '');
-        return '/' + trimmed.split('/').map(encodeURIComponent).join('/');
-    }
-
-    /**
-     * `[[path]]` 또는 `[[path|label]]` 위키링크를 <a> 태그로 변환.
-     * - 존재하는 path: `wiki-link` 클래스 (파란)
-     * - 없는 path: `wiki-link red-link` 클래스 (빨강) — 클릭 시 새 문서 생성 흐름
-     * - 코드 펜스 / inline code 안의 [[..]] 는 보존
-     */
-    function transformWikilinks(content: string, existing: Set<string>): string {
-        if (!content) return content;
-        const placeholders: string[] = [];
-        let stripped = content.replace(/```[\s\S]*?```|`[^`\n]+`/g, (m) => {
-            placeholders.push(m);
-            return `\x00CODE${placeholders.length - 1}\x00`;
-        });
-        stripped = stripped.replace(
-            /\[\[([^\]\n|]+?)(?:\|([^\]\n]+))?\]\]/g,
-            (full, raw: string, label?: string) => {
-                const trimmed = raw.trim();
-                if (!trimmed) return full;
-                const path = trimmed.startsWith('/') ? trimmed : '/' + trimmed;
-                const display = (label?.trim() || trimmed.replace(/^\//, '').replace(/_/g, ' '))
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;');
-                const exists = existing.has(path);
-                const href = encodePath(path);
-                const cls = exists ? 'wiki-link' : 'wiki-link red-link';
-                const title = exists ? path : `${path} (없는 문서)`;
-                return `<a class="${cls}" href="${href}" title="${title}">${display}</a>`;
-            }
-        );
-        return stripped.replace(/\x00CODE(\d+)\x00/g, (_, i) => placeholders[parseInt(i, 10)]);
-    }
-
-    type Renderable =
-        | { mode: 'rich'; content: string }
-        | { mode: 'raw'; content: string; type: string }
-        | null;
-
-    function pickRenderable(
-        page: {
-            content: string | null;
-            content_raw: string | null;
-            content_type: string | null;
-        } | null,
-        existing: Set<string>
-    ): Renderable {
-        if (!page) return null;
-        const ct = page.content_type;
-        if (page.content && (ct === 'markdown' || ct === 'html')) {
-            // markdown/html 둘 다 [[..]] 변환 적용 (html 본문도 위키링크 허용)
-            return { mode: 'rich', content: transformWikilinks(page.content, existing) };
-        }
-        if (page.content_raw) {
-            return { mode: 'raw', content: page.content_raw, type: ct || 'unknown' };
-        }
-        if (page.content) {
-            return { mode: 'raw', content: page.content, type: ct || 'unknown' };
-        }
-        return null;
-    }
-
-    const renderable = $derived(pickRenderable(data.wikiPage, existingPaths));
-    const tocContent = $derived(renderable?.mode === 'rich' ? renderable.content : '');
-
-    // 문서 path → 인코딩된 URL (편집/역사 링크)
-    const pageUrl = $derived.by(() => {
-        const p = (data.wikiPage?.path || '').replace(/^\/+/, '').replace(/\/+$/, '');
-        if (!p) return '';
-        return '/' + p.split('/').map(encodeURIComponent).join('/');
-    });
-
-    // 본문 렌더 후 헤딩(h2~h4)에 TOC 와 동일한 slug id 주입
-    let contentEl: HTMLDivElement | undefined = $state();
-    $effect(() => {
-        // renderable 변경 시 재실행
-        void renderable;
-        if (!contentEl) return;
-        tick().then(() => {
-            const seen = new Map<string, number>();
-            contentEl?.querySelectorAll<HTMLElement>('h2, h3, h4').forEach((h) => {
-                let slug = slugify(h.textContent || '');
-                const n = seen.get(slug) ?? 0;
-                seen.set(slug, n + 1);
-                if (n > 0) slug = `${slug}-${n + 1}`;
-                h.id = slug;
-            });
-        });
-    });
-
-    // 본문 안 깨진 이미지(외부 hotlink 차단 / 파일 삭제)를 우아하게 대체.
-    // - Markdown 컴포넌트의 data-original 폴백이 실패한 후에도 처리
-    // - 깨진 img → span.wiki-img-broken (이름/alt 표시 + 원본 링크)
-    $effect(() => {
-        void renderable;
-        if (!contentEl) return;
-        tick().then(() => {
-            const imgs = contentEl?.querySelectorAll<HTMLImageElement>('img');
-            imgs?.forEach((img) => {
-                const fallback = () => {
-                    if (img.dataset.brokenHandled) return;
-                    img.dataset.brokenHandled = '1';
-                    const span = document.createElement('span');
-                    span.className = 'wiki-img-broken';
-                    const label = img.alt?.trim() || img.title?.trim() || '이미지';
-                    span.textContent = `🖼 ${label}`;
-                    span.title = `원본 (불러올 수 없음): ${img.currentSrc || img.src}`;
-                    img.replaceWith(span);
-                };
-                img.addEventListener('error', fallback);
-                // SSR 이미지가 hydration 전 이미 실패한 경우
-                if (img.complete && img.naturalWidth === 0) fallback();
-            });
-        });
-    });
+    const source = $derived(data.wikiPage?.content ?? data.wikiPage?.content_raw ?? '');
+    const headings = $derived(renderWiki(source, data.wikiPage?.content_type, existingPaths).headings);
+    const pageUrl = $derived(wikiHref(data.wikiPage?.path || ''));
 </script>
 
 <svelte:head>
+    {#if data.wikiPage}<link rel="canonical" href={`https://wikiang.org${pageUrl}`} />
+    {:else}<meta name="robots" content="noindex, follow" />{/if}
     {#if data.wikiPage}
         <title>{data.wikiPage.title} - 위키앙</title>
         {#if data.wikiPage.description}
@@ -156,26 +43,11 @@
 </svelte:head>
 
 {#if data.isSpecialPage}
-    <div class="wiki-special-page">
-        {#if data.specialType === 'RecentChanges'}
-            <h1>최근 변경</h1>
-            <p class="text-gray-600">최근 변경된 문서 목록입니다.</p>
-            <p class="mt-4 text-sm text-gray-500">이 기능은 준비 중입니다.</p>
-        {:else if data.specialType === 'Random'}
-            <h1>임의 문서</h1>
-            <p class="text-gray-600">임의의 문서로 이동합니다.</p>
-        {:else if data.specialType === 'AllPages'}
-            <h1>모든 문서</h1>
-            <p class="text-gray-600">위키앙의 모든 문서 목록입니다.</p>
-        {:else}
-            <h1>특수:{data.specialType}</h1>
-            <p class="text-gray-600">이 특수 페이지는 아직 구현되지 않았습니다.</p>
-        {/if}
-    </div>
+    {#if data.specialData}<SpecialPage special={data.specialData} />{/if}
 {:else if data.notFound}
     <div class="wiki-shell">
         <article class="wiki-main wiki-not-found">
-            <Breadcrumbs path={data.requestedPath} />
+            <Breadcrumbs path={data.requestedPath || ''} />
 
             <header class="wiki-header">
                 <h1 class="wiki-title">
@@ -202,7 +74,7 @@
                     </a>
                     <a
                         class="not-found-secondary"
-                        href={`/Special:Search?q=${encodeURIComponent(data.requestedTitle)}`}
+                        href={`/Special:Search?q=${encodeURIComponent(data.requestedTitle || '')}`}
                     >
                         <SearchIcon class="h-4 w-4" /> 비슷한 문서 검색
                     </a>
@@ -267,24 +139,16 @@
                     <a class="wiki-action" href={`${pageUrl}/history`}>
                         <HistoryIcon class="h-3.5 w-3.5" /> 역사
                     </a>
-                    <a class="wiki-action" href={`/토론:${data.wikiPage.title}`}>
+                    <a class="wiki-action" href={wikiHref('/토론' + data.wikiPage.path)}>
                         <MessageSquareIcon class="h-3.5 w-3.5" /> 토론
                     </a>
                 </div>
             </header>
 
-            <div class="wiki-content" bind:this={contentEl}>
-                {#if renderable?.mode === 'rich'}
-                    <Markdown content={renderable.content} />
-                {:else if renderable?.mode === 'raw'}
-                    <p class="wiki-raw-notice">
-                        ⚠️ 이 문서는 아직 정규화된 본문이 없어 원본({renderable.type})을 그대로
-                        표시합니다.
-                    </p>
-                    <pre class="wiki-raw">{renderable.content}</pre>
-                {:else}
-                    <p class="text-gray-500">이 문서는 아직 내용이 없습니다.</p>
-                {/if}
+            <div class="wiki-content">
+                {#if source}
+                    <WikiContent content={source} contentType={data.wikiPage.content_type} {existingPaths} path={data.wikiPage.path} />
+                {:else}<p>이 문서는 아직 내용이 없습니다. 편집으로 내용을 보완해주세요.</p>{/if}
             </div>
 
             <BacklinksPanel backlinks={data.backlinks || []} />
@@ -294,9 +158,9 @@
             </footer>
         </article>
 
-        {#if tocContent}
+        {#if headings.length >= 3}
             <aside class="wiki-toc-rail">
-                <Toc content={tocContent} />
+                <Toc items={headings} />
             </aside>
         {/if}
     </div>
@@ -384,29 +248,6 @@
         padding-top: 1rem;
         font-size: 0.8rem;
         color: var(--muted-foreground, #6b7280);
-    }
-    .wiki-raw-notice {
-        margin-bottom: 0.75rem;
-        border-radius: 0.375rem;
-        background: #fffbeb;
-        padding: 0.5rem 0.75rem;
-        font-size: 0.85rem;
-        color: #92400e;
-    }
-    .wiki-raw {
-        white-space: pre-wrap;
-        word-break: break-word;
-        background: var(--muted, #f8f9fa);
-        border: 1px solid var(--border, #e5e7eb);
-        border-radius: 0.375rem;
-        padding: 0.75rem;
-        font-size: 0.85rem;
-        overflow-x: auto;
-    }
-    .wiki-special-page h1 {
-        font-size: 1.875rem;
-        font-weight: 700;
-        margin-bottom: 1rem;
     }
 
     /* 404 / not-found wiki-aware 페이지 */

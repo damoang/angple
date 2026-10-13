@@ -1,3 +1,4 @@
+import { canonicalWikiPath } from '$lib/wiki/paths';
 import type { Reroute } from '@sveltejs/kit';
 
 /**
@@ -60,7 +61,7 @@ const RESERVED = new Set<string>([
 ]);
 
 export const reroute: Reroute = ({ url }) => {
-    const pathname = url.pathname;
+    const pathname = canonicalWikiPath(url.pathname);
     // 루트(/)는 routes/+page.server.ts 가 대문으로 리다이렉트하도록 둔다.
     if (pathname === '/') return;
 

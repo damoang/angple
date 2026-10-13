@@ -1,3 +1,4 @@
+import { canonicalWikiPath, legacyWikiPath, decodeWikiPath } from '$lib/wiki/paths';
 import { redirect, type Handle, type HandleServerError } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 import { env } from '$env/dynamic/private';
@@ -456,6 +457,13 @@ const WRITE_API_RATE = { maxRequests: 60, windowMs: 60_000 }; // 쓰기 분당 6
 
 export const handle: Handle = async ({ event, resolve }) => {
     const { pathname } = event.url;
+    if (event.request.method === 'GET' || event.request.method === 'HEAD') {
+        if (pathname === '/search') redirect(302, '/Special:Search' + event.url.search);
+        const canonical = canonicalWikiPath(pathname);
+        if (/^\/(?:w|wiki)(?:\/|$)/.test(pathname) || pathname.includes('%ED%8A%B9%EC%88%98%3A') || pathname.startsWith('/특수:') || legacyWikiPath(decodeWikiPath(pathname)) !== decodeWikiPath(pathname)) {
+            if (canonical !== pathname) redirect(308, canonical + event.url.search);
+        }
+    }
     const isDataRequest = isSvelteKitDataRequest(event);
 
     if (isMalformedExternalImagePath(pathname)) {

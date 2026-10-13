@@ -1,6 +1,8 @@
 <script lang="ts">
     import type { PageData } from './$types';
     import { goto } from '$app/navigation';
+    import { beforeNavigate } from '$app/navigation';
+    import { on } from 'svelte/events';
     import { onMount } from 'svelte';
     import MarkdownEditor from '$lib/components/wiki/markdown-editor.svelte';
     import { Button } from '$lib/components/ui/button/index.js';
@@ -8,52 +10,20 @@
 
     const { data }: { data: PageData } = $props();
 
-    // 기존 문서 → markdown 으로 통일.
-    // - content_type='markdown': content_raw 또는 content (source 가 markdown)
-    // - content_type='html'    : 클라이언트 마운트 후 turndown 으로 markdown 변환
-    // - content_type='wikitext': content_raw 그대로 (위키텍스트는 marked 가 못 다루므로 사용자가 markdown 으로 다시 작성)
-    function pickInitial(): string {
-        if (!data.wikiPage) return '';
-        const p = data.wikiPage;
-        if (p.content_type === 'markdown') return p.content_raw || p.content || '';
-        if (p.content_type === 'wikitext') return p.content_raw || '';
-        // html 은 onMount 에서 turndown
-        return p.content_raw || '';
-    }
-
+    const contentType = data.wikiPage?.content_type || 'markdown';
+    const initialContent = data.wikiPage?.content ?? data.wikiPage?.content_raw ?? '';
     let title = $state(data.suggestedTitle || '');
-    let content = $state(pickInitial());
+    let content = $state(initialContent);
     let description = $state(data.wikiPage?.description || '');
     let comment = $state('');
     let isMinor = $state(false);
     let isSaving = $state(false);
     let errorMessage = $state<string | null>(null);
 
-    // html 문서 → turndown 으로 markdown 변환 (클라이언트 only)
-    onMount(async () => {
-        if (data.wikiPage?.content_type === 'html' && data.wikiPage.content) {
-            const TurndownModule = await import('turndown');
-            const TurndownService = TurndownModule.default;
-            const td = new TurndownService({
-                headingStyle: 'atx',
-                codeBlockStyle: 'fenced',
-                bulletListMarker: '-',
-                emDelimiter: '_'
-            });
-            // 위키링크 보존: <a class="wiki-link" href="/path">label</a> → [[path|label]]
-            td.addRule('wikilink', {
-                filter: (node) =>
-                    node.nodeName === 'A' && (node as HTMLElement).classList?.contains('wiki-link'),
-                replacement: (text, node) => {
-                    const el = node as HTMLAnchorElement;
-                    const href = (el.getAttribute('href') || '').replace(/^\//, '');
-                    const decoded = decodeURIComponent(href);
-                    return text === decoded ? `[[${decoded}]]` : `[[${decoded}|${text}]]`;
-                }
-            });
-            content = td.turndown(data.wikiPage.content);
-        }
-    });
+    const dirty = $derived(title !== data.suggestedTitle || content !== initialContent || description !== (data.wikiPage?.description || ''));
+    let saved = false;
+    beforeNavigate(({ cancel }) => { if (dirty && !saved && !confirm('저장하지 않은 편집 내용이 있습니다. 나가시겠습니까?')) cancel(); });
+    onMount(() => on(window, 'beforeunload', event => { if (dirty && !saved) { event.preventDefault(); event.returnValue = ''; } }));
 
     async function handleSave() {
         if (!title.trim()) {
@@ -72,7 +42,8 @@
                 // markdown source: content_raw, content 도 같은 source (서버측 marked + DOMPurify 가 보기 단계서 처리)
                 content,
                 content_raw: content,
-                content_type: 'markdown',
+                content_type: contentType,
+                base_revision: data.baseRevision,
                 description: description.trim() || null,
                 comment: comment.trim() || (data.isNew ? '문서 생성' : ''),
                 is_minor: isMinor
@@ -81,19 +52,19 @@
             if (data.isNew) {
                 response = await fetch('/api/wiki/pages', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...(data.csrfToken ? { 'X-CSRF-Token': data.csrfToken } : {}) },
                     body: JSON.stringify({ ...body, path: data.path })
                 });
             } else {
                 response = await fetch(`/api/wiki/pages/${data.wikiPage!.id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', ...(data.csrfToken ? { 'X-CSRF-Token': data.csrfToken } : {}) },
                     body: JSON.stringify(body)
                 });
             }
             const result = await response.json();
             if (!response.ok) {
-                throw new Error(result.message || '저장에 실패했습니다.');
+                throw new Error(result.message || result.error || '저장에 실패했습니다.');
             }
             // SvelteKit reroute 가 wiki 를 root URL 로 serving — 결과 path 그대로 이동
             const encoded = (result.path || data.path)
@@ -101,6 +72,7 @@
                 .split('/')
                 .map(encodeURIComponent)
                 .join('/');
+            saved = true;
             window.location.href = '/' + encoded;
         } catch (err) {
             errorMessage = err instanceof Error ? err.message : '저장에 실패했습니다.';
@@ -118,12 +90,13 @@
                 .split('/')
                 .map(encodeURIComponent)
                 .join('/');
-            window.location.href = '/' + encoded;
+            goto('/' + encoded);
         }
     }
 </script>
 
 <svelte:head>
+    <meta name="robots" content="noindex, nofollow" />
     <title>{data.isNew ? '새 문서 작성' : `편집: ${data.suggestedTitle}`} - 위키앙</title>
 </svelte:head>
 
@@ -133,16 +106,16 @@
         <p class="edit-path">{data.path}</p>
         {#if !data.isNew && data.wikiPage?.content_type === 'html'}
             <p class="edit-notice">
-                ℹ️ 이 문서는 원래 HTML 로 작성되었습니다. 자동으로 마크다운 변환 후 편집합니다. 저장
-                시 마크다운으로 통일됩니다.
+                이 문서는 HTML 원문을 그대로 편집합니다. 표·이미지·링크가 유지되는지 미리보기에서 확인해주세요.
             </p>
         {/if}
     </header>
 
     {#if errorMessage}
-        <div class="error-banner">{errorMessage}</div>
+        <div class="error-banner" role="alert">{errorMessage}</div>
     {/if}
 
+    <p class="hint">익명 편집이 가능합니다. 편집 이력에는 익명 식별자가 남으며 원본 IP는 공개되지 않습니다. 저장 전 출처와 저작권을 확인해주세요.</p>
     <div class="edit-form">
         <div class="form-group">
             <label for="title" class="form-label">제목</label>
@@ -160,8 +133,8 @@
         </div>
 
         <div class="form-group">
-            <label class="form-label">내용 (마크다운)</label>
-            <MarkdownEditor bind:value={content} />
+            <label for="wiki-content-source" class="form-label">내용 ({contentType === 'html' ? 'HTML' : '마크다운'})</label>
+            <MarkdownEditor bind:value={content} {contentType} />
             <p class="hint">
                 💡 위키링크 <code>[[문서명]]</code>, 굵게 <code>**굵게**</code>, 헤딩
                 <code>## 제목</code>
