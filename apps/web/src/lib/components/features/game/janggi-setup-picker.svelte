@@ -39,12 +39,15 @@
 
     const STEP = 20;
     const isCho = $derived(team === TEAM.CHO);
+    // 장기판(janggi-board)과 같은 알 색 — 초 청록·남색, 한 주홍
+    const inkColor = $derived(isCho ? '#0e5566' : '#c2371d');
+    const uid = $props.id();
 </script>
 
 <fieldset class="space-y-2" {disabled}>
     <legend class="text-foreground mb-1 text-sm font-medium">{legend}</legend>
     <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {#each SETUPS as s (s)}
+        {#each SETUPS as s, si (s)}
             {@const row = backRow(s)}
             <button
                 type="button"
@@ -57,16 +60,34 @@
                 onclick={() => onSelect(s)}
             >
                 <svg viewBox="0 0 180 34" class="h-auto w-full max-w-[180px]" aria-hidden="true">
+                    <defs>
+                        <linearGradient id="{uid}-f{si}" x1="0.2" y1="0" x2="0.8" y2="1">
+                            <stop offset="0" stop-color="#fcf4e1" />
+                            <stop offset="1" stop-color="#e6cc9c" />
+                        </linearGradient>
+                    </defs>
                     <rect width="180" height="34" rx="4" class="sp-wood" />
                     <line x1="10" y1="17" x2="170" y2="17" class="sp-line" />
                     {#each row as kind, i (i)}
                         {#if kind}
                             {@const big = kind === KIND.MA || kind === KIND.SANG}
+                            <!-- 옆면 두께 한 단 + 윗면 그라디언트(장기판 알과 같은 느낌) -->
+                            <polygon
+                                points={octPoints(10 + i * STEP, 18.2, big ? 9 : 7.5)}
+                                class="sp-side"
+                            />
                             <polygon
                                 points={octPoints(10 + i * STEP, 17, big ? 9 : 7.5)}
-                                class="sp-face {big ? 'sp-key' : ''}"
-                                stroke={isCho ? '#0b6b55' : '#b42318'}
-                                stroke-width={big ? 1.6 : 1}
+                                fill="url(#{uid}-f{si})"
+                                class="sp-rim"
+                                stroke-width="0.7"
+                            />
+                            <polygon
+                                points={octPoints(10 + i * STEP, 17, big ? 7.3 : 6)}
+                                fill="none"
+                                stroke={inkColor}
+                                stroke-width={big ? 1.2 : 0.7}
+                                opacity={big ? 0.9 : 0.6}
                             />
                             <text
                                 x={10 + i * STEP}
@@ -75,7 +96,7 @@
                                 text-anchor="middle"
                                 dominant-baseline="central"
                                 font-weight="800"
-                                fill={isCho ? '#0b6b55' : '#b42318'}
+                                fill={inkColor}
                                 >{pieceGlyph(kind, team)[0]}</text
                             >
                         {/if}
@@ -101,10 +122,10 @@
         stroke-width: 0.8;
         opacity: 0.6;
     }
-    .sp-face {
-        fill: #fffaf0;
+    .sp-side {
+        fill: #8c6534;
     }
-    .sp-key {
-        fill: #fff3c4;
+    .sp-rim {
+        stroke: #8a6538;
     }
 </style>
