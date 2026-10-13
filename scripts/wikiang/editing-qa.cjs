@@ -72,7 +72,62 @@ if (base !== 'http://127.0.0.1:43120' || process.env.DB_NAME !== 'wikiang_qa')
 
         await navigate(base + '/QA_편집_검증/edit');
         await expect(page.locator('#wiki-content-source')).toHaveValue(source);
+        // Summary and minor-edit changes also deserve an unsaved-change warning.
+        for (const field of ['summary', 'minor']) {
+            if (field === 'summary') await page.locator('#comment').fill('출처 보완');
+            else await page.getByRole('checkbox', { name: '사소한 편집' }).check();
+            const dialogSeen = page.waitForEvent('dialog', { timeout: 10000 }).then(async (dialog) => {
+                assert.equal(dialog.type(), 'confirm');
+                await dialog.dismiss();
+            });
+            await page.getByRole('button', { name: '취소', exact: true }).click();
+            await dialogSeen;
+            await expect(page).toHaveURL(/\/edit$/);
+            if (field === 'summary') await page.locator('#comment').fill('');
+            else await page.getByRole('checkbox', { name: '사소한 편집' }).uncheck();
+        }
+        checks.push('Summary-only and minor-only edits warn before leaving; dismiss keeps editor');
         await page.locator('#wiki-content-source').fill(source + '\n\n추가한 문장');
+        await page.locator('#comment').fill('재시도 검증');
+        // Hold the response to reproduce a slow network without writing to the fixture DB.
+        let releaseSave;
+        const heldSave = new Promise((resolve) => { releaseSave = resolve; });
+        let sawSave;
+        const intercepted = new Promise((resolve) => { sawSave = resolve; });
+        const saveUrl = base + '/api/wiki/pages/' + documentId;
+        const failSave = async (route) => {
+            sawSave();
+            await heldSave;
+            await route.fulfill({
+                status: 503,
+                contentType: 'application/json',
+                body: JSON.stringify({ message: '일시적인 저장 오류입니다. 다시 시도해주세요.' })
+            });
+        };
+        await page.route(saveUrl, failSave);
+        await page.getByRole('button', { name: '저장', exact: true }).click();
+        await intercepted;
+        try {
+            await expect(page.locator('#wiki-content-source')).toBeDisabled();
+            for (const id of ['title', 'description', 'comment'])
+                await expect(page.locator('#' + id)).toBeDisabled();
+            await expect(page.getByRole('checkbox', { name: '사소한 편집' })).toBeDisabled();
+            await expect(page.getByRole('button', { name: '저장 중...', exact: true })).toBeDisabled();
+            await expect(page.getByRole('button', { name: '취소', exact: true })).toBeDisabled();
+            await expect(page.getByRole('button', { name: '미리보기', exact: true })).toBeDisabled();
+            await expect(page.locator('.save-status')).toContainText('저장 중입니다');
+            await page.locator('a[href="/Special:AllPages"]').first().click();
+            await expect(page).toHaveURL(/\/edit$/);
+        } finally {
+            releaseSave();
+        }
+        await expect(page.getByRole('alert')).toContainText('다시 시도해주세요');
+        await page.unroute(saveUrl, failSave);
+        await expect(page.locator('#wiki-content-source')).toBeEnabled();
+        await expect(page.locator('#wiki-content-source')).toHaveValue(source + '\n\n추가한 문장');
+        await expect(page.locator('#comment')).toHaveValue('재시도 검증');
+        await expect(page.getByRole('button', { name: '저장', exact: true })).toBeEnabled();
+        checks.push('Slow save locks inputs/navigation; failed save preserves text and allows retry');
         const updated = page.waitForResponse(
             (r) =>
                 r.url().endsWith('/api/wiki/pages/' + documentId) && r.request().method() === 'PUT'
