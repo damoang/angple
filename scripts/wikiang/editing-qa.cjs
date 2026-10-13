@@ -27,6 +27,8 @@ if (base !== 'http://127.0.0.1:43120' || process.env.DB_NAME !== 'wikiang_qa')
     };
     const browser = await chromium.launch({ headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage({ viewport: { width: 375, height: 900 } });
+    // External imported images may never finish loading; readiness is asserted on UI controls below.
+    const navigate = (url) => page.goto(url, { waitUntil: 'domcontentloaded' });
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     const checks = [];
@@ -34,7 +36,7 @@ if (base !== 'http://127.0.0.1:43120' || process.env.DB_NAME !== 'wikiang_qa')
         '## 저장 검증\n\n**굵은 글씨**와 [[다모앙]]\n\n| 제목 | 값 |\n|---|---|\n| 보존 | 123 |\n\n`[[코드 원문]]`\n\n<details><summary>펼쳐 보기</summary>숨은 설명</details>\n\n<img src=x onerror="window.__wikiXss=1">';
     let documentId;
     try {
-        await page.goto(base + '/Special:NewPage');
+        await navigate(base + '/Special:NewPage');
         await page.getByRole('textbox', { name: '새 문서 제목' }).fill('QA_편집_검증');
         await page.getByRole('button', { name: '편집 시작' }).click();
         await page.locator('#wiki-content-source').fill(source);
@@ -63,7 +65,7 @@ if (base !== 'http://127.0.0.1:43120' || process.env.DB_NAME !== 'wikiang_qa')
         assert.equal(row.content_type, 'markdown');
         checks.push('UI create → preview → save → rendered article → exact DB source');
 
-        await page.goto(base + '/QA_편집_검증/edit');
+        await navigate(base + '/QA_편집_검증/edit');
         await expect(page.locator('#wiki-content-source')).toHaveValue(source);
         await page.locator('#wiki-content-source').fill(source + '\n\n추가한 문장');
         const updated = page.waitForResponse(
@@ -85,7 +87,7 @@ if (base !== 'http://127.0.0.1:43120' || process.env.DB_NAME !== 'wikiang_qa')
         });
         assert.equal(response.status(), 409);
         checks.push('Stale editor receives 409; latest content remains intact');
-        await page.goto(base + '/QA_편집_검증/history');
+        await navigate(base + '/QA_편집_검증/history');
         await expect(page.locator('.history-page')).toContainText('익명(');
         page.once('dialog', (d) => d.accept());
         const reverted = page.waitForResponse((r) => r.url().endsWith('/revert'));
@@ -151,7 +153,7 @@ if (base !== 'http://127.0.0.1:43120' || process.env.DB_NAME !== 'wikiang_qa')
             .wikiang_pages.rows;
         // Every editable imported document must open the same source that readers see.
         for (const doc of docs.filter((d) => d.namespace_id !== 8)) {
-            await page.goto(base + doc.path.split('/').map(encodeURIComponent).join('/') + '/edit');
+            await navigate(base + doc.path.split('/').map(encodeURIComponent).join('/') + '/edit');
             await expect(page.locator('#wiki-content-source')).toHaveValue(
                 doc.content ?? doc.content_raw ?? ''
             );
@@ -162,7 +164,7 @@ if (base !== 'http://127.0.0.1:43120' || process.env.DB_NAME !== 'wikiang_qa')
                 ' editable public documents open the rendered-format source'
         );
         const htmlDoc = docs.find((d) => d.content_type === 'html');
-        await page.goto(base + htmlDoc.path.split('/').map(encodeURIComponent).join('/') + '/edit');
+        await navigate(base + htmlDoc.path.split('/').map(encodeURIComponent).join('/') + '/edit');
         const htmlSave = page.waitForResponse(
             (r) =>
                 r.url().endsWith('/api/wiki/pages/' + htmlDoc.id) && r.request().method() === 'PUT'
@@ -176,19 +178,31 @@ if (base !== 'http://127.0.0.1:43120' || process.env.DB_NAME !== 'wikiang_qa')
         assert.equal(htmlRow.content, htmlDoc.content);
         assert.equal(htmlRow.content_type, 'html');
         checks.push('HTML save round trip preserves exact HTML and format');
-        await page.goto(base + '/QA_편집_검증/edit');
+        await navigate(base + '/QA_편집_검증/edit');
         await expect(page.locator('#wiki-content-source')).toBeEnabled();
         await page.getByRole('button', { name: '화면 색상 전환' }).click();
         await expect(page.locator('html')).toHaveClass(/dark/);
+        await expect
+            .poll(() =>
+                page.evaluate(() => {
+                    const source = document.querySelector('#wiki-content-source');
+                    return ['title', 'description', 'comment'].every(
+                        (id) =>
+                            getComputedStyle(document.getElementById(id)).color ===
+                            getComputedStyle(source).color
+                    );
+                })
+            )
+            .toBe(true);
         await page.screenshot({ path: out + '/editor-dark-375.png', fullPage: true });
-        await page.reload();
+        await page.reload({ waitUntil: 'domcontentloaded' });
         await expect(page.locator('html')).toHaveClass(/dark/);
         await page.getByRole('button', { name: '화면 색상 전환' }).click();
         await expect(page.locator('html')).not.toHaveClass(/dark/);
         checks.push('Mobile dark editor is readable and toggles without losing source');
         for (const width of [375, 768, 1440]) {
             await page.setViewportSize({ width, height: 900 });
-            await page.goto(base + '/Special:Search?q=' + encodeURIComponent('라즈베리파이'));
+            await navigate(base + '/Special:Search?q=' + encodeURIComponent('라즈베리파이'));
             await expect(page.locator('.special')).toContainText('라즈베리파이');
             assert.equal(
                 await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1),
@@ -203,7 +217,7 @@ if (base !== 'http://127.0.0.1:43120' || process.env.DB_NAME !== 'wikiang_qa')
             '/w/다모앙',
             '/wiki/다모앙'
         ]) {
-            response = await page.goto(base + route);
+            response = await navigate(base + route);
             assert.equal(response.status(), 200);
             await expect(page.locator('main')).not.toContainText('이 기능은 준비 중입니다.');
             await expect(page.locator('main')).not.toContainText(
