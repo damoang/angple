@@ -79,7 +79,7 @@
     /** 첫 판이 서버 판을 기다리는 최대 시간 */
     const FIRST_START_WAIT_MS = 3000;
     /** 미리 받은 판을 쓰는 최대 나이 — 서버 만료(2시간)보다 넉넉히 짧게 */
-    const READY_MAX_AGE_MS = 100 * 60 * 1000;
+    const READY_MAX_AGE_MS = 60 * 60 * 1000;
 
     function newSeed(): number {
         try {
@@ -130,7 +130,8 @@
     function takeReady(): SnakeRun | null {
         const r = ready;
         ready = null;
-        return r && Date.now() - r.at < READY_MAX_AGE_MS ? r.run : null;
+        if (!r || !authStore.isAuthenticated) return null;
+        return Date.now() - r.at < READY_MAX_AGE_MS ? r.run : null;
     }
 
     async function startGame() {
@@ -420,11 +421,14 @@
     }
 
     // 로그인 상태가 확인되면 첫 판을 미리 받아 둔다(시작 버튼을 누를 때 기다리지 않게)
+    // 로그아웃하면 미리 받아 둔 판을 버린다(다른 회원 판으로 기록되지 않게)
     $effect(() => {
         if (authStore.isAuthenticated) {
             untrack(() => {
                 if (status === 'idle') void prefetch();
             });
+        } else {
+            ready = null;
         }
     });
 
