@@ -4,11 +4,13 @@
      *
      * 규칙·배치 = $lib/games/janggi/rules, AI 탐색 = $lib/games/janggi/ai (Web Worker 에서 실행),
      * 그리기 = janggi-board.svelte (온라인 대전과 같은 보드).
+     * 먹은 말 줄·장군/멍군 알림·끝 배너도 온라인 대전과 같은 부품을 쓴다.
      */
     import { onDestroy } from 'svelte';
     import { toast } from 'svelte-sonner';
     import JanggiBoard from './janggi-board.svelte';
     import JanggiSetupPicker from './janggi-setup-picker.svelte';
+    import JanggiCaptured from './janggi-captured.svelte';
     import {
         DEFAULT_SETUP,
         KIND,
@@ -34,6 +36,10 @@
         type Difficulty
     } from '$lib/games/janggi/ai';
     import { createJanggiAi, type JanggiAi } from '$lib/games/janggi/ai-client';
+    import { nextCaptureOrder } from '$lib/games/janggi/captured';
+    import { checkEvent } from '$lib/games/janggi/check-events';
+    import { endText, endTextForTeam, type EndReason } from '$lib/games/janggi/end-reason';
+    import { CheckFlash } from '$lib/games/janggi/flash.svelte';
 
     const DIFFICULTY_KEY = 'angple_janggi_difficulty';
     const SETUP_KEY = 'angple_janggi_setup';
@@ -61,10 +67,24 @@
     let lastMove = $state<{ from: Point; to: Point } | null>(null);
     let checkTeam = $state<number | null>(null);
     let message = $state('');
+    let endReason = $state<EndReason | null>(null);
+    let moveCount = $state(0);
+    // 잡힌 말 순서(pieces 인덱스) — 수마다 직전 국면과 비교해 쌓는다
+    let captureOrder = $state<number[]>([]);
+    const flash = new CheckFlash();
 
     // 판이 새로 시작될 때마다 올려서 늦게 도착한 AI 응답을 버린다.
     let generation = 0;
     let ai: JanggiAi | null = null;
+
+    // 끝 배너·결과 문구 — 1인은 내(초) 시점, 2인은 이긴 진영 이름
+    const endInfo = $derived.by(() => {
+        if (!gameOver || !winner || !endReason) return null;
+        const opts = { moves: moveCount };
+        return isSingle
+            ? endText(endReason, winner === TEAM.CHO, opts)
+            : endTextForTeam(endReason, winner, opts);
+    });
 
     const selected = $derived(
         selectedIndex !== null && pieces[selectedIndex]
@@ -125,6 +145,10 @@
         lastMove = null;
         checkTeam = null;
         message = '';
+        endReason = null;
+        moveCount = 0;
+        captureOrder = [];
+        flash.clear();
         phase = 'playing';
     }
 
@@ -134,37 +158,54 @@
         thinking = false;
         selectedIndex = null;
         targets = [];
+        flash.clear();
         phase = 'setup';
+    }
+
+    /* ── 끝내기 ── */
+    function finish(winnerTeam: number, reason: EndReason) {
+        gameOver = true;
+        winner = winnerTeam;
+        endReason = reason;
+        message = '';
+        flash.clear();
     }
 
     /* ── 수 두기 ── */
     function playMove(index: number, to: Point) {
-        const mover = pieces[index];
+        const prev = pieces;
+        const mover = prev[index];
         const from = { x: mover.x, y: mover.y };
-        const captured = pieces.find(
+        const captured = prev.find(
             (p) => p.alive && p.x === to.x && p.y === to.y && p.team !== mover.team
         );
-        pieces = applyMove(pieces, index, to);
+        const next = applyMove(prev, index, to);
+        pieces = next;
+        captureOrder = nextCaptureOrder(captureOrder, prev, next);
+        moveCount++;
         lastMove = { from, to };
         selectedIndex = null;
         targets = [];
 
+        // 궁을 잡은 끝(사람은 의사 합법수로 두므로 생길 수 있다) — 외통과 다른 문구
         if (captured && captured.kind === KIND.GUNG) {
-            gameOver = true;
-            winner = mover.team;
             checkTeam = null;
-            message = '';
+            finish(mover.team, 'king_captured');
             return;
         }
 
+        // 상대가 장군인데 둘 합법수가 없으면 외통(사람·AI 모두)
         const opp = other(mover.team);
-        if (isCheck(pieces, opp)) {
-            checkTeam = opp;
-            message = '장군!';
-        } else {
-            checkTeam = null;
-            message = '';
+        const nowCheck = isCheck(next, opp) ? opp : null;
+        const mate = nowCheck !== null && getLegalMoves(next, opp).length === 0;
+        const ev = checkEvent(checkTeam, mover.team, nowCheck, mate);
+        checkTeam = nowCheck;
+        if (mate) {
+            finish(mover.team, 'checkmate');
+            return;
         }
+        message = nowCheck !== null ? '장군!' : '';
+        if (ev) flash.show(ev);
         turn = opp;
         if (isSingle && turn === TEAM.HAN) void aiTurn();
     }
@@ -188,11 +229,10 @@
 
         const legal = getLegalMoves(pieces, TEAM.HAN);
         if (outcome.kind === 'none' || legal.length === 0) {
-            // 둘 수 있는 합법수가 없다 = 외통
-            gameOver = true;
-            winner = TEAM.CHO;
-            checkTeam = null;
-            message = '';
+            // 둘 수 있는 합법수가 없다 — 장군이면 외통, 아니면 기존대로 초 승
+            const mated = isCheck(pieces, TEAM.HAN);
+            if (!mated) checkTeam = null;
+            finish(TEAM.CHO, mated ? 'checkmate' : 'no_moves');
             return;
         }
 
@@ -223,6 +263,7 @@
     }
 
     onDestroy(() => {
+        flash.clear();
         generation++;
         ai?.dispose();
         ai = null;
@@ -323,12 +364,17 @@
         <div class="min-h-7 text-sm font-medium" aria-live="polite">
             {#if gameOver}
                 <span class="text-destructive text-lg font-bold">
-                    {#if isSingle}
+                    {#if endInfo}
+                        {endInfo.banner}
+                    {:else if isSingle}
                         {winner === TEAM.CHO ? '🎉 승리!' : '😢 패배...'}
                     {:else}
                         {winner ? `${teamLabel(winner)} 승리!` : ''}
                     {/if}
                 </span>
+                {#if endInfo}
+                    <span class="text-muted-foreground ml-2 text-xs">{endInfo.detail}</span>
+                {/if}
             {:else if thinking}
                 <span class="text-muted-foreground animate-pulse">AI 생각 중…</span>
             {:else if message}
@@ -340,17 +386,24 @@
             {/if}
         </div>
 
-        <div class="w-full">
+        <p class="sr-only" aria-live="polite">{flash.current?.text ?? ''}</p>
+
+        <div class="flex w-full flex-col items-center gap-1.5">
+            <!-- 위 = 한 자리: 한이 잡은 초 말 / 아래 = 초 자리: 초가 잡은 한 말 -->
+            <JanggiCaptured {pieces} order={captureOrder} capturer={TEAM.HAN} />
             <JanggiBoard
                 {pieces}
                 {selected}
                 {targets}
                 {lastMove}
                 {checkTeam}
+                flash={flash.current}
+                banner={endInfo ? { text: endInfo.banner, tone: endInfo.tone } : null}
                 interactive={!gameOver && !thinking && (!isSingle || turn === TEAM.CHO)}
                 onPointClick={handlePoint}
                 label="장기판 — {isSingle ? 'AI 연습' : '2인 대전'}"
             />
+            <JanggiCaptured {pieces} order={captureOrder} capturer={TEAM.CHO} />
         </div>
     {/if}
 </div>

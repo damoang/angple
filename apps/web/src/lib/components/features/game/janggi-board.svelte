@@ -15,6 +15,7 @@
         type JanggiPiece,
         type Point
     } from '$lib/games/janggi/rules';
+    import { JANGGI_TOKEN_STYLE } from '$lib/games/janggi/theme';
 
     interface Props {
         pieces: JanggiPiece[];
@@ -24,6 +25,10 @@
         /** 장군 받는 진영(그 궁에 빨간 테) */
         checkTeam?: number | null;
         interactive?: boolean;
+        /** 보드 가운데 잠깐 뜨는 큰 글자(장군!·멍군!) — id 가 바뀌면 다시 재생 */
+        flash?: { text: string; id: number; tone: 'check' | 'block' } | null;
+        /** 대국이 끝났을 때 보드 가운데 띠 배너 */
+        banner?: { text: string; tone: 'win' | 'lose' | 'neutral' } | null;
         onPointClick?: (x: number, y: number) => void;
         label?: string;
     }
@@ -35,6 +40,8 @@
         lastMove = null,
         checkTeam = null,
         interactive = false,
+        flash = null,
+        banner = null,
         onPointClick,
         label = '장기판'
     }: Props = $props();
@@ -188,6 +195,7 @@
 <svg
     viewBox="0 0 {W} {H}"
     class="jb mx-auto block h-auto w-full max-w-[560px] select-none"
+    style={JANGGI_TOKEN_STYLE}
     role="group"
     aria-label={label}
 >
@@ -444,6 +452,40 @@
         <circle cx={px(checkedKing.x)} cy={py(checkedKing.y)} r={RADIUS[3] + 6} class="jb-check" />
     {/if}
 
+    <!-- 장군·멍군 알림(0.9초) — 누르는 칸 아래라 클릭을 막지 않는다 -->
+    {#if flash}
+        {#key flash.id}
+            <text
+                x={W / 2}
+                y={H / 2}
+                class="jb-flash jb-flash-{flash.tone}"
+                text-anchor="middle"
+                dominant-baseline="central"
+                aria-hidden="true">{flash.text}</text
+            >
+        {/key}
+    {/if}
+
+    <!-- 끝 배너 -->
+    {#if banner}
+        <g class="jb-banner jb-banner-{banner.tone}" aria-hidden="true">
+            <rect
+                x={FRAME}
+                y={H / 2 - 44}
+                width={W - FRAME * 2}
+                height="88"
+                class="jb-banner-band"
+            />
+            <text
+                x={W / 2}
+                y={H / 2}
+                class="jb-banner-text"
+                text-anchor="middle"
+                dominant-baseline="central">{banner.text}</text
+            >
+        </g>
+    {/if}
+
     <!-- 누르는 칸 -->
     {#if interactive}
         {#each CELLS as c (c.y * COLS + c.x)}
@@ -467,29 +509,6 @@
 
 <style>
     .jb {
-        --jb-wood-a: #efcf98;
-        --jb-wood-b: #dcb174;
-        --jb-wood-c: #c99a5b;
-        --jb-frame-a: #8f5f2e;
-        --jb-frame-b: #5e3a18;
-        --jb-line: #4a2c10;
-        --jb-face-a: #fcf4e1;
-        --jb-face-b: #e6cc9c;
-        --jb-side-a: #cfa96f;
-        --jb-side-b: #a47b45;
-        --jb-side-2: #8c6534;
-        --jb-side-3: #6b4a22;
-        --jb-rim: #8a6538;
-        --jb-shine: rgba(255, 255, 255, 0.8);
-        --jb-cho: #0e5566;
-        --jb-cho-deep: #062f3a;
-        --jb-han: #c2371d;
-        --jb-han-deep: #6e1a0b;
-        --jb-shadow: rgba(40, 20, 0, 0.5);
-        --jb-selected: #d97706;
-        --jb-target: #0f766e;
-        --jb-last: #2563eb;
-        --jb-check: #dc2626;
         border-radius: 14px;
         box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
         touch-action: manipulation;
@@ -632,6 +651,66 @@
         stroke: var(--jb-selected);
         stroke-width: 3;
     }
+    /* 장군·멍군 알림 — 판 나무색 위에 흰 테를 두른 큰 글자 */
+    .jb-flash {
+        font-size: 92px;
+        font-weight: 900;
+        paint-order: stroke;
+        stroke: rgba(255, 255, 255, 0.92);
+        stroke-width: 10px;
+        stroke-linejoin: round;
+        pointer-events: none;
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: jb-flash 0.9s ease-out forwards;
+    }
+    .jb-flash-check {
+        fill: var(--jb-check);
+    }
+    .jb-flash-block {
+        fill: var(--jb-last);
+    }
+    @keyframes jb-flash {
+        0% {
+            opacity: 0;
+            transform: scale(0.6);
+        }
+        20% {
+            opacity: 1;
+            transform: scale(1.08);
+        }
+        70% {
+            opacity: 1;
+            transform: scale(1);
+        }
+        100% {
+            opacity: 0;
+            transform: scale(1);
+        }
+    }
+    .jb-banner {
+        pointer-events: none;
+        animation: jb-banner-in 0.35s ease-out;
+    }
+    .jb-banner-band {
+        fill: rgba(20, 10, 0, 0.72);
+    }
+    .jb-banner-win .jb-banner-band {
+        fill: rgba(127, 29, 29, 0.82);
+    }
+    .jb-banner-text {
+        font-size: 40px;
+        font-weight: 900;
+        fill: #fff7e6;
+    }
+    @keyframes jb-banner-in {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
     @keyframes jb-pulse {
         0%,
         100% {
@@ -657,7 +736,9 @@
             transform: none;
             opacity: 1;
         }
-        .jb-check {
+        .jb-check,
+        .jb-flash,
+        .jb-banner {
             animation: none;
         }
     }
