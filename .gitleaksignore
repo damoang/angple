@@ -1,2 +1,21 @@
 55586086c9e1250d48dcc88781f75567e2f0985a:apps/web/src/lib/utils/share.ts:generic-api-key:95
 1d7f610fd881b8b99b4fd3c49f4f67aa37798c9a:apps/web/src/lib/utils/share.ts:generic-api-key:95
+# 위키앙 공개 문서 픽스처(/집회정보): 문서 본문에 붙여 넣은 이미지 파일명의 key= — 자격증명 아님
+8e043ae251348135be0d461e476d9ecdcc0a7daf:scripts/wikiang/fixtures/public-documents.json:generic-api-key:182
+8e043ae251348135be0d461e476d9ecdcc0a7daf:scripts/wikiang/fixtures/public-documents.json:generic-api-key:200
+8e043ae251348135be0d461e476d9ecdcc0a7daf:scripts/wikiang/fixtures/public-documents.json:generic-api-key:209
+8e043ae251348135be0d461e476d9ecdcc0a7daf:scripts/wikiang/fixtures/public-documents.json:generic-api-key:218
+8e043ae251348135be0d461e476d9ecdcc0a7daf:scripts/wikiang/fixtures/public-documents.json:generic-api-key:227
+8e043ae251348135be0d461e476d9ecdcc0a7daf:scripts/wikiang/fixtures/public-documents.json:generic-api-key:236
+8e043ae251348135be0d461e476d9ecdcc0a7daf:scripts/wikiang/fixtures/public-documents.json:generic-api-key:245
+8e043ae251348135be0d461e476d9ecdcc0a7daf:scripts/wikiang/fixtures/public-documents.json:generic-api-key:254
+8e043ae251348135be0d461e476d9ecdcc0a7daf:scripts/wikiang/fixtures/public-documents.json:generic-api-key:263
+8e043ae251348135be0d461e476d9ecdcc0a7daf:scripts/wikiang/fixtures/public-documents.json:generic-api-key:272
+8e043ae251348135be0d461e476d9ecdcc0a7daf:scripts/wikiang/fixtures/public-documents.json:generic-api-key:281
+8e043ae251348135be0d461e476d9ecdcc0a7daf:scripts/wikiang/fixtures/public-documents.json:generic-api-key:290
+8e043ae251348135be0d461e476d9ecdcc0a7daf:scripts/wikiang/fixtures/public-documents.json:generic-api-key:299
+8e043ae251348135be0d461e476d9ecdcc0a7daf:scripts/wikiang/fixtures/public-documents.json:generic-api-key:308
+8e043ae251348135be0d461e476d9ecdcc0a7daf:scripts/wikiang/fixtures/public-documents.json:generic-api-key:317
+8e043ae251348135be0d461e476d9ecdcc0a7daf:scripts/wikiang/fixtures/public-documents.json:generic-api-key:326
+8e043ae251348135be0d461e476d9ecdcc0a7daf:scripts/wikiang/fixtures/public-documents.json:generic-api-key:353
+8e043ae251348135be0d461e476d9ecdcc0a7daf:scripts/wikiang/fixtures/public-documents.json:generic-api-key:362
