@@ -96,8 +96,7 @@
                                 text-anchor="middle"
                                 dominant-baseline="central"
                                 font-weight="800"
-                                fill={inkColor}
-                                >{pieceGlyph(kind, team)[0]}</text
+                                fill={inkColor}>{pieceGlyph(kind, team)[0]}</text
                             >
                         {/if}
                     {/each}
