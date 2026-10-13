@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
-import { getWikiPageForEdit, getWikiPage, getWikiVersion } from '$lib/server/wiki';
+import { getWikiPageForEdit, getWikiPage } from '$lib/server/wiki';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
     const path = params.path || '';
@@ -25,7 +25,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
     return {
         wikiPage,
-        baseRevision: wikiPage ? await getWikiVersion(wikiPage.id) : 0,
+        baseRevision: wikiPage?.base_revision ?? 0,
         isNew: !wikiPage,
         path: `/${path}`,
         suggestedTitle: wikiPage?.title || titleFromPath,

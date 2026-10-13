@@ -100,6 +100,27 @@ if (base !== 'http://127.0.0.1:43120' || process.env.DB_NAME !== 'wikiang_qa')
         assert.equal(versions.attributed, 3);
         checks.push('UI history/revert preserves all 3 revisions and anonymous attribution');
         await resetLimit();
+        const race = await Promise.all(
+            ['동시 수정 A', '동시 수정 B'].map((content) =>
+                page.request.put(base + '/api/wiki/pages/' + documentId, {
+                    data: {
+                        title: 'QA_편집_검증',
+                        content,
+                        content_type: 'markdown',
+                        base_revision: 3
+                    }
+                })
+            )
+        );
+        assert.deepEqual(race.map((response) => response.status()).sort(), [200, 409]);
+        const [[raceVersions]] = await db.query(
+            'SELECT COUNT(*) n, MAX(version_number) latest FROM wikiang_revisions WHERE page_id=?',
+            [documentId]
+        );
+        assert.equal(raceVersions.n, 4);
+        assert.equal(raceVersions.latest, 4);
+        checks.push('Two concurrent saves: exactly one commit and one conflict');
+        await resetLimit();
 
         response = await page.request.post(base + '/api/wiki/pages', {
             data: {

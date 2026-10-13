@@ -2,7 +2,6 @@ import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import {
     getWikiPage,
-    getWikiVersion,
     getPageRevisions,
     getRevisionPair,
     type WikiRevision
@@ -45,7 +44,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 
     return {
         wikiPage,
-        baseRevision: await getWikiVersion(wikiPage.id),
+        baseRevision: revisions[0]?.version_number ?? 0,
         revisions,
         diffMode: !!diffData,
         diffData

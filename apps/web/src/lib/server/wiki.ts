@@ -877,12 +877,16 @@ export async function updateWikiPage(
 /**
  * path로 페이지 조회 (비공개 포함, 편집용)
  */
-export async function getWikiPageForEdit(path: string): Promise<WikiPage | null> {
+export async function getWikiPageForEdit(
+    path: string
+): Promise<(WikiPage & { base_revision: number }) | null> {
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
 
     const [rows] = await readPool.execute<RowDataPacket[]>(
         `SELECT id, path, title, content, content_raw, content_type,
-                description, author_id, created_at, updated_at
+                description, author_id, created_at, updated_at,
+                (SELECT COALESCE(MAX(version_number), 0) FROM wikiang_revisions
+                 WHERE page_id = wikiang_pages.id) AS base_revision
          FROM wikiang_pages
          WHERE path = ? AND is_published=1 AND is_private=0 AND namespace_id != 8
          LIMIT 1`,
@@ -890,7 +894,7 @@ export async function getWikiPageForEdit(path: string): Promise<WikiPage | null>
     );
 
     if (rows.length === 0) return null;
-    return rows[0] as WikiPage;
+    return rows[0] as WikiPage & { base_revision: number };
 }
 
 // ============================================
@@ -1011,12 +1015,4 @@ export async function syncWikiPageLinks(
          VALUES ${tuples.join(', ')}`,
         values
     );
-}
-
-export async function getWikiVersion(pageId: number): Promise<number> {
-    const [rows] = await pool.execute<RowDataPacket[]>(
-        'SELECT COALESCE(MAX(version_number),0) AS version FROM wikiang_revisions WHERE page_id=?',
-        [pageId]
-    );
-    return Number(rows[0].version);
 }
