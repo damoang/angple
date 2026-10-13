@@ -1,11 +1,11 @@
-export const WIKI_SKINS = [
-    { value: 'standard', label: '기본형' },
-    { value: 'classic', label: '클래식형' },
-    { value: 'reading', label: '읽기형' },
-    { value: 'encyclopedia', label: '백과사전형' }
-] as const;
+import { WIKI_SKINS, type WikiSkin } from '$wikiangTheme/skins/registry';
+import themePackage from '$wikiangTheme/skin-package.json';
 
-export type WikiSkin = (typeof WIKI_SKINS)[number]['value'];
+// Renderer API 1 is implemented by the shared wiki document shell.
+if (themePackage.rendererApi !== 1) throw new Error('Unsupported Wikiang theme renderer API');
+export const WIKI_THEME_VERSION = themePackage.version;
+export { WIKI_SKINS, type WikiSkin };
+
 export const WIKI_SKIN_COOKIE = 'wikiang_skin';
 
 export function parseWikiSkin(value: string | undefined): WikiSkin {

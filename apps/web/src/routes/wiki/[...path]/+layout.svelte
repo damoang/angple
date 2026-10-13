@@ -1,6 +1,7 @@
 <script lang="ts">
     import '$lib/wiki/skins.css';
     import {
+        WIKI_THEME_VERSION,
         WIKI_SKIN_COOKIE,
         WIKI_SKINS,
         parseWikiSkin,
@@ -29,7 +30,12 @@
     const currentPath = $derived(decodeWikiPath($page.url.pathname));
 </script>
 
-<div class="wiki-layout" data-wiki-skin={skin} data-wiki-text={textSize}>
+<div
+    class="wiki-layout"
+    data-theme-version={WIKI_THEME_VERSION}
+    data-wiki-skin={skin}
+    data-wiki-text={textSize}
+>
     <WikiHeader {skin} onSkinChange={changeSkin} />
     <div class="wiki-body">
         <aside class="wiki-nav" aria-label="둘러보기">
