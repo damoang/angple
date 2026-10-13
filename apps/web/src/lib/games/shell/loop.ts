@@ -4,6 +4,7 @@
  * 화면 주사율(60·120·144Hz)과 무관하게 로직은 항상 같은 간격으로 진행된다.
  * 탭 전환 등으로 프레임이 크게 밀리면 maxSteps 까지만 따라잡고 나머지는 버린다
  * (밀린 시간을 한꺼번에 돌려 조각이 순간이동하는 것을 막는다).
+ * render 는 다음 틱까지 지난 비율(0~1)을 받는다 — 움직이는 물체를 틱 사이에서 보간해 그릴 때 쓴다.
  */
 export interface GameLoop {
     start(): void;
@@ -11,7 +12,12 @@ export interface GameLoop {
     readonly running: boolean;
 }
 
-export function createLoop(tick: () => void, render: () => void, hz = 60, maxSteps = 5): GameLoop {
+export function createLoop(
+    tick: () => void,
+    render: (alpha: number) => void,
+    hz = 60,
+    maxSteps = 5
+): GameLoop {
     const dt = 1000 / hz;
     let raf = 0;
     let last = 0;
@@ -30,7 +36,7 @@ export function createLoop(tick: () => void, render: () => void, hz = 60, maxSte
             if (!on) break;
         }
         if (acc >= dt) acc = 0;
-        render();
+        render(acc / dt);
         if (on) raf = requestAnimationFrame(frame);
     }
 
