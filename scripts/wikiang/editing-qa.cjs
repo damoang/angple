@@ -46,9 +46,12 @@ if (base !== 'http://127.0.0.1:43120' || process.env.DB_NAME !== 'wikiang_qa')
         );
         await page.getByRole('button', { name: '문서 생성', exact: true }).click();
         const createdResponse = await created;
-        const createdData = await createdResponse.json();
-        assert.equal(createdResponse.status(), 200, JSON.stringify(createdData));
-        documentId = createdData.pageId;
+        assert.equal(createdResponse.status(), 200);
+        await expect(page.locator('.wiki-content')).toBeVisible();
+        const [[createdRow]] = await db.query('SELECT id FROM wikiang_pages WHERE path=?', [
+            '/QA_편집_검증'
+        ]);
+        documentId = createdRow.id;
         await expect(page.locator('.wiki-content strong')).toHaveText('굵은 글씨');
         assert.equal(await page.evaluate(() => window.__wikiXss), undefined);
         const [[row]] = await db.query(
@@ -152,6 +155,13 @@ if (base !== 'http://127.0.0.1:43120' || process.env.DB_NAME !== 'wikiang_qa')
         assert.equal(htmlRow.content, htmlDoc.content);
         assert.equal(htmlRow.content_type, 'html');
         checks.push('HTML save round trip preserves exact HTML and format');
+        await page.goto(base + '/QA_편집_검증/edit');
+        await expect(page.locator('#wiki-content-source')).toBeEnabled();
+        await page.getByRole('button', { name: '화면 색상 전환' }).click();
+        await expect(page.locator('html')).toHaveClass(/dark/);
+        await page.screenshot({ path: out + '/editor-dark-375.png', fullPage: true });
+        await page.getByRole('button', { name: '화면 색상 전환' }).click();
+        checks.push('Mobile dark editor is readable and toggles without losing source');
         for (const width of [375, 768, 1440]) {
             await page.setViewportSize({ width, height: 900 });
             await page.goto(base + '/Special:Search?q=' + encodeURIComponent('라즈베리파이'));
