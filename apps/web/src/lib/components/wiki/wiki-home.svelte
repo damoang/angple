@@ -13,9 +13,9 @@
     } = $props();
     const topics = [
         {
-            title: '다모앙',
-            label: '우리의 커뮤니티',
-            text: '다모앙과 함께 쌓아가는 이야기',
+            title: '위키앙',
+            label: '위키 길잡이',
+            text: '지식사전을 함께 만드는 방법',
             number: '01'
         },
         {

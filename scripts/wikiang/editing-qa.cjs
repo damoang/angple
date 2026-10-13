@@ -40,6 +40,11 @@ if (base !== 'http://127.0.0.1:43120' || process.env.DB_NAME !== 'wikiang_qa')
         await page.getByRole('textbox', { name: '새 문서 제목' }).fill('QA_편집_검증');
         await page.getByRole('button', { name: '편집 시작' }).click();
         await page.locator('#wiki-content-source').fill(source);
+        for (const skin of ['classic', 'reading', 'encyclopedia', 'standard']) {
+            await page.getByRole('combobox', { name: '위키 테마', exact: true }).selectOption(skin);
+            await expect(page.locator('#wiki-content-source')).toHaveValue(source);
+        }
+        checks.push('Switching all four skins preserves unsaved editor source');
         await page.getByRole('button', { name: '미리보기', exact: true }).click();
         await expect(page.locator('.md-preview table')).toBeVisible();
         await page.screenshot({ path: out + '/editor-preview-375.png', fullPage: true });

@@ -1,6 +1,9 @@
 <script lang="ts">
     import { authStore } from '$lib/stores/auth.svelte';
     import { onMount } from 'svelte';
+    import { WIKI_SKINS, parseWikiSkin, type WikiSkin } from '$lib/wiki/skins';
+    let { skin, onSkinChange }: { skin: WikiSkin; onSkinChange: (skin: WikiSkin) => void } =
+        $props();
     import BookOpen from '@lucide/svelte/icons/book-open';
     import Search from '@lucide/svelte/icons/search';
     import Sun from '@lucide/svelte/icons/sun';
@@ -57,6 +60,19 @@
             <button class="search-button">검색</button>
         </form>
         <div class="personal">
+            <label class="skin-picker"
+                ><span class="sr-only">위키 테마</span><select
+                    aria-label="위키 테마"
+                    value={skin}
+                    disabled={!ready}
+                    onchange={(event) => onSkinChange(parseWikiSkin(event.currentTarget.value))}
+                    >{#each WIKI_SKINS as item}<option value={item.value}>{item.label}</option
+                        >{/each}</select
+                ></label
+            >
+            <span class="sr-only" aria-live="polite"
+                >{WIKI_SKINS.find((item) => item.value === skin)?.label} 적용</span
+            >
             <button
                 class="theme"
                 onclick={toggleTheme}
@@ -164,6 +180,19 @@
         font-size: 0.85rem;
         color: var(--foreground);
     }
+    .skin-picker select {
+        width: 100px;
+        padding: 0.5rem 0.35rem;
+        font-size: 0.8rem;
+        color: var(--foreground);
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+    }
+    .skin-picker select:focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+    }
     .personal {
         display: flex;
         align-items: center;
@@ -247,6 +276,10 @@
             width: 38px;
             height: 38px;
         }
+        .skin-picker select {
+            width: 87px;
+            font-size: 0.75rem;
+        }
         .brand small {
             font-size: 0.62rem;
         }
@@ -263,7 +296,7 @@
             font-size: 0.78rem;
         }
         .personal {
-            gap: 0.5rem;
+            gap: 0.3rem;
         }
     }
 </style>
