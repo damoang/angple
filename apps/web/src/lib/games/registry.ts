@@ -6,6 +6,7 @@ import Crown from '@lucide/svelte/icons/crown';
 import Circle from '@lucide/svelte/icons/circle';
 import Zap from '@lucide/svelte/icons/zap';
 import Blocks from '@lucide/svelte/icons/blocks';
+import BrickWall from '@lucide/svelte/icons/brick-wall';
 
 export interface GameEntry {
     id: string;
@@ -55,6 +56,15 @@ export const GAMES: GameEntry[] = [
         icon: Blocks,
         color: 'text-sky-600',
         bgColor: 'bg-sky-50 dark:bg-sky-950/30'
+    },
+    {
+        id: 'breakout',
+        name: '벽돌깨기',
+        description: '막대로 공을 튕겨 벽돌을 깨는 아케이드 게임',
+        href: '/games/breakout',
+        icon: BrickWall,
+        color: 'text-orange-600',
+        bgColor: 'bg-orange-50 dark:bg-orange-950/30'
     }
 ];
 
