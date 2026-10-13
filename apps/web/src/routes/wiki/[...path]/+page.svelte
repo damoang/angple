@@ -233,20 +233,6 @@
             display: block;
         }
     }
-    @media (max-width: 600px) {
-        .wiki-header {
-            align-items: flex-start;
-            flex-direction: column;
-        }
-        .wiki-title {
-            font-size: 1.7rem;
-            margin-bottom: 0.3rem;
-        }
-        .wiki-actions {
-            width: 100%;
-        }
-    }
-
     .wiki-shell {
         display: flex;
         gap: 1.8rem;
@@ -433,5 +419,18 @@
         border-radius: 0.375rem;
         font-size: 0.82rem;
         cursor: help;
+    }
+    @media (max-width: 600px) {
+        .wiki-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+        .wiki-title {
+            font-size: 1.7rem;
+            margin-bottom: 0.3rem;
+        }
+        .wiki-actions {
+            width: 100%;
+        }
     }
 </style>

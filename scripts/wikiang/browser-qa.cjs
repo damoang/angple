@@ -23,6 +23,12 @@ const base = process.env.QA_BASE || 'http://127.0.0.1:43120';
             await p.goto(base + '/%EB%8C%80%EB%AC%B8', { waitUntil: 'domcontentloaded' });
             await expect(p.getByRole('heading', { name: '주제로 둘러보기' })).toBeVisible();
             await expect(p.locator('.topic')).toHaveCount(4);
+            if (width <= 600) {
+                const title = await p.locator('.wiki-title').boundingBox();
+                const article = await p.locator('.wiki-main').boundingBox();
+                if (!title || !article || Math.abs(title.x - article.x) > 2)
+                    throw new Error('Mobile article title must align with the reading column');
+            }
             if (width <= 900) {
                 await p.locator('.mobile-explore summary').click();
                 await expect(p.locator('.mobile-explore .wiki-tree')).toBeVisible();

@@ -162,6 +162,7 @@
         margin: 1rem 0;
     }
     input {
+        color: var(--foreground);
         width: 100%;
         min-width: 0;
         border: 1px solid var(--border);
