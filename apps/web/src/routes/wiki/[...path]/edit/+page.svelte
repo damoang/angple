@@ -23,16 +23,23 @@
     const dirty = $derived(
         title !== data.suggestedTitle ||
             content !== initialContent ||
-            description !== (data.wikiPage?.description || '')
+            description !== (data.wikiPage?.description || '') ||
+            comment !== '' ||
+            isMinor
     );
     let saved = false;
     beforeNavigate(({ cancel }) => {
+        // Keep the submitted form mounted until the server confirms the write.
+        if (isSaving && !saved) {
+            cancel();
+            return;
+        }
         if (dirty && !saved && !confirm('저장하지 않은 편집 내용이 있습니다. 나가시겠습니까?'))
             cancel();
     });
     onMount(() =>
         on(window, 'beforeunload', (event) => {
-            if (dirty && !saved) {
+            if ((dirty || isSaving) && !saved) {
                 event.preventDefault();
                 event.returnValue = '';
             }
@@ -40,6 +47,7 @@
     );
 
     async function handleSave() {
+        if (isSaving || saved) return;
         if (!title.trim()) {
             errorMessage = '제목을 입력해주세요.';
             return;
@@ -97,7 +105,8 @@
         } catch (err) {
             errorMessage = err instanceof Error ? err.message : '저장에 실패했습니다.';
         } finally {
-            isSaving = false;
+            // A successful save keeps controls locked until the document navigation finishes.
+            if (!saved) isSaving = false;
         }
     }
 
@@ -140,7 +149,11 @@
         익명 편집이 가능합니다. 편집 이력에는 익명 식별자가 남으며 원본 IP는 공개되지 않습니다. 저장
         전 출처와 저작권을 확인해주세요.
     </p>
-    <div class="edit-form">
+    <p class="save-status" role="status">
+        {#if isSaving}저장 중입니다. 완료될 때까지 이 화면을 유지해주세요.{/if}
+    </p>
+    <fieldset class="edit-form" disabled={isSaving} aria-busy={isSaving}>
+        <legend class="sr-only">문서 편집</legend>
         <div class="form-group">
             <label for="title" class="form-label">제목</label>
             <Input id="title" type="text" bind:value={title} placeholder="문서 제목" />
@@ -193,7 +206,7 @@
                 {#if isSaving}저장 중...{:else}{data.isNew ? '문서 생성' : '저장'}{/if}
             </Button>
         </div>
-    </div>
+    </fieldset>
 </div>
 
 <style>
@@ -230,7 +243,18 @@
         border-radius: 0.375rem;
         margin-bottom: 1rem;
     }
+    .save-status {
+        font-size: 0.875rem;
+        color: var(--muted-foreground, #6b7280);
+    }
+    .save-status:empty {
+        display: none;
+    }
     .edit-form {
+        min-inline-size: 0;
+        margin: 0;
+        padding: 0;
+        border: 0;
         display: flex;
         flex-direction: column;
         gap: 1.25rem;
