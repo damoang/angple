@@ -30,6 +30,8 @@ jobs:
         runs-on: ubuntu-24.04-arm
         steps:
             - uses: actions/checkout@v4
+              with:
+                  submodules: true
 
             - name: Setup directories
               run: mkdir -p custom-themes custom-widgets extensions plugins widgets themes
@@ -42,6 +44,9 @@ jobs:
               with:
                   node-version: ${{ env.NODE_VERSION }}
                   cache: 'pnpm'
+
+            - name: Verify pinned Wikiang theme package
+              run: node --experimental-strip-types --test vendor/wikiang-theme/tests/package.test.mjs
 
             - name: Install dependencies
               run: pnpm install --frozen-lockfile

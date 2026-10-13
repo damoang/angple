@@ -33,6 +33,7 @@ const config = {
             assets: assetBaseUrl
         },
         alias: {
+            $wikiangTheme: '../../vendor/wikiang-theme',
             $widgets: '../../widgets',
             '$custom-widgets': '../../custom-widgets',
             $themes: '../../themes',

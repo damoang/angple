@@ -1,0 +1,3 @@
+[submodule "vendor/wikiang-theme"]
+	path = vendor/wikiang-theme
+	url = https://github.com/wikiang-org/wikiang-theme.git

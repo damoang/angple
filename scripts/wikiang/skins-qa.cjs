@@ -6,6 +6,9 @@ const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const base = process.env.QA_BASE;
 const out = process.env.QA_OUTPUT || 'qa-results';
+const themeVersion = JSON.parse(
+    fs.readFileSync('vendor/wikiang-theme/skin-package.json', 'utf8')
+).version;
 const skins = ['standard', 'classic', 'reading', 'encyclopedia'];
 (async () => {
     fs.mkdirSync(out, { recursive: true });
@@ -26,6 +29,10 @@ const skins = ['standard', 'classic', 'reading', 'encyclopedia'];
                 );
             try {
                 await visit('/%EB%8C%80%EB%AC%B8');
+                await expect(page.locator('.wiki-layout')).toHaveAttribute(
+                    'data-theme-version',
+                    themeVersion
+                );
                 for (const skin of skins) {
                     await page
                         .getByRole('combobox', { name: '위키 테마', exact: true })
