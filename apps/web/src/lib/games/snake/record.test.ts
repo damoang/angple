@@ -193,7 +193,9 @@ describe('내 최고 점수(브라우저)', () => {
 
 describe('뱀 랭킹 불러오기', () => {
     it('snake_week·snake_all 보드를 같은 점수판 경로로 부른다', async () => {
-        const rows = [{ rank: 1, nickname: '뱀왕', score: 57, achievedAt: '2026-10-12T00:00:01+09:00' }];
+        const rows = [
+            { rank: 1, nickname: '뱀왕', score: 57, achievedAt: '2026-10-12T00:00:01+09:00' }
+        ];
         const fetchFn = vi.fn<typeof fetch>(async () =>
             jsonResponse(200, { board: 'snake_week', weekStart: '2026-10-12', rows })
         );
