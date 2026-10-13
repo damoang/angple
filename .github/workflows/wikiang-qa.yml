@@ -67,6 +67,9 @@ jobs:
                   exit 1
             - name: Real editor create, update, conflict and revert
               run: node scripts/wikiang/editing-qa.cjs
+            - name: Four skins, persistent preferences and independent branding
+              if: ${{ !cancelled() && steps.start.outcome == 'success' }}
+              run: node scripts/wikiang/skins-qa.cjs
             - name: Every published document at 375, 768 and 1440 pixels
               if: ${{ !cancelled() && steps.start.outcome == 'success' }}
               run: node scripts/wikiang/browser-qa.cjs
