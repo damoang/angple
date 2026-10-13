@@ -49,8 +49,14 @@
     const px = (x: number) => PAD + x * CELL;
     const py = (y: number) => PAD + y * CELL;
 
+    // 판 바깥 나무 테 두께
+    const FRAME = 10;
+
     // 크기: 궁 > 차·포·마·상 > 사·졸
-    const RADIUS: Record<number, number> = { 3: 27.5, 2: 23, 1: 18 };
+    const RADIUS: Record<number, number> = { 3: 28, 2: 23, 1: 18 };
+    // 알 옆면 두께 — 윗면이 이만큼 떠 있고, 아래로 3단 어두운 테가 보인다
+    const DEPTH: Record<number, number> = { 3: 4.5, 2: 4, 1: 3.2 };
+    const TOP_Y: Record<number, number> = { 3: -DEPTH[3] / 2, 2: -DEPTH[2] / 2, 1: -DEPTH[1] / 2 };
     const FONT: Record<number, number> = { 3: 26, 2: 21, 1: 16 };
     const HINT_FONT: Record<number, number> = { 3: 9, 2: 8, 1: 7 };
 
@@ -73,8 +79,10 @@
         2: octPoints(RADIUS[2] - 3.5),
         1: octPoints(RADIUS[1] - 3)
     };
+    // 궁(楚/漢)만 안쪽 테를 한 줄 더 — 이중 테두리
+    const OCT_KING_INNER = octPoints(RADIUS[3] - 7.5);
 
-    // 전통 장기판 귀점(포·졸 자리)
+    // 전통 장기판 꺾쇠 자리(포·졸 자리)
     const POINT_MARKS: Array<[number, number]> = [
         [1, 2],
         [7, 2],
@@ -91,6 +99,28 @@
         [6, 6],
         [8, 6]
     ];
+
+    // 꺾쇠(╋ 모서리) — 교차점 네 귀에 ㄱ자 표시. 판 가장자리 쪽 귀는 생략, path 하나로 그린다
+    const MARK_GAP = 4;
+    const MARK_LEN = 9;
+    const MARK_PATH = POINT_MARKS.map(([mx, my]) => {
+        const cx = PAD + mx * CELL;
+        const cy = PAD + my * CELL;
+        let d = '';
+        for (const dx of [-1, 1]) {
+            if (mx + dx < 0 || mx + dx > COLS - 1) continue;
+            for (const dy of [-1, 1]) {
+                const ex = cx + dx * MARK_GAP;
+                const ey = cy + dy * MARK_GAP;
+                d += `M${ex} ${ey + dy * MARK_LEN}L${ex} ${ey}L${ex + dx * MARK_LEN} ${ey}`;
+            }
+        }
+        return d;
+    }).join('');
+
+    // 판 안쪽 베벨 — 프레임 안쪽 모서리(위·왼쪽 그늘, 아래·오른쪽 빛)
+    const BEVEL_DARK = `M${FRAME} ${H - FRAME}V${FRAME}H${W - FRAME}`;
+    const BEVEL_LIGHT = `M${W - FRAME} ${FRAME}V${H - FRAME}H${FRAME}`;
 
     const PALACE_LINES: Array<[number, number, number, number]> = [
         [3, 0, 5, 2],
@@ -167,30 +197,87 @@
             <stop offset="0.55" style="stop-color: var(--jb-wood-b)" />
             <stop offset="1" style="stop-color: var(--jb-wood-c)" />
         </linearGradient>
+        <linearGradient id="{uid}-frame" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" style="stop-color: var(--jb-frame-a)" />
+            <stop offset="1" style="stop-color: var(--jb-frame-b)" />
+        </linearGradient>
+        <!-- 나무결: 가로로 길게 늘인 잔결 + 넓은 띠결을 섞어 은은하게(옹이 없음). 판 전체에 1회만 -->
         <filter id="{uid}-grain" x="0" y="0" width="100%" height="100%">
             <feTurbulence
                 type="fractalNoise"
-                baseFrequency="0.008 0.16"
-                numOctaves="2"
+                baseFrequency="0.005 0.14"
+                numOctaves="3"
                 seed="11"
-                result="noise"
+                result="fine"
+            />
+            <feTurbulence
+                type="fractalNoise"
+                baseFrequency="0.0025 0.035"
+                numOctaves="1"
+                seed="4"
+                result="band"
+            />
+            <feComposite
+                in="fine"
+                in2="band"
+                operator="arithmetic"
+                k1="0"
+                k2="0.6"
+                k3="0.4"
+                k4="0"
             />
             <feColorMatrix
-                in="noise"
                 type="matrix"
-                values="0 0 0 0 0.32  0 0 0 0 0.18  0 0 0 0 0.05  0 0 0 0.5 -0.12"
+                values="0 0 0 0 0.30  0 0 0 0 0.16  0 0 0 0 0.04  0.85 0 0 0 -0.31"
             />
             <feComposite in2="SourceGraphic" operator="in" />
         </filter>
-        <radialGradient id="{uid}-face" cx="0.35" cy="0.3" r="0.9">
+        <!-- 알 윗면(상아·나무색, 위가 밝다) -->
+        <linearGradient id="{uid}-face" x1="0.2" y1="0" x2="0.8" y2="1">
             <stop offset="0" style="stop-color: var(--jb-face-a)" />
             <stop offset="1" style="stop-color: var(--jb-face-b)" />
+        </linearGradient>
+        <!-- 좌상단 하이라이트 -->
+        <radialGradient id="{uid}-gloss" cx="0.3" cy="0.22" r="0.6">
+            <stop offset="0" style="stop-color: #fff; stop-opacity: 0.75" />
+            <stop offset="0.5" style="stop-color: #fff; stop-opacity: 0.18" />
+            <stop offset="1" style="stop-color: #fff; stop-opacity: 0" />
+        </radialGradient>
+        <!-- 옆면 두께(왼쪽 밝고 오른쪽 어둡게) -->
+        <linearGradient id="{uid}-side" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" style="stop-color: var(--jb-side-a)" />
+            <stop offset="1" style="stop-color: var(--jb-side-b)" />
+        </linearGradient>
+        <!-- 바닥 그림자: filter 대신 방사 그라디언트 타원(알마다 filter 없음) -->
+        <radialGradient id="{uid}-drop" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" style="stop-color: var(--jb-shadow); stop-opacity: 1" />
+            <stop offset="0.6" style="stop-color: var(--jb-shadow); stop-opacity: 0.55" />
+            <stop offset="1" style="stop-color: var(--jb-shadow); stop-opacity: 0" />
         </radialGradient>
     </defs>
 
-    <!-- 판 -->
-    <rect width={W} height={H} rx="14" fill="url(#{uid}-wood)" />
+    <!-- 판: 진한 나무 테 → 안쪽 판 → 나무결(1회) → 베벨 -->
+    <rect width={W} height={H} rx="14" fill="url(#{uid}-frame)" />
+    <rect
+        x={FRAME}
+        y={FRAME}
+        width={W - FRAME * 2}
+        height={H - FRAME * 2}
+        rx="4"
+        fill="url(#{uid}-wood)"
+    />
     <rect width={W} height={H} rx="14" fill="#000" filter="url(#{uid}-grain)" />
+    <rect
+        x="0.75"
+        y="0.75"
+        width={W - 1.5}
+        height={H - 1.5}
+        rx="13.5"
+        fill="none"
+        class="jb-frame-edge"
+    />
+    <path d={BEVEL_DARK} class="jb-bevel-dark" />
+    <path d={BEVEL_LIGHT} class="jb-bevel-light" />
     <rect
         x={PAD - 16}
         y={PAD - 16}
@@ -210,11 +297,8 @@
     {#each PALACE_LINES as [x1, y1, x2, y2] (x1 + '-' + y1)}
         <line x1={px(x1)} y1={py(y1)} x2={px(x2)} y2={py(y2)} class="jb-line" />
     {/each}
-    {#each POINT_MARKS as [mx, my] (mx + '-' + my)}
-        <circle cx={px(mx)} cy={py(my)} r="2.8" class="jb-mark" />
-    {/each}
-    <text x={px(2)} y={py(4.5)} class="jb-river jb-river-cho">楚 河</text>
-    <text x={px(6)} y={py(4.5)} class="jb-river jb-river-han">漢 界</text>
+    <!-- 포·졸 자리 꺾쇠 (장기판엔 강 표기가 없다) -->
+    <path d={MARK_PATH} class="jb-mark" />
 
     <!-- 직전 수 -->
     {#if lastMove}
@@ -248,39 +332,85 @@
         {#if p.alive}
             {@const rank = pieceRank(p.kind)}
             {@const glyph = pieceGlyph(p.kind, p.team)}
+            {@const r = RADIUS[rank]}
+            {@const d = DEPTH[rank]}
+            {@const topY = TOP_Y[rank]}
+            {@const lifted = !!selected && selected.x === p.x && selected.y === p.y}
             <g
-                class="jb-piece {p.team === TEAM.CHO ? 'jb-cho' : 'jb-han'}"
+                class="jb-piece {p.team === TEAM.CHO ? 'jb-cho' : 'jb-han'} {lifted
+                    ? 'jb-lifted'
+                    : ''}"
                 style="transform: translate({px(p.x)}px, {py(p.y)}px)"
                 aria-hidden="true"
             >
-                <polygon points={OCT[rank]} class="jb-shadow" transform="translate(0 2.5)" />
-                <polygon
-                    points={OCT[rank]}
-                    fill="url(#{uid}-face)"
-                    class="jb-edge"
-                    stroke-width="2.2"
+                <!-- 바닥 그림자 -->
+                <ellipse
+                    cx="1.5"
+                    cy={d / 2 + 2}
+                    rx={r * 1.1}
+                    ry={r * 0.92}
+                    fill="url(#{uid}-drop)"
+                    class="jb-ground"
                 />
-                <polygon
-                    points={OCT_INNER[rank]}
-                    fill="none"
-                    class="jb-edge"
-                    stroke-width="0.9"
-                    opacity="0.55"
-                />
-                <text
-                    y={-RADIUS[rank] * 0.12}
-                    font-size={FONT[rank]}
-                    class="jb-glyph"
-                    text-anchor="middle"
-                    dominant-baseline="central">{glyph[0]}</text
-                >
-                <text
-                    y={RADIUS[rank] * 0.62}
-                    font-size={HINT_FONT[rank]}
-                    class="jb-hint"
-                    text-anchor="middle"
-                    dominant-baseline="central">{glyph[1]}</text
-                >
+                <g class="jb-body">
+                    <!-- 옆면 두께: 아래로 3단, 아래일수록 어둡게 -->
+                    <polygon
+                        points={OCT[rank]}
+                        transform="translate(0 {topY + d})"
+                        class="jb-side-3"
+                    />
+                    <polygon
+                        points={OCT[rank]}
+                        transform="translate(0 {topY + (d * 2) / 3})"
+                        class="jb-side-2"
+                    />
+                    <polygon
+                        points={OCT[rank]}
+                        transform="translate(0 {topY + d / 3})"
+                        fill="url(#{uid}-side)"
+                        class="jb-side-1"
+                    />
+                    <g transform="translate(0 {topY})">
+                        <!-- 윗면 -->
+                        <polygon
+                            points={OCT[rank]}
+                            fill="url(#{uid}-face)"
+                            class="jb-rim"
+                            stroke-width="1.2"
+                        />
+                        <polygon points={OCT_INNER[rank]} fill="url(#{uid}-gloss)" />
+                        <polygon
+                            points={OCT_INNER[rank]}
+                            class="jb-inlay"
+                            stroke-width={rank === 3 ? 1.5 : 1}
+                        />
+                        {#if rank === 3}
+                            <polygon points={OCT_KING_INNER} class="jb-inlay" stroke-width="0.8" />
+                        {/if}
+                        <!-- 음각 글자: 아래 1px 밝은 반사 + 어두운 안쪽 획 -->
+                        <text
+                            y={-r * 0.12 + 1}
+                            font-size={FONT[rank]}
+                            class="jb-glyph jb-glyph-shine"
+                            text-anchor="middle"
+                            dominant-baseline="central">{glyph[0]}</text
+                        >
+                        <text
+                            y={-r * 0.12}
+                            font-size={FONT[rank]}
+                            class="jb-glyph"
+                            text-anchor="middle"
+                            dominant-baseline="central">{glyph[0]}</text
+                        >
+                        <text
+                            y={r * 0.62}
+                            font-size={HINT_FONT[rank]}
+                            class="jb-hint"
+                            text-anchor="middle"
+                            dominant-baseline="central">{glyph[1]}</text
+                        >
+                    </g>
+                </g>
             </g>
         {/if}
     {/each}
@@ -340,12 +470,22 @@
         --jb-wood-a: #efcf98;
         --jb-wood-b: #dcb174;
         --jb-wood-c: #c99a5b;
-        --jb-line: #5b3a1a;
-        --jb-face-a: #fffaf0;
-        --jb-face-b: #e9d6ae;
-        --jb-cho: #0b6b55;
-        --jb-han: #b42318;
-        --jb-shadow: rgba(40, 20, 0, 0.32);
+        --jb-frame-a: #8f5f2e;
+        --jb-frame-b: #5e3a18;
+        --jb-line: #4a2c10;
+        --jb-face-a: #fcf4e1;
+        --jb-face-b: #e6cc9c;
+        --jb-side-a: #cfa96f;
+        --jb-side-b: #a47b45;
+        --jb-side-2: #8c6534;
+        --jb-side-3: #6b4a22;
+        --jb-rim: #8a6538;
+        --jb-shine: rgba(255, 255, 255, 0.8);
+        --jb-cho: #0e5566;
+        --jb-cho-deep: #062f3a;
+        --jb-han: #c2371d;
+        --jb-han-deep: #6e1a0b;
+        --jb-shadow: rgba(40, 20, 0, 0.5);
         --jb-selected: #d97706;
         --jb-target: #0f766e;
         --jb-last: #2563eb;
@@ -355,43 +495,37 @@
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
     }
+    /* 다크 모드: 판은 같은 나무색 그대로, 판 바깥(그림자·테두리)만 대비 조정 */
     :global(.dark) .jb,
     :global(.amoled) .jb {
-        --jb-wood-a: #b48a52;
-        --jb-wood-b: #9a7240;
-        --jb-wood-c: #7e5a30;
-        --jb-line: #2b1a08;
-        --jb-face-a: #f6ecd6;
-        --jb-face-b: #d9c296;
-        --jb-shadow: rgba(0, 0, 0, 0.55);
-        --jb-selected: #fbbf24;
-        --jb-target: #115e59;
-        --jb-last: #1d4ed8;
-        --jb-check: #ef4444;
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+        box-shadow:
+            0 0 0 1px rgba(255, 255, 255, 0.08),
+            0 6px 18px rgba(0, 0, 0, 0.6);
+    }
+    .jb-frame-edge {
+        stroke: rgba(0, 0, 0, 0.45);
+        stroke-width: 1.5;
+    }
+    .jb-bevel-dark {
+        fill: none;
+        stroke: rgba(30, 15, 0, 0.45);
+        stroke-width: 2;
+    }
+    .jb-bevel-light {
+        fill: none;
+        stroke: rgba(255, 236, 200, 0.45);
+        stroke-width: 1.5;
     }
     .jb-line {
         stroke: var(--jb-line);
-        stroke-width: 1.2;
+        stroke-width: 1.3;
+        stroke-linecap: square;
     }
     .jb-mark {
-        fill: var(--jb-line);
-        opacity: 0.55;
-    }
-    .jb-river {
-        font-family: 'Noto Serif KR', 'Nanum Myeongjo', serif;
-        font-size: 22px;
-        font-weight: 700;
-        text-anchor: middle;
-        dominant-baseline: central;
-        opacity: 0.28;
-        letter-spacing: 0.6em;
-    }
-    .jb-river-cho {
-        fill: var(--jb-cho);
-    }
-    .jb-river-han {
-        fill: var(--jb-han);
+        fill: none;
+        stroke: var(--jb-line);
+        stroke-width: 1.3;
+        opacity: 0.85;
     }
     .jb-last-from {
         fill: none;
@@ -429,22 +563,61 @@
         transition: transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
         pointer-events: none;
     }
-    .jb-shadow {
-        fill: var(--jb-shadow);
+    /* 선택한 알은 살짝 떠오르고 그림자가 퍼진다 */
+    .jb-body,
+    .jb-ground {
+        transition:
+            transform 160ms ease-out,
+            opacity 160ms ease-out;
+    }
+    .jb-ground {
+        transform-box: fill-box;
+        transform-origin: center;
+    }
+    .jb-lifted .jb-body {
+        transform: translateY(-4px);
+    }
+    .jb-lifted .jb-ground {
+        transform: translate(1px, 2px) scale(1.14);
+        opacity: 0.7;
     }
     .jb-cho {
         --jb-team: var(--jb-cho);
+        --jb-team-deep: var(--jb-cho-deep);
     }
     .jb-han {
         --jb-team: var(--jb-han);
+        --jb-team-deep: var(--jb-han-deep);
     }
-    .jb-edge {
+    .jb-side-1 {
+        stroke: var(--jb-side-2);
+        stroke-width: 0.6;
+    }
+    .jb-side-2 {
+        fill: var(--jb-side-2);
+    }
+    .jb-side-3 {
+        fill: var(--jb-side-3);
+    }
+    .jb-rim {
+        stroke: var(--jb-rim);
+    }
+    .jb-inlay {
+        fill: none;
         stroke: var(--jb-team);
+        opacity: 0.6;
     }
     .jb-glyph {
         fill: var(--jb-team);
+        stroke: var(--jb-team-deep);
+        stroke-width: 0.7;
+        stroke-linejoin: round;
         font-family: 'Noto Serif KR', 'Nanum Myeongjo', 'Noto Serif CJK KR', serif;
         font-weight: 800;
+    }
+    .jb-glyph-shine {
+        fill: var(--jb-shine);
+        stroke: none;
     }
     .jb-hint {
         fill: var(--jb-team);
@@ -474,8 +647,15 @@
         }
     }
     @media (prefers-reduced-motion: reduce) {
-        .jb-piece {
+        .jb-piece,
+        .jb-body,
+        .jb-ground {
             transition: none;
+        }
+        .jb-lifted .jb-body,
+        .jb-lifted .jb-ground {
+            transform: none;
+            opacity: 1;
         }
         .jb-check {
             animation: none;
