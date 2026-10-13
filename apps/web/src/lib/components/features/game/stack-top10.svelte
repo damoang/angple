@@ -7,7 +7,7 @@
     import StackLeaderboardTable from './stack-leaderboard-table.svelte';
     import {
         fetchLeaderboard,
-        type SoloRow,
+        type ScoreRow,
         type VersusRow
     } from '$lib/games/stack/leaderboard.js';
 
@@ -24,7 +24,7 @@
     type View =
         | { state: 'loading' }
         | { state: 'error' }
-        | { state: 'ok'; rows: Array<SoloRow | VersusRow>; at: number };
+        | { state: 'ok'; rows: Array<ScoreRow | VersusRow>; at: number };
 
     let view = $state<View | null>(null);
     let started = false;

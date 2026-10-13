@@ -3,6 +3,7 @@
  *
  *   혼자하기 줄: { rank, nickname, score, lines, level, achievedAt? }
  *   대전 줄:     { rank, nickname, rating, wins, losses, draws }
+ *   뱀 게임 줄:  { rank, nickname, score, achievedAt? }  (snake_week·snake_all — 같은 서버가 낸다)
  *
  * achievedAt 은 기록을 세운 시각(RFC3339, 서버는 +09:00 으로 준다). 예전 서버는 이 필드가 없다 → 빈칸.
  * 시각은 브라우저 시간대와 상관없이 항상 한국 시간(KST, UTC+9)으로 보여 준다.
@@ -15,19 +16,25 @@ export type BoardId =
     | 'vs_attack'
     | 'vs_sprint40'
     | 'vs_survival'
-    | 'vs_score120';
+    | 'vs_score120'
+    | 'snake_week'
+    | 'snake_all';
 
 /** 점수판 한 장에 보여 주는 줄 수 */
 export const LEADERBOARD_SIZE = 10;
 
-export interface SoloRow {
+/** 점수 줄(공용) — 순위·닉네임·점수·기록 시각. 뱀 게임 점수판이 이 모양 그대로다 */
+export interface ScoreRow {
     rank: number;
     nickname: string;
     score: number;
-    lines: number;
-    level: number;
     /** 기록을 세운 시각(RFC3339). 예전 서버 응답에는 없다 */
     achievedAt?: string;
+}
+
+export interface SoloRow extends ScoreRow {
+    lines: number;
+    level: number;
 }
 
 export interface VersusRow {
@@ -40,7 +47,7 @@ export interface VersusRow {
 }
 
 export interface LeaderboardData {
-    rows: Array<SoloRow | VersusRow>;
+    rows: Array<ScoreRow | VersusRow>;
     weekStart?: string;
 }
 

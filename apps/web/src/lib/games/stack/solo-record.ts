@@ -99,7 +99,7 @@ function num(v: unknown): number {
  * 토큰을 붙여 POST 한다. 401 이면 토큰을 새로 받아 한 번 더 시도한다(접근 토큰은 수명이 짧다).
  * 시간 초과·네트워크 실패면 null.
  */
-async function postJSON(
+export async function postJSON(
     path: string,
     body: unknown,
     getToken: TokenGetter,
