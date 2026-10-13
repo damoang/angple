@@ -294,8 +294,11 @@ for (const path of targets) {
                 timeout: 25000
             })
             .catch(() => fails.push('목록 하이드레이션 25초 초과'));
-        const link = page.locator('a[href^="/free/"]:visible').first();
-        listBefore = await page.locator('a[href^="/free/"]:visible').count();
+        // Playwright :visible includes links in the translated-offscreen mobile drawer.
+        // Exercise an actual board row, not a sidebar comment/bookmark link.
+        const boardLinks = page.locator('a:is(.post-row, .archive-row)[href^="/free/"]:visible');
+        const link = boardLinks.first();
+        listBefore = await boardLinks.count();
         if (listBefore < 5) fails.push(`클릭 전 목록 링크 ${listBefore}개(<5)`);
         clickedHref = await link.getAttribute('href').catch(() => null);
         if (!clickedHref) {
@@ -314,7 +317,7 @@ for (const path of targets) {
             // 뒤로가기로 목록이 돌아오는가 (#12842 의 「목록이 안 나타나서」)
             await page.goBack({ timeout: 20000 }).catch(() => fails.push('뒤로가기 실패'));
             await page.waitForTimeout(5000);
-            listAfterBack = await page.locator('a[href^="/free/"]:visible').count();
+            listAfterBack = await boardLinks.count();
             if (listAfterBack < 5) fails.push(`뒤로가기 후 목록 링크 ${listAfterBack}개(<5)`);
         }
     } catch (e) {

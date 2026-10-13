@@ -1159,6 +1159,8 @@ export interface NotificationPreferences {
     noti_like: boolean;
     noti_follow: boolean;
     noti_board_subscribe: boolean;
+    /** 키워드 알림 — 응답에 없으면 켬(true)으로 본다 */
+    noti_keyword: boolean;
     like_threshold: number;
 }
 

@@ -1,6 +1,7 @@
 <script lang="ts">
     import OmokGame from '$lib/components/features/game/omok-game.svelte';
     import OmokOnline from '$lib/components/features/game/omok-online.svelte';
+    import GameRankingCard from '$lib/components/features/game/game-ranking-card.svelte';
     import { SeoHead } from '$lib/seo/index.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
 
@@ -21,6 +22,9 @@
         <h1 class="text-foreground mt-2 text-2xl font-bold">오목</h1>
         <p class="text-muted-foreground text-sm">5줄을 먼저 만들면 승리합니다.</p>
     </div>
+
+    <!-- 온라인 대전 랭킹 — 실패·빈 응답이면 스스로 숨는다 -->
+    <GameRankingCard game="omok" title="오목" />
 
     <div class="mb-4 inline-flex rounded-lg border p-1">
         <button
