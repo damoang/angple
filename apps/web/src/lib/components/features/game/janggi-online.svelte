@@ -16,16 +16,28 @@
     import * as Card from '$lib/components/ui/card/index.js';
     import { onDestroy } from 'svelte';
     // 대기 중 연습판 — props 없는 독립 컴포넌트(로컬 AI)
+    // 상차림 선택 화면은 AI 연습판과 같은 미리보기(janggi-setup-picker)를 쓴다.
     import JanggiGame from './janggi-game.svelte';
     import JanggiBoard from './janggi-board.svelte';
-    import { legalTargets, type JanggiPiece } from '$lib/games/janggi/rules';
+    import JanggiSetupPicker from './janggi-setup-picker.svelte';
+    import { isSetup, legalTargets, type JanggiPiece, type Setup } from '$lib/games/janggi/rules';
+    import {
+        opponentSetup,
+        parseSetupChoose,
+        parseSetups,
+        secondsLeft,
+        setupText,
+        teamDefaultSetup,
+        type Setups
+    } from '$lib/games/janggi/online-setup';
 
     // 서버 엔진과 동일 코드값 (internal/janggi)
     const TEAM_CHO = 1;
 
     type Piece = JanggiPiece;
 
-    type Phase = 'idle' | 'connecting' | 'queued' | 'playing' | 'over';
+    // setup = 매칭 후 상차림 선택 단계(신 서버만 — 구 서버는 바로 game_start)
+    type Phase = 'idle' | 'connecting' | 'queued' | 'setup' | 'playing' | 'over';
 
     let phase = $state<Phase>('idle');
     let pieces = $state<Piece[]>([]);
@@ -46,6 +58,103 @@
     let selected = $state<{ x: number; y: number } | null>(null);
     let socket: WebSocket | null = null;
     let turnTimer: ReturnType<typeof setInterval> | null = null;
+
+    // ── 상차림 선택 단계 ────────────────────────────────────────────────
+    // AI 연습판(janggi-game)과 같은 저장 키 — 이름이 자기 시점이라 진영과 무관하게 재사용한다.
+    const SETUP_KEY = 'angple_janggi_setup';
+    let setupChoice = $state<Setup>(teamDefaultSetup(TEAM_CHO));
+    let setupSent = $state(false);
+    let setupLeft = $state(0);
+    let opponentChosen = $state(false);
+    let setupAnnounce = $state('');
+    let setups = $state<Setups | null>(null);
+    let setupDeadline = 0;
+    let setupTimer: ReturnType<typeof setInterval> | null = null;
+
+    const setupHint = $derived(
+        '배치는 내 쪽에서 본 왼쪽부터입니다. 시간 안에 고르지 않으면 기본 배치(' +
+            setupText(teamDefaultSetup(myTeam)) +
+            ')로 시작합니다. 상대 상차림은 대국이 시작되면 공개됩니다.'
+    );
+    const opponentSetupLine = $derived.by(() => {
+        const s = opponentSetup(setups, myTeam);
+        return s ? `상대 상차림: ${setupText(s)}` : '';
+    });
+
+    function stopSetupTimer() {
+        if (setupTimer) clearInterval(setupTimer);
+        setupTimer = null;
+    }
+
+    function tickSetup() {
+        const left = secondsLeft(setupDeadline, Date.now());
+        if (left !== setupLeft && (left === 10 || left === 5)) {
+            setupAnnounce = `상차림 선택 ${left}초 남았습니다.`;
+        }
+        setupLeft = left;
+        if (left === 0) stopSetupTimer();
+    }
+
+    function savedSetup(team: number): Setup {
+        try {
+            const s = localStorage.getItem(SETUP_KEY);
+            if (isSetup(s)) return s;
+        } catch {
+            // 저장소 차단 — 기본값
+        }
+        return teamDefaultSetup(team);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function enterSetup(msg: any) {
+        const c = parseSetupChoose(msg);
+        if (!c) return;
+        const restoring = phase === 'setup' && roomId === c.roomId;
+        roomId = c.roomId || roomId;
+        if (c.playerTeam) myTeam = c.playerTeam;
+        if (c.mySetup) {
+            setupChoice = c.mySetup;
+            setupSent = true;
+        } else if (!restoring) {
+            setupChoice = savedSetup(myTeam);
+            setupSent = false;
+        }
+        if (!restoring) opponentChosen = false;
+        setups = null;
+        practiceWhileWaiting = false;
+        phase = 'setup';
+        setupAnnounce = setupSent
+            ? '상차림 선택 완료 — 상대를 기다리는 중입니다.'
+            : `상차림을 골라 주세요. ${Math.ceil(c.remainingMs / 1000)}초 남았습니다.`;
+        stopSetupTimer();
+        setupDeadline = Date.now() + c.remainingMs;
+        tickSetup();
+        if (setupLeft > 0) setupTimer = setInterval(tickSetup, 250);
+    }
+
+    function chooseOnlineSetup(s: Setup) {
+        if (!setupSent) setupChoice = s;
+    }
+
+    function confirmSetup() {
+        if (setupSent || phase !== 'setup' || setupLeft === 0 || !socket) return;
+        setupSent = true;
+        // 서버 수신 형식은 {type, data} 봉투 — 계약서의 평평한 필드도 같이 실어 둘 다 읽히게 한다.
+        socket.send(
+            JSON.stringify({
+                type: 'setup_select',
+                roomId,
+                setup: setupChoice,
+                data: { roomId, setup: setupChoice }
+            })
+        );
+        setupAnnounce = '상차림 선택 완료 — 상대를 기다리는 중입니다.';
+        try {
+            localStorage.setItem(SETUP_KEY, setupChoice);
+        } catch {
+            // 무시
+        }
+    }
 
     const isMyTurn = $derived(phase === 'playing' && currentTeam === myTeam);
 
@@ -174,10 +283,12 @@
         socket.onopen = () =>
             send('join_matching_queue', pendingInvite ? { mode, invite: pendingInvite } : { mode });
         socket.onerror = () => {
+            stopSetupTimer();
             message = '대전 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.';
             phase = 'idle';
         };
         socket.onclose = (ev) => {
+            stopSetupTimer();
             if (phase === 'connecting' && !message) {
                 message =
                     ev.code === 1006
@@ -210,12 +321,29 @@
                     roomId = msg.roomId ?? '';
                     practiceWhileWaiting = false;
                 } else if (msg.status === 'error') {
+                    stopSetupTimer();
                     message = msg.message ?? '매칭에 실패했습니다.';
                     phase = 'idle';
                     socket?.close();
                 }
                 break;
+            case 'setup_choose':
+                enterSetup(msg);
+                break;
+            case 'setup_status':
+                if (phase === 'setup') {
+                    opponentChosen =
+                        myTeam === TEAM_CHO ? msg.hanSelected === true : msg.choSelected === true;
+                    if (opponentChosen) setupAnnounce = '상대가 상차림을 골랐습니다.';
+                    // 재접속 등으로 mySetup 을 못 받았어도 서버가 선택됨이라 하면 잠근다.
+                    const mine = myTeam === TEAM_CHO ? msg.choSelected : msg.hanSelected;
+                    if (mine === true) setupSent = true;
+                }
+                break;
             case 'game_start':
+                stopSetupTimer();
+                // 구 서버는 setups 가 없다 — 그때는 표시만 생략하고 기존대로 진행
+                setups = parseSetups(msg.setups ?? msg.gameState?.setups);
                 roomId = msg.roomId ?? roomId;
                 myTeam = msg.playerTeam ?? 0;
                 pieces = msg.gameState?.pieces ?? [];
@@ -243,6 +371,8 @@
                 startTurnCountdown(90);
                 break;
             case 'game_restored':
+                stopSetupTimer();
+                setups = parseSetups(msg.gameState?.setups ?? msg.setups) ?? setups;
                 roomId = msg.roomId ?? roomId;
                 myTeam = msg.gameState?.playerTeam ?? myTeam;
                 pieces = msg.gameState?.pieces ?? pieces;
@@ -261,9 +391,11 @@
                 result = { youWon: msg.youWon === true, reason: msg.reason ?? '' };
                 myStats = msg.stats ?? myStats;
                 if (turnTimer) clearInterval(turnTimer);
+                stopSetupTimer();
                 if (msg.message) message = msg.message;
                 break;
             case 'matching_canceled':
+                stopSetupTimer();
                 phase = 'idle';
                 socket?.close();
                 break;
@@ -311,6 +443,10 @@
     }
 
     function reset() {
+        stopSetupTimer();
+        setups = null;
+        setupSent = false;
+        opponentChosen = false;
         socket?.close();
         socket = null;
         phase = 'idle';
@@ -323,6 +459,7 @@
 
     onDestroy(() => {
         if (turnTimer) clearInterval(turnTimer);
+        stopSetupTimer();
         socket?.close();
     });
 
@@ -509,6 +646,51 @@
                     <JanggiGame />
                 </div>
             {/if}
+        {:else if phase === 'setup'}
+            <section class="space-y-3 rounded-lg border p-4" aria-labelledby="janggi-setup-title">
+                {#if opponent}
+                    <p class="text-muted-foreground text-sm">
+                        상대: {opponent.nickname ?? '앙님'}
+                        {#if opponent.rating}· {opponent.rating}점{/if}
+                    </p>
+                {/if}
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h3 id="janggi-setup-title" class="text-sm font-semibold">
+                        상차림을 골라 주세요
+                    </h3>
+                    <Badge
+                        variant={setupLeft <= 5 && !setupSent ? 'destructive' : 'outline'}
+                        class="tabular-nums"
+                    >
+                        남은 시간 {setupLeft}초
+                    </Badge>
+                </div>
+                <JanggiSetupPicker
+                    value={setupChoice}
+                    team={myTeam || TEAM_CHO}
+                    legend="내 상차림 · {myTeam === TEAM_CHO ? '초(楚)' : '한(漢)'}"
+                    disabled={setupSent || setupLeft === 0}
+                    onSelect={chooseOnlineSetup}
+                />
+                <p class="text-muted-foreground text-xs">{setupHint}</p>
+                {#if setupSent}
+                    <p class="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                        ✔ {setupText(setupChoice)} 선택 완료 — 상대 기다리는 중
+                    </p>
+                {:else if setupLeft === 0}
+                    <p class="text-muted-foreground text-sm">
+                        시간이 끝났습니다 — 곧 기본 배치로 대국이 시작됩니다.
+                    </p>
+                {:else}
+                    <Button class="w-full" onclick={confirmSetup}>
+                        {setupText(setupChoice)}로 선택
+                    </Button>
+                {/if}
+                <p class="text-muted-foreground text-xs">
+                    상대: {opponentChosen ? '✔ 선택 완료' : '고르는 중…'}
+                </p>
+                <p class="sr-only" aria-live="polite">{setupAnnounce}</p>
+            </section>
         {/if}
 
         {#if phase === 'playing' || phase === 'over'}
@@ -517,6 +699,9 @@
                     상대: {opponent.nickname ?? '앙님'}
                     {#if opponent.rating}· {opponent.rating}점{/if}
                 </p>
+            {/if}
+            {#if opponentSetupLine}
+                <p class="text-muted-foreground text-xs">{opponentSetupLine}</p>
             {/if}
 
             <JanggiBoard
