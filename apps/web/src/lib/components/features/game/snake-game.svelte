@@ -3,6 +3,8 @@
     // 규칙은 $lib/games/snake/engine.ts (결정적 — 서버가 같은 규칙으로 기록을 다시 돌려 본다).
     // 로그인 상태면 서버(stack-ws)에서 시드를 받아 시작하고 끝나면 입력 기록을 내 랭킹에 올린다.
     // 비로그인·실패·3초 안에 답이 없으면 로컬 무작위 시드로 그대로 진행한다(「기록 미등록」).
+    // 다음 판은 뒤에서 미리 받아 두어 다시 시작할 때 기다리지 않는다(못 받았으면 그 판은 로컬로 바로 시작).
+    import { untrack } from 'svelte';
     import {
         DIR_DOWN,
         DIR_LEFT,
@@ -22,7 +24,8 @@
         loadLocalBest,
         saveLocalBest,
         startSnakeRun,
-        type SnakeFinishResult
+        type SnakeFinishResult,
+        type SnakeRun
     } from '$lib/games/snake/record.js';
     import { getStackToken } from '$lib/games/stack/auth-token.js';
     import { authStore } from '$lib/stores/auth.svelte.js';
@@ -60,8 +63,23 @@
     /** 시작할 때마다 오른다 — 늦게 온 응답이 새 판을 덮지 않게 */
     let startGen = 0;
     let destroyed = false;
+    /** 이번 방문에서 한 판이라도 시작했는가 — 첫 판만 서버 판을 잠깐(최대 3초) 기다린다 */
+    let played = false;
     /** 마지막으로 서버에 판 시작을 요청한 시각 — 서버의 시작 간격 제한을 피해 기다린다 */
     let lastServerStart = 0;
+    /** 미리 받아 둔 다음 판 (받은 시각과 함께) */
+    let ready: { run: SnakeRun; at: number } | null = null;
+    /** 다음 판을 받아 오는 중이면 그 작업 */
+    let fetching: Promise<void> | null = null;
+    /** 끝난 판 기록을 내는 중이면 그 작업 — 새 판 요청은 이게 끝난 뒤에(서버는 회원당 판 1개) */
+    let submitting: Promise<void> | null = null;
+
+    /** 서버 시작 간격(5초)에 더 두는 여유 */
+    const GAP_MARGIN_MS = 1000;
+    /** 첫 판이 서버 판을 기다리는 최대 시간 */
+    const FIRST_START_WAIT_MS = 3000;
+    /** 미리 받은 판을 쓰는 최대 나이 — 서버 만료(2시간)보다 넉넉히 짧게 */
+    const READY_MAX_AGE_MS = 100 * 60 * 1000;
 
     function newSeed(): number {
         try {
@@ -76,28 +94,43 @@
         timer = null;
     }
 
-    /** 서버 판을 받을 수 있으면 받는다 — 로그인 회원만. 실패하면 null(로컬 모드) */
-    async function requestRun(gen: number): Promise<number | null> {
-        if (!authStore.isAuthenticated) return null;
-        status = 'starting';
-        draw();
-        // 서버는 회원당 5초에 한 번만 판을 연다 — 너무 빨리 다시 시작하면 남은 시간만큼 기다린다
-        const wait = lastServerStart + SNAKE_START_GAP_MS + 300 - Date.now();
-        if (wait > 0) {
-            notice = `기록 등록을 위해 ${Math.ceil(wait / 1000)}초 뒤 시작합니다`;
-            await new Promise((resolve) => setTimeout(resolve, wait));
-            if (gen !== startGen || destroyed) return null;
-        }
-        lastServerStart = Date.now();
-        const run = await startSnakeRun(getStackToken);
-        if (gen !== startGen || destroyed) return null;
-        if (!run) {
-            notice = '기록 서버에 연결하지 못해 이번 판은 랭킹에 기록되지 않습니다';
-            return null;
-        }
-        runId = run.runId;
-        notice = '';
-        return run.seed;
+    function sleep(ms: number): Promise<void> {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    /**
+     * 다음 판을 뒤에서 미리 받아 둔다 — 로그인 회원만. 서버의 시작 간격(5초 + 여유 1초)을 지켜서 부르고,
+     * 그래도 간격 제한(429)이면 「아직 아님」으로 보고 간격만큼 기다려 한 번 더 부른다.
+     * 다시 시작할 때 기다리지 않게 하려는 것이다(받지 못했으면 그 판은 로컬로 바로 시작).
+     */
+    function prefetch(): Promise<void> {
+        if (fetching) return fetching;
+        if (ready || destroyed || !authStore.isAuthenticated) return Promise.resolve();
+        const work = (async () => {
+            if (submitting) await submitting;
+            for (let attempt = 0; attempt < 2; attempt++) {
+                const wait = lastServerStart + SNAKE_START_GAP_MS + GAP_MARGIN_MS - Date.now();
+                if (wait > 0) await sleep(wait);
+                if (destroyed) return;
+                lastServerStart = Date.now();
+                const r = await startSnakeRun(getStackToken);
+                if (destroyed) return;
+                if (r === 'rate_limited') continue;
+                if (r) ready = { run: r, at: Date.now() };
+                return;
+            }
+        })().finally(() => {
+            fetching = null;
+        });
+        fetching = work;
+        return work;
+    }
+
+    /** 미리 받은 판을 꺼낸다(한 번만). 너무 오래됐으면 버린다 */
+    function takeReady(): SnakeRun | null {
+        const r = ready;
+        ready = null;
+        return r && Date.now() - r.at < READY_MAX_AGE_MS ? r.run : null;
     }
 
     async function startGame() {
@@ -107,16 +140,33 @@
         runId = null;
         standing = null;
         notice = '';
-        const seed = await requestRun(gen);
-        if (gen !== startGen || destroyed) return;
+        let run = takeReady();
+        if (!run && !played && authStore.isAuthenticated) {
+            // 첫 판만 — 받아 오는 중인 판을 잠깐 기다린다(최대 3초)
+            status = 'starting';
+            draw();
+            await Promise.race([prefetch(), sleep(FIRST_START_WAIT_MS)]);
+            if (gen !== startGen || destroyed) return;
+            run = takeReady();
+        }
+        if (run) {
+            runId = run.runId;
+        } else if (authStore.isAuthenticated) {
+            notice = played
+                ? '기록 준비 전에 시작해 이번 판은 랭킹에 기록되지 않습니다'
+                : '기록 서버에 연결하지 못해 이번 판은 랭킹에 기록되지 않습니다';
+        }
+        played = true;
         record = runId ? 'server' : 'local';
-        game = createGame(seed ?? newSeed());
+        game = createGame(run ? run.seed : newSeed());
         nextDir = DIR_RIGHT;
         inputs = [];
         score = 0;
         status = 'playing';
         draw();
         tick();
+        // 로컬 판이면 지금부터 다음 판을 받아 둔다(서버 판 진행 중에는 부르지 않는다 — 판이 바뀌므로)
+        if (!runId) void prefetch();
     }
 
     /** 지금 점수의 속도로 타이머를 다시 건다(먹을 때마다 빨라진다) */
@@ -148,7 +198,11 @@
             saveLocalBest(highScore);
         }
         draw();
-        void submitRecord();
+        // 기록을 낸 뒤 다음 판을 받아 둔다 — 다시 시작할 때 기다리지 않게
+        submitting = submitRecord().finally(() => {
+            submitting = null;
+        });
+        void submitting.then(() => prefetch());
     }
 
     /** 서버 판이면 기록을 낸다 — 실패해도 게임 화면은 그대로 */
@@ -364,6 +418,15 @@
             ctx.fillText('준비 중…', W / 2, H / 2);
         }
     }
+
+    // 로그인 상태가 확인되면 첫 판을 미리 받아 둔다(시작 버튼을 누를 때 기다리지 않게)
+    $effect(() => {
+        if (authStore.isAuthenticated) {
+            untrack(() => {
+                if (status === 'idle') void prefetch();
+            });
+        }
+    });
 
     // 처음 한 번 — 브라우저에 남긴 최고 점수 (SSR 에서는 돌지 않는다)
     $effect(() => {

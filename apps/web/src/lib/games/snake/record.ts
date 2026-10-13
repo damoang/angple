@@ -14,7 +14,7 @@ import type { SnakeInput } from './engine';
 
 /** 시작 요청을 기다리는 최대 시간 — 넘기면 로컬 모드로 시작한다 */
 export const SNAKE_START_TIMEOUT_MS = 3000;
-/** 서버가 판 시작을 받아 주는 최소 간격(회원당) */
+/** 서버가 판 시작을 받아 주는 최소 간격(회원당) — 화면은 여기에 여유를 더해 부른다 */
 export const SNAKE_START_GAP_MS = 5000;
 /** 기록 요청을 기다리는 최대 시간 */
 export const SNAKE_FINISH_TIMEOUT_MS = 8000;
@@ -46,12 +46,16 @@ export function buildSnakeFinishBody(runId: string, inputs: SnakeInput[], score:
     return { runId, inputs: inputs.map(([t, d]) => [t, d]), score };
 }
 
-/** 판 시작 — 시드를 받는다. 실패·시간 초과(3초)면 null (로컬 모드) */
+/**
+ * 판 시작 — 시드를 받는다. 실패·시간 초과(3초)면 null (로컬 모드).
+ * 서버의 시작 간격 제한(429)은 실패가 아니라 「아직 아님」이라 'rate_limited' 로 따로 알린다.
+ */
 export async function startSnakeRun(
     getToken: TokenGetter,
     opts: RequestOptions = {}
-): Promise<SnakeRun | null> {
+): Promise<SnakeRun | 'rate_limited' | null> {
     const r = await postJSON('/snake/start', {}, getToken, opts, SNAKE_START_TIMEOUT_MS);
+    if (r?.status === 429) return 'rate_limited';
     if (!r || r.status !== 200 || !r.data || typeof r.data !== 'object') return null;
     const d = r.data as Record<string, unknown>;
     const seed = d.seed;

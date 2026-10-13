@@ -93,14 +93,20 @@ describe('뱀 기록 요청', () => {
         const ok = vi.fn(async () => jsonResponse(200, { runId: 'r', seed: 1 }));
         expect(await startSnakeRun(async () => null, { fetch: ok as typeof fetch })).toBeNull();
         expect(ok).not.toHaveBeenCalled();
-        const limited = vi.fn(async () => jsonResponse(429, { error: 'rate_limited' }));
-        expect(await startSnakeRun(async () => 't', { fetch: limited as typeof fetch })).toBeNull();
         const bad = vi.fn(async () => jsonResponse(200, { runId: 'r', seed: 2 ** 32 }));
         expect(await startSnakeRun(async () => 't', { fetch: bad as typeof fetch })).toBeNull();
         const broken = vi.fn(async () => {
             throw new Error('network');
         });
         expect(await startSnakeRun(async () => 't', { fetch: broken as typeof fetch })).toBeNull();
+    });
+
+    it('start: 시작 간격 제한(429)은 실패가 아니라 rate_limited', async () => {
+        const limited = vi.fn(async () => jsonResponse(429, { error: 'rate_limited' }));
+        const res = await startSnakeRun(async () => 't', { fetch: limited as typeof fetch });
+        expect(res).toBe('rate_limited');
+        const failed = vi.fn(async () => jsonResponse(500, { error: 'boom' }));
+        expect(await startSnakeRun(async () => 't', { fetch: failed as typeof fetch })).toBeNull();
     });
 
     it('start: 시간 안에 답이 없으면 null', async () => {
