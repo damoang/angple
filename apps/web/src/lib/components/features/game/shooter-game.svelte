@@ -731,7 +731,8 @@
         e.preventDefault();
         // 시작·계속에 쓴 발사키를 그대로 누르고 있으면 바로 연사한다 (키를 떼면 bindKeys 가 뗌을 받는다)
         const bit = KEYMAP[e.code];
-        if (bit && status === 'playing') input.press(bit);
+        // (start·resume 이 status 를 바꾸지만 TS 는 위의 좁히기를 그대로 믿으므로 넓혀서 읽는다)
+        if (bit && (status as Status) === 'playing') input.press(bit);
     }
 
     $effect(() =>
