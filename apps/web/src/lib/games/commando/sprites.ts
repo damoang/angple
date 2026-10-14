@@ -277,6 +277,29 @@ export const RIFLE_TOP = [
     '....kkkkkkkkkkk.........'
 ];
 
+/**
+ * 보병 겨누기(예고) — 뺨을 총에 붙이고 한쪽 눈을 감는다, 총구 끝이 번쩍인다(노랑·흰 십자).
+ * 총구 줄은 RIFLE_TOP 과 같다(쏘는 높이 그대로). 엔진의 MODE_WINDUP 동안 이 그림 — 봇이 읽는 신호와 같다.
+ */
+export const RIFLE_AIM = [
+    '........................',
+    '.......kkkkkkk..........',
+    '.....kkRRRRRRRkk........',
+    '....kRRRRRRRRRRRk.......',
+    '....kRRwRRRRRRRRk.......',
+    '...kkkkkkkkkkkkkkk.....y',
+    '....ksssssssskmmmmmmmmyw',
+    '....ksssskssskkkmkkkkk.y',
+    '....ksssskskssk.........',
+    '....kSssssssrsk.........',
+    '.....kSsssssssk.........',
+    '......kkkkkkkk..........',
+    '.....kRrrrrrsskk........',
+    '....kRrrrrrrrskmk.......',
+    '....kRrrrrrrrrk.........',
+    '....kkkkkkkkkkk.........'
+];
+
 /** 투척병 윗몸 — 방울 달린 털모자, 수류탄 주머니 */
 export const THROWER_TOP = [
     '..........kk............',
@@ -386,6 +409,119 @@ export const DUMMY = [
     '.....kdddk...kdddk......',
     '.....kkkkk...kkkkk......'
 ];
+
+/* ── 보스 「쿵쿵 롤러」 (64×48, 왼쪽을 보고 그림 — 뒤집지 않는다) ── */
+
+/**
+ * 붉은 증기 롤러차 — 앞에 큰 쇠 롤러, 동그란 창 안의 운전병, 지붕의 굴뚝 박격포와 경고등, 앞 총.
+ * 2프레임: 롤러 줄무늬·바퀴살이 돈다. 앞 총 총구 = 0열 30줄(발에서 18px 위 = ENEMY_SHOT_Y),
+ * 박격포 입구 = 44~51열 1줄, 경고등 = 32~37열 7~12줄(화면이 예고 때 켠다).
+ */
+export const BOSS = [
+    [
+        '................................................................',
+        '...........................................kkkkkkkkkk...........',
+        '...........................................kmmmmmmmmk...........',
+        '...........................................kkkkkkkkkk...........',
+        '............................................kwmmmmmk............',
+        '............................................kwmmmmmk............',
+        '............................................kRRRRRRk............',
+        '.................................kkkk.......kRRRRRRk............',
+        '.................................kkkk.......kmmmmmmk............',
+        '................................kwRRRk......kmmmmmmk............',
+        '................................kRRRRk......kmmmmmmk............',
+        '................................kRRRRk......kmmmmmmk............',
+        '...................kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk....',
+        '..................kkrwwwwwwwwwrrrrrrrrrrrrrrrrrrrrrrrrrrrrrkk...',
+        '..................krwrrrrrrrrkkkkkrrrrrrrrrrrrrrrrrrrrrrrrRRk...',
+        '..................krwrrrrrrrkmmmmmkrrrrrmrrrmrrrmrrrmrrrmrRRk...',
+        '..................krrrrrrrrkmmRRRmmkrrrrrrrrrrrrrrrrrrrrrrRRk...',
+        '..................krkkkrrrkmRwRRRRRmkrrrkkkkkkkkkkkkkkkrrrRRk...',
+        '..................krrrrrrkmmRRRRRRRmmkrrkrrrrrrrrrrrrrkrrrRRk...',
+        '..................krkkkrrkmckkkkkkkcmkrrkRRRRRRRRRRRRRkrrrRRkkkk',
+        '..................krrrrrrkmccsssssccmkrrkRRRRRRRRRRRRRkrrrRRkmmk',
+        '..................krkkkrrkmcskssssscmkrrkRRRRRRRRRRRmmkrrrRRkmmk',
+        '..................krrrrrrkmmcksssscmmkrrkRRRRRRRRRRRRRkrrrRRkkkk',
+        '..................krkkkrrrkmcssrsscmkrrrkRRRRRRRRRRRRRkrrrRRk...',
+        '..................krrrrrrrrkmmcscmmkrrrrkkkkkkkkkkkkkkkrrrRRk...',
+        '..................krkkkrrrrrkmmmmmkrrrrrrrrrrrrrrrrrrrrrrrRRk...',
+        '..................krrrrrrrrrrkkkkkrrrrrrmrrrmrrrmrrrmrrrmrRRk...',
+        '.........kkkkkkkkkkrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrRRk...',
+        '.........krrrrrrrrkRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRk...',
+        'kkkkkkkkkkkRRRRRRRkRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRk...',
+        'kmmmmmmmmmkRRRRRRRkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk.kk.',
+        'kkkkkkkkkkkRRRRRRRRkrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrk.',
+        '........kkRRRRRRRRRkRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRk.',
+        '......kkwkkkkkkkkkkkRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRk.',
+        '......kwwwmmkmmmkmkmRRRRRmRRRRRmRRRRRmRRRRRmRRRRRmRRRRRmRRRRRmk.',
+        '.....kmwwmmmkmmmkmmkRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRk.',
+        '.....kmmkmmmkmmmkmmkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk.',
+        '....kmmmkmmkkkmmkmmmk...................kkkmmmkkk...kkkmmmkkk...',
+        '....kmmmkmkkRkkmkmmmk..................kkmmmkmmmkk.kkmmmkmmmkk..',
+        '....kmmmkmkRRRkmkmmmk.................kkkmmmmmmmkkkkkmmmmmmmkkk.',
+        '....kmmmkmkkRkkmkmmmk.................kkmmmkkkmmmkkkmmmkkkmmmkk.',
+        '....kmmmkmmkkkmmkmmmk.................kkmkmkkkmkmkkkmkmkkkmkmkk.',
+        '.....kmmkmmmkmmmkmmk..................kkmmmkkkmmmkkkmmmkkkmmmkk.',
+        '.....kmmkmmmkmmmkmmk..................kkkmmmmmmmkkkkkmmmmmmmkkk.',
+        '......kmkmmmkmmmkmk....................kkmmmkmmmkk.kkmmmkmmmkk..',
+        '......kkkmmmkmmmkkk.....................kkkmmmkkk...kkkmmmkkk...',
+        '........kkmmmmmkk........................kkkkkkk.....kkkkkkk....',
+        '..........kkkkk...........................kkkkk.......kkkkk.....'
+    ],
+    [
+        '................................................................',
+        '...........................................kkkkkkkkkk...........',
+        '...........................................kmmmmmmmmk...........',
+        '...........................................kkkkkkkkkk...........',
+        '............................................kwmmmmmk............',
+        '............................................kwmmmmmk............',
+        '............................................kRRRRRRk............',
+        '.................................kkkk.......kRRRRRRk............',
+        '.................................kkkk.......kmmmmmmk............',
+        '................................kwRRRk......kmmmmmmk............',
+        '................................kRRRRk......kmmmmmmk............',
+        '................................kRRRRk......kmmmmmmk............',
+        '...................kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk....',
+        '..................kkrwwwwwwwwwrrrrrrrrrrrrrrrrrrrrrrrrrrrrrkk...',
+        '..................krwrrrrrrrrkkkkkrrrrrrrrrrrrrrrrrrrrrrrrRRk...',
+        '..................krwrrrrrrrkmmmmmkrrrrrmrrrmrrrmrrrmrrrmrRRk...',
+        '..................krrrrrrrrkmmRRRmmkrrrrrrrrrrrrrrrrrrrrrrRRk...',
+        '..................krkkkrrrkmRwRRRRRmkrrrkkkkkkkkkkkkkkkrrrRRk...',
+        '..................krrrrrrkmmRRRRRRRmmkrrkrrrrrrrrrrrrrkrrrRRk...',
+        '..................krkkkrrkmckkkkkkkcmkrrkRRRRRRRRRRRRRkrrrRRkkkk',
+        '..................krrrrrrkmccsssssccmkrrkRRRRRRRRRRRRRkrrrRRkmmk',
+        '..................krkkkrrkmcskssssscmkrrkRRRRRRRRRRRmmkrrrRRkmmk',
+        '..................krrrrrrkmmcksssscmmkrrkRRRRRRRRRRRRRkrrrRRkkkk',
+        '..................krkkkrrrkmcssrsscmkrrrkRRRRRRRRRRRRRkrrrRRk...',
+        '..................krrrrrrrrkmmcscmmkrrrrkkkkkkkkkkkkkkkrrrRRk...',
+        '..................krkkkrrrrrkmmmmmkrrrrrrrrrrrrrrrrrrrrrrrRRk...',
+        '..................krrrrrrrrrrkkkkkrrrrrrmrrrmrrrmrrrmrrrmrRRk...',
+        '.........kkkkkkkkkkrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrRRk...',
+        '.........krrrrrrrrkRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRk...',
+        'kkkkkkkkkkkRRRRRRRkRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRk...',
+        'kmmmmmmmmmkRRRRRRRkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk.kk.',
+        'kkkkkkkkkkkRRRRRRRRkrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrk.',
+        '........kkRRRRRRRRRkRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRk.',
+        '......kkwkkkkkkkkkkkRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRk.',
+        '......kwwwkmmmkmmmkmRRRRRmRRRRRmRRRRRmRRRRRmRRRRRmRRRRRmRRRRRmk.',
+        '.....kkwwmkmmmkmmmkkRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRk.',
+        '.....kkmmmkmmmkmmmkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk.',
+        '....kmkmmmkkkkkmmmkmk...................kkkmmmkkk...kkkmmmkkk...',
+        '....kmkmmmkkRkkmmmkmk..................kkmmmmmmmkk.kkmmmmmmmkk..',
+        '....kmkmmmkRRRkmmmkmk.................kkkmkmmmkmkkkkkmkmmmkmkkk.',
+        '....kmkmmmkkRkkmmmkmk.................kkmmmkkkmmmkkkmmmkkkmmmkk.',
+        '....kmkmmmkkkkkmmmkmk.................kkmmmkkkmmmkkkmmmkkkmmmkk.',
+        '.....kkmmmkmmmkmmmkk..................kkmmmkkkmmmkkkmmmkkkmmmkk.',
+        '.....kkmmmkmmmkmmmkk..................kkkmkmmmkmkkkkkmkmmmkmkkk.',
+        '......kmmmkmmmkmmmk....................kkmmmmmmmkk.kkmmmmmmmkk..',
+        '......kkmmkmmmkmmkk.....................kkkmmmkkk...kkkmmmkkk...',
+        '........kkmmmmmkk........................kkkkkkk.....kkkkkkk....',
+        '..........kkkkk...........................kkkkk.......kkkkk.....'
+    ]
+];
+
+/** 박격포 떨어질 자리 표시 (7×5) — 붉은 과녁 */
+export const TARGET_MARK = ['..rrr..', '.r...r.', 'r..w..r', '.r...r.', '..rrr..'];
 
 /* ── 타일 (16×16) ── */
 
@@ -510,5 +646,6 @@ export const ART: Record<string, string[]> = {
     crate: TILE_CRATE,
     crack: TILE_CRACK,
     grenade: GRENADE,
-    muzzle: MUZZLE
+    muzzle: MUZZLE,
+    mark: TARGET_MARK
 };
