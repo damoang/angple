@@ -14,6 +14,7 @@ import type { Reroute } from '@sveltejs/kit';
  */
 const RESERVED = new Set<string>([
     'wiki',
+    'wiki-auth',
     'api',
     'admin',
     'auth',

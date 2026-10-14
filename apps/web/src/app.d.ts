@@ -15,6 +15,8 @@ declare global {
     namespace App {
         // interface Error {}
         interface Locals {
+            wikiangSite?: boolean;
+            wikiUser?: { id: number; nickname: string } | null;
             user: {
                 id?: string;
                 nickname?: string;

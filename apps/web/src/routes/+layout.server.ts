@@ -24,8 +24,9 @@ export const load: LayoutServerLoad = async ({ locals, depends, url, cookies, re
 
     // Install wizard must not depend on runtime infra such as Redis, menus, banners, or MySQL.
     // CI/E2E runs this route before the full stack is provisioned.
-    if (url.pathname.startsWith('/install')) {
+    if (locals.wikiangSite || url.pathname.startsWith('/install')) {
         const installLayoutData = {
+            wikiangSite: locals.wikiangSite ?? false,
             activeTheme: null,
             themeSettings: {},
             activePlugins: [],
@@ -46,7 +47,7 @@ export const load: LayoutServerLoad = async ({ locals, depends, url, cookies, re
             ga4MeasurementId: ''
         };
 
-        return hooks.applyFilters('layout_server_data', installLayoutData);
+        return locals.wikiangSite ? installLayoutData : hooks.applyFilters('layout_server_data', installLayoutData);
     }
 
     // 병렬로 SSR 필수 데이터만 로드 (allSettled: 개별 실패 허용)
@@ -93,6 +94,7 @@ export const load: LayoutServerLoad = async ({ locals, depends, url, cookies, re
     }
 
     const layoutData = {
+        wikiangSite: false,
         activeTheme: resolvedThemeId,
         themeSettings: resolvedThemeSettings,
         menus,

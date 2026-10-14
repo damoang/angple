@@ -18,8 +18,7 @@ function safeClientIp(getClientAddress: () => string): string | null {
  */
 export const PUT: RequestHandler = async ({ params, request, locals, getClientAddress }) => {
     // 로그인 회원이면 author_id로 귀속, 익명이면 null (IP로만 귀속)
-    const rawUserId = locals.user?.id ? parseInt(locals.user.id, 10) : NaN;
-    const userId = Number.isNaN(rawUserId) ? null : rawUserId;
+    const userId = locals.wikiUser?.id ?? null;
 
     const pageId = parseInt(params.id, 10);
     if (isNaN(pageId)) {

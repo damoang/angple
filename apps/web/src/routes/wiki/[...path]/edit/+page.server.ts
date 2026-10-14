@@ -20,20 +20,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     // 경로에서 제목 추출 (신규 문서용)
     const titleFromPath = path.split('/').pop() || path;
 
-    // 로그인 회원이면 회원 정보, 익명이면 null
-    const userId = locals.user?.id ? parseInt(locals.user.id, 10) : null;
-
     return {
         wikiPage,
         baseRevision: wikiPage?.base_revision ?? 0,
         isNew: !wikiPage,
         path: `/${path}`,
         suggestedTitle: wikiPage?.title || titleFromPath,
-        user: locals.user
-            ? {
-                  id: Number.isNaN(userId) ? null : userId,
-                  nickname: locals.user.nickname || '익명'
-              }
-            : null
+        user: locals.wikiUser ?? null
     };
 };

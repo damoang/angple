@@ -36,7 +36,7 @@
     data-wiki-skin={skin}
     data-wiki-text={textSize}
 >
-    <WikiHeader {skin} onSkinChange={changeSkin} />
+    <WikiHeader user={data.wikiUser} {skin} onSkinChange={changeSkin} />
     <div class="wiki-body">
         <aside class="wiki-nav" aria-label="둘러보기">
             <div class="nav-label">둘러보기</div>

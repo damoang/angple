@@ -146,8 +146,12 @@
     {/if}
 
     <p class="hint">
-        익명 편집이 가능합니다. 편집 이력에는 익명 식별자가 남으며 원본 IP는 공개되지 않습니다. 저장
-        전 출처와 저작권을 확인해주세요.
+        {#if data.user}
+            {data.user.nickname}님으로 편집합니다. 편집 이력에 위키앙 닉네임이 표시됩니다.
+        {:else}
+            익명 편집이 가능합니다. 편집 이력에는 익명 식별자가 남으며 원본 IP는 공개되지 않습니다.
+        {/if}
+        저장 전 출처와 저작권을 확인해주세요.
     </p>
     <p class="save-status" role="status">
         {#if isSaving}저장 중입니다. 완료될 때까지 이 화면을 유지해주세요.{/if}
@@ -176,8 +180,8 @@
             <MarkdownEditor bind:value={content} {contentType} path={data.path} />
             <p class="hint">
                 {#if contentType === 'html'}
-                    HTML 원문 편집 모드입니다. 마크다운 서식 도구는 적용되지 않습니다.
-                    미리보기에서 결과를 확인한 뒤 저장해주세요.
+                    HTML 원문 편집 모드입니다. 마크다운 서식 도구는 적용되지 않습니다. 미리보기에서
+                    결과를 확인한 뒤 저장해주세요.
                 {:else}
                     💡 위키링크 <code>[[문서명]]</code>, 굵게 <code>**굵게**</code>, 헤딩
                     <code>## 제목</code>

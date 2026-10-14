@@ -1,9 +1,15 @@
 <script lang="ts">
-    import { authStore } from '$lib/stores/auth.svelte';
     import { onMount } from 'svelte';
     import { WIKI_SKINS, parseWikiSkin, type WikiSkin } from '$lib/wiki/skins';
-    let { skin, onSkinChange }: { skin: WikiSkin; onSkinChange: (skin: WikiSkin) => void } =
-        $props();
+    let {
+        skin,
+        onSkinChange,
+        user
+    }: {
+        skin: WikiSkin;
+        onSkinChange: (skin: WikiSkin) => void;
+        user: { id: number; nickname: string } | null;
+    } = $props();
     import BookOpen from '@lucide/svelte/icons/book-open';
     import Search from '@lucide/svelte/icons/search';
     import Sun from '@lucide/svelte/icons/sun';
@@ -82,9 +88,14 @@
             >
                 {#if dark}<Sun size={20} />{:else}<Moon size={20} />{/if}
             </button>
-            {#if authStore.user}<span class="account"
-                    >{authStore.user.mb_name || authStore.user.mb_id}</span
-                >{:else}<a class="account" href="/login">로그인</a>{/if}
+            <a
+                class="account"
+                href={user
+                    ? '/wiki-auth'
+                    : '/wiki-auth?returnTo=' +
+                      encodeURIComponent($page.url.pathname + $page.url.search)}
+                >{user?.nickname ?? '로그인'}</a
+            >
         </div>
     </div>
     <div class="nav-row">

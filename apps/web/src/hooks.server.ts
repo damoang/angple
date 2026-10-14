@@ -1,3 +1,5 @@
+import { isWikiangSite } from '$lib/server/wiki-auth';
+import { handleWikiang } from '$lib/server/wiki-auth/handle';
 import { canonicalWikiPath, legacyWikiPath, decodeWikiPath } from '$lib/wiki/paths';
 import { redirect, type Handle, type HandleServerError } from '@sveltejs/kit';
 import { dev } from '$app/environment';
@@ -469,6 +471,7 @@ export const handle: Handle = async ({ event, resolve }) => {
             if (canonical !== pathname) redirect(308, canonical + event.url.search);
         }
     }
+    if (isWikiangSite(event.url)) return handleWikiang({ event, resolve });
     const isDataRequest = isSvelteKitDataRequest(event);
 
     if (isMalformedExternalImagePath(pathname)) {
