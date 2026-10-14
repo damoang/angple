@@ -8,6 +8,7 @@ import Zap from '@lucide/svelte/icons/zap';
 import Blocks from '@lucide/svelte/icons/blocks';
 import BrickWall from '@lucide/svelte/icons/brick-wall';
 import Rocket from '@lucide/svelte/icons/rocket';
+import Crosshair from '@lucide/svelte/icons/crosshair';
 
 export interface GameEntry {
     id: string;
@@ -19,6 +20,8 @@ export interface GameEntry {
     color: string;
     /** 카드 배경 (Tailwind 클래스) */
     bgColor: string;
+    /** 이름 옆 작은 표시 (예: 아직 만드는 중인 게임은 '베타') */
+    badge?: string;
 }
 
 export const GAMES: GameEntry[] = [
@@ -75,6 +78,15 @@ export const GAMES: GameEntry[] = [
         icon: Rocket,
         color: 'text-violet-600',
         bgColor: 'bg-violet-50 dark:bg-violet-950/30'
+    },
+    {
+        id: 'commando',
+        name: '다모앙 특공대',
+        description: '달리고 뛰며 쏴서 적진을 돌파하고 보스를 쓰러뜨리는 횡스크롤 액션',
+        href: '/games/commando',
+        icon: Crosshair,
+        color: 'text-teal-600',
+        bgColor: 'bg-teal-50 dark:bg-teal-950/30'
     }
 ];
 
