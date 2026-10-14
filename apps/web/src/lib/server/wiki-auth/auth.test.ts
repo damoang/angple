@@ -152,6 +152,48 @@ describe('independent Wikiang Google authentication', () => {
             )
         ).rejects.toThrow('Expired');
     });
+    it('completes a verified callback with a fresh opaque session and consumes its state', async () => {
+        const jar = cookieJar();
+        const target = new URL(
+            await beginGoogle(jar, new URL('https://wikiang.org/wiki-auth/google?returnTo=/문서'))
+        );
+        const flow = JSON.parse(mocks.redis.set.mock.calls[0][1]);
+        mocks.redis.eval.mockResolvedValueOnce(JSON.stringify(flow)).mockResolvedValueOnce(null);
+        const c = {
+            query: vi
+                .fn()
+                .mockResolvedValueOnce([{}])
+                .mockResolvedValueOnce([[{ user_id: 99 }]])
+                .mockResolvedValueOnce([[{ id: 99, is_active: 1 }]])
+                .mockResolvedValueOnce([{}]),
+            beginTransaction: vi.fn(),
+            commit: vi.fn(),
+            rollback: vi.fn(),
+            release: vi.fn()
+        };
+        mocks.pool.getConnection.mockResolvedValue(c);
+        const token = await sign({ nonce: flow.nonce });
+        const exchange = vi
+            .fn()
+            .mockResolvedValue(new Response(JSON.stringify({ id_token: token }), { status: 200 }));
+        vi.stubGlobal('fetch', exchange);
+        try {
+            const callback = new URL(
+                'https://wikiang.org/wiki-auth/callback?code=one-time&state=' +
+                    target.searchParams.get('state')
+            );
+            expect(await finishGoogle(jar, callback)).toBe('/%EB%AC%B8%EC%84%9C');
+            expect(jar.get('__Host-wikiang_session')).toHaveLength(43);
+            expect(jar.get('angple_sid')).toBeUndefined();
+            expect(exchange.mock.calls[0][1].body.get('code_verifier')).toBe(flow.verifier);
+            expect(JSON.parse(mocks.redis.set.mock.calls[1][1]).userId).toBe(99);
+            jar.set('__Host-wikiang_oauth', target.searchParams.get('state')!);
+            await expect(finishGoogle(jar, callback)).rejects.toThrow('Expired');
+            expect(exchange).toHaveBeenCalledTimes(1);
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
     it('maps only verified subject to an active wiki user inside a transaction', async () => {
         const query = vi
             .fn()
