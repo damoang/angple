@@ -3,6 +3,7 @@
     // 규칙은 $lib/games/shooter/engine.ts(순수·결정적, 60틱 고정), 루프·입력·캔버스는 $lib/games/shell.
     // 게임 상태는 평범한 객체로 두고, 화면 숫자(HUD)만 $state 로 옮긴다.
     // 그리기는 틱 사이를 보간해(직전 틱 위치 → 지금 위치) 화면 주사율과 무관하게 부드럽게 보인다.
+    // 사격은 발사 버튼(Z·J·스페이스 / 마우스 왼쪽 / 휴대폰 발사 버튼)을 누르고 있을 때만 — 누르고 있으면 연사.
     // 배경은 테마와 관계없이 어두운 우주(단일 테마로 의도).
     import { untrack } from 'svelte';
     import {
@@ -37,18 +38,25 @@
 
     const IN_LEFT = 1;
     const IN_RIGHT = 2;
+    /** 발사 — 키보드·마우스·화면 버튼을 따로 둬서 한쪽을 떼도 다른 쪽이 누르고 있으면 계속 쏜다 */
+    const IN_FIRE_KEY = 4;
+    const IN_FIRE_MOUSE = 8;
+    const IN_FIRE_BTN = 16;
+    const IN_FIRE = IN_FIRE_KEY | IN_FIRE_MOUSE | IN_FIRE_BTN;
     /** KeyboardEvent.code → 입력 비트 */
     const KEYMAP: Record<string, number> = {
         ArrowLeft: IN_LEFT,
         KeyA: IN_LEFT,
         ArrowRight: IN_RIGHT,
-        KeyD: IN_RIGHT
+        KeyD: IN_RIGHT,
+        KeyZ: IN_FIRE_KEY,
+        KeyJ: IN_FIRE_KEY,
+        Space: IN_FIRE_KEY
     };
+    /** 게임 중이 아닐 때 시작(계속)으로 쓰는 키 — Enter 와 발사키 */
+    const START_KEYS = new Set(['Enter', 'Space', 'KeyZ', 'KeyJ']);
     /** 키보드로 비행기를 움직이는 속도(논리 px/틱) */
     const KEY_SPEED = 5;
-    /** 손가락이 이만큼(CSS px) 안 움직이고 짧게 떼면 탭(= 일시정지) */
-    const TAP_SLOP = 8;
-    const TAP_MS = 220;
 
     /* ── 그림: 직접 그린 픽셀 그림 (한 칸 = 논리 2px) ── */
     const PX = 2;
@@ -141,6 +149,9 @@
     let banner = $state('');
     let announce = $state('');
     let newBest = $state(false);
+    /** 손가락으로 하는 기기 — 판 아래(가로 화면은 양옆)에 끌기 영역과 발사 버튼을 보인다 */
+    let touch = $state(false);
+    let portrait = $state(true);
 
     // 반응형이 아닌 게임 상태
     let game: Game = createGame(1);
@@ -148,13 +159,9 @@
     let reduceMotion = false;
     let bannerTimer: ReturnType<typeof setTimeout> | undefined;
     /** 터치 끌기: 시작 위치와 그때의 비행기 x */
-    let drag: {
-        id: number;
-        startX: number;
-        startTarget: number;
-        at: number;
-        moved: boolean;
-    } | null = null;
+    let drag: { id: number; startX: number; startTarget: number } | null = null;
+    /** 마우스 왼쪽 버튼으로 발사 중인가 */
+    let mouseFire = false;
 
     interface Particle {
         x: number;
@@ -186,7 +193,7 @@
     const sprites = new Map<string, HTMLCanvasElement>();
     let spriteScale = 0;
 
-    const input = createHeldInput({ repeat: 0, hold: IN_LEFT | IN_RIGHT });
+    const input = createHeldInput({ repeat: 0, hold: IN_LEFT | IN_RIGHT | IN_FIRE });
     const loop = createLoop(tick, render);
 
     function newSeed(): number {
@@ -249,7 +256,7 @@
         const bits = input.sample();
         const dir = (bits & IN_RIGHT ? 1 : 0) - (bits & IN_LEFT ? 1 : 0);
         if (dir !== 0) targetX = clampTarget(game.shipX / SCALE + dir * KEY_SPEED);
-        const ev = step(game, { x: Math.round(targetX) });
+        const ev = step(game, { x: Math.round(targetX), fire: (bits & IN_FIRE) !== 0 });
         if (ev.length > 0) handleEvents(ev);
         syncHud();
         if (game.over) finish();
@@ -320,12 +327,13 @@
         game = createGame(newSeed());
         targetX = START_X;
         drag = null;
+        mouseFire = false;
         particles = [];
         popups = [];
         newBest = false;
         syncHud();
         status = 'playing';
-        announce = '게임 시작. 비행기는 자동으로 쏩니다';
+        announce = '게임 시작. Z, J, 스페이스나 발사 버튼을 누르고 있으면 연사합니다';
         showBanner('스테이지 1');
         render(1);
         loop.start();
@@ -341,8 +349,9 @@
         loop.stop();
         input.clear();
         drag = null;
+        mouseFire = false;
         status = 'paused';
-        announce = '일시정지';
+        announce = '일시정지. P나 Esc를 누르면 계속합니다';
         render(1);
     }
 
@@ -375,6 +384,7 @@
         loop.stop();
         input.clear();
         drag = null;
+        mouseFire = false;
         status = 'over';
         if (game.score > best) {
             best = game.score;
@@ -616,49 +626,73 @@
         };
     }
 
+    /** 마우스가 판(캔버스) 위에 있는가 — 마우스 이동·발사는 판 안에서만 */
+    function overBoard(e: PointerEvent): boolean {
+        const rect = canvasEl.getBoundingClientRect();
+        return (
+            e.clientX >= rect.left &&
+            e.clientX <= rect.right &&
+            e.clientY >= rect.top &&
+            e.clientY <= rect.bottom
+        );
+    }
+
+    function releaseMouseFire() {
+        if (!mouseFire) return;
+        mouseFire = false;
+        input.release(IN_FIRE_MOUSE);
+    }
+
     function onPointerDown(e: PointerEvent) {
+        if (e.pointerType === 'touch') touch = true;
         if (status !== 'playing') return;
-        // 버튼·링크는 그 자체 동작에 맡긴다
+        // 버튼·링크는 그 자체 동작에 맡긴다 (발사 버튼도 자기 처리기가 있다)
         if (e.target instanceof Element && e.target.closest('button, a')) return;
         if (e.pointerType === 'mouse') {
-            if (e.button === 0) targetX = clampTarget(toLogicalX(e.clientX));
+            // 판 위에서 왼쪽 버튼을 누르고 있는 동안 발사 — 판 밖에서 떼도 알 수 있게 포인터를 잡아 둔다
+            if (e.button !== 0 || !overBoard(e)) return;
+            e.preventDefault();
+            targetX = clampTarget(toLogicalX(e.clientX));
+            rootEl.setPointerCapture?.(e.pointerId);
+            mouseFire = true;
+            input.press(IN_FIRE_MOUSE);
             return;
         }
+        // 손가락(펜) — 끄는 만큼 비행기가 따라간다 (판 아래 왼쪽 끌기 영역, 판 위 어디서든)
         e.preventDefault();
         rootEl.setPointerCapture?.(e.pointerId);
-        drag = {
-            id: e.pointerId,
-            startX: e.clientX,
-            startTarget: game.shipX / SCALE,
-            at: performance.now(),
-            moved: false
-        };
+        drag = { id: e.pointerId, startX: e.clientX, startTarget: game.shipX / SCALE };
     }
 
     function onPointerMove(e: PointerEvent) {
         if (status !== 'playing') return;
         if (e.pointerType === 'mouse') {
-            targetX = clampTarget(toLogicalX(e.clientX));
+            if (overBoard(e)) targetX = clampTarget(toLogicalX(e.clientX));
             return;
         }
         if (!drag || drag.id !== e.pointerId) return;
-        const dx = e.clientX - drag.startX;
-        if (Math.abs(dx) > TAP_SLOP) drag.moved = true;
-        // 손가락이 움직인 만큼 비행기가 따라간다 — 손가락은 비행기 아래(판 아래쪽)에 두면 가리지 않는다
+        // 손가락이 움직인 만큼 비행기가 따라간다 — 손가락은 판 아래에 두면 비행기를 가리지 않는다
         const rect = canvasEl.getBoundingClientRect();
         const scale = rect.width > 0 ? FIELD_W / rect.width : 1;
-        targetX = clampTarget(drag.startTarget + dx * scale);
+        targetX = clampTarget(drag.startTarget + (e.clientX - drag.startX) * scale);
     }
 
     function onPointerUp(e: PointerEvent) {
-        if (!drag || drag.id !== e.pointerId) return;
-        const tap = !drag.moved && performance.now() - drag.at < TAP_MS;
-        drag = null;
-        if (tap) pause();
+        if (e.pointerType === 'mouse') releaseMouseFire();
+        if (drag && drag.id === e.pointerId) drag = null;
     }
 
-    function onPointerCancel(e: PointerEvent) {
-        if (drag && drag.id === e.pointerId) drag = null;
+    /* 화면 발사 버튼 — 누르고 있는 동안 연사 (손가락을 버튼 밖으로 밀어도 뗄 때까지) */
+    function fireBtnDown(e: PointerEvent) {
+        touch = true;
+        if (status !== 'playing') return;
+        e.preventDefault();
+        (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+        input.press(IN_FIRE_BTN);
+    }
+
+    function fireBtnUp() {
+        input.release(IN_FIRE_BTN);
     }
 
     function onCommandKey(e: KeyboardEvent) {
@@ -670,15 +704,15 @@
             e.preventDefault();
             return;
         }
-        if (e.code !== 'Space' && e.code !== 'Enter') return;
+        // 게임 중의 발사키는 bindKeys 가 발사 입력으로 받는다. 여기 오는 건 게임 중이 아닐 때(시작·계속)와 Enter
+        if (!START_KEYS.has(e.code) || status === 'playing') return;
         // 포커스가 페이지 본문이나 게임 영역 안에 있을 때만 받는다 (다른 컨트롤·스크롤을 가로채지 않게).
-        // 버튼에 포커스가 있으면 버튼 자체 클릭에 맡긴다 (두 번 실행 방지)
+        // 버튼에 포커스가 있으면 스페이스·엔터는 버튼 자체 클릭에 맡긴다 (두 번 실행 방지)
         const t = e.target;
         const inGame = t instanceof Node && !!rootEl && rootEl.contains(t);
         if (t !== document.body && t !== document.documentElement && !inGame) return;
-        if (t instanceof HTMLButtonElement) return;
-        if (status === 'playing') pause();
-        else if (status === 'paused') resume();
+        if (t instanceof HTMLButtonElement && (e.code === 'Space' || e.code === 'Enter')) return;
+        if (status === 'paused') resume();
         else start();
         e.preventDefault();
     }
@@ -690,12 +724,20 @@
             makeStars();
             const offKeys = bindKeys(KEYMAP, input, () => status === 'playing', onCommandKey);
             const offHidden = onPageHidden(pause);
-            // 게임 영역 전체(판 + 둘레)의 끌기·탭·마우스 — 영역이 그림·글이라 리스너를 직접 붙인다
+            // 거친 포인터(손가락) 기기면 처음부터 끌기 영역·발사 버튼을 보인다. 가로·세로에 따라 배치가 바뀐다
+            const coarse = window.matchMedia?.('(pointer: coarse)');
+            const orient = window.matchMedia?.('(orientation: portrait)');
+            touch = !!coarse?.matches;
+            portrait = orient ? orient.matches : true;
+            const onOrient = () => (portrait = !!orient?.matches);
+            orient?.addEventListener?.('change', onOrient);
+            // 게임 영역 전체(판 + 둘레)의 끌기·마우스 — 영역이 그림·글이라 리스너를 직접 붙인다
             const pointer: Array<[string, (e: PointerEvent) => void]> = [
                 ['pointerdown', onPointerDown],
                 ['pointermove', onPointerMove],
                 ['pointerup', onPointerUp],
-                ['pointercancel', onPointerCancel]
+                ['pointercancel', onPointerUp],
+                ['lostpointercapture', onPointerUp]
             ];
             for (const [type, fn] of pointer) {
                 rootEl.addEventListener(type, fn as EventListener, { passive: false });
@@ -719,6 +761,7 @@
                 offHidden();
                 offSize();
                 motion?.removeEventListener?.('change', onMotion);
+                orient?.removeEventListener?.('change', onOrient);
                 for (const [type, fn] of pointer) {
                     rootEl.removeEventListener(type, fn as EventListener);
                 }
@@ -733,6 +776,7 @@
     bind:this={rootEl}
     class="game-area flex select-none flex-col items-center gap-3"
     class:no-pan={status === 'playing'}
+    class:tight={touch && portrait}
 >
     <dl class="board grid grid-cols-4 gap-2 text-center text-sm" aria-label="{NAME} 현황">
         <div>
@@ -757,72 +801,92 @@
         </div>
     </dl>
 
-    <div bind:this={boardEl} class="board field relative" class:no-pan={status === 'playing'}>
-        <canvas
-            bind:this={canvasEl}
-            class="block h-full w-full rounded-lg border bg-slate-950 shadow-sm"
-            role="img"
-            aria-label="{NAME} 게임판"
-        ></canvas>
+    <div class="stage" class:side={touch && !portrait}>
+        <div bind:this={boardEl} class="board field relative" class:no-pan={status === 'playing'}>
+            <canvas
+                bind:this={canvasEl}
+                class="block h-full w-full rounded-lg border bg-slate-950 shadow-sm"
+                role="img"
+                aria-label="{NAME} 게임판"
+            ></canvas>
 
-        {#if status === 'playing' && (rapid || shield)}
-            <div class="pointer-events-none absolute left-2 top-2 flex gap-1 text-xs font-bold">
-                {#if rapid}
-                    <span class="rounded-md bg-teal-500/80 px-2 py-0.5 text-white">연사</span>
-                {/if}
-                {#if shield}
-                    <span class="rounded-md bg-blue-500/80 px-2 py-0.5 text-white">방패</span>
-                {/if}
-            </div>
-        {/if}
+            {#if status === 'playing' && (rapid || shield)}
+                <div class="pointer-events-none absolute left-2 top-2 flex gap-1 text-xs font-bold">
+                    {#if rapid}
+                        <span class="rounded-md bg-teal-500/80 px-2 py-0.5 text-white">연사</span>
+                    {/if}
+                    {#if shield}
+                        <span class="rounded-md bg-blue-500/80 px-2 py-0.5 text-white">방패</span>
+                    {/if}
+                </div>
+            {/if}
 
-        {#if banner && status === 'playing'}
-            <p
-                class="pointer-events-none absolute left-1/2 top-[45%] -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-900/80 px-3 py-1 text-sm font-bold text-white shadow-sm"
-            >
-                {banner}
-            </p>
-        {/if}
+            {#if banner && status === 'playing'}
+                <p
+                    class="pointer-events-none absolute left-1/2 top-[45%] -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-900/80 px-3 py-1 text-sm font-bold text-white shadow-sm"
+                >
+                    {banner}
+                </p>
+            {/if}
 
-        {#if status !== 'playing'}
-            <div
-                class="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-lg bg-slate-950/75 p-4 text-center text-white"
-            >
-                {#if status === 'idle'}
-                    <p class="text-2xl font-bold">{NAME}</p>
-                    <p class="text-xs text-slate-300">
-                        비행기는 자동으로 쏩니다. 좌우로 움직여 적 편대를 떨어뜨리세요
-                    </p>
-                    <button
-                        type="button"
-                        onclick={press(start)}
-                        class="bg-primary text-primary-foreground rounded-md px-5 py-2 text-sm font-medium"
-                        >시작</button
-                    >
-                {:else if status === 'paused'}
-                    <p class="text-lg font-bold">일시정지</p>
-                    <button
-                        type="button"
-                        onclick={press(resume)}
-                        class="bg-primary text-primary-foreground rounded-md px-5 py-2 text-sm font-medium"
-                        >계속</button
-                    >
-                {:else}
-                    <p class="text-lg font-bold">게임 끝</p>
-                    <p class="text-sm">
-                        점수 <span class="font-bold tabular-nums">{score.toLocaleString()}</span>
-                    </p>
-                    <p class="text-xs text-slate-300">
-                        스테이지 {stageNo}
-                        {#if newBest}· 최고 기록!{/if}
-                    </p>
-                    <button
-                        type="button"
-                        onclick={press(start)}
-                        class="bg-primary text-primary-foreground rounded-md px-5 py-2 text-sm font-medium"
-                        >다시 하기</button
-                    >
-                {/if}
+            {#if status !== 'playing'}
+                <div
+                    class="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-lg bg-slate-950/75 p-4 text-center text-white"
+                >
+                    {#if status === 'idle'}
+                        <p class="text-2xl font-bold">{NAME}</p>
+                        <p class="text-xs text-slate-300">
+                            발사 버튼을 누르고 있으면 연사합니다. 좌우로 움직이며 적 편대를 떨어뜨리세요
+                        </p>
+                        <button
+                            type="button"
+                            onclick={press(start)}
+                            class="bg-primary text-primary-foreground rounded-md px-5 py-2 text-sm font-medium"
+                            >시작</button
+                        >
+                    {:else if status === 'paused'}
+                        <p class="text-lg font-bold">일시정지</p>
+                        <p class="text-xs text-slate-300">P · Esc · Enter 로 계속</p>
+                        <button
+                            type="button"
+                            onclick={press(resume)}
+                            class="bg-primary text-primary-foreground rounded-md px-5 py-2 text-sm font-medium"
+                            >계속</button
+                        >
+                    {:else}
+                        <p class="text-lg font-bold">게임 끝</p>
+                        <p class="text-sm">
+                            점수 <span class="font-bold tabular-nums">{score.toLocaleString()}</span>
+                        </p>
+                        <p class="text-xs text-slate-300">
+                            스테이지 {stageNo}
+                            {#if newBest}· 최고 기록!{/if}
+                        </p>
+                        <button
+                            type="button"
+                            onclick={press(start)}
+                            class="bg-primary text-primary-foreground rounded-md px-5 py-2 text-sm font-medium"
+                            >다시 하기</button
+                        >
+                    {/if}
+                </div>
+            {/if}
+        </div>
+
+        {#if touch}
+            <!-- 손가락 조작: 왼쪽 = 끌어서 이동(게임 영역 공용 끌기 처리), 오른쪽 = 발사(누르고 있으면 연사) -->
+            <div class="controls board">
+                <div class="drag-pad" aria-hidden="true">← 끌어서 이동 →</div>
+                <button
+                    type="button"
+                    class="fire-btn"
+                    aria-label="발사 (누르고 있으면 연사)"
+                    onpointerdown={fireBtnDown}
+                    onpointerup={fireBtnUp}
+                    onpointercancel={fireBtnUp}
+                    onlostpointercapture={fireBtnUp}
+                    oncontextmenu={(e) => e.preventDefault()}>발사</button
+                >
             </div>
         {/if}
     </div>
@@ -846,8 +910,8 @@
 
     <p class="sr-only" aria-live="polite" aria-atomic="true">{announce}</p>
     <p class="text-muted-foreground text-center text-xs">
-        마우스 · ← → / A D 이동 · 사격은 자동 · 스페이스 시작/일시정지 · 휴대폰은 판 아래쪽을 좌우로
-        끌고 탭하면 일시정지
+        ← → / A D · 마우스(판 위) 이동 · Z · J · 스페이스 · 마우스 왼쪽 = 발사(누르고 있으면 연사) ·
+        Enter 시작 · P · Esc 일시정지 · 휴대폰은 판 아래 왼쪽을 좌우로 끌어 이동, 오른쪽 버튼으로 발사
     </p>
 </div>
 
@@ -867,6 +931,90 @@
     @supports (height: 100svh) {
         .board {
             width: min(100%, 24rem, max(14rem, calc((100svh - 8rem) * 9 / 16)));
+        }
+    }
+    /*
+     * 손가락 기기 세로 화면: 판 아래에 조작 줄(발사 버튼 5rem + 간격 0.75rem)이 붙으니 높이 예산에서 6rem 을 더 뺀다.
+     * 360×640: 폭 상한 = (640 − 224) × 9/16 = 234 → 판 234×416. 72 + 48 + 416 + 12 + 80 = 628 ≤ 640.
+     */
+    .tight .board {
+        width: min(100%, 24rem, max(14rem, calc((100vh - 14rem) * 9 / 16)));
+    }
+    @supports (height: 100svh) {
+        .tight .board {
+            width: min(100%, 24rem, max(14rem, calc((100svh - 14rem) * 9 / 16)));
+        }
+    }
+    /* 판 + 조작부. 세로 화면은 위아래, 가로 화면(.side)은 끌기 영역 왼쪽 · 판 · 발사 버튼 오른쪽 */
+    .stage {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+    }
+    .stage.side {
+        flex-direction: row;
+        justify-content: center;
+    }
+    .stage.side .controls {
+        display: contents;
+    }
+    .stage.side .drag-pad {
+        order: -1;
+        flex: 0 0 auto;
+        width: 6rem;
+        height: 12rem;
+    }
+    .stage.side .fire-btn {
+        order: 1;
+    }
+    .controls {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .drag-pad {
+        flex: 1 1 auto;
+        height: 4rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.75rem;
+        border: 2px dashed rgb(148 163 184 / 0.6);
+        background: rgb(15 23 42 / 0.08);
+        color: rgb(100 116 139);
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-align: center;
+    }
+    .fire-btn {
+        flex: 0 0 auto;
+        width: 5rem;
+        height: 5rem;
+        border-radius: 9999px;
+        background: #e04f5f;
+        border: 2px solid rgb(255 255 255 / 0.6);
+        box-shadow: 0 2px 6px rgb(0 0 0 / 0.25);
+        color: white;
+        font-size: 1rem;
+        font-weight: 700;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+    }
+    .fire-btn:active {
+        filter: brightness(1.2);
+        transform: scale(0.96);
+    }
+    .no-pan .controls,
+    .no-pan .drag-pad,
+    .no-pan .fire-btn {
+        touch-action: none;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .fire-btn:active {
+            transform: none;
         }
     }
     .field {

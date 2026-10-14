@@ -20,10 +20,14 @@
  * - 총알은 「이번 틱에 지나온 길 전체」(직전 위치~지금 위치를 덮는 사각형)로 검사한다.
  *   한 틱에 아무리 멀리 가도 그 사이에 있던 적·비행기를 건너뛰지 못한다(터널링 없음).
  *
+ * 입력(틱마다) = 비행기 목표 x + 발사 버튼을 누르고 있는가(FIRE 비트).
+ * - 발사 버튼을 누르고 있을 때만 쏜다. 누르고 있으면 쏘는 간격(FIRE_TICKS / 연사 강화 중
+ *   RAPID_FIRE_TICKS)마다 한 발씩 연사하고, 화면 안 내 총알 수 상한(MAX_SHOTS / RAPID_SHOTS)은 그대로다.
+ *
  * 입력 기록(GameLog) — 2단계 서버 재연용, 아직 어디에도 보내지 않는다.
  * - moves: [틱, x, 틱, x, …] 비행기 목표 x(논리 px 정수 0~360)가 「바뀐 틱만」. 처음 값은 180.
- * - 사격은 자동이라 기록할 것이 없다. 판 길이는 game.tick.
- *   replay(seed, log, tick) 으로 같은 판을 다시 만든다(어긋난 기록은 거부).
+ * - fires: [틱, 틱, …] 발사 버튼 상태가 「바뀐 틱만」. 처음은 뗀 상태라 짝수 번째 = 누름, 홀수 번째 = 뗌.
+ * - 판 길이는 game.tick. replay(seed, log, tick) 으로 같은 판을 다시 만든다(어긋난 기록은 거부).
  */
 import {
     BONUS_HIT_POINTS,
@@ -223,6 +227,8 @@ export interface Squad {
 export interface GameLog {
     /** [틱, x, 틱, x, …] — 비행기 목표 x 가 바뀐 틱만 */
     moves: number[];
+    /** [틱, 틱, …] — 발사 버튼을 누르거나 뗀 틱만 (처음은 뗀 상태: 누름, 뗌, 누름, …) */
+    fires: number[];
 }
 
 export type EndReason = '' | 'lives' | 'limit';
@@ -270,12 +276,16 @@ export interface Game {
     reason: EndReason;
     /** 마지막으로 기록한 비행기 목표 x */
     lastX: number;
+    /** 마지막으로 기록한 발사 버튼 상태 */
+    lastFire: boolean;
     log: GameLog;
 }
 
 export interface StepInput {
     /** 비행기 목표 x (논리 px). 정수로 버리고 0~360 으로 자른다 */
     x: number;
+    /** 발사 버튼(FIRE 비트)을 누르고 있는가 — 빠지면 뗀 것 */
+    fire?: boolean;
 }
 
 /** 한 틱에 일어난 일 — 화면 효과·안내용 (규칙에는 영향 없음) */
@@ -466,7 +476,8 @@ export function createGame(seed: number): Game {
         over: false,
         reason: '',
         lastX: START_X,
-        log: { moves: [] }
+        lastFire: false,
+        log: { moves: [], fires: [] }
     };
     loadStage(g);
     return g;
@@ -792,10 +803,10 @@ function updateItems(g: Game, ev: StepEvent[]): void {
     g.items.length = w;
 }
 
-/** 자동 사격 */
-function fire(g: Game): void {
+/** 사격 — 발사 버튼을 누르고 있을 때만, 쏘는 간격마다 한 발 (간격은 누르지 않아도 줄어든다) */
+function fire(g: Game, held: boolean): void {
     if (g.fireCd > 0) g.fireCd--;
-    if (!shipAlive(g) || g.fireCd > 0) return;
+    if (!held || !shipAlive(g) || g.fireCd > 0) return;
     const rapid = g.rapidTicks > 0;
     if (g.shots.length >= (rapid ? RAPID_SHOTS : MAX_SHOTS)) return;
     const y = SHIP_YU - 14 * S;
@@ -844,6 +855,11 @@ export function step(g: Game, input: StepInput): StepEvent[] {
         g.log.moves.push(g.tick, x);
         g.lastX = x;
     }
+    const held = input.fire === true;
+    if (held !== g.lastFire) {
+        g.log.fires.push(g.tick);
+        g.lastFire = held;
+    }
     g.shipPrevX = g.shipX;
     const target = clamp(x * S, SHIP_HALF_W * S, FW - SHIP_HALF_W * S);
     g.shipX += clamp(target - g.shipX, -SHIP_SPEED * S, SHIP_SPEED * S);
@@ -877,7 +893,7 @@ export function step(g: Game, input: StepInput): StepEvent[] {
 
     // 4) 내 총알 (움직이고 맞힌 뒤 새로 쏜다)
     moveShots(g, ev);
-    fire(g);
+    fire(g, held);
 
     // 5) 적 총알·몸통 박치기
     moveBullets(g, ev);
@@ -898,7 +914,7 @@ export function step(g: Game, input: StepInput): StepEvent[] {
 /** 재연 거부 이유 */
 export type ReplayError =
     | ''
-    /** 기록 모양이 틀림(배열 아님·정수 아님·moves 길이 홀수) */
+    /** 기록 모양이 틀림(배열 아님·정수 아님·moves 길이 홀수·fires 없음) */
     | 'bad-log'
     /** 판 길이가 0~MAX_TICKS 정수가 아님 */
     | 'bad-ticks'
@@ -927,6 +943,7 @@ function isTickList(v: unknown): v is number[] {
 /** 기록 모양만 본다 (판을 돌리지 않고 알 수 있는 것) */
 function checkLog(log: GameLog, ticks: number): ReplayError {
     if (!log || !isTickList(log.moves) || log.moves.length % 2 !== 0) return 'bad-log';
+    if (!isTickList(log.fires)) return 'bad-log';
     if (!Number.isSafeInteger(ticks) || ticks < 0 || ticks > MAX_TICKS) return 'bad-ticks';
     let prevTick = -1;
     let prevX = START_X;
@@ -939,6 +956,13 @@ function checkLog(log: GameLog, ticks: number): ReplayError {
         if (x === prevX) return 'x-unchanged';
         prevTick = t;
         prevX = x;
+    }
+    // 발사 버튼은 누름·뗌이 번갈아 오므로 「같은 값 두 번」은 생길 수 없다 — 틱 순서·범위만 본다
+    prevTick = -1;
+    for (const t of log.fires) {
+        if (t <= prevTick) return 'tick-order';
+        if (t >= ticks) return 'tick-range';
+        prevTick = t;
     }
     return '';
 }
@@ -953,14 +977,20 @@ export function replay(seed: number, log: GameLog, ticks: number): ReplayResult 
     const bad = checkLog(log, ticks);
     if (bad) return { ok: false, error: bad, game: g };
     let x = START_X;
+    let fire = false;
     let mi = 0;
+    let fi = 0;
     for (let t = 0; t < ticks; t++) {
         if (g.over) return { ok: false, error: 'length', game: g };
         if (mi < log.moves.length && log.moves[mi] === t) {
             x = log.moves[mi + 1];
             mi += 2;
         }
-        step(g, { x });
+        if (fi < log.fires.length && log.fires[fi] === t) {
+            fire = !fire;
+            fi++;
+        }
+        step(g, { x, fire });
     }
     return { ok: true, error: '', game: g };
 }
