@@ -56,6 +56,17 @@ function hasUnsavedContent(): boolean {
     return !!el && el.value.trim().length > 0;
 }
 
+/**
+ * 게임 화면(`/games/<게임>`)인지 확인.
+ * 게임은 글자·숫자키를 조작키로 쓰므로 전역 단축키가 먹으면 다른 화면으로 튕긴다.
+ * 게임 목록(`/games`) 자체는 조작이 없으므로 단축키를 유지한다.
+ */
+function isGamePath(): boolean {
+    if (typeof window === 'undefined') return false;
+    const path = window.location.pathname;
+    return path.startsWith('/games/') && path.length > '/games/'.length;
+}
+
 class KeyboardShortcutService {
     // 시스템 단축키: event.code → URL
     private systemShortcuts = $state<Map<string, string>>(new Map());
@@ -150,6 +161,10 @@ class KeyboardShortcutService {
      * 글로벌 keydown 이벤트 핸들러
      */
     handleKeydown = (event: KeyboardEvent) => {
+        // 다른 컴포넌트(게임 등)가 이미 키를 처리했으면 무시
+        if (event.defaultPrevented) return;
+        // 게임 화면에서는 전역 단축키 비활성 (게임 조작키가 이동으로 먹히지 않도록)
+        if (isGamePath()) return;
         // 입력 필드 안에서는 무시
         if (isInputElement(event.target)) return;
         // contentEditable 요소 안에서는 무시
