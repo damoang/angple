@@ -3,7 +3,7 @@
     // 규칙은 $lib/games/commando/engine.ts(순수·결정적, 60틱 고정), 루프·키 입력은 $lib/games/shell.
     // 게임 상태는 평범한 객체로 두고, 화면 숫자(HUD)만 $state 로 옮긴다.
     // 캔버스는 논리 해상도 384×216 그대로 그리고, CSS 로 기기 픽셀의 정수배만큼 키운다(픽셀이 선명하다).
-    import { untrack } from 'svelte';
+    import { tick as afterUpdate, untrack } from 'svelte';
     import {
         OWNER_PLAYER,
         SCALE,
@@ -56,6 +56,10 @@
     const HEIGHT_RESERVE = 112;
     /** 세로 화면에서 판 아래 조작부 높이(px) */
     const PORTRAIT_CONTROLS = 190;
+    /** 가로 화면에서 판 양옆 조작부 한쪽 폭(px, 간격 포함) — 패드·버튼 최대 136 + 12 */
+    const SIDE_CONTROLS = 148;
+    /** 정수배 폭이 꽉 맞춘 폭의 이 비율보다 작으면 정수배를 버리고 꽉 맞춘다 */
+    const INT_MIN_RATIO = 0.8;
 
     type Status = 'idle' | 'playing' | 'paused' | 'over';
 
@@ -74,6 +78,10 @@
     let cleared = $state(false);
     let cssW = $state(VIEW_W);
     let cssH = $state(VIEW_H);
+    /** 캔버스 내부 해상도 = 논리 해상도 × bufScale (정수) */
+    let bufScale = $state(1);
+    /** 가로 화면 조작부(패드·버튼 묶음) 한 변(px) — 판 높이를 넘지 않는다 */
+    let ctlSize = $state(136);
     let touch = $state(false);
     let portrait = $state(false);
     let knobX = $state(0);
@@ -283,19 +291,35 @@
 
     /* ── 크기: 기기 픽셀의 정수배 ── */
 
+    /**
+     * 판 크기.
+     * fitW = 쓸 수 있는 영역(가로 화면 터치면 양옆 조작부 몫을 뺀 폭, 화면 높이 예산)에 16:9 로 꽉 맞춘 CSS 폭.
+     * 기기 픽셀 정수배 k = floor(fitW × dpr / 384) 의 폭(384k / dpr)이 fitW 의 80% 이상이면 그 폭(픽셀이 고르다),
+     * 아니면 fitW 그대로(조금 고르지 않아도 작아지지 않게). 캔버스 내부 해상도는 384×216 의 정수배
+     * ceil(폭 × dpr / 384) 로 그려 CSS 로 줄이거나 그대로 보인다(image-rendering: pixelated).
+     */
     function layout() {
         if (!boardEl) return;
         const dpr = window.devicePixelRatio || 1;
-        const availW = boardEl.clientWidth;
+        const side = touch && !portrait;
+        const availW = Math.max(0, boardEl.clientWidth - (side ? 2 * SIDE_CONTROLS : 0));
         const reserve = HEIGHT_RESERVE + (touch && portrait ? PORTRAIT_CONTROLS : 0);
         const availH = Math.max(120, window.innerHeight - reserve);
-        const k = Math.floor(Math.min((availW * dpr) / VIEW_W, (availH * dpr) / VIEW_H));
-        let w: number;
-        if (k >= 1) w = (VIEW_W * k) / dpr;
-        else w = Math.min(availW, (availH * VIEW_W) / VIEW_H);
+        const fitW = Math.max(VIEW_W / 4, Math.min(availW, (availH * VIEW_W) / VIEW_H));
+        const k = Math.floor((fitW * dpr) / VIEW_W);
+        const intW = (VIEW_W * k) / dpr;
+        const w = k >= 1 && intW >= fitW * INT_MIN_RATIO ? intW : fitW;
         cssW = w;
         cssH = (w * VIEW_H) / VIEW_W;
-        render(1);
+        ctlSize = Math.round(Math.min(136, Math.max(88, cssH)));
+        const scale = Math.max(1, Math.ceil((w * dpr) / VIEW_W - 1e-6));
+        if (scale !== bufScale) {
+            bufScale = scale;
+            // 캔버스 크기가 바뀌면 내용이 지워진다 — 화면에 반영된 뒤 다시 그린다
+            void afterUpdate().then(() => render(1));
+        } else {
+            render(1);
+        }
     }
 
     /* ── 그리기 ── */
@@ -478,6 +502,21 @@
         }
     }
 
+    /** 픽셀 원 — 한 줄씩 정수 사각형으로 채운다 (가장자리 섞인 색 없음, 팔레트 색만) */
+    function pixelDisc(
+        ctx: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        r: number,
+        color: string
+    ) {
+        ctx.fillStyle = color;
+        for (let dy = -r; dy <= r; dy++) {
+            const half = Math.floor(Math.sqrt(r * r - dy * dy));
+            ctx.fillRect(x - half, y + dy, 2 * half + 1, 1);
+        }
+    }
+
     function drawEffects(ctx: CanvasRenderingContext2D, dt: number, cam: number) {
         let w = 0;
         for (const b of booms) {
@@ -488,16 +527,8 @@
             const r = reduceMotion ? 10 : Math.round(8 + t * 20);
             const x = Math.round(b.x - cam);
             const y = Math.round(b.y) - CAM_Y;
-            ctx.fillStyle = reduceMotion ? PALETTE.O : t < 0.4 ? PALETTE.w : PALETTE.y;
-            ctx.beginPath();
-            ctx.arc(x, y, r, 0, Math.PI * 2);
-            ctx.fill();
-            if (!reduceMotion && t >= 0.4) {
-                ctx.fillStyle = PALETTE.r;
-                ctx.beginPath();
-                ctx.arc(x, y, Math.max(2, r - 8), 0, Math.PI * 2);
-                ctx.fill();
-            }
+            pixelDisc(ctx, x, y, r, reduceMotion ? PALETTE.O : t < 0.4 ? PALETTE.w : PALETTE.y);
+            if (!reduceMotion && t >= 0.4) pixelDisc(ctx, x, y, Math.max(2, r - 8), PALETTE.r);
             booms[w++] = b;
         }
         booms.length = w;
@@ -525,6 +556,7 @@
         const a = status === 'playing' ? Math.min(1, Math.max(0, alpha)) : 1;
         const frameDt = status === 'playing' ? dt : 0;
         let cam = (game.prevCamX + (game.camX - game.prevCamX) * a) / S;
+        ctx.setTransform(bufScale, 0, 0, bufScale, 0, 0);
         ctx.imageSmoothingEnabled = false;
         ctx.save();
         if (now < shakeUntil) {
@@ -727,12 +759,17 @@
         </p>
     {/if}
 
-    <div bind:this={boardEl} class="board relative flex w-full flex-col items-center">
+    <div
+        bind:this={boardEl}
+        class="board relative flex w-full flex-col items-center"
+        class:side={touch && !portrait}
+        style="--ctl: {ctlSize}px;"
+    >
         <div class="relative" style="width: {cssW}px; height: {cssH}px;">
             <canvas
                 bind:this={canvasEl}
-                width={VIEW_W}
-                height={VIEW_H}
+                width={VIEW_W * bufScale}
+                height={VIEW_H * bufScale}
                 class="pixel block h-full w-full rounded-md border shadow-sm"
                 role="img"
                 aria-label="{NAME} 게임판"
@@ -787,7 +824,7 @@
         </div>
 
         {#if touch}
-            <div class="controls" class:overlay={!portrait}>
+            <div class="controls">
                 <div
                     bind:this={padEl}
                     class="pad"
@@ -879,7 +916,10 @@
         -webkit-touch-callout: none;
     }
 
-    /* 가상 조작부: 세로 화면은 판 아래, 가로 화면은 판 위 양쪽 아래 구석에 겹친다 */
+    /*
+     * 가상 조작부: 세로 화면은 판 아래, 가로 화면은 판 양옆(패드 왼쪽·버튼 오른쪽, 판 높이를 넘지 않게).
+     * 판을 덮지 않는다. 터치 막기(touch-action)는 게임 중(.no-pan)일 때만 — 그 밖에는 화면을 그대로 끌 수 있다.
+     */
     .controls {
         display: flex;
         width: 100%;
@@ -887,29 +927,38 @@
         justify-content: space-between;
         align-items: center;
         padding: 0.75rem 0.25rem 0;
+    }
+    .board.side {
+        flex-direction: row;
+        justify-content: center;
+        gap: 0.75rem;
+    }
+    .board.side .controls {
+        display: contents;
+    }
+    .board.side .pad {
+        order: -1;
+        width: var(--ctl);
+        height: var(--ctl);
+    }
+    .board.side .buttons {
+        order: 1;
+        grid-template-columns: repeat(2, calc((var(--ctl) - 0.5rem) / 2));
+        grid-template-rows: repeat(2, calc((var(--ctl) - 0.5rem) / 2));
+    }
+    .no-pan .controls,
+    .no-pan .pad,
+    .no-pan .btn {
         touch-action: none;
-    }
-    .controls.overlay {
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        max-width: none;
-        padding: 0 0.5rem 0.5rem;
-        pointer-events: none;
-    }
-    .controls.overlay > * {
-        pointer-events: auto;
-        opacity: 0.8;
     }
     .pad {
         position: relative;
+        flex-shrink: 0;
         width: 8.5rem;
         height: 8.5rem;
         border-radius: 9999px;
         background: rgb(15 23 42 / 0.35);
         border: 2px solid rgb(255 255 255 / 0.35);
-        touch-action: none;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -923,6 +972,7 @@
         pointer-events: none;
     }
     .buttons {
+        flex-shrink: 0;
         display: grid;
         grid-template-columns: repeat(2, 4rem);
         grid-template-rows: repeat(2, 4rem);
@@ -933,7 +983,6 @@
         font-size: 0.8rem;
         font-weight: 700;
         color: white;
-        touch-action: none;
         user-select: none;
         -webkit-user-select: none;
         border: 2px solid rgb(255 255 255 / 0.5);
