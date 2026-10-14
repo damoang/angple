@@ -124,7 +124,7 @@ export const LOB_FLIGHT = 40;
 export const LOB_MAX_VX = 1280;
 export const LOB_SPREAD = 12;
 export const ENEMY_FUSE = 120;
-export const ENEMY_BLAST_R = 18;
+export const ENEMY_BLAST_R = 16;
 
 export const START_LIVES = 3;
 /** 맞은 뒤 다시 나올 때까지, 다시 나온 뒤 무적(틱) */

@@ -1153,7 +1153,7 @@ describe('난이도 (초보 봇)', () => {
             for (const gr of g.grenades) {
                 if (gr.owner !== OWNER_ENEMY) continue;
                 const lx = landingX(gr.x, gr.y, gr.vx, gr.vy, feet);
-                if (Math.abs(lx - cx) >= 40 * S) continue;
+                if (Math.abs(lx - cx) >= 44 * S) continue;
                 // 떨어질 자리에서 멀어지는 쪽 — 거의 제자리면 던진 쪽(포물선 아래)으로
                 let away = Math.abs(lx - cx) >= 12 * S ? (lx > cx ? -1 : 1) : gr.vx < 0 ? 1 : -1;
                 // 벽·화면 끝에 막혔으면 반대쪽으로 달린다
@@ -1187,7 +1187,8 @@ describe('난이도 (초보 봇)', () => {
         if (react && !threat) {
             for (const b of g.bullets) {
                 if (b.owner !== OWNER_ENEMY || b.vy !== 0) continue;
-                const coming = (b.vx < 0 && b.x > cx) || (b.vx > 0 && b.x < cx);
+                // 다가오는 총알, 또는 아직 몸 위를 지나가고 있는 총알
+                const coming = (b.vx < 0 && b.x > cx - 12 * S) || (b.vx > 0 && b.x < cx + 12 * S);
                 if (!coming || Math.abs(b.x - cx) > 110 * S) continue;
                 if (b.y < feet - 24 * S || b.y > feet - 12 * S) continue;
                 const from = b.vx < 0 ? 1 : -1;
