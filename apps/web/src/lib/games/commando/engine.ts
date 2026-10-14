@@ -29,7 +29,8 @@
  *   ② 굴뚝 박격포: 떨어질 자리 표시(대원 자리와 그 양옆) 뒤 세 발 — 표시 밖으로 비키면 된다.
  *     표시는 실제 궤적을 미리 돌려 본 자리라 정확히 그 자리에 떨어진다.
  *   ③ 돌진: 조금 물러서며 경고등이 깜박인 뒤 돌진선(BOSS_CHARGE_STOP)까지 밀고 온다 — 선 왼쪽이나
- *     낮은 발판 위로 피한다. 돌진 중에만 닿으면 맞고, 그 밖에는 몸에 닿으면 왼쪽으로 밀려난다.
+ *     낮은 발판 위로 피한다. 돌진 중에만 닿으면 맞고, 그 밖에는 몸에 닿으면 밀려난다
+ *     (보스 뒤에 대원이 들어갈 틈이 없으면 앞쪽으로). 돌진 예고 동안 멈추는 선을 바닥에 표시한다.
  * - 체력이 절반 아래로 내려가면 쉬는 틈이 짧아지고 총을 한 발 더 쏜다.
  * - 쓰러지면 BOSS_DOWN_TICKS 동안 터지다가 판이 끝난다(그동안 적 총알·수류탄은 사라지고, 목숨이 다해도 끝나지 않는다).
  *
@@ -173,13 +174,22 @@ export const MAX_TICKS = 10 * 60 * TICK_HZ;
 
 /* ── 보스 「쿵쿵 롤러」 ── */
 
-/** 그림 크기(px) — 왼쪽을 보고 그렸다(sprites.BOSS). 맞는 상자는 굴뚝·경고등을 뺀 몸통 */
+/**
+ * 그림 크기(px) — 왼쪽을 보고 그렸다(sprites.BOSS). 맞는 상자는 굴뚝·경고등을 뺀 몸통이고,
+ * 그림 모양에 맞춰 둘로 나눈다: 아래(롤러·차대, 그림 4~61열 · 27~47줄)와 위(운전석, 18~60열 · 12~26줄).
+ * 그림의 앞 위쪽(4~17열 · 12~26줄)은 빈칸이라 맞지 않는다.
+ * BOSS_HIT_* 는 둘을 합친 바깥 상자(돌진선·체력바·봇이 쓰는 대략의 자리).
+ */
 export const BOSS_W = 64;
 export const BOSS_H = 48;
 export const BOSS_HIT_X = 4;
 export const BOSS_HIT_W = 58;
 /** 맞는 상자 높이(px) — 낮은 발판(땅에서 48px) 위의 대원은 돌진이 밑으로 지나간다 */
 export const BOSS_HIT_H = 36;
+/** 아래 상자가 시작하는 그림 줄 · 위 상자(운전석)의 그림 열과 폭 */
+export const BOSS_LOW_TOP = 27;
+export const BOSS_CAB_X = 18;
+export const BOSS_CAB_W = 43;
 /** 제자리: 화면 오른쪽 끝에서 이만큼(px) 안쪽 */
 export const BOSS_HOME_GAP = 8;
 /** 들어오는·돌아가는·돌진 속도(단위/틱) — 1px · 1.5px · 3px */
@@ -765,8 +775,7 @@ function explode(g: Game, x: number, y: number, owner: number, ev: StepEvent[]):
         }
     }
     if (bossHittable(g)) {
-        const [bx, by, bw, bh] = bossBox(g.boss!);
-        if (boxesOverlap(x - r, y - r, 2 * r, 2 * r, bx, by, bw, bh)) {
+        if (bossTouch(g.boss!, x - r, y - r, 2 * r, 2 * r) >= 0) {
             damageBoss(g, BLAST_DAMAGE, ev);
         }
     }
@@ -1187,9 +1196,31 @@ function spawnBoss(g: Game, lockAt: number): void {
     };
 }
 
-/** 보스 맞는 상자 [x, y, w, h] (단위) — 그림 아래쪽 몸통 */
+/** 보스 바깥 상자 [x, y, w, h] (단위) — 아래·위 맞는 상자를 합친 것 */
 export function bossBox(b: Boss): [number, number, number, number] {
     return [b.x + BOSS_HIT_X * S, b.y + (BOSS_H - BOSS_HIT_H) * S, BOSS_HIT_W * S, BOSS_HIT_H * S];
+}
+
+/** 보스 맞는 상자 둘 [아래, 위] — 각각 [x, y, w, h] (단위). 그림 모양대로 앞 위쪽 빈칸은 뺀다 */
+export function bossParts(b: Boss): [number, number, number, number][] {
+    const top = b.y + (BOSS_H - BOSS_HIT_H) * S;
+    const low = b.y + BOSS_LOW_TOP * S;
+    return [
+        [b.x + BOSS_HIT_X * S, low, BOSS_HIT_W * S, (BOSS_H - BOSS_LOW_TOP) * S],
+        [b.x + BOSS_CAB_X * S, top, BOSS_CAB_W * S, low - top]
+    ];
+}
+
+/**
+ * 사각형이 보스 맞는 상자에 닿으면 닿은 상자들 중 가장 왼쪽 가장자리(단위), 안 닿으면 −1.
+ * (총알·수류탄·몸 닿기가 모두 이것으로 본다)
+ */
+export function bossTouch(b: Boss, x: number, y: number, w: number, h: number): number {
+    let left = -1;
+    for (const [px, py, pw, ph] of bossParts(b)) {
+        if (boxesOverlap(x, y, w, h, px, py, pw, ph) && (left < 0 || px < left)) left = px;
+    }
+    return left;
 }
 
 /** 보스가 있고 아직 쓰러지지 않았는가 (총알·수류탄이 맞는다) */
@@ -1399,20 +1430,26 @@ function updateBoss(g: Game, ev: StepEvent[]): void {
     }
 }
 
-/** 보스 몸에 닿기 — 돌진 중이면 맞고, 아니면 왼쪽으로 밀려난다 */
+/**
+ * 보스 몸에 닿기 — 돌진 중이면 맞고, 아니면 밀려난다(다치지 않는다).
+ * 가까운 쪽으로 밀되, 보스 뒤(오른쪽)에 대원이 다 들어갈 자리가 없으면 왼쪽으로 민다 —
+ * 보스와 화면 끝 사이 좁은 틈에 겹친 채 끼어 있지 않게(겹친 채로 다음 돌진을 맞지 않게).
+ */
 function bossContact(g: Game, ev: StepEvent[]): void {
     const b = g.boss;
     const p = g.player;
     if (!b || b.mode === BOSS_DOWN || !playerAlive(g)) return;
-    const [bx, by, bw, bh] = bossBox(b);
-    if (!boxesOverlap(p.x, p.y, p.w, p.h, bx, by, bw, bh)) return;
+    const left = bossTouch(b, p.x, p.y, p.w, p.h);
+    if (left < 0) return;
     if (b.mode === BOSS_ACT && b.pattern === PATTERN_CHARGE && p.invuln === 0) {
         killPlayer(g, ev);
         return;
     }
-    // 가까운 쪽으로 밀어낸다 (뛰어넘어 뒤에 내려앉았으면 오른쪽으로) — 화면 밖으로는 안 나간다
-    if (centerX(p) < bx + idiv(bw, 2)) p.x = Math.max(g.camX, bx - p.w);
-    else p.x = Math.min(g.camX + VIEW_W * S - p.w, bx + bw);
+    const [bx, , bw] = bossBox(b);
+    const right = bx + bw;
+    const roomRight = right + p.w <= g.camX + VIEW_W * S;
+    if (centerX(p) >= bx + idiv(bw, 2) && roomRight) p.x = right;
+    else p.x = Math.max(g.camX, left - p.w);
 }
 
 /* ── 총알·수류탄 ── */
@@ -1459,8 +1496,7 @@ function moveBullets(g: Game, ev: StepEvent[]): void {
                 }
             }
             if (!hit && bossHittable(g)) {
-                const [bx, by, bbw, bbh] = bossBox(g.boss!);
-                if (boxesOverlap(l, top, bw, bh, bx, by, bbw, bbh)) {
+                if (bossTouch(g.boss!, l, top, bw, bh) >= 0) {
                     damageBoss(g, 1, ev);
                     hit = true;
                 }
@@ -1541,8 +1577,7 @@ function moveGrenades(g: Game, ev: StepEvent[]): void {
                 }
             }
             if (!boom && bossHittable(g)) {
-                const [bx, by, bw, bh] = bossBox(g.boss!);
-                if (boxesOverlap(gr.x - S, gr.y - S, 2 * S, 2 * S, bx, by, bw, bh)) boom = true;
+                if (bossTouch(g.boss!, gr.x - S, gr.y - S, 2 * S, 2 * S) >= 0) boom = true;
             }
         }
         // 적 수류탄은 몸에 닿아도 터지지 않는다 — 떨어진 자리에서만 터진다 (떨어질 자리를 보고 피할 수 있게)

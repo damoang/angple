@@ -5,7 +5,10 @@
     // 캔버스는 논리 해상도 384×216 그대로 그리고, CSS 로 기기 픽셀의 정수배만큼 키운다(픽셀이 선명하다).
     import { tick as afterUpdate, untrack } from 'svelte';
     import {
+        BOSS_ACT,
+        BOSS_CHARGE_STOP,
         BOSS_DOWN,
+        BOSS_H,
         BOSS_WINDUP_MODE,
         ENEMY_SHOT_Y,
         MODE_WINDUP,
@@ -595,6 +598,19 @@
         ctx.globalAlpha = 1;
         if (down) return;
         const blink = reduceMotion || Math.floor(game.tick / 5) % 2 === 0;
+        // 돌진 예고·돌진 중: 멈추는 선(화면 왼쪽에서 BOSS_CHARGE_STOP px)을 바닥에 점선으로
+        if (
+            b.pattern === PATTERN_CHARGE &&
+            (b.mode === BOSS_WINDUP_MODE || b.mode === BOSS_ACT) &&
+            blink
+        ) {
+            const lx = Math.round(game.camX / S + BOSS_CHARGE_STOP - cam);
+            const ground = top + BOSS_H;
+            ctx.fillStyle = PALETTE.r;
+            for (let dy = 2; dy <= 26; dy += 6) ctx.fillRect(lx - 1, ground - dy - 3, 2, 3);
+            ctx.fillStyle = PALETTE.w;
+            ctx.fillRect(lx - 3, ground - 2, 6, 2);
+        }
         if (b.mode === BOSS_WINDUP_MODE) {
             if (b.pattern === PATTERN_GUN && blink) {
                 ctx.drawImage(sprite('muzzle', ART.muzzle, true), x - 4, top + 30 - 3);

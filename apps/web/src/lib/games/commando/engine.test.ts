@@ -11,13 +11,16 @@ import {
     ATTACK_SHOT,
     BLAST_DAMAGE,
     BOSS_ACT,
+    BOSS_CAB_X,
     BOSS_DOWN,
     BOSS_ENTER,
     BOSS_GUN_SHOTS,
     BOSS_H,
     BOSS_HIT_H,
     BOSS_IDLE,
+    BOSS_LOW_TOP,
     BOSS_POINTS,
+    BOSS_RETURN,
     BOSS_W,
     BOSS_WINDUP_MODE,
     BULLET_HALF,
@@ -54,6 +57,8 @@ import {
     bossChargeStop,
     bossHittable,
     bossLockX,
+    bossParts,
+    bossTouch,
     centerX,
     countGrenades,
     createGame,
@@ -1171,6 +1176,89 @@ describe('보스', () => {
         step(g, 0);
         expect(g.player.x + g.player.w).toBeLessThanOrEqual(bossBox(g.boss!)[0]);
         expect(g.lives).toBe(START_LIVES);
+    });
+
+    it('제자리 보스 뒤 좁은 틈(대원 폭보다 좁다)에 겹치면 왼쪽으로 밀려나고, 겹친 채 끼어 있지 않다', () => {
+        const g = createGame(1, bossStage());
+        untilIdle(g);
+        const b = g.boss!;
+        b.modeT = 1_000_000;
+        const [bx, , bw] = bossBox(b);
+        const viewRight = g.camX + VIEW_W * S;
+        // 보스 오른쪽 끝 ~ 화면 끝 틈은 대원 폭보다 좁다
+        expect(viewRight - (bx + bw)).toBeLessThan(PLAYER_W * S);
+        const p = g.player;
+        p.x = viewRight - p.w;
+        p.prevX = p.x;
+        expect(bossTouch(b, p.x, p.y, p.w, p.h)).toBeGreaterThanOrEqual(0);
+        step(g, 0);
+        expect(p.x + p.w).toBeLessThanOrEqual(bx);
+        expect(bossTouch(b, p.x, p.y, p.w, p.h)).toBe(-1);
+        // 왼쪽으로 걸으면 그대로 빠져나간다 (다시 오른쪽으로 끌려가지 않는다)
+        const x0 = p.x;
+        run(g, BTN_LEFT, 30);
+        expect(p.x).toBeLessThan(x0);
+        expect(bossTouch(b, p.x, p.y, p.w, p.h)).toBe(-1);
+        expect(g.lives).toBe(START_LIVES);
+    });
+
+    it('보스를 넘어 뒤로 간 대원은 돌진이 아닐 때 다치지 않고, 걸어서 보스 앞으로 빠져나온다', () => {
+        const g = createGame(1, bossStage());
+        untilIdle(g);
+        startBossPattern(g, PATTERN_CHARGE, []);
+        for (let t = 0; t < 300 && g.boss!.mode !== BOSS_RETURN; t++) step(g, 0);
+        const b = g.boss!;
+        expect(b.mode).toBe(BOSS_RETURN);
+        const p = g.player;
+        // 돌진선에 멈춘 보스 뒤(오른쪽)에 세운다
+        const [bx, , bw] = bossBox(b);
+        p.x = bx + bw + 30 * S;
+        p.prevX = p.x;
+        expect(g.lives).toBe(START_LIVES);
+        let out = false;
+        for (let t = 0; t < 600 && !out; t++) {
+            step(g, BTN_LEFT);
+            // 다음 공격은 미뤄 둔다
+            if (b.mode === BOSS_IDLE) b.modeT = 1_000_000;
+            expect(g.lives).toBe(START_LIVES);
+            expect(bossTouch(b, p.x, p.y, p.w, p.h)).toBe(-1);
+            expect(p.x + p.w).toBeLessThanOrEqual(g.camX + VIEW_W * S);
+            out = p.x + p.w <= bossBox(b)[0];
+        }
+        expect(out).toBe(true);
+        expect(g.lives).toBe(START_LIVES);
+    });
+
+    it('맞는 상자는 그림 모양대로 — 앞 위쪽 빈칸(운전석 앞)은 맞지 않고, 롤러·운전석은 맞는다', () => {
+        const g = createGame(1, bossStage());
+        untilIdle(g);
+        const b = g.boss!;
+        b.modeT = 1_000_000;
+        const hp0 = b.hp;
+        // 앞 위쪽 빈칸 (그림 10열 · 20줄)
+        spawnBullet(g, OWNER_PLAYER, b.x + 10 * S, b.y + 20 * S, 0, 0);
+        step(g, 0);
+        expect(b.hp).toBe(hp0);
+        expect(bossTouch(b, b.x + 10 * S, b.y + 20 * S, S, S)).toBe(-1);
+        // 같은 열 아래(롤러, 40줄)·운전석(30열, 20줄)은 맞는다
+        g.bullets.length = 0;
+        spawnBullet(g, OWNER_PLAYER, b.x + 10 * S, b.y + 40 * S, 0, 0);
+        step(g, 0);
+        expect(b.hp).toBe(hp0 - 1);
+        spawnBullet(g, OWNER_PLAYER, b.x + 30 * S, b.y + 20 * S, 0, 0);
+        step(g, 0);
+        expect(b.hp).toBe(hp0 - 2);
+        // 두 상자는 바깥 상자 안, 그림의 빈칸 칸은 맞는 상자 밖
+        const [ox, oy, ow, oh] = bossBox(b);
+        for (const [px, py, pw, ph] of bossParts(b)) {
+            expect(px).toBeGreaterThanOrEqual(ox);
+            expect(py).toBeGreaterThanOrEqual(oy);
+            expect(px + pw).toBeLessThanOrEqual(ox + ow);
+            expect(py + ph).toBeLessThanOrEqual(oy + oh);
+        }
+        for (let r = BOSS_H - BOSS_HIT_H; r < BOSS_LOW_TOP; r++) {
+            expect(BOSS[0][r].slice(0, BOSS_CAB_X)).toMatch(/^\.+$/);
+        }
     });
 
     it('권총 1 · 수류탄 BLAST_DAMAGE 씩 깎이고, 쓰러지면 점수·적 탄 정리 뒤 구간 끝 (남은 시간·목숨 보너스)', () => {
