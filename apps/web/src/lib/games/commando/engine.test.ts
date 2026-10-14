@@ -1171,14 +1171,14 @@ describe('난이도 (초보 봇)', () => {
             }
         }
         if (react && !threat) {
-            // 팔을 든(예고) 투척병 → 서 있지 말고 그쪽으로 달린다(포물선 아래로 지나간다), 막혔으면 반대로
-            for (const e of g.enemies) {
-                if (e.mode !== MODE_WINDUP || enemySpec(e.kind).attack !== ATTACK_LOB) continue;
-                const ex = e.x + (e.w >> 1);
-                if (Math.abs(ex - cx) > 180 * S) continue;
-                let to = ex > cx ? 1 : -1;
-                if (boxHitsSolid(g.map, p.x + to * TILE_U, p.y, p.w, p.h)) to = -to;
-                m = dirBtn(to) | (miss ? 0 : BTN_FIRE);
+            for (const b of g.bullets) {
+                if (b.owner !== OWNER_ENEMY || b.vy !== 0) continue;
+                // 다가오는 총알, 또는 아직 몸 위를 지나가고 있는 총알
+                const coming = (b.vx < 0 && b.x > cx - 12 * S) || (b.vx > 0 && b.x < cx + 12 * S);
+                if (!coming || Math.abs(b.x - cx) > 110 * S) continue;
+                if (b.y < feet - 24 * S || b.y > feet - 12 * S) continue;
+                const from = b.vx < 0 ? 1 : -1;
+                m = BTN_DOWN | (miss ? 0 : BTN_FIRE) | (from !== p.facing ? dirBtn(from) : 0);
                 threat = true;
                 break;
             }
@@ -1199,14 +1199,14 @@ describe('난이도 (초보 봇)', () => {
             }
         }
         if (react && !threat) {
-            for (const b of g.bullets) {
-                if (b.owner !== OWNER_ENEMY || b.vy !== 0) continue;
-                // 다가오는 총알, 또는 아직 몸 위를 지나가고 있는 총알
-                const coming = (b.vx < 0 && b.x > cx - 12 * S) || (b.vx > 0 && b.x < cx + 12 * S);
-                if (!coming || Math.abs(b.x - cx) > 110 * S) continue;
-                if (b.y < feet - 24 * S || b.y > feet - 12 * S) continue;
-                const from = b.vx < 0 ? 1 : -1;
-                m = BTN_DOWN | (miss ? 0 : BTN_FIRE) | (from !== p.facing ? dirBtn(from) : 0);
+            // 팔을 든(예고) 투척병 → 서 있지 말고 그쪽으로 달린다(포물선 아래로 지나간다). 막혔으면 반대로
+            for (const e of g.enemies) {
+                if (e.mode !== MODE_WINDUP || enemySpec(e.kind).attack !== ATTACK_LOB) continue;
+                const ex = e.x + (e.w >> 1);
+                if (Math.abs(ex - cx) > 180 * S) continue;
+                let to = ex > cx ? 1 : -1;
+                if (boxHitsSolid(g.map, p.x + to * TILE_U, p.y, p.w, p.h)) to = -to;
+                m = dirBtn(to) | (miss ? 0 : BTN_FIRE);
                 threat = true;
                 break;
             }

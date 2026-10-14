@@ -117,15 +117,13 @@ export const BLAST_DAMAGE = 4;
 
 /**
  * 적 수류탄: 위로 던지는 속도(4.5px/틱) 고정, 가로 속도는 「대원 자리 ± 오차」에 LOB_FLIGHT 틱 만에 닿도록
- * (최대 LOB_MAX_VX). 오차는 난수 −LOB_SPREAD ~ +LOB_SPREAD px. 땅·발판에 닿거나 대원에게 닿으면 터진다.
+ * (최대 LOB_MAX_VX). 오차는 난수 −LOB_SPREAD ~ +LOB_SPREAD px. 땅·발판에 떨어지면(또는 도화선이 다하면) 터진다.
  */
 export const LOB_VY = -1152;
 export const LOB_FLIGHT = 40;
 export const LOB_MAX_VX = 1280;
 export const LOB_SPREAD = 12;
 export const ENEMY_FUSE = 120;
-/** 적 수류탄이 던진 뒤 이 틱 동안은 대원에게 닿아도 터지지 않는다 */
-export const ENEMY_ARM_TICKS = 12;
 /** 투척병은 대원이 이보다 가까우면(px) 던지지 않는다 (물러난 뒤 던진다) */
 export const LOB_MIN_RANGE = 24;
 export const ENEMY_BLAST_R = 16;
@@ -1095,17 +1093,8 @@ function moveGrenades(g: Game, ev: StepEvent[]): void {
                     break;
                 }
             }
-        } else if (!boom) {
-            // 적 수류탄은 대원에게 닿으면 터진다 — 던진 직후(ENEMY_ARM_TICKS)는 빼고(코앞 즉사 없음)
-            const p = g.player;
-            if (
-                gr.fuse <= ENEMY_FUSE - ENEMY_ARM_TICKS &&
-                playerAlive(g) &&
-                boxesOverlap(gr.x - S, gr.y - S, 2 * S, 2 * S, p.x, p.y, p.w, p.h)
-            ) {
-                boom = true;
-            }
         }
+        // 적 수류탄은 몸에 닿아도 터지지 않는다 — 떨어진 자리에서만 터진다 (떨어질 자리를 보고 피할 수 있게)
         if (!boom && --gr.fuse <= 0) boom = true;
         if (boom) {
             explode(g, gr.x, gr.y, gr.owner, ev);
