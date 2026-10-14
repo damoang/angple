@@ -1131,11 +1131,17 @@ describe('난이도 (초보 봇)', () => {
      * - 아니면 화면 안 가장 가까운 적: 같은 높이면 그쪽을 보고 쏘며(멀면 다가감), 높은 곳이면 위로 쏘며 다가가고,
      *   낮은 곳이면 발판에서 내려간다. 적이 없으면 오른쪽으로 달리며 쏜다. 가끔 못 쏘고(조준 실수), 가끔 수류탄.
      * - 구덩이 앞이거나 막혀 있으면 뛴다.
+     * 한 번 피하기 시작하면(엎드림·달아남) 위협이 남아 있는 동안은 다시 주사위를 굴리지 않고 이어 간다
+     * (사람도 엎드렸으면 총알이 지나갈 때까지 엎드려 있다).
      */
+    let dodging = false;
     function decide(g: Game, rand: () => number, prev: number, stuck: boolean): number {
         const p = g.player;
-        if (p.dead > 0) return 0;
-        const react = rand() % 100 < REACT;
+        if (p.dead > 0) {
+            dodging = false;
+            return 0;
+        }
+        const react = rand() % 100 < REACT || dodging;
         const miss = rand() % 100 < MISS;
         const lob = rand() % 100 < LOB;
         if (!p.onGround) return (prev & (DIRS | BTN_JUMP)) | BTN_FIRE;
@@ -1151,7 +1157,9 @@ describe('난이도 (초보 봇)', () => {
                 // 떨어질 자리에서 멀어지는 쪽 — 거의 제자리면 던진 쪽(포물선 아래)으로
                 let away = Math.abs(lx - cx) >= 12 * S ? (lx > cx ? -1 : 1) : gr.vx < 0 ? 1 : -1;
                 // 벽·화면 끝에 막혔으면 반대쪽으로 달린다
-                const wall = boxHitsSolid(g.map, p.x + away * TILE_U, p.y, p.w, p.h);
+                const wall =
+                    boxHitsSolid(g.map, p.x + away * TILE_U, p.y, p.w, p.h) ||
+                    boxHitsSolid(g.map, p.x + 2 * away * TILE_U, p.y, p.w, p.h);
                 const edge =
                     (away < 0 && p.x < g.camX + 24 * S) ||
                     (away > 0 && g.locked && p.x + p.w > g.camX + (VIEW_W - 24) * S);
@@ -1215,8 +1223,10 @@ describe('난이도 (초보 봇)', () => {
                 }
             }
         }
+        dodging = threat;
         const d = m & BTN_RIGHT ? 1 : m & BTN_LEFT ? -1 : 0;
-        if (d !== 0 && (stuck || pitAhead(g, d, 30) >= 0)) m |= BTN_JUMP;
+        // 엎드려 피하는 중에는 뛰지 않는다 (일어서면 맞는다)
+        if (d !== 0 && (m & BTN_DOWN) === 0 && (stuck || pitAhead(g, d, 30) >= 0)) m |= BTN_JUMP;
         return m;
     }
 
@@ -1238,6 +1248,7 @@ describe('난이도 (초보 봇)', () => {
         let lastX = g.player.x;
         let best = 0;
         const deaths: string[] = [];
+        dodging = false;
         for (let t = 0; t < MAX_TICKS && !g.over; t++) {
             const p = g.player;
             const decideNow = t % DECIDE_TICKS === 0;
