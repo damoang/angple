@@ -7,6 +7,7 @@ import Circle from '@lucide/svelte/icons/circle';
 import Zap from '@lucide/svelte/icons/zap';
 import Blocks from '@lucide/svelte/icons/blocks';
 import BrickWall from '@lucide/svelte/icons/brick-wall';
+import Rocket from '@lucide/svelte/icons/rocket';
 
 export interface GameEntry {
     id: string;
@@ -65,6 +66,15 @@ export const GAMES: GameEntry[] = [
         icon: BrickWall,
         color: 'text-orange-600',
         bgColor: 'bg-orange-50 dark:bg-orange-950/30'
+    },
+    {
+        id: 'shooter',
+        name: '앙 스트라이커',
+        description: '편대로 내려오는 적을 쏘아 떨어뜨리는 세로 슈팅 게임',
+        href: '/games/shooter',
+        icon: Rocket,
+        color: 'text-violet-600',
+        bgColor: 'bg-violet-50 dark:bg-violet-950/30'
     }
 ];
 
