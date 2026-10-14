@@ -70,6 +70,57 @@ const ALLOWED_IFRAME_REGEX =
     /^https:\/\/(www\.)?(youtube\.com|youtube-nocookie\.com|platform\.twitter\.com|syndication\.twitter\.com|platform\.x\.com|embed\.bsky\.app|instagram\.com|player\.vimeo\.com|open\.spotify\.com|codepen\.io|tiktok\.com)\//;
 
 /**
+ * iframe 허용 도메인 정책
+ * - allow: src 값이 맞아야 하는 패턴
+ * - removeWithoutSrc: src 속성이 없는 iframe 도 제거할지
+ */
+interface IframePolicy {
+    allow: RegExp;
+    removeWithoutSrc: boolean;
+}
+
+const POST_IFRAME_POLICY: IframePolicy = { allow: ALLOWED_IFRAME_REGEX, removeWithoutSrc: false };
+
+/**
+ * 현재 진행 중인 정화 호출에 적용할 iframe 정책.
+ * withIframePolicy() 안에서만 설정되므로 다른 sanitize 호출에는 영향이 없다.
+ * DOMPurify.sanitize 는 동기 함수라 설정→정화→복원 사이에 다른 요청이 끼어들지 않는다.
+ */
+let activeIframePolicy: IframePolicy | null = null;
+
+/** 정화가 끝난 속성 기준으로 iframe 의 src 를 정책과 대조해 허용 밖이면 노드를 제거한다. */
+function enforceIframePolicy(node: Element): void {
+    const policy = activeIframePolicy;
+    if (!policy || typeof node.nodeName !== 'string') return;
+    if (node.nodeName.toLowerCase() !== 'iframe') return;
+
+    const src = node.getAttribute('src');
+    const keep = src === null ? !policy.removeWithoutSrc : policy.allow.test(src);
+    if (keep) return;
+
+    if (node.parentNode) {
+        node.parentNode.removeChild(node);
+    } else {
+        node.remove();
+    }
+}
+
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+    enforceIframePolicy(node as unknown as Element);
+});
+
+/** 주어진 iframe 정책을 이 정화 호출에만 적용한다 (예외가 나도 finally 에서 복원). */
+function withIframePolicy<T>(policy: IframePolicy, run: () => T): T {
+    const previous = activeIframePolicy;
+    activeIframePolicy = policy;
+    try {
+        return run();
+    } finally {
+        activeIframePolicy = previous;
+    }
+}
+
+/**
  * 게시글 본문 HTML 정제
  * 허용: 기본 서식, 이미지, 링크, 테이블, iframe(YouTube만)
  */
@@ -149,103 +200,78 @@ export function sanitizePostContent(html: string): string {
 }
 
 /**
- * iframe src를 YouTube만 허용하도록 후처리
- * DOMPurify 훅 대신 정제 후 검증
+ * 게시글 본문 HTML 정제 + iframe 허용 도메인 검사
+ * iframe 은 src 가 ALLOWED_IFRAME_REGEX 에 맞을 때만 남긴다 (src 없는 iframe 은 그대로 둔다).
+ * 검사는 DOMPurify 훅에서 DOM 노드의 src 속성으로 판정한다.
  */
 export function sanitizePostContentStrict(html: string): string {
-    let sanitized = sanitizePostContent(html);
-
-    // iframe src가 허용 도메인이 아닌 경우 반복 제거 (중첩 태그 우회 방지)
-    let prev;
-    do {
-        prev = sanitized;
-        sanitized = sanitized.replace(
-            /<iframe\s[^>]*src="([^"]*)"[^>]*>[\s\S]*?<\/iframe>/gi,
-            (match, src: string) => {
-                if (ALLOWED_IFRAME_REGEX.test(src)) {
-                    return match;
-                }
-                return '';
-            }
-        );
-    } while (sanitized !== prev);
-
-    return sanitized;
+    return withIframePolicy(POST_IFRAME_POLICY, () => sanitizePostContent(html));
 }
 
 /** 소모임 소개(상단 커스텀 영역) 전용 iframe 화이트리스트 — 구글 캘린더만. */
 const INTRO_IFRAME_REGEX = /^https:\/\/calendar\.google\.com\//;
+
+const INTRO_IFRAME_POLICY: IframePolicy = { allow: INTRO_IFRAME_REGEX, removeWithoutSrc: true };
 
 /**
  * 소모임 소개글(게시판 상단 커스텀 영역) HTML 정제
  *
  * 당주가 작성한 HTML 이 모든 방문자에게 렌더되므로 게시글 본문보다 좁게 연다:
  * 기본 서식 + 이미지(https만) + iframe(구글 캘린더만). script·style·이벤트 핸들러
- * 불가. iframe 은 sanitizePostContentStrict 와 같은 반복 제거로 중첩 우회를 막는다.
+ * 불가. iframe 은 sanitizePostContentStrict 와 같은 DOMPurify 훅으로 src 를 검사하고,
+ * src 가 없는 iframe 도 제거한다.
  * CSP frame-src 가 2차 방어선이다 (hooks.server.ts).
  */
 export function sanitizeIntroHtml(html: string): string {
-    let sanitized = DOMPurify.sanitize(html, {
-        ALLOWED_TAGS: [
-            'p',
-            'br',
-            'strong',
-            'b',
-            'em',
-            'i',
-            'u',
-            's',
-            'del',
-            'ul',
-            'ol',
-            'li',
-            'blockquote',
-            'code',
-            'hr',
-            'h3',
-            'h4',
-            'a',
-            'img',
-            'iframe',
-            'div',
-            'span',
-            'table',
-            'thead',
-            'tbody',
-            'tr',
-            'th',
-            'td'
-        ],
-        ALLOWED_ATTR: [
-            'href',
-            'src',
-            'alt',
-            'title',
-            'target',
-            'rel',
-            'width',
-            'height',
-            'loading',
-            'frameborder',
-            'scrolling'
-        ],
-        ALLOW_DATA_ATTR: false,
-        ALLOWED_URI_REGEXP: /^https:/i
-    });
-
-    // iframe src 화이트리스트 — 허용 외 도메인은 반복 제거 (중첩 우회 방지)
-    let prev;
-    do {
-        prev = sanitized;
-        sanitized = sanitized.replace(
-            /<iframe\s[^>]*src="([^"]*)"[^>]*>[\s\S]*?<\/iframe>/gi,
-            (match, src: string) => (INTRO_IFRAME_REGEX.test(src) ? match : '')
-        );
-        // src 없는 iframe 도 제거
-        sanitized = sanitized.replace(/<iframe(?![^>]*\ssrc=")[^>]*>[\s\S]*?<\/iframe>/gi, '');
-    } while (sanitized !== prev);
-
-    return sanitized;
+    return withIframePolicy(INTRO_IFRAME_POLICY, () =>
+        DOMPurify.sanitize(html, {
+            ALLOWED_TAGS: [
+                'p',
+                'br',
+                'strong',
+                'b',
+                'em',
+                'i',
+                'u',
+                's',
+                'del',
+                'ul',
+                'ol',
+                'li',
+                'blockquote',
+                'code',
+                'hr',
+                'h3',
+                'h4',
+                'a',
+                'img',
+                'iframe',
+                'div',
+                'span',
+                'table',
+                'thead',
+                'tbody',
+                'tr',
+                'th',
+                'td'
+            ],
+            ALLOWED_ATTR: [
+                'href',
+                'src',
+                'alt',
+                'title',
+                'target',
+                'rel',
+                'width',
+                'height',
+                'loading',
+                'frameborder',
+                'scrolling'
+            ],
+            ALLOW_DATA_ATTR: false,
+            ALLOWED_URI_REGEXP: /^https:/i
+        })
+    );
 }
 
 /**
