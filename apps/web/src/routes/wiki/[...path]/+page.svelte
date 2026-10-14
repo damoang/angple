@@ -1,26 +1,10 @@
 <script lang="ts">
     import type { PageData } from './$types';
-    import { marked } from 'marked';
 
     const { data }: { data: PageData } = $props();
 
-    // marked 옵션 설정 (GFM 활성화)
-    marked.setOptions({
-        gfm: true,
-        breaks: true
-    });
-
-    // content_type에 따라 콘텐츠를 렌더링
-    function renderContent(content: string, contentType: string | null | undefined): string {
-        if (!content) return '';
-
-        if (contentType === 'markdown') {
-            return marked.parse(content) as string;
-        }
-
-        // html 또는 기타 타입은 그대로 반환
-        return content;
-    }
+    // 본문 HTML(data.contentHtml)은 서버 load 에서 renderWikiContent()
+    // → sanitizePostContentStrict() 로 정화해 내려온다 (lib/server/wiki-render.ts).
 </script>
 
 <svelte:head>
@@ -53,14 +37,10 @@
     <article class="wiki-article">
         <h1>{data.wikiPage.title}</h1>
 
-        {#if data.wikiPage.content}
+        {#if data.contentHtml}
             <div class="wiki-content">
-                {@html renderContent(data.wikiPage.content, data.wikiPage.content_type)}
-            </div>
-        {:else if data.wikiPage.content_raw}
-            <!-- content_raw도 마크다운일 수 있음 -->
-            <div class="wiki-content">
-                {@html renderContent(data.wikiPage.content_raw, data.wikiPage.content_type)}
+                <!-- eslint-disable-next-line svelte/no-at-html-tags -- sanitizePostContentStrict() 로 정화한 위키 본문 -->
+                {@html data.contentHtml}
             </div>
         {:else}
             <p class="text-gray-500">이 문서는 아직 내용이 없습니다.</p>

@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createWikiPage } from '$lib/server/wiki';
+import { normalizeWikiContentType, prepareWikiContentForSave } from '$lib/server/wiki-render';
 
 /**
  * POST /api/wiki/pages - 신규 위키 페이지 생성
@@ -26,13 +27,16 @@ export const POST: RequestHandler = async ({ request, locals }) => {
             error(400, { message: '경로와 제목은 필수입니다.' });
         }
 
+        // 본문은 게시글과 같은 정화 함수를 거쳐 저장 (markdown 원문은 렌더 시 정화)
+        const contentType = normalizeWikiContentType(content_type);
+
         const result = await createWikiPage(
             path,
             {
                 title,
-                content: content || '',
+                content: prepareWikiContentForSave(content, contentType),
                 content_raw: content_raw || content || '',
-                content_type: content_type || 'html',
+                content_type: contentType,
                 description,
                 comment: comment || '문서 생성'
             },

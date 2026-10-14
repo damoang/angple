@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { updateWikiPage, getWikiPageById } from '$lib/server/wiki';
+import { normalizeWikiContentType, prepareWikiContentForSave } from '$lib/server/wiki-render';
 
 /**
  * PUT /api/wiki/pages/[id] - 위키 페이지 수정
@@ -37,13 +38,16 @@ export const PUT: RequestHandler = async ({ params, request, locals }) => {
             error(400, { message: '제목은 필수입니다.' });
         }
 
+        // 본문은 게시글과 같은 정화 함수를 거쳐 저장 (markdown 원문은 렌더 시 정화)
+        const contentType = normalizeWikiContentType(content_type);
+
         const result = await updateWikiPage(
             pageId,
             {
                 title,
-                content: content || '',
+                content: prepareWikiContentForSave(content, contentType),
                 content_raw: content_raw || content || '',
-                content_type: content_type || 'html',
+                content_type: contentType,
                 description,
                 comment: comment || '',
                 is_minor: is_minor || false

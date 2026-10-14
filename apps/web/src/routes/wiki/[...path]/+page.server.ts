@@ -18,6 +18,7 @@ import {
     type WikiSearchResult,
     type PaginatedResult
 } from '$lib/server/wiki';
+import { renderWikiContent } from '$lib/server/wiki-render';
 
 // Special 페이지 타입 정의
 type SpecialPageData =
@@ -47,7 +48,8 @@ export const load: PageServerLoad = async ({ params, url }) => {
             isSpecialPage: true,
             specialType: specialData.type,
             specialData,
-            wikiPage: null
+            wikiPage: null,
+            contentHtml: ''
         };
     }
 
@@ -60,11 +62,19 @@ export const load: PageServerLoad = async ({ params, url }) => {
         });
     }
 
+    // 본문은 서버에서 한 번 정화해 내려보낸다 (SSR·클라이언트가 같은 문자열을 그림).
+    // content 가 비어 있으면 content_raw 를 쓴다.
+    const contentHtml = renderWikiContent(
+        wikiPage.content || wikiPage.content_raw,
+        wikiPage.content_type
+    );
+
     return {
         isSpecialPage: false,
         specialType: null,
         specialData: null,
-        wikiPage
+        wikiPage,
+        contentHtml
     };
 };
 
