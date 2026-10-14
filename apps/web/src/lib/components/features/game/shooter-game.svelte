@@ -836,7 +836,8 @@
                     {#if status === 'idle'}
                         <p class="text-2xl font-bold">{NAME}</p>
                         <p class="text-xs text-slate-300">
-                            발사 버튼을 누르고 있으면 연사합니다. 좌우로 움직이며 적 편대를 떨어뜨리세요
+                            발사 버튼을 누르고 있으면 연사합니다. 좌우로 움직이며 적 편대를
+                            떨어뜨리세요
                         </p>
                         <button
                             type="button"
@@ -856,7 +857,8 @@
                     {:else}
                         <p class="text-lg font-bold">게임 끝</p>
                         <p class="text-sm">
-                            점수 <span class="font-bold tabular-nums">{score.toLocaleString()}</span>
+                            점수 <span class="font-bold tabular-nums">{score.toLocaleString()}</span
+                            >
                         </p>
                         <p class="text-xs text-slate-300">
                             스테이지 {stageNo}
@@ -911,7 +913,8 @@
     <p class="sr-only" aria-live="polite" aria-atomic="true">{announce}</p>
     <p class="text-muted-foreground text-center text-xs">
         ← → / A D · 마우스(판 위) 이동 · Z · J · 스페이스 · 마우스 왼쪽 = 발사(누르고 있으면 연사) ·
-        Enter 시작 · P · Esc 일시정지 · 휴대폰은 판 아래 왼쪽을 좌우로 끌어 이동, 오른쪽 버튼으로 발사
+        Enter 시작 · P · Esc 일시정지 · 휴대폰은 판 아래 왼쪽을 좌우로 끌어 이동, 오른쪽 버튼으로
+        발사
     </p>
 </div>
 
