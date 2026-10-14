@@ -1251,6 +1251,14 @@ describe('난이도 (초보 봇)', () => {
             if (decideNow && p.onGround && (m & BTN_JUMP) !== 0 && (g.prevMask & BTN_JUMP) !== 0) {
                 m &= ~BTN_JUMP;
             }
+            // 진단용: 맞기 직전 자세(엎드림·땅·버튼)와 가까운 적 총알의 높이(발에서 px)
+            const pose = `c${p.crouch ? 1 : 0}g${p.onGround ? 1 : 0}m${m}`;
+            let near = '';
+            for (const b of g.bullets) {
+                if (b.owner === OWNER_ENEMY && Math.abs(b.x - centerX(p)) < 16 * S) {
+                    near = `b${Math.round((feetY(p) - b.y) / S)}`;
+                }
+            }
             const ev = step(g, m);
             if (ev.some((v) => v.type === 'die')) {
                 const why =
@@ -1259,7 +1267,7 @@ describe('난이도 (초보 봇)', () => {
                         : ev.some((v) => v.type === 'boom')
                           ? 'blast'
                           : 'shot';
-                deaths.push(`${fdiv(centerX(g.player), TILE_U)}:${why}`);
+                deaths.push(`${fdiv(centerX(g.player), TILE_U)}:${why}/${pose}${near}`);
             }
             best = Math.max(best, centerX(g.player));
         }
