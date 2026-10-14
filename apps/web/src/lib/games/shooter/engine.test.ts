@@ -1,13 +1,14 @@
 /**
  * 앙 스트라이커 엔진 테스트 — 경로 표, 결정성·재연·정수 상태, 입장·흔들림·급강하(편대 흔들림 포함),
- * 점수(편대 < 급강하, 대장+호위), 보너스 스테이지, 목숨·추가 목숨, 아이템, 터널링, 객체 상한,
- * 난이도 곡선(초보 봇 생존 시간)
+ * 발사 버튼(누를 때만·누르고 있으면 연사), 점수(편대 < 급강하, 대장+호위), 보너스 스테이지,
+ * 목숨·추가 목숨, 아이템, 터널링, 객체 상한, 난이도 곡선(초보 봇 생존 시간)
  */
 import { describe, it, expect } from 'vitest';
 import {
     EBULLET_HH,
     ENEMY_HALF,
     FIELD_H,
+    FIRE_TICKS,
     FIELD_W,
     INVULN_TICKS,
     MAX_BULLETS,
@@ -22,6 +23,7 @@ import {
     M_HOME,
     M_WAIT,
     PH_CLEAR,
+    RAPID_FIRE_TICKS,
     RAPID_SHOTS,
     RAPID_TICKS,
     RESPAWN_TICKS,
@@ -44,6 +46,7 @@ import {
     swayAt,
     type Enemy,
     type Game,
+    type GameLog,
     type StepEvent
 } from './engine';
 import { BONUS_PATHS, ENTRY_PATHS, SEG_LEN, bezier, pathPoint, pathTicks, toPath } from './paths';
@@ -69,7 +72,7 @@ import {
 
 const S = SCALE;
 
-/** 자동 사격을 끈다 (총알을 직접 놓는 테스트용) */
+/** 발사 버튼을 눌러도 쏘지 않게 한다 (총알을 직접 놓는 테스트용) */
 function noFire(g: Game): void {
     g.fireCd = 1e9;
 }
@@ -131,16 +134,18 @@ function allIntegers(v: unknown): boolean {
     return true;
 }
 
-/** 무작위 손놀림 — 가끔 목표를 바꾼다 (결정성 테스트용) */
+/** 무작위 손놀림 — 가끔 목표를 바꾸고, 가끔 발사 버튼을 누르거나 뗀다 (결정성 테스트용) */
 function randomRun(seed: number, ticks: number, check?: (g: Game) => void): Game {
     const g = createGame(seed);
     let r = (seed ^ 0x5bd1e995) >>> 0;
     let x = START_X;
+    let fire = true;
     for (let t = 0; t < ticks && !g.over; t++) {
         const [nr, u] = mulberry32(r);
         r = nr;
         if (u % 7 === 0) x = u % (FIELD_W + 1);
-        step(g, { x });
+        if ((u >>> 8) % 13 === 0) fire = !fire;
+        step(g, { x, fire });
         check?.(g);
     }
     return g;
@@ -151,6 +156,7 @@ function randomRun(seed: number, ticks: number, check?: (g: Game) => void): Game
  * - 비행기 줄 위 150px 안에서 이쪽으로 오는 적 총알, 170px 안의 내려오는 적이 있으면
  *   가까운 쪽부터 40px 씩 옆을 살펴 안전한 곳으로 옮긴다.
  * - 위험이 없으면 가장 가까운 적 밑으로 간다(쏘려고).
+ * - 발사 버튼은 판 내내 누르고 있다(누르고 있으면 연사).
  * 돌려주는 값: 판이 끝난 틱(끝까지 살면 max).
  */
 function noviceRun(seed: number, max: number, react = 15): number {
@@ -196,7 +202,7 @@ function noviceRun(seed: number, max: number, react = 15): number {
     };
     for (let t = 0; t < max; t++) {
         if (t % react === 0) target = Math.round(Math.min(FIELD_W, Math.max(0, decide())));
-        step(g, { x: target });
+        step(g, { x: target, fire: true });
         if (g.over) return g.tick;
     }
     return max;
@@ -308,14 +314,40 @@ describe('새 판', () => {
         expect(g.shipX).toBe((FIELD_W - 13) * S);
     });
 
-    it('자동으로 쏜다 — 동시에 3발까지', () => {
+    it('발사 버튼을 누르지 않으면 쏘지 않는다', () => {
         const g = createGame(1);
-        let most = 0;
         for (let k = 0; k < 120; k++) {
             step(g, { x: START_X });
+            expect(g.shots).toHaveLength(0);
+        }
+    });
+
+    it('누르고 있으면 쏘는 간격마다 연사한다 — 동시에 3발까지', () => {
+        const g = createGame(1);
+        let most = 0;
+        const fired: number[] = [];
+        for (let k = 0; k < 120; k++) {
+            const before = g.shots.length;
+            step(g, { x: START_X, fire: true });
+            if (g.shots.length > before) fired.push(g.tick);
             most = Math.max(most, g.shots.length);
         }
         expect(most).toBe(MAX_SHOTS);
+        // 처음 몇 발은 화면 상한에 걸리기 전이라 정확히 FIRE_TICKS 간격
+        expect(fired[1] - fired[0]).toBe(FIRE_TICKS);
+        expect(fired[2] - fired[1]).toBe(FIRE_TICKS);
+    });
+
+    it('한 번 짧게 누르면 한 발, 간격 안에 다시 눌러도 더 나가지 않는다', () => {
+        const g = createGame(1);
+        step(g, { x: START_X, fire: true });
+        expect(g.shots).toHaveLength(1);
+        step(g, { x: START_X });
+        step(g, { x: START_X, fire: true });
+        expect(g.shots).toHaveLength(1);
+        for (let k = 0; k < FIRE_TICKS; k++) step(g, { x: START_X });
+        step(g, { x: START_X, fire: true });
+        expect(g.shots).toHaveLength(2);
     });
 });
 
@@ -364,17 +396,43 @@ describe('결정성', () => {
         expect(g.log.moves).toEqual([1, 100, 4, 360, 5, 0]);
     });
 
+    it('입력 기록은 발사 버튼을 누르거나 뗀 틱만 남긴다', () => {
+        const g = createGame(1);
+        step(g, { x: 180 });
+        step(g, { x: 180, fire: true });
+        step(g, { x: 180, fire: true });
+        step(g, { x: 180, fire: false });
+        step(g, { x: 180 });
+        step(g, { x: 180, fire: true });
+        expect(g.log.fires).toEqual([1, 3, 5]);
+        expect(g.log.moves).toEqual([]);
+    });
+
+    it('발사 기록까지 넣어 다시 돌려야 같은 판이다', () => {
+        const g = randomRun(5, 3000);
+        expect(g.log.fires.length).toBeGreaterThan(0);
+        const same = replay(5, g.log, g.tick);
+        expect(JSON.stringify(same.game)).toBe(JSON.stringify(g));
+        const noFires = replay(5, { moves: g.log.moves, fires: [] }, g.tick);
+        expect(JSON.stringify(noFires.game)).not.toBe(JSON.stringify(g));
+    });
+
     it('어긋난 기록은 거부한다', () => {
-        const ok = { moves: [1, 100] };
+        const ok = { moves: [1, 100], fires: [2, 5] };
         expect(replay(1, ok, 10).ok).toBe(true);
-        expect(replay(1, { moves: [1] }, 10).error).toBe('bad-log');
-        expect(replay(1, { moves: [1.5, 100] }, 10).error).toBe('bad-log');
+        expect(replay(1, { moves: [1], fires: [] }, 10).error).toBe('bad-log');
+        expect(replay(1, { moves: [1.5, 100], fires: [] }, 10).error).toBe('bad-log');
+        expect(replay(1, { moves: [1, 100], fires: [2.5] }, 10).error).toBe('bad-log');
+        expect(replay(1, { moves: [1, 100] } as unknown as GameLog, 10).error).toBe('bad-log');
         expect(replay(1, ok, -1).error).toBe('bad-ticks');
         expect(replay(1, ok, MAX_TICKS + 1).error).toBe('bad-ticks');
-        expect(replay(1, { moves: [3, 100, 3, 120] }, 10).error).toBe('tick-order');
-        expect(replay(1, { moves: [1, 400] }, 10).error).toBe('x-range');
-        expect(replay(1, { moves: [1, 180] }, 10).error).toBe('x-unchanged');
-        expect(replay(1, { moves: [10, 100] }, 10).error).toBe('tick-range');
+        expect(replay(1, { moves: [3, 100, 3, 120], fires: [] }, 10).error).toBe('tick-order');
+        expect(replay(1, { moves: [], fires: [4, 4] }, 10).error).toBe('tick-order');
+        expect(replay(1, { moves: [], fires: [6, 2] }, 10).error).toBe('tick-order');
+        expect(replay(1, { moves: [1, 400], fires: [] }, 10).error).toBe('x-range');
+        expect(replay(1, { moves: [1, 180], fires: [] }, 10).error).toBe('x-unchanged');
+        expect(replay(1, { moves: [10, 100], fires: [] }, 10).error).toBe('tick-range');
+        expect(replay(1, { moves: [], fires: [10] }, 10).error).toBe('tick-range');
     });
 
     it('판이 끝난 뒤까지 이어지는 길이는 거부한다', () => {
@@ -624,9 +682,9 @@ describe('목숨', () => {
         expect(types(ev)).toContain('hit');
         expect(g.lives).toBe(START_LIVES - 1);
         expect(g.dead).toBeGreaterThan(0);
-        // 죽어 있는 동안은 쏘지 않는다
+        // 죽어 있는 동안은 발사 버튼을 눌러도 쏘지 않는다
         g.fireCd = 0;
-        step(g, { x: START_X });
+        step(g, { x: START_X, fire: true });
         expect(g.shots).toHaveLength(0);
         const ev2: StepEvent[] = [];
         for (let k = 0; k < RESPAWN_TICKS; k++) ev2.push(...step(g, { x: START_X }));
@@ -715,12 +773,18 @@ describe('아이템', () => {
         const g = createGame(1);
         g.items.push({ kind: ITEM_RAPID, x: g.shipX, y: (SHIP_Y - 10) * S, py: 0 });
         let most = 0;
+        const fired: number[] = [];
         for (let k = 0; k < 120; k++) {
-            step(g, { x: START_X });
+            const before = g.shots.length;
+            step(g, { x: START_X, fire: true });
+            if (g.shots.length > before) fired.push(g.tick);
             most = Math.max(most, g.shots.length);
         }
         expect(g.rapidTicks).toBeGreaterThan(0);
         expect(most).toBe(RAPID_SHOTS);
+        // 아이템을 먹은 뒤에는 더 짧은 간격으로 연사한다
+        const gaps = fired.slice(1).map((t, i) => t - fired[i]);
+        expect(gaps).toContain(RAPID_FIRE_TICKS);
         for (let k = 0; k < RAPID_TICKS; k++) step(g, { x: START_X });
         expect(g.rapidTicks).toBe(0);
     });
@@ -811,8 +875,8 @@ describe('난이도 곡선', () => {
     /*
      * 목표: 처음 하는 사람의 첫 판 평균 생존 시간 1분 이상.
      * 근거(봇): 「초보 봇」은 0.25초마다 한 번만 판단하고, 위험을 40px 단위로만 피하며,
-     * 가장 가까운 적 밑으로 무작정 간다 — 사람보다 둔한 쪽으로 잡았다. 이 봇의 seed 12개 평균이
-     * 1분(3,600틱)을 넘는지 본다.
+     * 가장 가까운 적 밑으로 무작정 간다(발사 버튼은 계속 누르고 있음) — 사람보다 둔한 쪽으로 잡았다.
+     * 이 봇의 seed 12개 평균이 1분(3,600틱)을 넘는지 본다.
      * 근거(수식, 1스테이지): 급강하 간격 150틱(2.5초)·동시 2마리, 적 총알 3px/틱이고 비행기 줄
      * 160px 위보다 가까이서는 쏘지 않으므로 총알이 닿기까지 최소 53틱(0.9초). 비행기는 맞는 상자 폭
      * 14px 이라 18px(2틱)만 옆으로 가면 피한다. 급강하 하나가 쏘는 총알은 평균 0.5발.
@@ -824,14 +888,14 @@ describe('난이도 곡선', () => {
         const avg = lives.reduce((a, b) => a + b, 0) / lives.length;
         const sec = (t: number) => Math.round(t / TICK_HZ);
         console.log(`[shooter] 초보 봇 생존(초): ${lives.map(sec).join(', ')} · 평균 ${sec(avg)}`);
-        // 가만히 있는 경우(참고용 — 단언하지 않음)
+        // 가운데 가만히 서서 발사 버튼만 누르고 있는 경우(참고용 — 단언하지 않음)
         const idle = seeds.map((s) => {
             const g = createGame(s);
-            while (!g.over && g.tick < max) step(g, { x: START_X });
+            while (!g.over && g.tick < max) step(g, { x: START_X, fire: true });
             return g.tick;
         });
         const idleAvg = idle.reduce((a, b) => a + b, 0) / idle.length;
-        console.log(`[shooter] 가만히 있기 생존(초): 평균 ${sec(idleAvg)}`);
+        console.log(`[shooter] 가만히 있기(발사만) 생존(초): 평균 ${sec(idleAvg)}`);
         expect(avg).toBeGreaterThanOrEqual(60 * TICK_HZ);
     });
 });
