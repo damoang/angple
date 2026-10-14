@@ -471,7 +471,12 @@ export const handle: Handle = async ({ event, resolve }) => {
             if (canonical !== pathname) redirect(308, canonical + event.url.search);
         }
     }
-    if (isWikiangSite(event.url)) return handleWikiang({ event, resolve });
+    if (isWikiangSite(event.url)) {
+        const response = await handleWikiang({ event, resolve });
+        // Preserve the existing content-security policy while bypassing community authentication.
+        response.headers.set('Content-Security-Policy', cspHeader);
+        return response;
+    }
     const isDataRequest = isSvelteKitDataRequest(event);
 
     if (isMalformedExternalImagePath(pathname)) {
