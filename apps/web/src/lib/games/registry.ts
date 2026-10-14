@@ -82,13 +82,11 @@ export const GAMES: GameEntry[] = [
     {
         id: 'commando',
         name: '다모앙 특공대',
-        description: '달리고 뛰며 쏘는 횡스크롤 액션 — 지금은 짧은 시험 구간만 있어요',
+        description: '달리고 뛰며 쏴서 적진을 돌파하고 보스를 쓰러뜨리는 횡스크롤 액션',
         href: '/games/commando',
         icon: Crosshair,
         color: 'text-teal-600',
-        bgColor: 'bg-teal-50 dark:bg-teal-950/30',
-        // 1단계(엔진·조작) 중 — 적·보스·결과 화면이 붙으면 뗀다
-        badge: '베타'
+        bgColor: 'bg-teal-50 dark:bg-teal-950/30'
     }
 ];
 
