@@ -124,13 +124,21 @@ const assert = require('node:assert/strict');
         const oldLogout = await context.request.get(base + '/wiki-auth/logout');
         assert.equal(oldLogout.status(), 405);
         await page.goto(base + '/wiki-auth', { waitUntil: 'domcontentloaded' });
+        const logout = page.waitForResponse(
+            (r) => r.url().endsWith('/wiki-auth/logout') && r.request().method() === 'POST'
+        );
         await page.getByRole('button', { name: '로그아웃', exact: true }).click();
+        assert.equal((await logout).status(), 303);
         await expect(page.locator('.account')).toHaveText('로그인');
         assert.equal(await redis.get(key), null);
         checks.push('POST logout revokes server session and clears independent login');
         assert.deepEqual(errors, []);
         fs.writeFileSync(out + '/auth.json', JSON.stringify({ checks, errors }, null, 2));
     } finally {
+        await page
+            .screenshot({ path: out + '/auth-last-screen.png', fullPage: true })
+            .catch(() => {});
+        fs.writeFileSync(out + '/auth-progress.json', JSON.stringify({ checks, errors }, null, 2));
         await browser.close();
         await db.end();
         await redis.quit();

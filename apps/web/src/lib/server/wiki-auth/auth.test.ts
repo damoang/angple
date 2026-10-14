@@ -105,7 +105,7 @@ describe('independent Wikiang Google authentication', () => {
             '/wiki-auth/logout',
             '/api/auth/login'
         ])
-            expect(safeReturnPath(path)).toBe('/대문');
+            expect(safeReturnPath(path)).toBe('/');
         expect(safeReturnPath('/문서/edit')).toContain('/edit');
         const jar = cookieJar();
         jar.set('damoang_jwt', 'old');

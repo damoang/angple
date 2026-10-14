@@ -52,17 +52,17 @@ export function cookieOptions(url: URL, maxAge: number) {
 }
 export function safeReturnPath(value: string | null): string {
     if (!value || !value.startsWith('/') || value.startsWith('//') || /[\\\x00-\x20]/.test(value))
-        return '/대문';
+        return '/';
     try {
         const parsed = new URL(value, 'https://wikiang.org');
         if (
             parsed.origin !== 'https://wikiang.org' ||
             /^\/(?:wiki-auth|auth|login|api)(?:\/|$)/.test(parsed.pathname)
         )
-            return '/대문';
+            return '/';
         return parsed.pathname + parsed.search + parsed.hash;
     } catch {
-        return '/대문';
+        return '/';
     }
 }
 export function equalToken(a: string, b: string): boolean {
