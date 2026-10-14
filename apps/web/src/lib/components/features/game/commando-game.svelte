@@ -308,11 +308,13 @@
         const fitW = Math.max(VIEW_W / 4, Math.min(availW, (availH * VIEW_W) / VIEW_H));
         const k = Math.floor((fitW * dpr) / VIEW_W);
         const intW = (VIEW_W * k) / dpr;
-        const w = k >= 1 && intW >= fitW * INT_MIN_RATIO ? intW : fitW;
+        // 저밀도 화면(PC)에서 2배 이상이면 정수배를 지킨다 — 큰 화면에서 비정수로 번지지 않게
+        const w = k >= 1 && (intW >= fitW * INT_MIN_RATIO || (dpr < 2 && k >= 2)) ? intW : fitW;
         cssW = w;
         cssH = (w * VIEW_H) / VIEW_W;
         ctlSize = Math.round(Math.min(136, Math.max(88, cssH)));
-        const scale = Math.max(1, Math.ceil((w * dpr) / VIEW_W - 1e-6));
+        // 내부 해상도 배율은 4 까지 (그 이상은 메모리만 든다)
+        const scale = Math.min(4, Math.max(1, Math.ceil((w * dpr) / VIEW_W - 1e-6)));
         if (scale !== bufScale) {
             bufScale = scale;
             // 캔버스 크기가 바뀌면 내용이 지워진다 — 화면에 반영된 뒤 다시 그린다
