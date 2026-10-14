@@ -230,7 +230,7 @@ export const ENEMY_SPECS: Record<number, EnemySpec> = {
         firstSpread: 60,
         every: 150,
         everySpread: 90,
-        windup: 20,
+        windup: 30,
         recover: 16,
         attack: ATTACK_LOB,
         range: 176

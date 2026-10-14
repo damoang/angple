@@ -1155,8 +1155,8 @@ describe('난이도 (초보 봇)', () => {
                 if (gr.owner !== OWNER_ENEMY) continue;
                 const lx = landingX(gr.x, gr.y, gr.vx, gr.vy, feet);
                 if (Math.abs(lx - cx) >= 44 * S) continue;
-                // 떨어질 자리에서 멀어지는 쪽 — 거의 제자리면 던진 쪽(포물선 아래)으로
-                let away = Math.abs(lx - cx) >= 12 * S ? (lx > cx ? -1 : 1) : gr.vx < 0 ? 1 : -1;
+                // 떨어질 자리에서 멀어지는 쪽 — 거의 제자리면 던진 쪽의 반대쪽으로
+                let away = Math.abs(lx - cx) >= 12 * S ? (lx > cx ? -1 : 1) : gr.vx < 0 ? -1 : 1;
                 // 벽·화면 끝에 막혔으면 반대쪽으로 달린다
                 const wall =
                     boxHitsSolid(g.map, p.x + away * TILE_U, p.y, p.w, p.h) ||
@@ -1199,13 +1199,17 @@ describe('난이도 (초보 봇)', () => {
             }
         }
         if (react && !threat) {
-            // 팔을 든(예고) 투척병 → 서 있지 말고 그쪽으로 달린다(포물선 아래로 지나간다). 막혔으면 반대로
+            // 팔을 든(예고) 투척병 → 서 있지 말고 반대쪽으로 달린다(지금 자리를 겨누니까). 막혔으면 그쪽으로
             for (const e of g.enemies) {
                 if (e.mode !== MODE_WINDUP || enemySpec(e.kind).attack !== ATTACK_LOB) continue;
                 const ex = e.x + (e.w >> 1);
                 if (Math.abs(ex - cx) > 180 * S) continue;
-                let to = ex > cx ? 1 : -1;
-                if (boxHitsSolid(g.map, p.x + to * TILE_U, p.y, p.w, p.h)) to = -to;
+                let to = ex > cx ? -1 : 1;
+                const blocked =
+                    boxHitsSolid(g.map, p.x + 2 * to * TILE_U, p.y, p.w, p.h) ||
+                    (to < 0 && p.x < g.camX + 32 * S) ||
+                    (to > 0 && g.locked && p.x + p.w > g.camX + (VIEW_W - 32) * S);
+                if (blocked) to = -to;
                 m = dirBtn(to) | (miss ? 0 : BTN_FIRE);
                 threat = true;
                 break;
