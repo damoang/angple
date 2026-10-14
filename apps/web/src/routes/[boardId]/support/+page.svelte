@@ -400,11 +400,7 @@
             </Card.Description>
         </Card.Header>
         <Card.Content class="space-y-2">
-            <Textarea
-                rows={8}
-                bind:value={intro}
-                placeholder={introPlaceholder}
-            />
+            <Textarea rows={8} bind:value={intro} placeholder={introPlaceholder} />
             <div class="flex items-center gap-2">
                 <Button
                     disabled={saving || !introDirty}
