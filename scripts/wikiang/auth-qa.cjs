@@ -47,6 +47,8 @@ const assert = require('node:assert/strict');
         }
         for (const path of [
             '/auth/start?provider=google',
+            '/%61uth/start?provider=google',
+            '/api/%61uth/login',
             '/api/auth/login',
             '/api/auth/logout',
             '/register'

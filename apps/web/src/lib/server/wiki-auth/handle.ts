@@ -9,7 +9,8 @@ export const handleWikiang: Handle = async ({ event, resolve }) => {
     event.locals.accessToken = null;
     event.locals.sessionId = null;
     event.locals.csrfToken = null;
-    const path = event.url.pathname;
+    // Match the resolved route as well: encoded path segments must not bypass the boundary.
+    const path = event.route.id ?? event.url.pathname;
     if (path === '/login') redirect(303, '/wiki-auth');
     if (
         /^\/(?:auth|register|password-reset|cert|admin|my|member)(?:\/|$)/.test(path) ||
