@@ -2,12 +2,27 @@
  * 다모앙 특공대 엔진 테스트 — 타일 충돌(바닥 뚫림·벽 끼임 없음·한쪽 발판), 점프 높이(누른 길이),
  * 결정성·재연·정수 상태, 동시 객체 상한, 목숨·재등장 무적, 상자·수류탄, 카메라·잠금 구간,
  * 적(보병·투척병: 등장·걷기·공격·처치·점수, 수류탄 포물선 결정성, 엎드려 피하기),
- * 1단계 구간 데이터와 끝까지 갈 수 있는지(무적 봇), 난이도(초보 봇 12판), 그림 데이터(크기·팔레트)
+ * 보스(등장·잠금·예고 3가지·피하기·체력·쓰러짐·점수 내역·결정성),
+ * 1단계 구간 데이터와 보스까지 깰 수 있는지(무적 봇), 난이도(초보 봇 12판 — 첫 판에 보스까지), 그림 데이터(크기·팔레트)
  */
 import { describe, it, expect } from 'vitest';
 import {
     ATTACK_LOB,
     ATTACK_SHOT,
+    BLAST_DAMAGE,
+    BOSS_ACT,
+    BOSS_CAB_X,
+    BOSS_DOWN,
+    BOSS_ENTER,
+    BOSS_GUN_SHOTS,
+    BOSS_H,
+    BOSS_HIT_H,
+    BOSS_IDLE,
+    BOSS_LOW_TOP,
+    BOSS_POINTS,
+    BOSS_RETURN,
+    BOSS_W,
+    BOSS_WINDUP_MODE,
     BULLET_HALF,
     CROUCH_H,
     CRATE_POINTS,
@@ -16,6 +31,7 @@ import {
     ENEMY_SHOT_Y,
     GRAVITY,
     INVULN_TICKS,
+    LIFE_BONUS,
     LOB_SPREAD,
     MAX_BULLETS,
     MAX_ENEMIES,
@@ -23,15 +39,26 @@ import {
     MAX_FALL,
     MAX_GRENADES,
     MAX_TICKS,
+    MODE_RECOVER,
     MODE_WINDUP,
     OWNER_ENEMY,
     OWNER_PLAYER,
+    PATTERN_CHARGE,
+    PATTERN_GUN,
+    PATTERN_MORTAR,
     PLAYER_H,
     PLAYER_W,
     START_GRENADES,
     START_LIVES,
     TICK_HZ,
+    TIME_POINTS,
     VIEW_W,
+    bossBox,
+    bossChargeStop,
+    bossHittable,
+    bossLockX,
+    bossParts,
+    bossTouch,
     centerX,
     countGrenades,
     createGame,
@@ -41,7 +68,9 @@ import {
     replay,
     spawnBullet,
     spawnEnemy,
+    startBossPattern,
     step,
+    timeLeft,
     type Enemy,
     type Game,
     type StepEvent
@@ -84,6 +113,7 @@ import {
 import {
     AIR_DOWN,
     ART,
+    BOSS,
     CHAR_SIZE,
     ENEMY_LEGS_STAND,
     ENEMY_LEGS_WALK,
@@ -92,6 +122,7 @@ import {
     LEGS_RUN,
     LEGS_STAND,
     PALETTE,
+    RIFLE_AIM,
     RIFLE_TOP,
     THROWER_TOP,
     THROWER_WINDUP,
@@ -159,8 +190,13 @@ function testRng(seed: number): () => number {
 }
 
 /** 오른쪽으로 치우친 무작위 입력으로 한 판 (같은 입력 seed → 같은 입력) */
-function playRandom(seed: number, inputSeed: number, ticks: number): Game {
-    const g = createGame(seed);
+function playRandom(
+    seed: number,
+    inputSeed: number,
+    ticks: number,
+    stage: StageDef | number = 0
+): Game {
+    const g = createGame(seed, stage);
     const rand = testRng(inputSeed);
     let mask = 0;
     for (let t = 0; t < ticks && !g.over; t++) {
@@ -785,6 +821,40 @@ describe('적', () => {
         expect(count(ev, 'enemy-shot')).toBe(0);
     });
 
+    it('보병은 쏘는 틱에 높이를 다시 본다 — 겨누는 사이 턱 위로 올라간 대원에게는 쏘지 않는다', () => {
+        const g = createGame(
+            1,
+            flat({
+                blocks: [[2, 11, 2, 1]],
+                start: [6, 11],
+                enemies: [{ kind: ENEMY_RIFLE, col: 16, row: 11 }]
+            })
+        );
+        let moved = false;
+        let shots = 0;
+        let recovered = false;
+        for (let t = 0; t < 900 && !recovered; t++) {
+            g.player.invuln = 1_000_000;
+            shots += count(step(g, 0), 'enemy-shot');
+            const e = g.enemies[0];
+            if (!moved && e?.mode === MODE_WINDUP) {
+                // 겨누기 시작한 뒤 한 칸 턱(16px) 위로 옮긴다 — 총알 높이(발에서 18px)가 대원 발목에 걸리는 자리
+                const p = g.player;
+                p.x = 2 * TILE_U + 2 * S;
+                p.y = 11 * TILE_U - p.h;
+                p.prevX = p.x;
+                p.prevY = p.y;
+                p.vy = 0;
+                moved = true;
+            }
+            if (moved && e?.mode === MODE_RECOVER) recovered = true;
+        }
+        expect(moved).toBe(true);
+        expect(recovered).toBe(true);
+        expect(feetY(g.player)).toBe(11 * TILE_U);
+        expect(shots).toBe(0);
+    });
+
     it('투척병은 멈춰 팔을 든 뒤 대원 쪽으로 수류탄을 던지고, 가만히 있는 대원은 맞는다', () => {
         const g = withEnemy(ENEMY_THROWER, 14);
         let windup = false;
@@ -885,6 +955,420 @@ describe('적', () => {
         expect(d.hp).toBe(enemySpec(ENEMY_DUMMY).hp);
         expect(tileAt(h.map, 20, 11)).toBe(3);
         expect(h.score).toBe(0);
+    });
+});
+
+type BoomEvent = Extract<StepEvent, { type: 'boom' }>;
+
+describe('보스', () => {
+    /** 처음부터 보스 구역인 평지 (구역 = 0~23열, 대원은 3열) */
+    function bossStage(over: Partial<StageDef> = {}): StageDef {
+        return flat({ boss: { lock: 0, hp: 90 }, ...over });
+    }
+
+    /** 보스가 들어와 제자리에서 쉬기 시작할 때까지 (무적) */
+    function untilIdle(g: Game): void {
+        for (let t = 0; t < 400 && g.boss?.mode !== BOSS_IDLE; t++) {
+            g.player.invuln = 1_000_000;
+            step(g, 0);
+        }
+        expect(g.boss?.mode).toBe(BOSS_IDLE);
+        g.player.invuln = 0;
+    }
+
+    /**
+     * 이번 공격이 끝날 때까지 mask 를 누른다 — 다시 쉬기 시작하면 다음 공격을 미뤄 두고
+     * 적 총알·수류탄이 다 사라질 때까지 기다린다.
+     */
+    function untilRest(g: Game, mask: number, max = 600): StepEvent[] {
+        const all: StepEvent[] = [];
+        for (let t = 0; t < max && !g.over; t++) {
+            all.push(...step(g, mask));
+            const b = g.boss!;
+            if (b.mode !== BOSS_IDLE) continue;
+            b.modeT = 1_000_000;
+            const flying =
+                g.bullets.some((q) => q.owner === OWNER_ENEMY) || countGrenades(g, OWNER_ENEMY) > 0;
+            if (!flying) break;
+        }
+        return all;
+    }
+
+    it('보스 구역에 오면 카메라가 멈추고 보스가 오른쪽 밖에서 제자리로 들어온다 (대원은 화면 밖으로 못 나간다)', () => {
+        const g = createGame(1, bossStage());
+        const ev = runInvuln(g, 0, 1);
+        expect(count(ev, 'boss')).toBe(1);
+        expect(g.locked).toBe(true);
+        const b = g.boss!;
+        expect(b.mode).toBe(BOSS_ENTER);
+        expect(b.x).toBeGreaterThan(g.camX + (VIEW_W - BOSS_W) * S);
+        expect(b.hp).toBe(90);
+        expect(b.maxHp).toBe(90);
+        // 몸통 발은 땅 위
+        const [, by, , bh] = bossBox(b);
+        expect(by + bh).toBe(GROUND_Y);
+        expect(b.y + BOSS_H * S).toBe(GROUND_Y);
+        for (let t = 0; t < 500; t++) {
+            runInvuln(g, BTN_RIGHT, 1);
+            expect(g.camX).toBe(0);
+            expect(g.player.x + g.player.w).toBeLessThanOrEqual(g.camX + VIEW_W * S);
+            // 보스 몸을 뚫고 지나가지 않는다 (돌진이 아닐 때 닿으면 밀려난다)
+            const [bx] = bossBox(g.boss!);
+            if (g.boss!.mode !== BOSS_ACT) expect(g.player.x + g.player.w).toBeLessThanOrEqual(bx);
+        }
+        expect(g.boss!.mode).not.toBe(BOSS_ENTER);
+        expect(count(runInvuln(g, 0, 1), 'boss')).toBe(0);
+    });
+
+    it('공격 3가지 모두 멈춰 예고한 뒤에 하고, 같은 공격을 잇달아 하지 않는다', () => {
+        for (const seed of [1, 2, 3]) {
+            const g = createGame(seed, bossStage());
+            const patterns: number[] = [];
+            let windupAt = -1;
+            let gaps: number[] = [];
+            let pending = false;
+            for (let t = 0; t < 4000 && patterns.length < 8; t++) {
+                g.player.invuln = 1_000_000;
+                const ev = step(g, BTN_DOWN);
+                for (const v of ev) {
+                    if (v.type === 'boss-windup') {
+                        patterns.push(v.pattern);
+                        windupAt = t;
+                        pending = true;
+                    } else if (
+                        pending &&
+                        (v.type === 'boss-shot' ||
+                            v.type === 'boss-lob' ||
+                            v.type === 'boss-charge')
+                    ) {
+                        gaps.push(t - windupAt);
+                        pending = false;
+                    }
+                }
+                // 예고 동안 돌진 말고는 제자리, 돌진 예고는 뒤로만 물러선다
+                const b = g.boss!;
+                if (b.mode === BOSS_WINDUP_MODE) expect(b.x).toBeGreaterThanOrEqual(b.prevX);
+            }
+            expect(new Set(patterns).size).toBe(3);
+            for (let k = 1; k < patterns.length; k++) expect(patterns[k]).not.toBe(patterns[k - 1]);
+            expect(gaps.length).toBeGreaterThanOrEqual(7);
+            for (const gap of gaps) expect(gap).toBeGreaterThanOrEqual(30);
+            gaps = [];
+        }
+    });
+
+    it('앞 총: 엎드리면 머리 위로 지나가고 서 있으면 맞는다 (총알 높이 = 보병과 같다)', () => {
+        const low = createGame(1, bossStage());
+        untilIdle(low);
+        startBossPattern(low, PATTERN_GUN, []);
+        const ev = untilRest(low, BTN_DOWN);
+        expect(count(ev, 'boss-shot')).toBe(BOSS_GUN_SHOTS);
+        expect(low.lives).toBe(START_LIVES);
+
+        const high = createGame(1, bossStage());
+        untilIdle(high);
+        startBossPattern(high, PATTERN_GUN, []);
+        let shotY = -1;
+        for (let t = 0; t < 400 && high.lives === START_LIVES; t++) {
+            if (step(high, 0).some((v) => v.type === 'boss-shot')) {
+                shotY = high.bullets.find((b) => b.owner === OWNER_ENEMY)!.y;
+            }
+        }
+        expect(shotY).toBe(GROUND_Y - ENEMY_SHOT_Y * S);
+        expect(high.lives).toBe(START_LIVES - 1);
+    });
+
+    it('박격포: 예고 때 보인 자리에 정확히 떨어진다 — 그 자리에 서 있으면 맞고 비키면 안 맞는다', () => {
+        const still = createGame(1, bossStage());
+        untilIdle(still);
+        startBossPattern(still, PATTERN_MORTAR, []);
+        const marks = still.boss!.marks.slice();
+        expect(marks.length).toBe(6);
+        // 첫 자리는 대원 발밑 (가운데 ±1px)
+        expect(Math.abs(marks[0] - centerX(still.player))).toBeLessThanOrEqual(S);
+        expect(marks[1]).toBe(GROUND_Y - S);
+        const ev = untilRest(still, 0);
+        const booms = ev.filter((v): v is BoomEvent => v.type === 'boom');
+        expect(booms.length).toBe(3);
+        const landed = booms.map((v) => `${v.x},${v.y}`).sort();
+        const shown = [0, 2, 4].map((k) => `${marks[k]},${marks[k + 1]}`).sort();
+        expect(landed).toEqual(shown);
+        expect(still.lives).toBe(START_LIVES - 1);
+
+        const moved = createGame(1, bossStage());
+        untilIdle(moved);
+        startBossPattern(moved, PATTERN_MORTAR, []);
+        // 표시를 보고 오른쪽으로 비켜 선다 (가운데 자리와 오른쪽 자리 사이)
+        run(moved, BTN_RIGHT, 30);
+        untilRest(moved, 0);
+        expect(moved.lives).toBe(START_LIVES);
+    });
+
+    it('박격포 자리는 발판 위 대원이면 발판 위다 (궤적을 미리 돌려 본 자리)', () => {
+        const g = createGame(1, bossStage({ platforms: [[8, 9, 4]] }));
+        untilIdle(g);
+        const p = g.player;
+        p.x = 9 * TILE_U + 2 * S;
+        p.y = 9 * TILE_U - p.h;
+        p.prevX = p.x;
+        p.prevY = p.y;
+        runInvuln(g, 0, 2);
+        expect(feetY(p)).toBe(9 * TILE_U);
+        g.player.invuln = 0;
+        startBossPattern(g, PATTERN_MORTAR, []);
+        expect(Math.abs(g.boss!.marks[0] - centerX(p))).toBeLessThanOrEqual(S);
+        expect(g.boss!.marks[1]).toBe(9 * TILE_U - S);
+        const ev = untilRest(g, 0);
+        const first = ev.find((v): v is BoomEvent => v.type === 'boom');
+        expect(first).toBeDefined();
+        expect(g.lives).toBe(START_LIVES - 1);
+    });
+
+    it('돌진: 돌진선에서 멈춘다 — 선 왼쪽·낮은 발판 위는 안전하고, 길목에 서 있으면 맞는다', () => {
+        const safe = createGame(1, bossStage());
+        untilIdle(safe);
+        startBossPattern(safe, PATTERN_CHARGE, []);
+        let minX = Infinity;
+        for (let t = 0; t < 400; t++) {
+            step(safe, 0);
+            minX = Math.min(minX, safe.boss!.x);
+        }
+        expect(minX).toBe(bossChargeStop(safe));
+        expect(safe.lives).toBe(START_LIVES);
+        // 돌아와 다시 제자리
+        expect(safe.boss!.x).toBe(safe.boss!.homeX);
+
+        const inPath = createGame(1, bossStage());
+        untilIdle(inPath);
+        teleport(inPath, 12);
+        startBossPattern(inPath, PATTERN_CHARGE, []);
+        const ev = run(inPath, 0, 300);
+        expect(count(ev, 'die')).toBe(1);
+        expect(inPath.lives).toBe(START_LIVES - 1);
+
+        const up = createGame(1, bossStage({ platforms: [[10, 9, 4]] }));
+        untilIdle(up);
+        const p = up.player;
+        p.x = 11 * TILE_U + 2 * S;
+        p.y = 9 * TILE_U - p.h;
+        p.prevX = p.x;
+        p.prevY = p.y;
+        // 발판(땅에서 48px)은 보스 맞는 상자(36px)보다 높다
+        expect(3 * TILE).toBeGreaterThan(BOSS_HIT_H);
+        startBossPattern(up, PATTERN_CHARGE, []);
+        let under = false;
+        for (let t = 0; t < 400; t++) {
+            step(up, 0);
+            const [bx, , bw] = bossBox(up.boss!);
+            if (bx < p.x + p.w && bx + bw > p.x) under = true;
+        }
+        expect(under).toBe(true);
+        expect(feetY(p)).toBe(9 * TILE_U);
+        expect(up.lives).toBe(START_LIVES);
+    });
+
+    it('돌진이 아닐 때 몸에 닿으면 다치지 않고 밀려난다', () => {
+        const g = createGame(1, bossStage());
+        untilIdle(g);
+        const [bx] = bossBox(g.boss!);
+        g.player.x = bx + 4 * S;
+        g.player.prevX = g.player.x;
+        step(g, 0);
+        expect(g.player.x + g.player.w).toBeLessThanOrEqual(bossBox(g.boss!)[0]);
+        expect(g.lives).toBe(START_LIVES);
+    });
+
+    it('제자리 보스 뒤 좁은 틈(대원 폭보다 좁다)에 겹치면 왼쪽으로 밀려나고, 겹친 채 끼어 있지 않다', () => {
+        const g = createGame(1, bossStage());
+        untilIdle(g);
+        const b = g.boss!;
+        b.modeT = 1_000_000;
+        const [bx, , bw] = bossBox(b);
+        const viewRight = g.camX + VIEW_W * S;
+        // 보스 오른쪽 끝 ~ 화면 끝 틈은 대원 폭보다 좁다
+        expect(viewRight - (bx + bw)).toBeLessThan(PLAYER_W * S);
+        const p = g.player;
+        p.x = viewRight - p.w;
+        p.prevX = p.x;
+        expect(bossTouch(b, p.x, p.y, p.w, p.h)).toBeGreaterThanOrEqual(0);
+        step(g, 0);
+        expect(p.x + p.w).toBeLessThanOrEqual(bx);
+        expect(bossTouch(b, p.x, p.y, p.w, p.h)).toBe(-1);
+        // 왼쪽으로 걸으면 그대로 빠져나간다 (다시 오른쪽으로 끌려가지 않는다)
+        const x0 = p.x;
+        run(g, BTN_LEFT, 30);
+        expect(p.x).toBeLessThan(x0);
+        expect(bossTouch(b, p.x, p.y, p.w, p.h)).toBe(-1);
+        expect(g.lives).toBe(START_LIVES);
+    });
+
+    it('보스를 넘어 뒤로 간 대원은 돌진이 아닐 때 다치지 않고, 걸어서 보스 앞으로 빠져나온다', () => {
+        const g = createGame(1, bossStage());
+        untilIdle(g);
+        startBossPattern(g, PATTERN_CHARGE, []);
+        for (let t = 0; t < 300 && g.boss!.mode !== BOSS_RETURN; t++) step(g, 0);
+        const b = g.boss!;
+        expect(b.mode).toBe(BOSS_RETURN);
+        const p = g.player;
+        // 돌진선에 멈춘 보스 뒤(오른쪽)에 세운다
+        const [bx, , bw] = bossBox(b);
+        p.x = bx + bw + 30 * S;
+        p.prevX = p.x;
+        expect(g.lives).toBe(START_LIVES);
+        let out = false;
+        for (let t = 0; t < 600 && !out; t++) {
+            step(g, BTN_LEFT);
+            // 다음 공격은 미뤄 둔다
+            if (b.mode === BOSS_IDLE) b.modeT = 1_000_000;
+            expect(g.lives).toBe(START_LIVES);
+            expect(bossTouch(b, p.x, p.y, p.w, p.h)).toBe(-1);
+            expect(p.x + p.w).toBeLessThanOrEqual(g.camX + VIEW_W * S);
+            out = p.x + p.w <= bossBox(b)[0];
+        }
+        expect(out).toBe(true);
+        expect(g.lives).toBe(START_LIVES);
+    });
+
+    it('맞는 상자는 그림 모양대로 — 앞 위쪽 빈칸(운전석 앞)은 맞지 않고, 롤러·운전석은 맞는다', () => {
+        const g = createGame(1, bossStage());
+        untilIdle(g);
+        const b = g.boss!;
+        b.modeT = 1_000_000;
+        const hp0 = b.hp;
+        // 앞 위쪽 빈칸 (그림 10열 · 20줄)
+        spawnBullet(g, OWNER_PLAYER, b.x + 10 * S, b.y + 20 * S, 0, 0);
+        step(g, 0);
+        expect(b.hp).toBe(hp0);
+        expect(bossTouch(b, b.x + 10 * S, b.y + 20 * S, S, S)).toBe(-1);
+        // 같은 열 아래(롤러, 40줄)·운전석(30열, 20줄)은 맞는다
+        g.bullets.length = 0;
+        spawnBullet(g, OWNER_PLAYER, b.x + 10 * S, b.y + 40 * S, 0, 0);
+        step(g, 0);
+        expect(b.hp).toBe(hp0 - 1);
+        spawnBullet(g, OWNER_PLAYER, b.x + 30 * S, b.y + 20 * S, 0, 0);
+        step(g, 0);
+        expect(b.hp).toBe(hp0 - 2);
+        // 두 상자는 바깥 상자 안, 그림의 빈칸 칸은 맞는 상자 밖
+        const [ox, oy, ow, oh] = bossBox(b);
+        for (const [px, py, pw, ph] of bossParts(b)) {
+            expect(px).toBeGreaterThanOrEqual(ox);
+            expect(py).toBeGreaterThanOrEqual(oy);
+            expect(px + pw).toBeLessThanOrEqual(ox + ow);
+            expect(py + ph).toBeLessThanOrEqual(oy + oh);
+        }
+        for (let r = BOSS_H - BOSS_HIT_H; r < BOSS_LOW_TOP; r++) {
+            expect(BOSS[0][r].slice(0, BOSS_CAB_X)).toMatch(/^\.+$/);
+        }
+    });
+
+    it('권총 1 · 수류탄 BLAST_DAMAGE 씩 깎이고, 쓰러지면 점수·적 탄 정리 뒤 구간 끝 (남은 시간·목숨 보너스)', () => {
+        const nade = createGame(1, bossStage());
+        untilIdle(nade);
+        const b0 = nade.boss!;
+        const [bx, by, bw, bh] = bossBox(b0);
+        const cx = bx + (bw >> 1);
+        const cy = by + (bh >> 1);
+        nade.grenades.push({
+            owner: OWNER_PLAYER,
+            x: cx,
+            y: cy,
+            prevX: cx,
+            prevY: cy,
+            vx: 0,
+            vy: 0,
+            fuse: 5
+        });
+        runInvuln(nade, 0, 1);
+        expect(b0.hp).toBe(b0.maxHp - BLAST_DAMAGE);
+
+        const g = createGame(1, bossStage());
+        let firstHit = -1;
+        let downAt = -1;
+        let clearEv: StepEvent | undefined;
+        for (let t = 0; t < 8000 && !g.over; t++) {
+            g.player.invuln = 1_000_000;
+            const hpBefore = g.boss?.hp ?? -1;
+            const ev = step(g, t % 2 === 0 ? BTN_FIRE : 0);
+            if (firstHit < 0 && ev.some((v) => v.type === 'boss-hit')) {
+                firstHit = t;
+                expect(g.boss!.hp).toBe(hpBefore - 1);
+            }
+            if (ev.some((v) => v.type === 'boss-down')) {
+                downAt = t;
+                expect(g.boss!.hp).toBe(0);
+                expect(g.score).toBeGreaterThanOrEqual(BOSS_POINTS);
+            }
+            if (downAt >= 0) {
+                // 쓰러진 뒤엔 적 총알·수류탄이 없다
+                expect(g.bullets.every((b) => b.owner === OWNER_PLAYER)).toBe(true);
+                expect(countGrenades(g, OWNER_ENEMY)).toBe(0);
+                expect(bossHittable(g)).toBe(false);
+            }
+            clearEv = ev.find((v) => v.type === 'clear') ?? clearEv;
+        }
+        expect(firstHit).toBeGreaterThan(0);
+        expect(downAt).toBeGreaterThan(firstHit);
+        expect(g.over).toBe(true);
+        expect(g.reason).toBe('clear');
+        expect(g.boss!.mode).toBe(BOSS_DOWN);
+        expect(g.tally.boss).toBe(BOSS_POINTS);
+        expect(g.tally.lives).toBe(START_LIVES * LIFE_BONUS);
+        // 남은 시간(초) × TIME_POINTS — 끝난 틱 기준이라 판이 끝난 뒤 다시 재면 1초 안쪽으로 다를 수 있다
+        expect(Math.abs(g.tally.time - timeLeft(g) * TIME_POINTS)).toBeLessThanOrEqual(TIME_POINTS);
+        expect(g.tally.time).toBeGreaterThan(0);
+        expect(clearEv).toEqual({
+            type: 'clear',
+            bonus: g.tally.time + g.tally.lives,
+            time: g.tally.time,
+            lives: g.tally.lives
+        });
+        const t = g.tally;
+        expect(t.enemies + t.crates + t.boss + t.time + t.lives).toBe(g.score);
+    });
+
+    it('목숨이 다하면 보스 앞에서도 판이 끝난다 (보너스 없음)', () => {
+        const g = createGame(1, bossStage());
+        untilIdle(g);
+        for (let k = 0; k < START_LIVES && !g.over; k++) {
+            g.player.invuln = 0;
+            spawnBullet(g, OWNER_ENEMY, centerX(g.player), g.player.y + (g.player.h >> 1), 0, 0);
+            run(g, 0, 1 + DEATH_TICKS);
+        }
+        expect(g.reason).toBe('lives');
+        expect(g.tally.time + g.tally.lives).toBe(0);
+    });
+
+    it('같은 seed + 같은 입력이면 보스전도 똑같다 (상태는 정수만)', () => {
+        const a = playRandom(31, 5, 5000, bossStage());
+        const b = playRandom(31, 5, 5000, bossStage());
+        expect(a.boss).not.toBeNull();
+        expect(a.boss!.pattern).toBeGreaterThanOrEqual(0);
+        expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+        const bad: string[] = [];
+        const walk = (v: unknown, path: string) => {
+            if (typeof v === 'number') {
+                if (!Number.isSafeInteger(v)) bad.push(`${path}=${v}`);
+            } else if (Array.isArray(v)) v.forEach((x, i) => walk(x, `${path}[${i}]`));
+            else if (v && typeof v === 'object') {
+                for (const [k, x] of Object.entries(v)) walk(x, `${path}.${k}`);
+            }
+        };
+        walk(a, 'g');
+        expect(bad).toEqual([]);
+        // 보스 공격 차례는 seed 로 정해진다
+        const order = (seed: number) => {
+            const g = createGame(seed, bossStage());
+            const seen: number[] = [];
+            for (let t = 0; t < 3000 && seen.length < 6; t++) {
+                g.player.invuln = 1_000_000;
+                for (const v of step(g, BTN_DOWN))
+                    if (v.type === 'boss-windup') seen.push(v.pattern);
+            }
+            return seen.join(',');
+        };
+        expect(order(8)).toBe(order(8));
+        const orders = new Set([1, 2, 3, 4, 5, 6].map(order));
+        expect(orders.size).toBeGreaterThan(1);
     });
 });
 
@@ -1037,14 +1521,48 @@ describe('1단계 구간', () => {
         expect(st.enemies.every((e) => e.kind !== ENEMY_DUMMY)).toBe(true);
     });
 
+    it('보스 구역은 마지막 화면 — 평지, 적·상자·바위 없음, 돌진을 피할 낮은 발판(뛰면 닿고 보스 몸통보다 높다)', () => {
+        const boss = st.boss!;
+        expect(boss).toBeDefined();
+        expect(boss.hp).toBeGreaterThan(0);
+        expect(boss.lock).toBeGreaterThan(st.locks[st.locks.length - 1]);
+        expect(boss.lock + screen).toBe(st.cols);
+        // 깃발 대신 보스 — goal 은 보스 구역 들머리(진행률 기준)
+        expect(st.goal).toBe(boss.lock);
+        for (let col = boss.lock; col < st.cols; col++) expect(groundTop(col)).toBe(GROUND_ROW);
+        expect(st.enemies.every((e) => e.col < boss.lock)).toBe(true);
+        expect(st.crates.every(([c]) => c < boss.lock)).toBe(true);
+        expect(st.blocks.every(([c, , w]) => c + w <= boss.lock)).toBe(true);
+        const pads = st.platforms.filter(([c]) => c >= boss.lock);
+        expect(pads.length).toBeGreaterThanOrEqual(1);
+        for (const [c, r, len] of pads) {
+            expect(c + len).toBeLessThanOrEqual(st.cols);
+            expect(GROUND_ROW - r).toBe(3);
+            expect((GROUND_ROW - r) * TILE).toBeGreaterThan(BOSS_HIT_H);
+            // 돌진이 지나가는 자리(돌진선 오른쪽)에 걸쳐 있다
+            expect((c + len - boss.lock) * TILE).toBeGreaterThan(124);
+        }
+        const g = createGame(1);
+        expect(bossLockX(g)).toBe(boss.lock * TILE_U);
+        // 카메라 끝 = 보스 구역
+        expect((st.cols * TILE - VIEW_W) / TILE).toBe(boss.lock);
+    });
+
     /**
      * 무적 봇: 가장 가까운 적에게 다가가 쏜다. 적이 머리 위(발판)에 있으면 그 아래에서 위로 쏜다.
      * 적이 발 아래에 있으면 발판에서 내려간다. 막히거나 구덩이 앞이면 뛴다. 적이 없으면 오른쪽으로.
+     * 보스가 있으면 보스 쪽을 보고 쏜다(뛰지 않는다 — 뛰어넘어 뒤로 가지 않게).
      */
     function botMask(g: Game, stuck: boolean): number {
         const p = g.player;
         if (p.dead > 0) return 0;
         const cx = centerX(p);
+        if (bossHittable(g)) {
+            const [bx, , bw] = bossBox(g.boss!);
+            const dx = bx + (bw >> 1) - cx;
+            const dir = dx < 0 ? -1 : 1;
+            return BTN_FIRE | (dir !== p.facing || Math.abs(dx) > 120 * S ? dirBtn(dir) : 0);
+        }
         const target = nearestOnScreen(g);
         let m = BTN_FIRE;
         if (!target) m |= BTN_RIGHT;
@@ -1074,8 +1592,9 @@ describe('1단계 구간', () => {
         return m;
     }
 
-    it('무적 봇이 1단계 끝까지 가며 거의 모든 적을 잡는다', () => {
+    it('무적 봇이 1단계 끝까지 가며 거의 모든 적을 잡고 보스를 쓰러뜨린다', () => {
         const g = createGame(2024);
+        let bossAt = -1;
         let jumpHold = 0;
         let lastX = g.player.x;
         let stuckTicks = 0;
@@ -1096,12 +1615,17 @@ describe('1단계 구간', () => {
                 if ((g.prevMask & BTN_JUMP) !== 0) m &= ~BTN_JUMP;
                 else jumpHold = 20;
             }
-            step(g, m);
+            if (step(g, m).some((v) => v.type === 'boss')) bossAt = t;
         }
+        const t = g.tally;
         console.log(
-            `[commando] invulnerable bot: reason=${g.reason} time=${Math.round(g.tick / TICK_HZ)}s kills=${g.kills}/${st.enemies.length} lives=${g.lives} score=${g.score}`
+            `[commando] invulnerable bot: reason=${g.reason} time=${Math.round(g.tick / TICK_HZ)}s bossAt=${Math.round(bossAt / TICK_HZ)}s bossFight=${Math.round((g.tick - bossAt) / TICK_HZ)}s kills=${g.kills}/${st.enemies.length} lives=${g.lives} score=${g.score} (enemies=${t.enemies} crates=${t.crates} boss=${t.boss} time=${t.time} lives=${t.lives})`
         );
         expect(g.reason).toBe('clear');
+        expect(bossAt).toBeGreaterThan(0);
+        expect(g.boss!.mode).toBe(BOSS_DOWN);
+        expect(t.boss).toBe(BOSS_POINTS);
+        expect(t.enemies + t.crates + t.boss + t.time + t.lives).toBe(g.score);
         expect(g.lives).toBeGreaterThanOrEqual(START_LIVES - 1);
         expect(g.kills).toBeGreaterThanOrEqual(st.enemies.length - 4);
     }, 60_000);
@@ -1114,6 +1638,8 @@ describe('난이도 (초보 봇)', () => {
     const REACT = 80;
     const MISS = 25;
     const LOB = 6;
+    /** 적 수류탄 떨어질 자리 어림 오차(px) — 판단마다 −LAND_ERR ~ +LAND_ERR (사람 눈대중) */
+    const LAND_ERR = 4;
 
     /** 적 수류탄이 대원 발 높이까지 떨어질 때의 x (단위, 대략) */
     function landingX(x: number, y: number, vx: number, vy: number, floor: number): number {
@@ -1132,6 +1658,9 @@ describe('난이도 (초보 봇)', () => {
      * - 아니면 화면 안 가장 가까운 적: 같은 높이면 그쪽을 보고 쏘며(멀면 다가감), 높은 곳이면 위로 쏘며 다가가고,
      *   낮은 곳이면 발판에서 내려간다. 적이 없으면 오른쪽으로 달리며 쏜다. 가끔 못 쏘고(조준 실수), 가끔 수류탄.
      * - 구덩이 앞이거나 막혀 있으면 뛴다.
+     * - 적 수류탄 떨어질 자리는 눈대중이다(판단마다 ±LAND_ERR px 오차).
+     * - 보스: (반응했을 때) 돌진 경고 → 돌진선 왼쪽으로, 총구 번쩍임 → 엎드려 쏨, 떨어질 자리 표시 → 표시에서 비킨다.
+     *   아니면 보스 쪽을 보고 쏜다(멀면 다가감, 가끔 수류탄).
      * 한 번 피하기 시작하면(엎드림·달아남) 위협이 남아 있는 동안은 다시 주사위를 굴리지 않고 이어 간다
      * (사람도 엎드렸으면 총알이 지나갈 때까지 엎드려 있다).
      */
@@ -1145,15 +1674,17 @@ describe('난이도 (초보 봇)', () => {
         const react = rand() % 100 < REACT || dodging;
         const miss = rand() % 100 < MISS;
         const lob = rand() % 100 < LOB;
+        const landErr = ((rand() % (2 * LAND_ERR + 1)) - LAND_ERR) * S;
         if (!p.onGround) return (prev & (DIRS | BTN_JUMP)) | BTN_FIRE;
         const cx = centerX(p);
         const feet = feetY(p);
+        const boss = bossHittable(g) ? g.boss! : null;
         let m = 0;
         let threat = false;
         if (react) {
             for (const gr of g.grenades) {
                 if (gr.owner !== OWNER_ENEMY) continue;
-                const lx = landingX(gr.x, gr.y, gr.vx, gr.vy, feet);
+                const lx = landingX(gr.x, gr.y, gr.vx, gr.vy, feet) + landErr;
                 if (Math.abs(lx - cx) >= 44 * S) continue;
                 // 떨어질 자리에서 멀어지는 쪽 — 거의 제자리면 던진 쪽의 반대쪽으로
                 let away = Math.abs(lx - cx) >= 12 * S ? (lx > cx ? -1 : 1) : gr.vx < 0 ? -1 : 1;
@@ -1215,7 +1746,47 @@ describe('난이도 (초보 봇)', () => {
                 break;
             }
         }
-        if (!threat) {
+        if (react && !threat && boss) {
+            // 보스 예고를 읽는다 (사람이 보는 것과 같은 신호: 경고등·총구 번쩍임·떨어질 자리 표시)
+            const [bx, by, bw, bh] = bossBox(boss);
+            const charging =
+                boss.pattern === PATTERN_CHARGE &&
+                (boss.mode === BOSS_WINDUP_MODE || boss.mode === BOSS_ACT);
+            if (charging) {
+                // 돌진선 왼쪽으로 물러난다
+                const line = bossChargeStop(g) + 4 * S;
+                m = p.x + p.w > line - 8 * S ? BTN_LEFT : 0;
+                threat = true;
+            } else if (
+                boss.mode === BOSS_WINDUP_MODE &&
+                boss.pattern === PATTERN_GUN &&
+                Math.abs(by + bh - feet) <= 8 * S
+            ) {
+                const toward = bx + (bw >> 1) > cx ? 1 : -1;
+                m = BTN_DOWN | (miss ? 0 : BTN_FIRE) | (toward !== p.facing ? dirBtn(toward) : 0);
+                threat = true;
+            } else if (boss.pattern === PATTERN_MORTAR) {
+                for (let k = 0; k < boss.marks.length; k += 2) {
+                    const d = cx - boss.marks[k];
+                    if (Math.abs(d) >= 30 * S) continue;
+                    let away = d > 0 ? 1 : -1;
+                    if (away > 0 && p.x + p.w + 24 * S > bx) away = -1;
+                    if (away < 0 && p.x < g.camX + 16 * S) away = 1;
+                    m = dirBtn(away) | (miss ? 0 : BTN_FIRE);
+                    threat = true;
+                    break;
+                }
+            }
+        }
+        if (!threat && boss) {
+            // 보스 쪽을 보고 쏜다 — 멀면 다가간다
+            const [bx, , bw] = bossBox(boss);
+            const dx = bx + (bw >> 1) - cx;
+            const dir = dx < 0 ? -1 : 1;
+            m = BTN_FIRE | (Math.abs(dx) > 120 * S || dir !== p.facing ? dirBtn(dir) : 0);
+            if (miss) m &= ~BTN_FIRE;
+            if (lob && p.grenades > 0 && Math.abs(dx) < 140 * S) m |= BTN_GRENADE;
+        } else if (!threat) {
             const target = nearestOnScreen(g);
             if (!target) {
                 m = BTN_RIGHT | BTN_FIRE;
@@ -1244,13 +1815,15 @@ describe('난이도 (초보 봇)', () => {
         }
         dodging = threat;
         const d = m & BTN_RIGHT ? 1 : m & BTN_LEFT ? -1 : 0;
-        // 엎드려 피하는 중에는 뛰지 않는다 (일어서면 맞는다)
-        if (d !== 0 && (m & BTN_DOWN) === 0 && (stuck || pitAhead(g, d, 30) >= 0)) m |= BTN_JUMP;
+        // 엎드려 피하는 중에는 뛰지 않는다 (일어서면 맞는다). 보스 앞에서는 막혀도 뛰지 않는다(보스에게 밀린 것)
+        const jumpStuck = stuck && !boss;
+        if (d !== 0 && (m & BTN_DOWN) === 0 && (jumpStuck || pitAhead(g, d, 30) >= 0))
+            m |= BTN_JUMP;
         return m;
     }
 
     interface BotRun {
-        /** 목숨을 잃은 자리(열)와 까닭: pit(구덩이)·blast(수류탄)·shot(총알) */
+        /** 목숨을 잃은 자리(열)와 까닭: pit(구덩이)·blast(수류탄)·shot(총알)·ram(보스 돌진) */
         deaths: string[];
         reason: string;
         ticks: number;
@@ -1258,6 +1831,10 @@ describe('난이도 (초보 봇)', () => {
         kills: number;
         lives: number;
         score: number;
+        /** 보스 구역에 닿았는가, 닿은 시각(초), 끝났을 때 보스 체력 */
+        boss: boolean;
+        bossAt: number;
+        bossHp: number;
     }
 
     function beginnerRun(seed: number): BotRun {
@@ -1266,6 +1843,7 @@ describe('난이도 (초보 봇)', () => {
         let mask = 0;
         let lastX = g.player.x;
         let best = 0;
+        let bossAt = -1;
         const deaths: string[] = [];
         dodging = false;
         for (let t = 0; t < MAX_TICKS && !g.over; t++) {
@@ -1291,13 +1869,17 @@ describe('난이도 (초보 봇)', () => {
             }
             const bombs = g.grenades.filter((q) => q.owner === OWNER_ENEMY).map((q) => ({ ...q }));
             const ev = step(g, m);
+            if (bossAt < 0 && g.boss) bossAt = t;
             if (ev.some((v) => v.type === 'die')) {
+                const b = g.boss;
                 const why =
                     g.player.y > g.map.rows * TILE_U
                         ? 'pit'
                         : ev.some((v) => v.type === 'boom')
                           ? 'blast'
-                          : 'shot';
+                          : b && b.mode === BOSS_ACT && b.pattern === PATTERN_CHARGE
+                            ? 'ram'
+                            : 'shot';
                 for (const v of ev) {
                     if (v.type !== 'boom') continue;
                     // 터진 자리: 대원 가운데에서 가로·발에서 높이(px), 남은 도화선(틱)
@@ -1315,34 +1897,46 @@ describe('난이도 (초보 봇)', () => {
             progress: Math.min(100, Math.round((100 * best) / (g.stage.goal * TILE_U))),
             kills: g.kills,
             lives: g.lives,
-            score: g.score
+            score: g.score,
+            boss: bossAt >= 0,
+            bossAt: bossAt >= 0 ? Math.round(bossAt / TICK_HZ) : -1,
+            bossHp: g.boss ? g.boss.hp : -1
         };
     }
 
     /**
-     * 기준: 12판 중 3판 이상 깃발까지(첫 판에 끝까지 갈 수 있는 수준), 판의 절반 이상이 구간 절반을 넘는다.
-     * 너무 쉽지도 않게 — 적어도 한 판은 목숨을 잃는다.
+     * 기준 (계약: 첫 판에 보스까지 갈 수 있는 수준):
+     * - 12판 중 3판 이상 보스 구역에 닿는다, 판의 절반 이상이 구간 절반을 넘는다(진행률 중앙값 50% 이상).
+     * - 너무 쉽지 않게 — 보스 구역에 닿는 판은 10판 이하, 판마다 평균 목숨 1개 이상을 잃는다.
+     * 보스를 깬 판 수는 기록만 한다 (보스를 깰 수 있다는 근거는 무적 봇·보스 단위 테스트).
      */
-    it('초보 봇 12판 — 넷 중 하나 이상은 깃발까지, 절반 이상은 구간 절반을 넘는다', () => {
+    it('초보 봇 12판 — 넷 중 하나 이상은 보스까지, 절반 이상은 구간 절반을 넘고, 너무 쉽지 않다', () => {
         const runs: BotRun[] = [];
         for (let seed = 1; seed <= 12; seed++) {
             const r = beginnerRun(seed);
             runs.push(r);
             console.log(
-                `[commando] beginner seed=${seed} result=${r.reason} progress=${r.progress}% time=${Math.round(r.ticks / TICK_HZ)}s kills=${r.kills} lives=${r.lives} score=${r.score} deaths=${r.deaths.join(',')}`
+                `[commando] beginner seed=${seed} result=${r.reason} progress=${r.progress}% boss=${r.boss ? `${r.bossAt}s` : 'no'} bossHp=${r.bossHp} time=${Math.round(r.ticks / TICK_HZ)}s kills=${r.kills} lives=${r.lives} score=${r.score} deaths=${r.deaths.join(',')}`
             );
         }
+        const reached = runs.filter((r) => r.boss);
         const clears = runs.filter((r) => r.reason === 'clear');
         const progress = runs.map((r) => r.progress).sort((a, b) => a - b);
         const median = progress[5];
+        const lost = runs.reduce((n, r) => n + (START_LIVES - r.lives), 0) / runs.length;
+        const bossTimes = reached.map((r) => r.bossAt).sort((a, b) => a - b);
         const clearTimes = clears.map((r) => Math.round(r.ticks / TICK_HZ)).sort((a, b) => a - b);
+        const cols = runs
+            .flatMap((r) => r.deaths.map((d) => Number(d.split(':')[0])))
+            .sort((a, b) => a - b);
         console.log(
-            `[commando] beginner summary clears=${clears.length}/12 medianProgress=${median}% clearTimes=${clearTimes.join(',')}s livesLost=${runs.filter((r) => r.lives < START_LIVES).length}/12`
+            `[commando] beginner summary reachBoss=${reached.length}/12 bossClears=${clears.length}/12 medianProgress=${median}% avgLivesLost=${lost.toFixed(2)} bossTimes=${bossTimes.join(',')}s clearTimes=${clearTimes.join(',')}s deathCols=${cols.join(',')}`
         );
-        expect(clears.length).toBeGreaterThanOrEqual(3);
+        expect(reached.length).toBeGreaterThanOrEqual(3);
+        expect(reached.length).toBeLessThanOrEqual(10);
         expect(median).toBeGreaterThanOrEqual(50);
-        expect(runs.some((r) => r.lives < START_LIVES)).toBe(true);
-    }, 120_000);
+        expect(lost).toBeGreaterThanOrEqual(1);
+    }, 300_000);
 });
 
 describe('입력', () => {
@@ -1403,6 +1997,27 @@ describe('그림', () => {
         checkArt(ART.grenade, 6, 6);
         checkArt(ART.muzzle, 6, 6);
         checkArt(ART.bomb, 6, 6);
+        checkArt(ART.mark, 7, 5);
+    });
+
+    it('보스는 64×48 2프레임, 붉은 계열 — 앞 총 총구 줄은 총알 높이, 프레임마다 롤러가 돈다', () => {
+        expect(BOSS.length).toBe(2);
+        for (const frame of BOSS) {
+            checkArt(frame, BOSS_W, BOSS_H);
+            const all = frame.join('');
+            expect(all).toMatch(/r/);
+            expect(all).toMatch(/R/);
+            // 아군 색(청록·파랑·노랑)은 쓰지 않는다
+            expect(all).not.toMatch(/[gGby]/);
+            // 총구(0열)는 발에서 ENEMY_SHOT_Y 위 줄, 그 줄은 쇠(m) 총열
+            const gunRow = BOSS_H - ENEMY_SHOT_Y;
+            expect(frame[gunRow].slice(1, 10)).toMatch(/^m+$/);
+            // 맞는 상자 위(굴뚝·경고등) 말고 몸통은 맞는 상자 안에 있다
+            for (let r = 0; r < BOSS_H - BOSS_HIT_H; r++) {
+                expect(frame[r].slice(0, 30)).toMatch(/^\.+$/);
+            }
+        }
+        expect(BOSS[0].join('')).not.toBe(BOSS[1].join(''));
     });
 
     it('보병·투척병은 윗몸 16줄 × 다리 8줄 = 24×24, 적 옷은 붉은 계열', () => {
@@ -1418,6 +2033,19 @@ describe('그림', () => {
         // 보병 총구 줄 = 총알 높이 (발에서 ENEMY_SHOT_Y 위), 총은 그림 오른쪽 끝까지
         const gunRow = CHAR_SIZE - ENEMY_SHOT_Y;
         expect(RIFLE_TOP[gunRow].slice(16, 23)).toMatch(/^m+$/);
+    });
+
+    it('보병 겨누기(예고) 그림 — 같은 총구 줄 끝이 번쩍인다 (서 있는 그림과 다르다)', () => {
+        checkArt(RIFLE_AIM, CHAR_SIZE, 16);
+        checkArt(composeEnemy(RIFLE_AIM, ENEMY_LEGS_STAND), CHAR_SIZE, CHAR_SIZE);
+        expect(RIFLE_AIM.join('')).toMatch(/[rR]/);
+        const gunRow = CHAR_SIZE - ENEMY_SHOT_Y;
+        expect(RIFLE_AIM[gunRow].slice(16, 22)).toMatch(/^m+$/);
+        // 총구 끝(23열)과 그 위아래에 번쩍임
+        expect(RIFLE_AIM[gunRow][23]).toBe('w');
+        expect(RIFLE_AIM[gunRow - 1][23]).toBe('y');
+        expect(RIFLE_AIM[gunRow + 1][23]).toBe('y');
+        expect(RIFLE_AIM.join('')).not.toBe(RIFLE_TOP.join(''));
     });
 
     it('공중에서 아래로 쏘기 그림 2프레임 — 총이 몸 가운데에서 아래를 향한다 (총알 방향과 같다)', () => {

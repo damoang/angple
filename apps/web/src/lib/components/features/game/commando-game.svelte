@@ -1,13 +1,22 @@
 <script lang="ts">
-    // 다모앙 특공대 — 옆으로 달리며 쏘는 액션 (베타: 1단계 구간 — 보병·투척병, 보스는 다음 단계).
+    // 다모앙 특공대 — 옆으로 달리며 쏘는 액션. 1단계 구간(보병·투척병·잠금 구간 5곳) + 보스 「쿵쿵 롤러」.
     // 규칙은 $lib/games/commando/engine.ts(순수·결정적, 60틱 고정), 루프·키 입력은 $lib/games/shell.
-    // 게임 상태는 평범한 객체로 두고, 화면 숫자(HUD)만 $state 로 옮긴다.
+    // 게임 상태는 평범한 객체로 두고, 화면 숫자(HUD·보스 체력바·결과)만 $state 로 옮긴다.
     // 캔버스는 논리 해상도 384×216 그대로 그리고, CSS 로 기기 픽셀의 정수배만큼 키운다(픽셀이 선명하다).
     import { tick as afterUpdate, untrack } from 'svelte';
     import {
+        BOSS_ACT,
+        BOSS_CHARGE_STOP,
+        BOSS_DOWN,
+        BOSS_H,
+        BOSS_WINDUP_MODE,
+        ENEMY_SHOT_Y,
         MODE_WINDUP,
         OWNER_ENEMY,
         OWNER_PLAYER,
+        PATTERN_CHARGE,
+        PATTERN_GUN,
+        PATTERN_MORTAR,
         SCALE,
         START_GRENADES,
         START_LIVES,
@@ -19,9 +28,11 @@
         feetY,
         muzzle,
         step,
+        timeLeft,
         type Enemy,
         type Game,
-        type StepEvent
+        type StepEvent,
+        type Tally
     } from '$lib/games/commando/engine.js';
     import { T_CRATE, T_PLATFORM, isSolid, tileAt } from '$lib/games/commando/physics.js';
     import {
@@ -37,6 +48,7 @@
     import {
         AIR_DOWN,
         ART,
+        BOSS,
         ENEMY_LEGS_STAND,
         ENEMY_LEGS_WALK,
         LEGS_CROUCH,
@@ -44,6 +56,7 @@
         LEGS_RUN,
         LEGS_STAND,
         PALETTE,
+        RIFLE_AIM,
         RIFLE_TOP,
         THROWER_TOP,
         THROWER_WINDUP,
@@ -59,6 +72,13 @@
 
     const NAME = getGame('commando').name;
     const BEST_KEY = 'angple_commando_best';
+    const BOSS_NAME = '쿵쿵 롤러';
+    /** 보스 공격을 처음 볼 때 한 번 띄우는 안내 (PATTERN_* 차례) */
+    const PATTERN_HINTS = [
+        '총구가 번쩍이면 ↓ 엎드리기!',
+        '붉은 표시에서 비키세요!',
+        '경고등이 깜박이면 왼쪽이나 발판 위로!'
+    ];
     const S = SCALE;
     /** 지도 아래쪽 216px 을 보여 준다 — 지도 높이(224)와의 차이만큼 위를 자른다 */
     const CAM_Y = 8;
@@ -81,6 +101,19 @@
     let score = $state(0);
     let lives = $state(0);
     let grenades = $state(0);
+    let secondsLeft = $state(0);
+    /** 보스 체력바 — bossMax 가 0 이면 보스 없음 */
+    let bossHp = $state(0);
+    let bossMax = $state(0);
+    /** 끝난 판의 점수 내역 (결과 화면) */
+    let result = $state<Tally & { kills: number }>({
+        enemies: 0,
+        crates: 0,
+        boss: 0,
+        time: 0,
+        lives: 0,
+        kills: 0
+    });
     let best = $state(0);
     let banner = $state('');
     let announce = $state('');
@@ -103,6 +136,8 @@
     let bannerTimer: ReturnType<typeof setTimeout> | undefined;
     let padPointer = -1;
     let padHeld = 0;
+    /** 이번 판에 이미 안내한 보스 공격 */
+    let hinted: boolean[] = [];
 
     interface Particle {
         x: number;
@@ -157,6 +192,15 @@
         score = game.score;
         lives = game.lives;
         grenades = game.player.grenades;
+        secondsLeft = timeLeft(game);
+        bossHp = game.boss ? game.boss.hp : 0;
+        bossMax = game.boss ? game.boss.maxHp : 0;
+    }
+
+    /** 초 → m:ss */
+    function clock(sec: number): string {
+        const s = Math.max(0, sec);
+        return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
     }
 
     function showBanner(text: string, ms = 1600) {
@@ -198,6 +242,29 @@
             } else if (e.type === 'unlock') {
                 showBanner('앞으로! →', 1400);
                 announce = '앞으로 갈 수 있습니다';
+            } else if (e.type === 'boss') {
+                showBanner(`보스 등장 — ${BOSS_NAME}!`, 2200);
+                announce = `보스 ${BOSS_NAME} 등장`;
+            } else if (e.type === 'boss-windup') {
+                const hint = PATTERN_HINTS[e.pattern] ?? '';
+                if (hint && !hinted[e.pattern]) {
+                    hinted[e.pattern] = true;
+                    showBanner(hint, 1800);
+                }
+                announce = hint;
+            } else if (e.type === 'boss-hit') {
+                burst(e.x / S, e.y / S, PALETTE.w, 2);
+            } else if (e.type === 'boss-down') {
+                booms.push({ x: e.x / S, y: e.y / S, life: 0.35 });
+                burst(e.x / S, e.y / S, PALETTE.r, 16);
+                burst(e.x / S, e.y / S, PALETTE.y, 10);
+                shake(400);
+                showBanner(`${BOSS_NAME} 격파!`, 2000);
+                announce = `${BOSS_NAME} 격파`;
+            } else if (e.type === 'boss-boom') {
+                booms.push({ x: e.x / S, y: e.y / S, life: 0.35 });
+                burst(e.x / S, e.y / S, PALETTE.m, 6);
+                shake(120);
             } else if (e.type === 'clear') {
                 cleared = true;
             }
@@ -232,6 +299,7 @@
         game = createGame(newSeed());
         particles = [];
         booms = [];
+        hinted = [];
         newBest = false;
         cleared = false;
         syncHud();
@@ -276,6 +344,7 @@
             g.prevX = g.x;
             g.prevY = g.y;
         }
+        if (game.boss) game.boss.prevX = game.boss.x;
     }
 
     function resume() {
@@ -292,12 +361,15 @@
         input.clear();
         releasePad();
         status = 'over';
+        result = { ...game.tally, kills: game.kills };
         if (game.score > best) {
             best = game.score;
             newBest = true;
             saveBest(best);
         }
-        announce = cleared ? `구간 돌파. 점수 ${game.score}` : `게임 끝. 점수 ${game.score}`;
+        announce = cleared
+            ? `스테이지 클리어. 점수 ${game.score}${newBest ? ', 최고 기록' : ''}`
+            : `게임 끝. 점수 ${game.score}${newBest ? ', 최고 기록' : ''}`;
         render(1);
     }
 
@@ -397,7 +469,12 @@
         const f = Math.floor(e.walkTick / 10) % 2;
         const legs = walking ? ENEMY_LEGS_WALK[f] : ENEMY_LEGS_STAND;
         const lk = walking ? `w${f}` : 's';
-        if (e.kind === ENEMY_RIFLE) return [`er${lk}`, () => composeEnemy(RIFLE_TOP, legs)];
+        if (e.kind === ENEMY_RIFLE) {
+            // 겨누기(예고) 동안은 겨누는 자세 + 총구 번쩍임 그림 — 엔진의 MODE_WINDUP 과 같다
+            if (e.mode === MODE_WINDUP)
+                return ['ea', () => composeEnemy(RIFLE_AIM, ENEMY_LEGS_STAND)];
+            return [`er${lk}`, () => composeEnemy(RIFLE_TOP, legs)];
+        }
         if (e.kind === ENEMY_THROWER) {
             const top = e.mode === MODE_WINDUP ? THROWER_WINDUP : THROWER_TOP;
             const tk = e.mode === MODE_WINDUP ? 'u' : 't';
@@ -466,6 +543,8 @@
     }
 
     function drawGoal(ctx: CanvasRenderingContext2D, cam: number) {
+        // 보스 스테이지는 깃발 대신 보스
+        if (game.stage.boss) return;
         const x = Math.round(game.stage.goal * TILE - cam) + 6;
         if (x < -20 || x > VIEW_W + 20) return;
         const ground = (game.stage.ground[0]?.[2] ?? 12) * TILE - CAM_Y;
@@ -489,6 +568,72 @@
             const flash = e.hurt > 0 && e.hurt % 2 === 1;
             const [key, rows] = enemyArt(e);
             ctx.drawImage(sprite(key, rows, e.facing < 0, flash), x - 12, feet - 24);
+            // 겨누는 보병의 총구 끝 반짝임 (움직임 줄이기 설정이면 그림 속 번쩍임만)
+            if (
+                e.kind === ENEMY_RIFLE &&
+                e.mode === MODE_WINDUP &&
+                !reduceMotion &&
+                Math.floor(game.tick / 4) % 2 === 0
+            ) {
+                ctx.drawImage(
+                    sprite('muzzle', ART.muzzle, e.facing < 0),
+                    x + e.facing * 13 - 3,
+                    feet - ENEMY_SHOT_Y - 3
+                );
+            }
+        }
+    }
+
+    /** 보스와 예고 — 경고등·총구 번쩍임·떨어질 자리 표시 (움직임 줄이기면 깜박이지 않는다) */
+    function drawBoss(ctx: CanvasRenderingContext2D, a: number, cam: number) {
+        const b = game.boss;
+        if (!b) return;
+        const x = lerpPx(b.prevX, b.x, a, cam);
+        const top = Math.round(b.y / S) - CAM_Y;
+        const down = b.mode === BOSS_DOWN;
+        const f = Math.floor(b.rollTick / 4) % 2;
+        const flash = !reduceMotion && !down && b.hurt > 0 && b.hurt % 2 === 1;
+        if (down) ctx.globalAlpha = reduceMotion || Math.floor(b.modeT / 4) % 2 === 0 ? 0.8 : 0.45;
+        ctx.drawImage(sprite(`boss${f}`, BOSS[f], false, flash), x, top);
+        ctx.globalAlpha = 1;
+        if (down) return;
+        const blink = reduceMotion || Math.floor(game.tick / 5) % 2 === 0;
+        // 돌진 예고·돌진 중: 멈추는 선(화면 왼쪽에서 BOSS_CHARGE_STOP px)을 바닥에 점선으로
+        if (
+            b.pattern === PATTERN_CHARGE &&
+            (b.mode === BOSS_WINDUP_MODE || b.mode === BOSS_ACT) &&
+            blink
+        ) {
+            const lx = Math.round(game.camX / S + BOSS_CHARGE_STOP - cam);
+            const ground = top + BOSS_H;
+            ctx.fillStyle = PALETTE.r;
+            for (let dy = 2; dy <= 26; dy += 6) ctx.fillRect(lx - 1, ground - dy - 3, 2, 3);
+            ctx.fillStyle = PALETTE.w;
+            ctx.fillRect(lx - 3, ground - 2, 6, 2);
+        }
+        if (b.mode === BOSS_WINDUP_MODE) {
+            if (b.pattern === PATTERN_GUN && blink) {
+                ctx.drawImage(sprite('muzzle', ART.muzzle, true), x - 4, top + 30 - 3);
+            } else if (b.pattern === PATTERN_MORTAR) {
+                ctx.fillStyle = blink ? PALETTE.y : PALETTE.w;
+                ctx.fillRect(x + 33, top + 9, 4, 3);
+            } else if (b.pattern === PATTERN_CHARGE) {
+                ctx.fillStyle = blink ? PALETTE.r : PALETTE.w;
+                ctx.fillRect(x + 33, top + 9, 4, 3);
+                // 배기관 연기
+                if (!reduceMotion) {
+                    const puff = Math.floor(game.tick / 3) % 6;
+                    ctx.fillStyle = PALETTE.m;
+                    ctx.fillRect(x + 64 + puff, top + 18 - puff, 3, 3);
+                }
+            }
+        }
+        if (b.pattern === PATTERN_MORTAR && b.marks.length > 0 && blink) {
+            for (let k = 0; k < b.marks.length; k += 2) {
+                const mx = Math.round(b.marks[k] / S - cam);
+                const my = Math.round(b.marks[k + 1] / S) - CAM_Y;
+                ctx.drawImage(sprite('mark', ART.mark), mx - 3, my - 3);
+            }
         }
     }
 
@@ -603,7 +748,10 @@
         drawBackground(ctx, cam);
         drawTiles(ctx, cam);
         drawGoal(ctx, cam);
-        if (status !== 'idle') drawEnemies(ctx, a, cam);
+        if (status !== 'idle') {
+            drawBoss(ctx, a, cam);
+            drawEnemies(ctx, a, cam);
+        }
         drawPlayer(ctx, a, cam);
         drawShots(ctx, a, cam);
         drawEffects(ctx, frameDt, cam);
@@ -765,7 +913,7 @@
     class="game-area flex select-none flex-col items-center gap-3"
     class:no-pan={status === 'playing'}
 >
-    <dl class="grid w-full max-w-md grid-cols-4 gap-2 text-center text-sm" aria-label="{NAME} 현황">
+    <dl class="grid w-full max-w-md grid-cols-5 gap-1 text-center text-sm" aria-label="{NAME} 현황">
         <div>
             <dt class="text-muted-foreground text-xs">점수</dt>
             <dd class="text-foreground font-bold tabular-nums">{score.toLocaleString()}</dd>
@@ -783,6 +931,10 @@
             <dd class="text-foreground font-bold tabular-nums" aria-label="수류탄 {grenades}개">
                 {grenades}/{START_GRENADES}
             </dd>
+        </div>
+        <div>
+            <dt class="text-muted-foreground text-xs">남은 시간</dt>
+            <dd class="text-foreground tabular-nums">{clock(secondsLeft)}</dd>
         </div>
         <div>
             <dt class="text-muted-foreground text-xs">최고</dt>
@@ -812,6 +964,30 @@
                 aria-label="{NAME} 게임판"
             ></canvas>
 
+            {#if bossMax > 0 && (status === 'playing' || status === 'paused')}
+                <div
+                    class="pointer-events-none absolute left-1/2 top-1 flex w-[62%] -translate-x-1/2 items-center gap-1.5"
+                >
+                    <span
+                        class="shrink-0 rounded bg-slate-900/80 px-1.5 py-px text-[10px] font-bold leading-tight text-white"
+                        >{BOSS_NAME}</span
+                    >
+                    <div
+                        class="h-2.5 flex-1 overflow-hidden rounded-sm border border-slate-900/80 bg-slate-900/60"
+                        role="progressbar"
+                        aria-label="{BOSS_NAME} 체력"
+                        aria-valuemin={0}
+                        aria-valuemax={bossMax}
+                        aria-valuenow={bossHp}
+                    >
+                        <div
+                            class="h-full bg-rose-500"
+                            style="width: {(100 * bossHp) / bossMax}%;"
+                        ></div>
+                    </div>
+                </div>
+            {/if}
+
             {#if banner && status === 'playing'}
                 <p
                     class="pointer-events-none absolute left-1/2 top-[30%] -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-900/80 px-3 py-1 text-sm font-bold text-white shadow-sm"
@@ -822,13 +998,12 @@
 
             {#if status !== 'playing'}
                 <div
-                    class="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-md bg-slate-950/70 p-3 text-center text-white"
+                    class="justify-center-safe absolute inset-0 flex flex-col items-center gap-2 overflow-y-auto rounded-md bg-slate-950/70 p-3 text-center text-white"
                 >
                     {#if status === 'idle'}
                         <p class="text-2xl font-bold">{NAME}</p>
                         <p class="text-xs text-slate-300">
-                            베타 — 1단계 구간입니다. 적을 물리치며 끝 깃발까지 가세요 (보스는 준비
-                            중)
+                            적을 물리치며 강변 기지를 지나, 끝에서 기다리는 보스를 쓰러뜨리세요
                         </p>
                         <button
                             type="button"
@@ -845,10 +1020,38 @@
                             >계속</button
                         >
                     {:else}
-                        <p class="text-lg font-bold">{cleared ? '구간 돌파!' : '게임 끝'}</p>
-                        <p class="text-sm">
-                            점수 <span class="font-bold tabular-nums">{score.toLocaleString()}</span
-                            >{newBest ? ' · 최고 기록!' : ''}
+                        <p class="text-lg font-bold leading-tight">
+                            {cleared ? '스테이지 클리어!' : '게임 끝'}
+                        </p>
+                        <dl
+                            class="grid grid-cols-[auto_auto] gap-x-4 gap-y-px text-left text-xs leading-snug"
+                            aria-label="점수 내역"
+                        >
+                            <dt class="text-slate-300">적 처치 {result.kills}명 · 상자</dt>
+                            <dd class="text-right tabular-nums">
+                                {(result.enemies + result.crates).toLocaleString()}
+                            </dd>
+                            <dt class="text-slate-300">보스</dt>
+                            <dd class="text-right tabular-nums">
+                                {result.boss > 0 ? result.boss.toLocaleString() : '-'}
+                            </dd>
+                            {#if cleared}
+                                <dt class="text-slate-300">남은 시간 보너스</dt>
+                                <dd class="text-right tabular-nums">
+                                    {result.time.toLocaleString()}
+                                </dd>
+                                <dt class="text-slate-300">남은 목숨 보너스</dt>
+                                <dd class="text-right tabular-nums">
+                                    {result.lives.toLocaleString()}
+                                </dd>
+                            {/if}
+                            <dt class="font-bold">합계</dt>
+                            <dd class="text-right font-bold tabular-nums">
+                                {score.toLocaleString()}
+                            </dd>
+                        </dl>
+                        <p class="text-xs" class:text-amber-300={newBest}>
+                            {newBest ? '최고 기록!' : `최고 ${best.toLocaleString()}`}
                         </p>
                         <button
                             type="button"
@@ -928,7 +1131,8 @@
     <p class="sr-only" aria-live="polite" aria-atomic="true">{announce}</p>
     <p class="text-muted-foreground text-center text-xs">
         ← → 이동 · ↓ 엎드리기 · ↑ 위 조준 · Z/J 사격(누르고 있으면 연사) · X/K 점프(길게 = 높이) ·
-        C/L 수류탄 · 엎드려 점프 = 발판 아래로 · P 일시정지
+        C/L 수류탄 · 엎드려 점프 = 발판 아래로 · P 일시정지 · 점수 = 적 처치 + 보스 + 남은 시간·목숨
+        보너스
     </p>
 </div>
 
