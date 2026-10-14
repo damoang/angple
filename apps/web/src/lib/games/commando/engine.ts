@@ -124,6 +124,10 @@ export const LOB_FLIGHT = 40;
 export const LOB_MAX_VX = 1280;
 export const LOB_SPREAD = 12;
 export const ENEMY_FUSE = 120;
+/** 적 수류탄이 던진 뒤 이 틱 동안은 대원에게 닿아도 터지지 않는다 */
+export const ENEMY_ARM_TICKS = 12;
+/** 투척병은 대원이 이보다 가까우면(px) 던지지 않는다 (물러난 뒤 던진다) */
+export const LOB_MIN_RANGE = 24;
 export const ENEMY_BLAST_R = 16;
 
 export const START_LIVES = 3;
@@ -966,7 +970,8 @@ function updateEnemy(g: Game, e: Enemy, ev: StepEvent[]): void {
             const level =
                 spec.attack !== ATTACK_SHOT ||
                 Math.abs(feetY(g.player) - (e.y + e.h)) <= LEVEL_TOLERANCE * S;
-            if (level && Math.abs(dx) <= spec.range * S) {
+            const tooClose = spec.attack === ATTACK_LOB && Math.abs(dx) < LOB_MIN_RANGE * S;
+            if (level && !tooClose && Math.abs(dx) <= spec.range * S) {
                 e.fireT = spec.every + randInt(g, spec.everySpread);
                 e.facing = toward;
                 if (spec.windup > 0) {
@@ -1091,9 +1096,10 @@ function moveGrenades(g: Game, ev: StepEvent[]): void {
                 }
             }
         } else if (!boom) {
-            // 적 수류탄은 대원에게 닿으면 터진다
+            // 적 수류탄은 대원에게 닿으면 터진다 — 던진 직후(ENEMY_ARM_TICKS)는 빼고(코앞 즉사 없음)
             const p = g.player;
             if (
+                gr.fuse <= ENEMY_FUSE - ENEMY_ARM_TICKS &&
                 playerAlive(g) &&
                 boxesOverlap(gr.x - S, gr.y - S, 2 * S, 2 * S, p.x, p.y, p.w, p.h)
             ) {

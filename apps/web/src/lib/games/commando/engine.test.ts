@@ -6,6 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
+    ATTACK_LOB,
     ATTACK_SHOT,
     BULLET_HALF,
     CROUCH_H,
@@ -1165,6 +1166,19 @@ describe('난이도 (초보 봇)', () => {
                     (away > 0 && g.locked && p.x + p.w > g.camX + (VIEW_W - 24) * S);
                 if (wall || edge) away = -away;
                 m = dirBtn(away);
+                threat = true;
+                break;
+            }
+        }
+        if (react && !threat) {
+            // 팔을 든(예고) 투척병 → 서 있지 말고 그쪽으로 달린다(포물선 아래로 지나간다), 막혔으면 반대로
+            for (const e of g.enemies) {
+                if (e.mode !== MODE_WINDUP || enemySpec(e.kind).attack !== ATTACK_LOB) continue;
+                const ex = e.x + (e.w >> 1);
+                if (Math.abs(ex - cx) > 180 * S) continue;
+                let to = ex > cx ? 1 : -1;
+                if (boxHitsSolid(g.map, p.x + to * TILE_U, p.y, p.w, p.h)) to = -to;
+                m = dirBtn(to) | (miss ? 0 : BTN_FIRE);
                 threat = true;
                 break;
             }
