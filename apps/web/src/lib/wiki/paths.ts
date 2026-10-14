@@ -38,7 +38,7 @@ export function validateWikiPath(path: string): string | null {
     )
         return null;
     if (
-        /^\/(?:Special:|특수:|api(?:\/|$)|admin(?:\/|$)|auth(?:\/|$)|login$|search$|wiki(?:\/|$)|w(?:\/|$)|_app(?:\/|$)|sitemap|robots\.txt)/i.test(
+        /^\/(?:Special:|특수:|api(?:\/|$)|admin(?:\/|$)|auth(?:\/|$)|wiki-auth(?:\/|$)|login$|search$|wiki(?:\/|$)|w(?:\/|$)|_app(?:\/|$)|sitemap|robots\.txt)/i.test(
             p
         ) ||
         /\/(edit|history)$/.test(p)

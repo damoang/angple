@@ -42,6 +42,7 @@ const fs = require('node:fs');
         }
     }
     await c.query('SET FOREIGN_KEY_CHECKS=1');
+    await c.query(fs.readFileSync('migrations/003_wikiang_google_accounts.sql', 'utf8'));
     await c.end();
     console.log('Public document fixture seeded in isolated CI database.');
 })().catch((e) => {

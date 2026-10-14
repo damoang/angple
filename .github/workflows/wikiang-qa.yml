@@ -26,6 +26,9 @@ jobs:
                 image: redis:7-alpine
                 ports: ['6379:6379']
         env:
+            WIKIANG_SITE: 'true'
+            WIKIANG_GOOGLE_CLIENT_ID: ci-wikiang.apps.googleusercontent.com
+            WIKIANG_GOOGLE_CLIENT_SECRET: ci-only-placeholder
             DB_HOST: 127.0.0.1
             DB_PORT: '3306'
             DB_USER: root
@@ -54,7 +57,7 @@ jobs:
             - run: pnpm install --frozen-lockfile
             - run: pnpm --filter './packages/*' build
             - run: pnpm --filter web check
-            - run: pnpm --filter web exec vitest run --project server src/lib/wiki/render.test.ts
+            - run: pnpm --filter web exec vitest run --project server src/lib/wiki/render.test.ts src/lib/server/wiki-auth/auth.test.ts
             - run: pnpm build
             - run: pnpm --filter web exec playwright install --with-deps chromium
             - run: node scripts/wikiang/seed.cjs
@@ -71,6 +74,8 @@ jobs:
                   exit 1
             - name: Real editor create, update, conflict and revert
               run: node scripts/wikiang/editing-qa.cjs
+            - name: Independent Wikiang login and session QA
+              run: node scripts/wikiang/auth-qa.cjs
             - name: Four skins, persistent preferences and independent branding
               if: ${{ !cancelled() && steps.start.outcome == 'success' }}
               run: node scripts/wikiang/skins-qa.cjs

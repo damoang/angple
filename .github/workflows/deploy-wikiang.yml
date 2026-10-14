@@ -170,6 +170,12 @@ jobs:
                   QA_OUTPUT: qa-results-production
               run: node scripts/wikiang/skins-qa.cjs
 
+            - name: Read-only independent login QA
+              env:
+                  QA_BASE: https://wikiang.org
+                  QA_OUTPUT: qa-results-production
+              run: node scripts/wikiang/auth-production-qa.cjs
+
             - name: Upload production QA evidence
               if: always()
               uses: actions/upload-artifact@v4

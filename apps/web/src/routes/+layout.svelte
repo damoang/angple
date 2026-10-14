@@ -43,6 +43,7 @@
 
     // 인증 상태 동기화 (클라이언트 전용 — 모듈 레벨 $state는 SSR에서 요청간 공유되므로)
     function syncAuth(d: typeof data) {
+        if (d.wikiangSite) return;
         if (d.user && d.accessToken) {
             authActions.initFromSSR(
                 {
@@ -300,6 +301,7 @@
     registerDefaultSlots();
 
     onMount(() => {
+        if (data.wikiangSite) return;
         // 부분 layout 데이터 로드 (banners, celebration, plugins, GA4)
         // SSR payload에서 분리하여 __data.json 바이트 절감
         fetch('/api/layout/init')
@@ -420,7 +422,7 @@
 </svelte:head>
 
 <!-- /admin, /install, /wiki(위키 전용 레이아웃) 경로는 보드 레이아웃 없이 렌더링 -->
-{#if isAdminRoute || isInstallRoute || isWikiRoute}
+{#if data.wikiangSite || isAdminRoute || isInstallRoute || isWikiRoute}
     {@render children()}
 {:else if ThemeLayout}
     <!-- SSR 시점에 즉시 테마 레이아웃 렌더링 (동적 로딩 없음) -->
