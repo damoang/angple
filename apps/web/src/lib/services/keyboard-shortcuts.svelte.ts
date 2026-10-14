@@ -67,6 +67,29 @@ function isGamePath(): boolean {
     return path.startsWith('/games/') && path.length > '/games/'.length;
 }
 
+/** 전역 단축키를 끄는 표식 속성 */
+const OPT_OUT_ATTR = 'data-no-global-shortcuts';
+
+/** 노드(또는 그 조상)에 표식 속성이 있는지 — `closest` 가 있는 요소만 본다 */
+function closestOptOut(node: unknown): boolean {
+    const el = node as { closest?: (selector: string) => unknown } | null;
+    return !!el && typeof el.closest === 'function' && !!el.closest(`[${OPT_OUT_ATTR}]`);
+}
+
+/**
+ * 화면이 전역 단축키를 스스로 끈 상태인지 확인.
+ * 게임 경로(`/games/*`) 밖에서 글자키를 조작키로 쓰는 화면은
+ * 해당 영역에 `data-no-global-shortcuts` 를 달거나(이벤트 대상·포커스 요소가 그 안이면 무시),
+ * 진행 중 포커스 위치와 무관하게 막으려면 `document.body` 에 같은 속성을 단다.
+ */
+function isShortcutsOptedOut(target: EventTarget | null): boolean {
+    if (closestOptOut(target)) return true;
+    if (typeof document === 'undefined') return false;
+    if (closestOptOut(document.activeElement)) return true;
+    const body = document.body as { hasAttribute?: (name: string) => boolean } | null | undefined;
+    return !!body && typeof body.hasAttribute === 'function' && body.hasAttribute(OPT_OUT_ATTR);
+}
+
 class KeyboardShortcutService {
     // 시스템 단축키: event.code → URL
     private systemShortcuts = $state<Map<string, string>>(new Map());
@@ -165,6 +188,8 @@ class KeyboardShortcutService {
         if (event.defaultPrevented) return;
         // 게임 화면에서는 전역 단축키 비활성 (게임 조작키가 이동으로 먹히지 않도록)
         if (isGamePath()) return;
+        // 화면이 data-no-global-shortcuts 로 전역 단축키를 끈 경우 무시
+        if (isShortcutsOptedOut(event.target)) return;
         // 입력 필드 안에서는 무시
         if (isInputElement(event.target)) return;
         // contentEditable 요소 안에서는 무시
