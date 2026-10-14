@@ -26,6 +26,12 @@
                 <div class="mb-3 flex items-center gap-3">
                     <game.icon class="h-6 w-6 {game.color}" />
                     <h2 class="text-foreground text-xl font-semibold">{game.name}</h2>
+                    {#if game.badge}
+                        <span
+                            class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-900/50 dark:text-amber-200"
+                            >{game.badge}</span
+                        >
+                    {/if}
                 </div>
                 <p class="text-muted-foreground text-sm">{game.description}</p>
             </a>
