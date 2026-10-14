@@ -196,7 +196,169 @@ export function composeSoldier(
     return rows;
 }
 
-/* ── 적: 표적병 (24×24) — 붉은 철모, 제자리에서 이따금 쏜다 ── */
+/**
+ * 공중에서 아래로 쏘기 2프레임(24×24 한 장씩) — 0 = 오르는 중(다리 접음), 1 = 내려가는 중(다리 벌림).
+ * 총은 몸 가운데(11~12열)에서 아래로 — 총알이 나가는 자리(engine.muzzle: 가운데, 발 아래)와 맞춘다.
+ */
+export const AIR_DOWN = [
+    [
+        '........................',
+        '.........kkkkkk.........',
+        '.......kkggggggkk.......',
+        '......kggggggggggk......',
+        '......kyyyyyyyyyyk......',
+        '.....kGGsssssssssk......',
+        '.....ksssssssssssk......',
+        '.....ksssssskskssk......',
+        '.....kSssssskskrsk......',
+        '......kSsssssssssk......',
+        '.......kkyyyyyykk.......',
+        '......kgggsskkssggk.....',
+        '......kgggskmmksggk.....',
+        '......kGGGGkmmkGGGk.....',
+        '......kbbbbkmmkbbbk.....',
+        '.....kbbbbbkmmkbbbbk....',
+        '.....kbbk.kkmmkk.kbbk...',
+        '......kOOk.kmmk.kOOk....',
+        '......kkkk.kmmk.kkkk....',
+        '...........kmmk.........',
+        '............kk..........',
+        '........................',
+        '........................',
+        '........................'
+    ],
+    [
+        '........................',
+        '.........kkkkkk.........',
+        '.......kkggggggkk.......',
+        '......kggggggggggk......',
+        '......kyyyyyyyyyyk......',
+        '.....kGGsssssssssk......',
+        '.....ksssssssssssk......',
+        '.....ksssssskskssk......',
+        '.....kSssssskskrsk......',
+        '......kSsssssssssk......',
+        '.......kkyyyyyykk.......',
+        '......kgggsskkssggk.....',
+        '......kgggskmmksggk.....',
+        '......kGGGGkmmkGGGk.....',
+        '.....kbbbbbkmmkbbbbk....',
+        '....kbbbbbbkmmkbbbbbk...',
+        '...kbbbk...kmmk..kbbbk..',
+        '..kbbbk....kmmk...kbbbk.',
+        '..kbbk.....kmmk....kbbk.',
+        '..kOOk.....kmmk....kOOk.',
+        '.kOOOk......kk.....kOOOk',
+        '.kkkkk.............kkkkk',
+        '........................',
+        '........................'
+    ]
+];
+
+/* ── 적 (24×24, 붉은 계열, 오른쪽을 보고 그림) — 윗몸 16줄 + 다리 8줄 ── */
+
+/** 보병 윗몸 — 붉은 철모, 어깨에 붙인 총. 총구는 6줄 오른쪽 끝(발에서 18px 위 = ENEMY_SHOT_Y) */
+export const RIFLE_TOP = [
+    '........................',
+    '.......kkkkkkk..........',
+    '.....kkRRRRRRRkk........',
+    '....kRRRRRRRRRRRk.......',
+    '....kRRwRRRRRRRRk.......',
+    '...kkkkkkkkkkkkkkk......',
+    '....ksssssssskmmmmmmmmmk',
+    '....ksssskskskkkmkkkkkk.',
+    '....ksssskskssk.........',
+    '....kSssssssrsk.........',
+    '.....kSsssssssk.........',
+    '......kkkkkkkk..........',
+    '.....kRrrrrrsskk........',
+    '....kRrrrrrrrskmk.......',
+    '....kRrrrrrrrrk.........',
+    '....kkkkkkkkkkk.........'
+];
+
+/** 투척병 윗몸 — 방울 달린 털모자, 수류탄 주머니 */
+export const THROWER_TOP = [
+    '..........kk............',
+    '.........kwwk...........',
+    '.......kkkRRkkk.........',
+    '......kRRRRRRRRk........',
+    '.....kRrRrRrRrRRk.......',
+    '.....kkkkkkkkkkkk.......',
+    '.....kssssssssssk.......',
+    '.....ksssssksksk........',
+    '.....ksssssksksk........',
+    '.....kSsssssssrk........',
+    '......kSssssssk.........',
+    '.......kkkkkkk..........',
+    '.....kRrrrrrrrRk........',
+    '....kRrkOOOkrrrRk.......',
+    '...ksRrkOOOkrrrRsk......',
+    '....kkkkkkkkkkkkk.......'
+];
+
+/** 투척병 던지기 직전 — 뒤로 든 손에 수류탄 */
+export const THROWER_WINDUP = [
+    '.kkkk.....kk............',
+    'kRrRRk...kwwk...........',
+    'kRRRRk.kkkRRkkk.........',
+    '.kkkkkkRRRRRRRRk........',
+    '...kskRrRrRrRrRRk.......',
+    '...kskkkkkkkkkkkk.......',
+    '....kskssssssssssk......',
+    '.....kssssssksksk.......',
+    '.....ksssssksksk........',
+    '.....kSsssssssrk........',
+    '......kSssssssk.........',
+    '.......kkkkkkk..........',
+    '.....kRrrrrrrrRk........',
+    '....kRrkOOOkrrrRk.......',
+    '....kRrkOOOkrrrRsk......',
+    '....kkkkkkkkkkkkk.......'
+];
+
+/** 적 다리 — 서기 */
+export const ENEMY_LEGS_STAND = [
+    '.....kRRRkRRRk..........',
+    '.....kRRRkRRRk..........',
+    '.....kRRk.kRRk..........',
+    '.....kRRk.kRRk..........',
+    '.....kRRk.kRRk..........',
+    '.....kkkk.kkkk..........',
+    '....kdddk.kdddk.........',
+    '....kkkkk.kkkkk.........'
+];
+
+/** 적 다리 — 걷기 2프레임 */
+export const ENEMY_LEGS_WALK = [
+    [
+        '.....kRRRkRRRk..........',
+        '.....kRRRkRRRRk.........',
+        '....kRRk...kRRk.........',
+        '....kRRk....kRRk........',
+        '...kRRk.....kRRk........',
+        '...kkkk......kkkk.......',
+        '..kdddk......kdddk......',
+        '..kkkkk......kkkkk......'
+    ],
+    [
+        '.....kRRRkRRRk..........',
+        '......kRRRRRk...........',
+        '......kRRkRRk...........',
+        '......kRRkRRk...........',
+        '.....kRRk.kRRk..........',
+        '.....kkkk.kkkk..........',
+        '....kdddk.kdddk.........',
+        '....kkkkk.kkkkk.........'
+    ]
+];
+
+/** 적 한 장(24×24) = 윗몸 16줄 + 다리 8줄 */
+export function composeEnemy(top: string[], legs: string[]): string[] {
+    return top.concat(legs).slice(0, CHAR_SIZE);
+}
+
+/* ── 적: 표적병 (24×24) — 붉은 철모, 제자리에서 이따금 쏜다 (시험용) ── */
 
 export const DUMMY = [
     '........................',
@@ -332,12 +494,16 @@ export const TILE_CRACK = [
 /** 수류탄 (6×6) */
 export const GRENADE = ['..kk..', '.kGGk.', 'kGgGGk', 'kGGGGk', '.kGGk.', '..kk..'];
 
+/** 적 수류탄 (6×6) — 붉은 몸통 */
+export const BOMB = ['..kk..', '.kmmk.', 'kRrRRk', 'kRRRRk', '.kRRk.', '..kk..'];
+
 /** 총구 불꽃 (6×6) */
 export const MUZZLE = ['..y...', '.ywy..', 'ywwwyy', '.ywy..', '..y...', '......'];
 
 /** 그림 이름 → 격자 (검사·미리 그리기용) */
 export const ART: Record<string, string[]> = {
     dummy: DUMMY,
+    bomb: BOMB,
     grass: TILE_GRASS,
     dirt: TILE_DIRT,
     platform: TILE_PLATFORM,

@@ -1,10 +1,12 @@
 <script lang="ts">
-    // 다모앙 특공대 — 옆으로 달리며 쏘는 액션 (베타: 엔진·조작 + 짧은 시험 구간).
+    // 다모앙 특공대 — 옆으로 달리며 쏘는 액션 (베타: 1단계 구간 — 보병·투척병, 보스는 다음 단계).
     // 규칙은 $lib/games/commando/engine.ts(순수·결정적, 60틱 고정), 루프·키 입력은 $lib/games/shell.
     // 게임 상태는 평범한 객체로 두고, 화면 숫자(HUD)만 $state 로 옮긴다.
     // 캔버스는 논리 해상도 384×216 그대로 그리고, CSS 로 기기 픽셀의 정수배만큼 키운다(픽셀이 선명하다).
     import { tick as afterUpdate, untrack } from 'svelte';
     import {
+        MODE_WINDUP,
+        OWNER_ENEMY,
         OWNER_PLAYER,
         SCALE,
         START_GRENADES,
@@ -17,6 +19,7 @@
         feetY,
         muzzle,
         step,
+        type Enemy,
         type Game,
         type StepEvent
     } from '$lib/games/commando/engine.js';
@@ -30,16 +33,23 @@
         KEYMAP,
         padBits
     } from '$lib/games/commando/input.js';
-    import { CRATE_HP } from '$lib/games/commando/stages.js';
+    import { CRATE_HP, ENEMY_RIFLE, ENEMY_THROWER } from '$lib/games/commando/stages.js';
     import {
+        AIR_DOWN,
         ART,
+        ENEMY_LEGS_STAND,
+        ENEMY_LEGS_WALK,
         LEGS_CROUCH,
         LEGS_JUMP,
         LEGS_RUN,
         LEGS_STAND,
         PALETTE,
+        RIFLE_TOP,
+        THROWER_TOP,
+        THROWER_WINDUP,
         UPPER_FORWARD,
         UPPER_UP,
+        composeEnemy,
         composeSoldier
     } from '$lib/games/commando/sprites.js';
     import { createLoop, onPageHidden } from '$lib/games/shell/loop.js';
@@ -285,7 +295,7 @@
             newBest = true;
             saveBest(best);
         }
-        announce = cleared ? `훈련 완료. 점수 ${game.score}` : `게임 끝. 점수 ${game.score}`;
+        announce = cleared ? `구간 돌파. 점수 ${game.score}` : `게임 끝. 점수 ${game.score}`;
         render(1);
     }
 
@@ -368,6 +378,8 @@
         }
         if (!p.onGround) {
             const f = p.vy < 0 ? 0 : 1;
+            // 공중에서 ↓ — 총을 아래로 든 그림 (총알 방향과 맞춘다)
+            if (p.aimDown) return [`d${f}`, () => AIR_DOWN[f]];
             return [`j${u}${f}`, () => composeSoldier(upper, LEGS_JUMP[f])];
         }
         if (p.vx !== 0) {
@@ -375,6 +387,21 @@
             return [`r${u}${f}`, () => composeSoldier(upper, LEGS_RUN[f])];
         }
         return [`s${u}`, () => composeSoldier(upper, LEGS_STAND)];
+    }
+
+    /** 적 그림 고르기 — 종류·상태(걷기·겨누기)별 [그림 이름, 격자 만들기] */
+    function enemyArt(e: Enemy): [string, () => string[]] {
+        const walking = e.vx !== 0;
+        const f = Math.floor(e.walkTick / 10) % 2;
+        const legs = walking ? ENEMY_LEGS_WALK[f] : ENEMY_LEGS_STAND;
+        const lk = walking ? `w${f}` : 's';
+        if (e.kind === ENEMY_RIFLE) return [`er${lk}`, () => composeEnemy(RIFLE_TOP, legs)];
+        if (e.kind === ENEMY_THROWER) {
+            const top = e.mode === MODE_WINDUP ? THROWER_WINDUP : THROWER_TOP;
+            const tk = e.mode === MODE_WINDUP ? 'u' : 't';
+            return [`e${tk}${lk}`, () => composeEnemy(top, legs)];
+        }
+        return ['dummy', () => ART.dummy];
     }
 
     /** 먼 언덕 높이(px) — 화면 효과일 뿐 규칙과 무관 */
@@ -458,7 +485,8 @@
             const x = lerpPx(e.prevX + (e.w >> 1), e.x + (e.w >> 1), a, cam);
             const feet = lerpPx(e.prevY + e.h, e.y + e.h, a, 0) - CAM_Y;
             const flash = e.hurt > 0 && e.hurt % 2 === 1;
-            ctx.drawImage(sprite('dummy', ART.dummy, e.facing < 0, flash), x - 12, feet - 24);
+            const [key, rows] = enemyArt(e);
+            ctx.drawImage(sprite(key, rows, e.facing < 0, flash), x - 12, feet - 24);
         }
     }
 
@@ -500,7 +528,12 @@
         for (const g of game.grenades) {
             const x = lerpPx(g.prevX, g.x, a, cam);
             const y = lerpPx(g.prevY, g.y, a, 0) - CAM_Y;
-            ctx.drawImage(sprite('grenade', ART.grenade), x - 3, y - 3);
+            const enemy = g.owner === OWNER_ENEMY;
+            ctx.drawImage(
+                enemy ? sprite('bomb', ART.bomb) : sprite('grenade', ART.grenade),
+                x - 3,
+                y - 3
+            );
         }
     }
 
@@ -792,7 +825,8 @@
                     {#if status === 'idle'}
                         <p class="text-2xl font-bold">{NAME}</p>
                         <p class="text-xs text-slate-300">
-                            베타 — 시험 구간입니다. 달리고 뛰며 쏘아 끝 깃발까지 가세요
+                            베타 — 1단계 구간입니다. 적을 물리치며 끝 깃발까지 가세요 (보스는 준비
+                            중)
                         </p>
                         <button
                             type="button"
@@ -809,7 +843,7 @@
                             >계속</button
                         >
                     {:else}
-                        <p class="text-lg font-bold">{cleared ? '훈련 완료!' : '게임 끝'}</p>
+                        <p class="text-lg font-bold">{cleared ? '구간 돌파!' : '게임 끝'}</p>
                         <p class="text-sm">
                             점수 <span class="font-bold tabular-nums">{score.toLocaleString()}</span
                             >{newBest ? ' · 최고 기록!' : ''}
