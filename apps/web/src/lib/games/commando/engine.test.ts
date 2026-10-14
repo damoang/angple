@@ -769,6 +769,21 @@ describe('적', () => {
         expect(g.enemies.length).toBe(2);
     });
 
+    it('보병은 높이가 다른 대원(한 칸 턱 위)에게는 쏘지 않는다', () => {
+        const g = createGame(
+            1,
+            flat({
+                blocks: [[0, 11, 8, 1]],
+                start: [3, 10],
+                enemies: [{ kind: ENEMY_RIFLE, col: 14, row: 11 }]
+            })
+        );
+        const ev = runInvuln(g, 0, 900);
+        expect(feetY(g.player)).toBe(11 * TILE_U);
+        expect(g.enemies.length).toBe(1);
+        expect(count(ev, 'enemy-shot')).toBe(0);
+    });
+
     it('투척병은 멈춰 팔을 든 뒤 대원 쪽으로 수류탄을 던지고, 가만히 있는 대원은 맞는다', () => {
         const g = withEnemy(ENEMY_THROWER, 14);
         let windup = false;

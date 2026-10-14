@@ -17,6 +17,7 @@
  * 적 (ENEMY_SPECS)
  * - 보병: 대원과 일정 거리를 두고 걷다가(낭떠러지·벽·화면 끝에서 돌아선다) 멈춰 겨눈 뒤 곧게 한 발 쏜다.
  *   총알은 발에서 ENEMY_SHOT_Y 위 — 엎드린 대원(키 14px)의 머리 위로 지나간다(엎드리면 피한다).
+ *   대원 발이 같은 높이(LEVEL_TOLERANCE 안)일 때만 쏜다.
  * - 투척병: 멈춰 팔을 든 뒤 대원 쪽으로 수류탄을 포물선으로 던진다. 떨어진 자리에서 터지고 반경 안의 대원이 맞는다.
  * - 표적병: 제자리에서 이따금 쏜다(시험용).
  *
@@ -247,6 +248,8 @@ export const MODE_RECOVER = 2;
 export const TURN_TICKS = 40;
 /** 적이 화면 왼쪽·오른쪽 끝에서 돌아서는 여유(px) */
 export const EDGE_MARGIN = 4;
+/** 곧게 쏘는 적이 「같은 높이」로 보는 발 높이 차(px) — 턱 한 칸(16px)보다 작다 */
+export const LEVEL_TOLERANCE = 6;
 
 export interface Player extends Body {
     prevX: number;
@@ -958,7 +961,12 @@ function updateEnemy(g: Game, e: Enemy, ev: StepEvent[]): void {
         else if (alive) e.facing = toward;
         // 화면 안에서, 대원이 살아 있을 때만 공격 시각을 센다
         if (seen && alive && --e.fireT <= 0) {
-            if (Math.abs(dx) <= spec.range * S) {
+            // 곧게 쏘는 적은 대원 발이 자기 발과 같은 높이일 때만 쏜다 — 턱 위·아래에서 발목을 맞혀
+            // 엎드려도 못 피하는 총알이 없게
+            const level =
+                spec.attack !== ATTACK_SHOT ||
+                Math.abs(feetY(g.player) - (e.y + e.h)) <= LEVEL_TOLERANCE * S;
+            if (level && Math.abs(dx) <= spec.range * S) {
                 e.fireT = spec.every + randInt(g, spec.everySpread);
                 e.facing = toward;
                 if (spec.windup > 0) {
