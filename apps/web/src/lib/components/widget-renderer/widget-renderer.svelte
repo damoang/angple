@@ -41,6 +41,7 @@
     }
 
     const { zone, prefetchDataMap = {}, onlyIds, excludeIds = [] }: Props = $props();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 위젯마다 Props 가 달라 공통 Props 타입이 없다
     type WidgetComponent = Component<any>;
 
     const STATIC_WIDGET_COMPONENTS: Record<string, WidgetComponent> = {

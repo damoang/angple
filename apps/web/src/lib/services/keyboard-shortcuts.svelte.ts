@@ -69,6 +69,7 @@ class KeyboardShortcutService {
      * Admin에서 설정한 shortcut 필드(A-Z) 기반
      */
     buildFromMenus(menus: MenuItem[]) {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 복사본을 만든 뒤 $state 에 다시 대입해 갱신을 알리는 패턴이라 반응형 컬렉션이 필요 없다
         const map = new Map<string, string>();
 
         // 특수 단축키 먼저 등록
@@ -105,6 +106,7 @@ class KeyboardShortcutService {
      * @param shift - Shift { '1': '/gallery', '2': '/giving', ... }
      */
     setUserShortcuts(normal: Record<string, string>, shift?: Record<string, string>) {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 복사본을 만든 뒤 $state 에 다시 대입해 갱신을 알리는 패턴이라 반응형 컬렉션이 필요 없다
         const map = new Map<string, string>();
         for (const [digit, url] of Object.entries(normal)) {
             if (/^\d$/.test(digit) && url) {
@@ -113,6 +115,7 @@ class KeyboardShortcutService {
         }
         this.userShortcuts = map;
 
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 복사본을 만든 뒤 $state 에 다시 대입해 갱신을 알리는 패턴이라 반응형 컬렉션이 필요 없다
         const smap = new Map<string, string>();
         if (shift) {
             for (const [digit, url] of Object.entries(shift)) {
@@ -128,6 +131,7 @@ class KeyboardShortcutService {
      * 전체 단축키 맵 조회 (디버깅/UI 표시용)
      */
     get allShortcuts(): Map<string, string> {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- getter 가 매번 새로 만드는 조회용 임시 값이라 반응형이 필요 없다
         const combined = new Map<string, string>();
         // 시스템 단축키
         for (const [code, url] of this.systemShortcuts) {

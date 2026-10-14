@@ -2033,7 +2033,6 @@
             {#if onImageUpload}
                 <div class="space-y-2">
                     <label class="text-sm font-medium">파일 업로드</label>
-                    <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <label
                         class="border-border hover:bg-muted/50 flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 transition-colors {imageDialogDragOver
                             ? 'border-primary bg-primary/10'
@@ -2104,7 +2103,6 @@
             {#if onImageUpload}
                 <div class="space-y-2">
                     <label class="text-sm font-medium">동영상 파일 업로드</label>
-                    <!-- svelte-ignore a11y_no_static_element_interactions -->
                     <label
                         class="border-border hover:bg-muted/50 flex cursor-pointer flex-col items-center gap-2 rounded-lg border-2 border-dashed p-6 transition-colors {videoDialogDragOver
                             ? 'border-primary bg-primary/10'

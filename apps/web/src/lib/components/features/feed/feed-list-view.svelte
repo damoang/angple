@@ -8,6 +8,7 @@
 
     // 읽음-딤은 SSR(=false)로 그린 뒤 하이드레이션에서 곧바로 true 로 바꾸면 대량 재스타일이 번쩍인다.
     // 마운트 완료 후에만 켜서 초기 페인트를 SSR 과 일치시킨다($effect 는 SSR 미실행).
+    // eslint-disable-next-line svelte/prefer-writable-derived -- 마운트 뒤에만 true 가 되어야 SSR 첫 화면과 맞는다 — $derived 로 바꾸면 SSR 에서도 true 가 된다
     let readReady = $state(false);
     $effect(() => {
         readReady = true;

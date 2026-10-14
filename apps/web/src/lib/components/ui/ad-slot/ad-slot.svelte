@@ -52,14 +52,19 @@
     let { position, height = '90px', class: className = '', sizes, slotKey }: Props = $props();
 
     /** 삭제된 글/비밀글/성인 키워드 글/차단 작가 글 상세 페이지에서는 모든 광고를 숨김 (애드센스 정책) */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 페이지마다 data 모양이 달라 공통 타입이 없다(post·user 가 있을 때만 읽는다)
     const isDeletedPost = $derived(!!($page as any).data?.post?.deleted_at);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 페이지마다 data 모양이 달라 공통 타입이 없다(post·user 가 있을 때만 읽는다)
     const isSecretPost = $derived(!!($page as any).data?.post?.is_secret);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 페이지마다 data 모양이 달라 공통 타입이 없다(post·user 가 있을 때만 읽는다)
     const isAdultPost = $derived(!!($page as any).data?.post?.is_adult);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 페이지마다 data 모양이 달라 공통 타입이 없다(post·user 가 있을 때만 읽는다)
     const isSuppressedAuthor = $derived(!!($page as any).data?.post?.suppress_ads);
     // WP 모델: 플러그인이 should_render_ad filter 에 등록 → false 반환 시 광고 OFF (ad-free 멤버십 등)
     const pluginSuppress = $derived(
         hooks.applyFilters('should_render_ad', true, {
             slotName: position,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 페이지마다 data 모양이 달라 공통 타입이 없다(post·user 가 있을 때만 읽는다)
             user: ($page as any).data?.user ?? null,
             // PC viewport (≥970px) 일 때만 ad-free 같은 plugin 이 광고 OFF 가능.
             // 모바일/태블릿은 default true 유지 → 다모앙 자체 광고앙 배너 + AdSense 정상 노출.
@@ -257,6 +262,7 @@
         // Phase B-1: canary 그룹 + 적용 대상 slot 인 경우 Prebid auction 먼저 실행.
         // 실패/timeout 시 silent fallback → GAM 만 사용 (기존 동작 유지).
         if (PHASE_B1_SLOTS.has(position)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 페이지마다 data 모양이 달라 공통 타입이 없다(post·user 가 있을 때만 읽는다)
             const userKey = ($page as any).data?.user?.mb_id ?? slotId;
             if (isInCanary(userKey)) {
                 try {
@@ -274,6 +280,7 @@
         // P0-B canary 5%: GAM gpt.js <link rel="preload"> 삽입 (5/22 미팅 직결).
         // hash(mb_id) 기반 안정적 분류 — 같은 사용자는 항상 같은 결과.
         // 비로그인은 slotId 사용 (페이지/포지션마다 분산되어 통계적으로 ~5%).
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 페이지마다 data 모양이 달라 공통 타입이 없다(post·user 가 있을 때만 읽는다)
         const preloadKey = ($page as any).data?.user?.mb_id ?? slotId;
         if (isInPreloadCanary(preloadKey)) {
             ensureGAMPreload();

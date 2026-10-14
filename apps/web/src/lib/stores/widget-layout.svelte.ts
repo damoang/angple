@@ -188,6 +188,7 @@ class WidgetLayoutStore {
         if (missing.length > 0) merged = [...merged, ...missing.map((w) => deepCopy(w))];
 
         // 싱글톤 위젯이 저장값 자체에 2개 이상 있는 경우도 첫 항목만 남긴다(중복 방어).
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 함수 안에서만 쓰는 일회성 임시 값이라 반응형이 필요 없다
         const seenSingleton = new Set<string>();
         merged = merged.filter((w) => {
             if (!SINGLETON_WIDGET_TYPES.has(w.type)) return true;

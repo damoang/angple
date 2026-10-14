@@ -31,7 +31,9 @@
     ];
 
     // 로컬 상태
+    // eslint-disable-next-line svelte/prefer-writable-derived -- 사용자가 고치는 입력값 — $effect 는 SSR 에서 돌지 않는다 — $derived 로 바꾸면 SSR 초기값과 갱신 시점이 달라지므로 기존 동작을 유지한다
     let searchQuery = $state('');
+    // eslint-disable-next-line svelte/prefer-writable-derived -- 사용자가 고르는 선택값 — $effect 는 SSR 에서 돌지 않는다 — $derived 로 바꾸면 SSR 초기값과 갱신 시점이 달라지므로 기존 동작을 유지한다
     let searchField = $state<SearchField>('title_content');
 
     $effect(() => {
@@ -304,17 +306,20 @@
                                     >
                                         {#if isComment}
                                             <p class="text-foreground mb-1 line-clamp-2 text-sm">
+                                                <!-- eslint-disable-next-line svelte/no-at-html-tags -- highlightQuery()($lib/utils/highlight)가 본문을 이스케이프한 뒤 mark 태그만 넣는다(검색어가 있을 때만 결과가 그려진다) -->
                                                 {@html highlightQuery(post.content, data.query)}
                                             </p>
                                         {:else}
                                             <h3
                                                 class="text-foreground mb-1 line-clamp-1 font-medium"
                                             >
+                                                <!-- eslint-disable-next-line svelte/no-at-html-tags -- highlightQuery()($lib/utils/highlight)가 제목을 이스케이프한 뒤 mark 태그만 넣는다(검색어가 있을 때만 결과가 그려진다) -->
                                                 {@html highlightQuery(post.title, data.query)}
                                             </h3>
                                             <p
                                                 class="text-secondary-foreground mb-2 line-clamp-2 text-sm"
                                             >
+                                                <!-- eslint-disable-next-line svelte/no-at-html-tags -- highlightQuery()($lib/utils/highlight)가 본문을 이스케이프한 뒤 mark 태그만 넣는다(검색어가 있을 때만 결과가 그려진다) -->
                                                 {@html highlightQuery(post.content, data.query)}
                                             </p>
                                         {/if}

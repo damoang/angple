@@ -45,7 +45,7 @@ export const GET: RequestHandler = async ({ url, locals, getClientAddress, reque
     }
 
     // 클릭 로깅 (fire-and-forget — 리다이렉트를 블로킹하지 않음)
-    let clientIp = resolveClientIp(getClientAddress, request) ?? '';
+    const clientIp = resolveClientIp(getClientAddress, request) ?? '';
 
     void logAffiliateClick({
         userId: locals.user?.id,

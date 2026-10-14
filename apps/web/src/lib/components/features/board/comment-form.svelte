@@ -109,6 +109,7 @@
 
     let content = $state('');
     let error = $state<string | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 에디터 컴포넌트 인스턴스 참조라 공통 타입이 없다
     let editorRef = $state<any>(null);
     let fileInputRef = $state<HTMLInputElement | null>(null);
     // 포커스 플레이스홀더(textarea) 상태 — iOS 첫 탭에 키보드를 올리기 위한 실제 focusable 요소 (bug/13491)

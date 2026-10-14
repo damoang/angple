@@ -9,6 +9,7 @@
 
     let { data }: { data: PageData } = $props();
 
+    // eslint-disable-next-line svelte/prefer-writable-derived -- 팔로우 해제 시 직접 고치는 목록 — $effect 는 SSR 에서 돌지 않는다 — $derived 로 바꾸면 SSR 초기값과 갱신 시점이 달라지므로 기존 동작을 유지한다
     let followingList = $state<typeof data.following>([]);
     let unfollowingId = $state<string | null>(null);
 

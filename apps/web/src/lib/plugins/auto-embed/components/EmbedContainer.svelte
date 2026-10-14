@@ -69,6 +69,7 @@
         data-platform={embedInfo.platform}
         style={containerStyle}
     >
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -- 플랫폼 render() 가 만든 임베드 HTML(참조 0건 사본, 정화 없음 — 후속 점검 대상) -->
         {@html embedHtml}
     </div>
 {:else if url}

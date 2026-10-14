@@ -279,7 +279,7 @@ export const POST: RequestHandler = async ({ request, cookies, getClientAddress 
 
         // 클라이언트 IP (PHP chosen_ip 호환)
         // IP 보호: super admin/지정 멤버는 실제 IP 대신 치환 IP 기록 (Go 미들웨어와 동일 규칙)
-        let clientIp = protectClientIp(user, resolveClientIp(getClientAddress, request) ?? '');
+        const clientIp = protectClientIp(user, resolveClientIp(getClientAddress, request) ?? '');
 
         if (!existing[0]) {
             // 리액션 추가

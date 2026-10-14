@@ -11,6 +11,7 @@ export const GET: RequestHandler = async ({ url }) => {
         const [countRows] = await readPool.query(
             `SELECT COUNT(*) as total FROM commerce_products WHERE status = 'published' AND deleted_at IS NULL`
         );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mysql2 쿼리 결과 행이라 스키마 타입이 없다
         const total = (countRows as any)[0].total;
 
         const [rows] = await readPool.query(

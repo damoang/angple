@@ -60,7 +60,7 @@ export const load: PageServerLoad = async ({ params, cookies }) => {
     //    → 기간 필터는 bn_datetime 인덱스가 있는 g5_board_new 로 걸고(실측 5.2천 행),
     //      삭제글 제외만 PK 조인으로 붙인다. 실측 결과 직접 집계와 수치가 정확히 일치했다.
     // ⚠️ 읽기는 readPool 로 보낸다(설정 없으면 writer 로 자동 폴백).
-    let stats = { posts30d: 0, comments30d: 0, writers30d: 0, totalPosts: 0 };
+    const stats = { posts30d: 0, comments30d: 0, writers30d: 0, totalPosts: 0 };
     try {
         const [rows] = await readPool.query<RowDataPacket[]>(
             `SELECT SUM(w.wr_is_comment = 0)              AS posts30d,

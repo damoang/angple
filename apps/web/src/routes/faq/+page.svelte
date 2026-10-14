@@ -9,6 +9,7 @@
     let { data }: { data: PageData } = $props();
 
     // 현재 선택된 카테고리
+    // eslint-disable-next-line svelte/prefer-writable-derived -- 사용자가 고르는 선택값 — $effect 는 SSR 에서 돌지 않는다 — $derived 로 바꾸면 SSR 초기값과 갱신 시점이 달라지므로 기존 동작을 유지한다
     let selectedCategoryId = $state(0);
     $effect(() => {
         selectedCategoryId = data.categories[0]?.fm_id ?? 0;
@@ -77,6 +78,7 @@
                                 </Accordion.Trigger>
                                 <Accordion.Content>
                                     <div class="faq-content prose prose-sm max-w-none">
+                                        <!-- eslint-disable-next-line svelte/no-at-html-tags -- sanitize()(DOMPurify)로 정화한 HTML -->
                                         {@html sanitize(item.fa_content)}
                                     </div>
                                 </Accordion.Content>

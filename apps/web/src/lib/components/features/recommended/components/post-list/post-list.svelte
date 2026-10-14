@@ -28,6 +28,7 @@
 
     // 섹션별로 포스트에 고유 키 부여 + 중복 제거 + 10개 제한
     const allPosts = $derived.by(() => {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- $derived 계산 안에서만 쓰는 임시 값이라 반응형이 필요 없다
         const seen = new Set<number>();
         const result: (RecommendedPost & { uniqueKey: string })[] = [];
         const sections = [

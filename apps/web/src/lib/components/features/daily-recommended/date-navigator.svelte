@@ -69,6 +69,7 @@
         }
     }
 
+    // eslint-disable-next-line svelte/prefer-writable-derived -- 달력 선택으로 덮어쓰는 입력값 — $effect 는 SSR 에서 돌지 않는다 — $derived 로 바꾸면 SSR 초기값과 갱신 시점이 달라지므로 기존 동작을 유지한다
     let calendarValue = $state<DateValue | undefined>(undefined);
 
     $effect(() => {

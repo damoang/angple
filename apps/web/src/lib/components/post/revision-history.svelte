@@ -305,6 +305,7 @@
                                 <div
                                     class="max-h-80 overflow-y-auto rounded-md border px-3 py-2 text-xs dark:border-neutral-700"
                                 >
+                                    <!-- eslint-disable-next-line svelte/no-at-html-tags -- DOMPurify.sanitize() 로 정화한 HTML -->
                                     {@html DOMPurify.sanitize(
                                         selectedRevision.content,
                                         REVISION_PURIFY_CONFIG

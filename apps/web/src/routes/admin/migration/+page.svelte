@@ -87,6 +87,7 @@
     let sourceUser = $state('root');
     let sourcePassword = $state('');
     let sourceDatabase = $state('');
+    // eslint-disable-next-line svelte/prefer-writable-derived -- 소스를 바꾸면 기본 접두사를 넣되 사용자가 직접 고칠 수 있는 입력값 — 기존 동작 유지
     let tablePrefix = $state('g5_');
 
     let targetHost = $state('localhost');

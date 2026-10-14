@@ -133,6 +133,7 @@ export const memoPresence = {
     markCreated(targetId?: string): void {
         hasAnyMemo = true;
         if (targetId && targets && !targets.has(targetId)) {
+            // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 복사본을 만든 뒤 $state 에 다시 대입해 갱신을 알리는 패턴이라 반응형 컬렉션이 필요 없다
             const next = new Set(targets);
             next.add(targetId);
             targets = next;
@@ -146,6 +147,7 @@ export const memoPresence = {
      */
     markDeleted(targetId: string): void {
         if (!targetId || !targets || !targets.has(targetId)) return;
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 복사본을 만든 뒤 $state 에 다시 대입해 갱신을 알리는 패턴이라 반응형 컬렉션이 필요 없다
         const next = new Set(targets);
         next.delete(targetId);
         targets = next;

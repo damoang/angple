@@ -38,6 +38,7 @@
 
     let { data }: { data: PageData } = $props();
 
+    // eslint-disable-next-line svelte/prefer-writable-derived -- 연결 해제 시 직접 고치는 목록 — $effect 는 SSR 에서 돌지 않는다 — $derived 로 바꾸면 SSR 초기값과 갱신 시점이 달라지므로 기존 동작을 유지한다
     let profiles = $state([] as typeof data.socialProfiles);
 
     $effect(() => {
@@ -267,7 +268,9 @@
                         location.reload();
                     }
                 }
-            } catch {}
+            } catch {
+                // 폴링 실패는 무시하고 다음 주기에 다시 확인한다
+            }
         }, 1000);
         return () => {
             window.removeEventListener('message', handleCertMessage);

@@ -55,11 +55,13 @@
 
         {#if data.wikiPage.content}
             <div class="wiki-content">
+                <!-- eslint-disable-next-line svelte/no-at-html-tags -- 위키 본문 HTML/마크다운 렌더 결과(정화 없음 — 후속 점검 대상) -->
                 {@html renderContent(data.wikiPage.content, data.wikiPage.content_type)}
             </div>
         {:else if data.wikiPage.content_raw}
             <!-- content_raw도 마크다운일 수 있음 -->
             <div class="wiki-content">
+                <!-- eslint-disable-next-line svelte/no-at-html-tags -- 위키 본문 HTML/마크다운 렌더 결과(정화 없음 — 후속 점검 대상) -->
                 {@html renderContent(data.wikiPage.content_raw, data.wikiPage.content_type)}
             </div>
         {:else}

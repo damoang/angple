@@ -181,6 +181,7 @@ function createReadPostsStore() {
          */
         getReadPostIds(boardId: string): Set<number> {
             const prefix = `${boardId}:`;
+            // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 호출할 때마다 새로 만들어 돌려주는 결과 값이라 반응형이 필요 없다
             const result = new Set<number>();
 
             for (const key of Object.keys(data.posts)) {

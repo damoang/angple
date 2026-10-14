@@ -284,9 +284,9 @@
     }
 
     $effect(() => {
-        board;
-        hoverPos;
-        winningLine;
+        void board;
+        void hoverPos;
+        void winningLine;
         draw();
     });
 

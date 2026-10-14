@@ -54,12 +54,17 @@ function transformToMarketplacePlugin(
         description: manifest.description,
         version: manifest.version,
         author: authorName,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 매니페스트 타입에 없는 선택 필드를 읽는다
         downloads: (manifest as any).downloads ?? 0, // TODO: DB에 저장
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 매니페스트 타입에 없는 선택 필드를 읽는다
         rating: (manifest as any).rating ?? 5, // TODO: DB에 저장
         tags: manifest.tags ?? [],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 매니페스트 타입에 없는 선택 필드를 읽는다
         category: (manifest as any).marketplaceCategory ?? 'plugin', // TODO: 세부 카테고리
         price: 0, // 공식 플러그인은 모두 무료
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 매니페스트 타입에 없는 선택 필드를 읽는다
         screenshot: (manifest as any).screenshot,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 매니페스트 타입에 없는 선택 필드를 읽는다
         packageName: (manifest as any).packageName,
         installed: isActive
     };

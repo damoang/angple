@@ -106,6 +106,7 @@
 
                     <span class="truncate {readClass}">
                         {#if searchQuery}
+                            <!-- eslint-disable-next-line svelte/no-at-html-tags -- highlightQuery()($lib/utils/highlight)가 제목을 이스케이프한 뒤 mark 태그만 넣는다 -->
                             {@html highlightQuery(post.title, searchQuery)}
                         {:else}
                             {post.title}
