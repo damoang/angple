@@ -1285,6 +1285,7 @@ describe('난이도 (초보 봇)', () => {
                     near = `b${Math.round((feetY(p) - b.y) / S)}`;
                 }
             }
+            const bombs = g.grenades.filter((q) => q.owner === OWNER_ENEMY).map((q) => ({ ...q }));
             const ev = step(g, m);
             if (ev.some((v) => v.type === 'die')) {
                 const why =
@@ -1293,6 +1294,12 @@ describe('난이도 (초보 봇)', () => {
                         : ev.some((v) => v.type === 'boom')
                           ? 'blast'
                           : 'shot';
+                for (const v of ev) {
+                    if (v.type !== 'boom') continue;
+                    // 터진 자리: 대원 가운데에서 가로·발에서 높이(px), 남은 도화선(틱)
+                    const gr = bombs.find((q) => Math.abs(q.x - v.x) < 8 * S);
+                    near += `x${Math.round((v.x - centerX(g.player)) / S)}h${Math.round((feetY(g.player) - v.y) / S)}f${gr ? gr.fuse : -1}`;
+                }
                 deaths.push(`${fdiv(centerX(g.player), TILE_U)}:${why}/${pose}${near}`);
             }
             best = Math.max(best, centerX(g.player));
