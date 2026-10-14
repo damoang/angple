@@ -6,6 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
+    ATTACK_SHOT,
     BULLET_HALF,
     CROUCH_H,
     CRATE_POINTS,
@@ -1142,6 +1143,21 @@ describe('난이도 (초보 봇)', () => {
             }
         }
         if (react && !threat) {
+            // 같은 높이에서 이쪽을 보고 겨누는(예고 자세) 보병 → 미리 엎드린다
+            for (const e of g.enemies) {
+                if (e.mode !== MODE_WINDUP || enemySpec(e.kind).attack !== ATTACK_SHOT) continue;
+                const ex = e.x + (e.w >> 1);
+                if (Math.abs(e.y + e.h - feet) > 8 * S || Math.abs(ex - cx) > 200 * S) continue;
+                if ((ex < cx ? 1 : -1) !== e.facing) continue;
+                m =
+                    BTN_DOWN |
+                    (miss ? 0 : BTN_FIRE) |
+                    (e.facing === p.facing ? dirBtn(-e.facing) : 0);
+                threat = true;
+                break;
+            }
+        }
+        if (react && !threat) {
             for (const b of g.bullets) {
                 if (b.owner !== OWNER_ENEMY || b.vy !== 0) continue;
                 const coming = (b.vx < 0 && b.x > cx) || (b.vx > 0 && b.x < cx);
@@ -1186,6 +1202,8 @@ describe('난이도 (초보 봇)', () => {
     }
 
     interface BotRun {
+        /** 목숨을 잃은 자리(열)와 까닭: pit(구덩이)·blast(수류탄)·shot(총알) */
+        deaths: string[];
         reason: string;
         ticks: number;
         progress: number;
@@ -1200,6 +1218,7 @@ describe('난이도 (초보 봇)', () => {
         let mask = 0;
         let lastX = g.player.x;
         let best = 0;
+        const deaths: string[] = [];
         for (let t = 0; t < MAX_TICKS && !g.over; t++) {
             const p = g.player;
             const decideNow = t % DECIDE_TICKS === 0;
@@ -1213,10 +1232,20 @@ describe('난이도 (초보 봇)', () => {
             if (decideNow && p.onGround && (m & BTN_JUMP) !== 0 && (g.prevMask & BTN_JUMP) !== 0) {
                 m &= ~BTN_JUMP;
             }
-            step(g, m);
+            const ev = step(g, m);
+            if (ev.some((v) => v.type === 'die')) {
+                const why =
+                    g.player.y > g.map.rows * TILE_U
+                        ? 'pit'
+                        : ev.some((v) => v.type === 'boom')
+                          ? 'blast'
+                          : 'shot';
+                deaths.push(`${fdiv(centerX(g.player), TILE_U)}:${why}`);
+            }
             best = Math.max(best, centerX(g.player));
         }
         return {
+            deaths,
             reason: g.reason,
             ticks: g.tick,
             progress: Math.min(100, Math.round((100 * best) / (g.stage.goal * TILE_U))),
@@ -1236,7 +1265,7 @@ describe('난이도 (초보 봇)', () => {
             const r = beginnerRun(seed);
             runs.push(r);
             console.log(
-                `[commando] beginner seed=${seed} result=${r.reason} progress=${r.progress}% time=${Math.round(r.ticks / TICK_HZ)}s kills=${r.kills} lives=${r.lives} score=${r.score}`
+                `[commando] beginner seed=${seed} result=${r.reason} progress=${r.progress}% time=${Math.round(r.ticks / TICK_HZ)}s kills=${r.kills} lives=${r.lives} score=${r.score} deaths=${r.deaths.join(',')}`
             );
         }
         const clears = runs.filter((r) => r.reason === 'clear');

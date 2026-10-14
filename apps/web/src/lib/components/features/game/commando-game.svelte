@@ -122,6 +122,8 @@
     let shakeUntil = 0;
     let lastFrame = 0;
     /** 픽셀 그림 → 1배 캔버스 (논리 해상도 그대로, 좌우 뒤집은 것·하얗게 번쩍인 것 따로) */
+    // 그리기용 캐시일 뿐 화면 상태가 아니다 — 반응형 Map 이 필요 없다.
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const sprites = new Map<string, HTMLCanvasElement>();
 
     const input = createHeldInput({ repeat: 0, hold: BTN_ALL });

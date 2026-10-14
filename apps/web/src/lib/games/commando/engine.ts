@@ -151,7 +151,7 @@ export const LIFE_BONUS = 500;
 /** 판 하나의 최대 틱(10분) — 넘으면 판이 끝난다 */
 export const MAX_TICKS = 10 * 60 * TICK_HZ;
 
-/** 적 공격 방법 */
+/** 적 공격 방법 (곧게 쏘기 / 수류탄 던지기) */
 export const ATTACK_SHOT = 0;
 export const ATTACK_LOB = 1;
 
@@ -204,12 +204,12 @@ export const ENEMY_SPECS: Record<number, EnemySpec> = {
         hp: 2,
         points: 100,
         speed: 128,
-        near: 64,
-        far: 128,
+        near: 72,
+        far: 144,
         first: 45,
         firstSpread: 60,
-        every: 100,
-        everySpread: 80,
+        every: 120,
+        everySpread: 90,
         windup: 24,
         recover: 14,
         attack: ATTACK_SHOT,
