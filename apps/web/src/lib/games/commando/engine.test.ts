@@ -1551,7 +1551,7 @@ describe('난이도 (초보 봇)', () => {
     const MISS = 25;
     const LOB = 6;
     /** 적 수류탄 떨어질 자리 어림 오차(px) — 판단마다 −LAND_ERR ~ +LAND_ERR (사람 눈대중) */
-    const LAND_ERR = 10;
+    const LAND_ERR = 4;
 
     /** 적 수류탄이 대원 발 높이까지 떨어질 때의 x (단위, 대략) */
     function landingX(x: number, y: number, vx: number, vy: number, floor: number): number {
