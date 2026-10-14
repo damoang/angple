@@ -16,10 +16,17 @@
         value = $bindable(''),
         contentType = 'markdown',
         path = '',
-        placeholder = '마크다운으로 작성하세요. 위키링크는 [[문서명]] 형식입니다.',
+        placeholder,
         existingWikilinkPaths = [],
         onChange
     }: Props = $props();
+
+    const sourcePlaceholder = $derived(
+        placeholder ??
+            (contentType === 'html'
+                ? 'HTML 원문을 편집하세요. 태그와 표 구조를 유지해주세요.'
+                : '마크다운으로 작성하세요. 위키링크는 [[문서명]] 형식입니다.')
+    );
 
     let textareaEl: HTMLTextAreaElement | undefined = $state();
     let showPreview = $state(false);
@@ -36,7 +43,7 @@
     }
 
     function insertAtCursor(before: string, after = before, placeholderText = '') {
-        if (!textareaEl) return;
+        if (!textareaEl || contentType === 'html' || textareaEl.matches(':disabled')) return;
         const start = textareaEl.selectionStart;
         const end = textareaEl.selectionEnd;
         const sel = value.slice(start, end) || placeholderText;
@@ -78,6 +85,7 @@
     ];
 
     function onKeyDown(e: KeyboardEvent) {
+        if (contentType === 'html') return;
         if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
             const k = e.key.toLowerCase();
             if (k === 'b') {
@@ -99,11 +107,13 @@
             onclick={() => (showPreview = !showPreview)}
             >{showPreview ? '원문 편집' : '미리보기'}</button
         >
-        {#each buttons as b (b.label)}
-            <button type="button" class="md-tool" title={b.title} onclick={b.click}>
-                {b.label}
-            </button>
-        {/each}
+        {#if contentType !== 'html'}
+            {#each buttons as b (b.label)}
+                <button type="button" class="md-tool" title={b.title} onclick={b.click}>
+                    {b.label}
+                </button>
+            {/each}
+        {/if}
     </div>
     <div class="md-split" class:show-preview={showPreview}>
         <textarea
@@ -112,7 +122,7 @@
             aria-label="문서 내용"
             bind:this={textareaEl}
             class="md-textarea"
-            {placeholder}
+            placeholder={sourcePlaceholder}
             {value}
             oninput={(e) => update(e.currentTarget.value)}
             onkeydown={onKeyDown}

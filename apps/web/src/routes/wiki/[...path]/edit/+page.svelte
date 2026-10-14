@@ -175,8 +175,13 @@
             >
             <MarkdownEditor bind:value={content} {contentType} path={data.path} />
             <p class="hint">
-                💡 위키링크 <code>[[문서명]]</code>, 굵게 <code>**굵게**</code>, 헤딩
-                <code>## 제목</code>
+                {#if contentType === 'html'}
+                    HTML 원문 편집 모드입니다. 마크다운 서식 도구는 적용되지 않습니다.
+                    미리보기에서 결과를 확인한 뒤 저장해주세요.
+                {:else}
+                    💡 위키링크 <code>[[문서명]]</code>, 굵게 <code>**굵게**</code>, 헤딩
+                    <code>## 제목</code>
+                {/if}
             </p>
         </div>
 

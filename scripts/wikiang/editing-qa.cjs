@@ -39,6 +39,16 @@ if (base !== 'http://127.0.0.1:43120' || process.env.DB_NAME !== 'wikiang_qa')
         await navigate(base + '/Special:NewPage');
         await page.getByRole('textbox', { name: '새 문서 제목' }).fill('QA_편집_검증');
         await page.getByRole('button', { name: '편집 시작' }).click();
+        const markdownSource = page.locator('#wiki-content-source');
+        await markdownSource.fill('서식 확인');
+        await markdownSource.selectText();
+        await markdownSource.press('Control+b');
+        await expect(markdownSource).toHaveValue('**서식 확인**');
+        await markdownSource.fill('기울임 확인');
+        await markdownSource.selectText();
+        await page.getByTitle('기울임 (Ctrl+I)', { exact: true }).click();
+        await expect(markdownSource).toHaveValue('_기울임 확인_');
+        checks.push('Markdown keyboard shortcut and toolbar still format selected text');
         await page.locator('#wiki-content-source').fill(source);
         for (const skin of ['classic', 'reading', 'encyclopedia', 'standard']) {
             await page.getByRole('combobox', { name: '위키 테마', exact: true }).selectOption(skin);
@@ -225,6 +235,31 @@ if (base !== 'http://127.0.0.1:43120' || process.env.DB_NAME !== 'wikiang_qa')
         );
         const htmlDoc = docs.find((d) => d.content_type === 'html');
         await navigate(base + htmlDoc.path.split('/').map(encodeURIComponent).join('/') + '/edit');
+        for (const width of [375, 768, 1440]) {
+            await page.setViewportSize({ width, height: 900 });
+            const htmlSource = page.locator('#wiki-content-source');
+            await expect(htmlSource).toBeEnabled();
+            await expect(htmlSource).toHaveAttribute('placeholder', /HTML 원문/);
+            await expect(page.locator('.edit-form')).toContainText('HTML 원문 편집 모드');
+            await expect(page.locator('.md-tool[title]')).toHaveCount(0);
+            await htmlSource.selectText();
+            for (const shortcut of ['Control+b', 'Control+i', 'Meta+b', 'Meta+i']) {
+                await htmlSource.press(shortcut);
+                await expect(htmlSource).toHaveValue(htmlDoc.content);
+            }
+            if (width <= 768)
+                await page.getByRole('button', { name: '미리보기', exact: true }).click();
+            await expect(page.locator('.md-preview')).toBeVisible();
+            assert.equal(
+                await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1),
+                false
+            );
+            await page.screenshot({ path: out + '/html-editor-' + width + '.png', fullPage: true });
+            if (width <= 768)
+                await page.getByRole('button', { name: '원문 편집', exact: true }).click();
+        }
+        await page.setViewportSize({ width: 375, height: 900 });
+        checks.push('HTML editor has format-specific guidance, no Markdown insertion, and responsive preview');
         const htmlSave = page.waitForResponse(
             (r) =>
                 r.url().endsWith('/api/wiki/pages/' + htmlDoc.id) && r.request().method() === 'PUT'
