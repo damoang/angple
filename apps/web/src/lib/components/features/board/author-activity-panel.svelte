@@ -63,6 +63,8 @@
     let loading = $state(!hasInitial);
     let recentPosts = $state<RecentPost[]>(hasInitial ? initialActivity!.recentPosts : []);
     let recentComments = $state<RecentComment[]>(hasInitial ? initialActivity!.recentComments : []);
+    // 부모 글이 삭제된 댓글은 숨긴다 — SSR 초기값·클라 재조회 모두 여기 한 곳에서 거른다
+    const visibleComments = $derived(recentComments.filter((c) => !c.post_deleted_at));
     /**
      * ⛔ **AdSense `<ins>` 를 SSR HTML 에 내보내면 안 된다.**
      *
@@ -446,11 +448,11 @@
                             <div class="flex justify-center py-4">
                                 <Loader2 class="text-muted-foreground h-4 w-4 animate-spin" />
                             </div>
-                        {:else if recentComments.length === 0}
+                        {:else if visibleComments.length === 0}
                             <p class="text-muted-foreground py-2 text-xs">자료 없음</p>
                         {:else}
                             <ul class="divide-border divide-y">
-                                {#each recentComments as c (`${c.bo_table}_${c.wr_id}`)}
+                                {#each visibleComments as c (`${c.bo_table}_${c.wr_id}`)}
                                     <li class="py-1">
                                         {@render commentItem(c)}
                                     </li>
@@ -510,11 +512,11 @@
                             <div class="flex justify-center py-4">
                                 <Loader2 class="text-muted-foreground h-4 w-4 animate-spin" />
                             </div>
-                        {:else if recentComments.length === 0}
+                        {:else if visibleComments.length === 0}
                             <p class="text-muted-foreground py-2 text-xs">자료 없음</p>
                         {:else}
                             <ul class="divide-border divide-y">
-                                {#each recentComments as c (`${c.bo_table}_${c.wr_id}`)}
+                                {#each visibleComments as c (`${c.bo_table}_${c.wr_id}`)}
                                     <li class="py-1">
                                         {@render commentItem(c)}
                                     </li>
