@@ -360,7 +360,9 @@ jobs:
       - name: Build app for E2E tests
         if: ${{ matrix.app != 'web' || steps.backend.outputs.BACKEND_READY != 'false' }}
         working-directory: apps/${{ matrix.app }}
-        run: pnpm run build
+        run: |
+          node ../../scripts/context-link-form-fixture.mjs
+          pnpm run build
 
       - name: Create data directory for E2E tests
         if: ${{ matrix.app != 'web' || steps.backend.outputs.BACKEND_READY != 'false' }}
