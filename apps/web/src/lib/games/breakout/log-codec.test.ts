@@ -126,12 +126,14 @@ describe('입력 기록 압축', () => {
         const out = game.replay(seed, parsed.inputs, g.tick, '');
         const replayMs = performance.now() - t1;
 
-        console.log(
+        const line =
             `[breakout-replay-timing] ticks=${g.tick} reason=${g.reason || 'none'} score=${g.score}` +
-                ` moves=${g.log.moves.length / 2} launches=${g.log.launches.length}` +
-                ` movesChars=${enc.m.length} bodyBytes=${bodyBytes} maxBody=${BREAKOUT_MAX_BODY_BYTES}` +
-                ` playMs=${playMs.toFixed(1)} replayMs=${replayMs.toFixed(1)}`
-        );
+            ` moves=${g.log.moves.length / 2} launches=${g.log.launches.length}` +
+            ` movesChars=${enc.m.length} bodyBytes=${bodyBytes} maxBody=${BREAKOUT_MAX_BODY_BYTES}` +
+            ` playMs=${playMs.toFixed(1)} replayMs=${replayMs.toFixed(1)}`;
+        // CI 로그에서 읽는다 — 리포터가 console 을 감춰도 보이게 stdout 에도 직접 쓴다
+        console.log(line);
+        process.stdout.write(`${line}\n`);
 
         expect(g.tick).toBe(MAX_TICKS);
         expect(g.reason).toBe('limit');
