@@ -634,19 +634,39 @@ const commentAffiliatePostSetCache = createCache<Set<string>>({
 // 무효화마다 키를 바꾼다. 무효화 전에 시작된 조회가 늦게 끝나도 옛 키에 저장되어 읽히지 않는다.
 let commentAffiliatePostSetGeneration = 0;
 
+// board_slug 비교는 DB 정렬 규칙처럼 대소문자를 가리지 않게 맞춘다(게이트가 조회보다 엄격하면 안 된다).
 function commentAffiliatePostKey(boardSlug: string, postId: number): string {
-    return `${boardSlug}:${postId}`;
+    return `${boardSlug.toLowerCase()}:${postId}`;
 }
 
+// 집합 로드가 끝나지 않으면 singleflight 가 계속 그 약속을 돌려주므로 따로 끊는다(오류 → 미캐시 → 조회).
+export const COMMENT_AFFILIATE_POST_SET_LOAD_TIMEOUT_MS = 1_500;
+
 async function loadCommentAffiliatePostSet(): Promise<Set<string>> {
-    const [rows] = await pool.query<RowDataPacket[]>(
-        `SELECT DISTINCT board_slug, post_id FROM g5_affiliate_links WHERE comment_id <> 0 AND status = 'converted'`
-    );
-    const set = new Set<string>();
-    for (const row of rows) {
-        set.add(commentAffiliatePostKey(String(row.board_slug), Number(row.post_id)));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const query = pool
+        .query<RowDataPacket[]>(
+            `SELECT DISTINCT board_slug, post_id FROM g5_affiliate_links WHERE comment_id <> 0 AND status = 'converted'`
+        )
+        .then(([rows]) => {
+            const set = new Set<string>();
+            for (const row of rows) {
+                set.add(commentAffiliatePostKey(String(row.board_slug), Number(row.post_id)));
+            }
+            return set;
+        });
+    query.catch(() => {});
+    const timeout = new Promise<never>((_, reject) => {
+        timer = setTimeout(
+            () => reject(new Error('comment affiliate post set load timeout')),
+            COMMENT_AFFILIATE_POST_SET_LOAD_TIMEOUT_MS
+        );
+    });
+    try {
+        return await Promise.race([query, timeout]);
+    } finally {
+        clearTimeout(timer);
     }
-    return set;
 }
 
 /**

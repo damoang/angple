@@ -67,6 +67,35 @@ describe('postMayHaveCommentAffiliateLinks', () => {
         await expect(postMayHaveCommentAffiliateLinks('fr/ee', 10)).resolves.toBe(true);
     });
 
+    it('게시판 ID 는 대소문자를 가리지 않는다 (저장 대문자·요청 소문자)', async () => {
+        const { postMayHaveCommentAffiliateLinks } = await load();
+        mockQuery.mockResolvedValue([[{ board_slug: 'MixedBoard', post_id: 10 }]]);
+        await expect(postMayHaveCommentAffiliateLinks('mixedboard', 10)).resolves.toBe(true);
+    });
+
+    it('게시판 ID 는 대소문자를 가리지 않는다 (저장 소문자·요청 대문자)', async () => {
+        const { postMayHaveCommentAffiliateLinks } = await load();
+        mockQuery.mockResolvedValue([[{ board_slug: 'mixedboard', post_id: 10 }]]);
+        await expect(postMayHaveCommentAffiliateLinks('MixedBoard', 10)).resolves.toBe(true);
+    });
+
+    it('끝나지 않는 집합 로드는 끊겨 true (지금처럼 조회) 이고 다음 조회가 다시 읽는다', async () => {
+        vi.useFakeTimers();
+        try {
+            const { postMayHaveCommentAffiliateLinks } = await load();
+            const { COMMENT_AFFILIATE_POST_SET_LOAD_TIMEOUT_MS } = await load();
+            mockQuery.mockReturnValueOnce(new Promise(() => {}));
+            const first = postMayHaveCommentAffiliateLinks('free', 11);
+            await vi.advanceTimersByTimeAsync(COMMENT_AFFILIATE_POST_SET_LOAD_TIMEOUT_MS);
+            await expect(first).resolves.toBe(true);
+            mockQuery.mockResolvedValue([[]]);
+            await expect(postMayHaveCommentAffiliateLinks('free', 11)).resolves.toBe(false);
+            expect(setQueryCalls()).toHaveLength(2);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it('집합은 TTL 동안 한 번만 읽는다', async () => {
         const { postMayHaveCommentAffiliateLinks } = await load();
         mockQuery.mockResolvedValue([[{ board_slug: 'free', post_id: 10 }]]);
