@@ -26,6 +26,7 @@ import { checkRateLimit, recordAttempt, resolveClientIp } from '$lib/server/rate
 import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
 import { prefetchBlueskyDIDs } from '$lib/server/bluesky/transform.js';
 import { encodeEmails } from '$lib/utils/email-reveal.js';
+import { resolveCommentTotal } from './_comment-total';
 
 interface CommentRow extends RowDataPacket {
     wr_id: number;
@@ -253,14 +254,6 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
             }
         }
 
-        // 전체 댓글 수
-        const [countRows] = await pool.query<CountRow[]>(
-            `SELECT COUNT(*) AS total FROM ?? WHERE wr_parent = ? AND wr_is_comment = 1`,
-            [tableName, safePostId]
-        );
-        const total = countRows[0]?.total ?? 0;
-        const totalPages = Math.ceil(total / limit);
-
         // 댓글 조회 (wr_comment + wr_comment_reply 순으로 정렬 — Go 백엔드와 동일)
         // 삭제된 댓글도 포함하여 조회 (프론트엔드에서 "삭제된 댓글입니다" 표시용)
         const [rows] = await pool.query<CommentRow[]>(
@@ -274,6 +267,16 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
 			 LIMIT ? OFFSET ?`,
             [tableName, safePostId, limit, (effectivePage - 1) * limit]
         );
+
+        // 전체 댓글 수 — 첫 페이지가 한도보다 적으면 받은 개수가 곧 전체 개수이므로 COUNT 생략
+        const total = await resolveCommentTotal(effectivePage, limit, rows.length, async () => {
+            const [countRows] = await pool.query<CountRow[]>(
+                `SELECT COUNT(*) AS total FROM ?? WHERE wr_parent = ? AND wr_is_comment = 1`,
+                [tableName, safePostId]
+            );
+            return countRows[0]?.total ?? 0;
+        });
+        const totalPages = Math.ceil(total / limit);
 
         // 닉네임 조회 (mb_id → mb_nick)
         const mbIds = [...new Set(rows.map((r) => r.mb_id).filter(Boolean))];
