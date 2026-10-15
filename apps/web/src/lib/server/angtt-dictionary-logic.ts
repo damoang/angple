@@ -213,7 +213,8 @@ function isWordBoundaryMatch(haystack: string, pos: number, len: number): boolea
 }
 
 /**
- * 제목에서 작품 별칭을 찾는다. 여러 별칭이 걸리면 **가장 긴 것** 하나만 반환한다.
+ * 제목에서 작품 별칭을 찾는다. 가장 긴 별칭이 하나의 작품을 가리킬 때만 반환한다.
+ * 동일한 최장 별칭을 여러 작품이 공유하면 제목만으로 구분할 수 없어 null을 반환한다.
  * 어떤 별칭도 단어 경계 조건을 만족하지 못하면 null.
  */
 export function scanAliasesInTitle(
@@ -235,6 +236,14 @@ export function scanAliasesInTitle(
             const pos = norm.indexOf(key, from);
             if (pos === -1) break;
             if (isWordBoundaryMatch(norm, pos, key.length)) {
+                // 동명 작품은 제목만으로 구분할 수 없다. DB 순서로 제안/자동 연결하지 않는다.
+                if (
+                    sorted.some(
+                        (other) => other.aliasNorm === key && other.entitySlug !== alias.entitySlug
+                    )
+                ) {
+                    return null;
+                }
                 const terms = alias.contextTerms ?? [];
                 const contextOk =
                     terms.length === 0 || terms.some((t) => norm.includes(normalizeWorkTitle(t)));
@@ -255,7 +264,8 @@ export function scanAliasesInTitle(
  * 태그 목록에서 작품 별칭 정확 일치를 찾는다 (쓰기 훅용 · 부분일치 없음).
  *
  * 「앙티티」 옵트인 태그가 있어야 하고, 나머지 태그를 normalize 해 별칭과 정확 비교한다.
- * 태그 입력 순서를 존중해 첫 일치를 반환한다. autoLink/contextTerms 는 보지 않는다 —
+ * 명시적 작품 slug를 먼저 찾고, 없으면 태그 입력 순서대로 모호하지 않은 별칭을 찾는다.
+ * autoLink/contextTerms 는 보지 않는다 —
  * 작성자가 직접 단 태그는 그 자체가 사람의 확인이기 때문이다.
  */
 export function matchAliasFromTags(
@@ -265,11 +275,25 @@ export function matchAliasFromTags(
     if (!hasAngttTag(tags)) return null;
 
     const angtt = normalizeWorkTitle(ANGTT_TAG);
-    const byNorm = new Map<string, EntityAlias>();
+    const bySlug = new Map<string, EntityAlias>();
+    const byNorm = new Map<string, EntityAlias | null>();
     for (const a of aliases) {
-        if (!byNorm.has(a.aliasNorm)) byNorm.set(a.aliasNorm, a);
+        bySlug.set(normalizeWorkTitle(a.entitySlug), a);
+        if (!byNorm.has(a.aliasNorm)) {
+            byNorm.set(a.aliasNorm, a);
+        } else if (byNorm.get(a.aliasNorm)?.entitySlug !== a.entitySlug) {
+            // 동명 작품은 DB 반환 순서로 고르지 않는다. 명시적인 slug 선택이 필요하다.
+            byNorm.set(a.aliasNorm, null);
+        }
     }
 
+    // 작성폼의 [연결]은 작품명 대신 slug를 저장한다. 명시적 선택을 별칭보다 우선한다.
+    for (const t of tags) {
+        const key = normalizeWorkTitle(t);
+        if (!key || key === angtt) continue;
+        const selected = bySlug.get(key);
+        if (selected) return selected;
+    }
     for (const t of tags) {
         const key = normalizeWorkTitle(t);
         if (!key || key === angtt) continue;
