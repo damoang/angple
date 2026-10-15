@@ -40,6 +40,8 @@ import { fetchPostLikeStatus, type PostLikeStatus } from '$lib/server/post-like-
 import { getAuthUser } from '$lib/server/auth';
 import { fetchMemberActivity, type MemberActivity } from '$lib/server/member-activity.js';
 import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
+import { fetchMemberCards } from '$lib/server/member-card.js';
+import { authorDisplayFromCards } from '$lib/server/member-card-display.js';
 import { fetchTruthroomPostId, fetchTruthroomCommentMap } from '$lib/server/truthroom.js';
 import { BackendUnavailableError } from '$lib/server/backend-fetch.js';
 import { applyFilter } from '$lib/hooks/registry.js';
@@ -378,26 +380,20 @@ export const load: PageServerLoad = async ({
             .then((c) => (c === 'lock' ? ('lock' as const) : null))
             .catch(() => null);
 
-        // 게시글 작성자 프로필 이미지 즉시 조회 (1단계 — 본문 렌더에 필요)
-        // 작성자 탈퇴 여부 — 닉네임 취소선 표시용(5분 캐시라 활동 게이트 조회와 중복돼도 저렴).
+        // 게시글 작성자 프로필 이미지·탈퇴 여부 즉시 조회 (1단계 — 본문 렌더에 필요)
+        // 회원 카드(공유 캐시) 한 번으로 둘 다 얻는다. 탈퇴 여부는 닉네임 취소선 표시용이다.
+        // (위 활동 패널 공개 판단은 별도로 fetchWithdrawnMemberIds 를 그대로 쓴다.)
         if (post.author_id) {
             try {
-                const w = await fetchWithdrawnMemberIds([post.author_id]);
-                post.is_left = w.has(post.author_id);
-            } catch {
-                // 실패 시 취소선만 생략
-            }
-        }
-
-        if (post.author_id && !post.author_image) {
-            try {
-                const imgMap = await fetchMemberImagesWithTimestamp([post.author_id]);
-                if (imgMap[post.author_id]) {
-                    post.author_image = imgMap[post.author_id].url;
-                    post.author_image_updated_at = imgMap[post.author_id].updated_at;
+                const cards = await fetchMemberCards([post.author_id]);
+                const author = authorDisplayFromCards(cards, post.author_id);
+                post.is_left = author.isLeft;
+                if (!post.author_image && author.image) {
+                    post.author_image = author.image.url;
+                    post.author_image_updated_at = author.image.updated_at;
                 }
             } catch {
-                // 실패해도 정상 진행
+                // 실패 시 취소선·사진만 생략하고 정상 진행
             }
         }
 

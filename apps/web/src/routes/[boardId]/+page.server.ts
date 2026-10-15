@@ -9,8 +9,8 @@ import {
 } from '$lib/server/ads/promotion.js';
 import type { PromotionBoardPost } from '$lib/server/ads/promotion.js';
 import { backendFetch as bFetch, createAuthHeaders } from '$lib/server/backend-fetch.js';
-import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
-import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
+import { fetchMemberCards } from '$lib/server/member-card.js';
+import { authorDisplayFromCards, memberCardLookupIds } from '$lib/server/member-card-display.js';
 import { fetchScheduledDeletes } from '$lib/server/scheduled-deletes.js';
 import { createCache } from '$lib/server/cache.js';
 // 검색 결과 썸네일 파생용 (bug/13130). Go 의 TransformToV1Post 와 같은 규칙을 재현한다.
@@ -531,20 +531,20 @@ export const load: PageServerLoad = async ({
             // 프로필 이미지 + 탈퇴 여부 enrichment
             const allPosts = [...posts, ...notices];
             if (allPosts.length > 0) {
-                const mbIds = [...new Set(allPosts.map((p) => p.author_id).filter(Boolean))];
+                const mbIds = memberCardLookupIds(allPosts.map((p) => p.author_id));
                 const postIds = allPosts.map((p) => Number(p.id)).filter((n) => Number.isFinite(n));
                 try {
-                    const [imageMap, withdrawnIds, scheduledMap] = await Promise.all([
-                        fetchMemberImagesWithTimestamp(mbIds),
-                        fetchWithdrawnMemberIds(mbIds),
+                    const [cards, scheduledMap] = await Promise.all([
+                        fetchMemberCards(mbIds),
                         fetchScheduledDeletes(boardId, postIds)
                     ]);
                     for (const p of allPosts) {
-                        if (p.author_id && imageMap[p.author_id]) {
-                            p.author_image = imageMap[p.author_id].url;
-                            p.author_image_updated_at = imageMap[p.author_id].updated_at;
+                        const author = authorDisplayFromCards(cards, p.author_id);
+                        if (author.image) {
+                            p.author_image = author.image.url;
+                            p.author_image_updated_at = author.image.updated_at;
                         }
-                        if (p.author_id && withdrawnIds.has(p.author_id)) {
+                        if (author.isLeft) {
                             p.is_left = true;
                         }
                         const sched = scheduledMap.get(Number(p.id));
@@ -897,20 +897,20 @@ export const load: PageServerLoad = async ({
             enrichGivingPosts(allPosts);
         }
         if (allPosts.length > 0) {
-            const mbIds = [...new Set(allPosts.map((p) => p.author_id).filter(Boolean))];
+            const mbIds = memberCardLookupIds(allPosts.map((p) => p.author_id));
             const postIds = allPosts.map((p) => Number(p.id)).filter((n) => Number.isFinite(n));
             try {
-                const [imageMap, withdrawnIds, scheduledMap] = await Promise.all([
-                    fetchMemberImagesWithTimestamp(mbIds),
-                    fetchWithdrawnMemberIds(mbIds),
+                const [cards, scheduledMap] = await Promise.all([
+                    fetchMemberCards(mbIds),
                     fetchScheduledDeletes(boardId, postIds)
                 ]);
                 for (const p of allPosts) {
-                    if (p.author_id && imageMap[p.author_id]) {
-                        p.author_image = imageMap[p.author_id].url;
-                        p.author_image_updated_at = imageMap[p.author_id].updated_at;
+                    const author = authorDisplayFromCards(cards, p.author_id);
+                    if (author.image) {
+                        p.author_image = author.image.url;
+                        p.author_image_updated_at = author.image.updated_at;
                     }
-                    if (p.author_id && withdrawnIds.has(p.author_id)) {
+                    if (author.isLeft) {
                         p.is_left = true;
                     }
                     const sched = scheduledMap.get(Number(p.id));
