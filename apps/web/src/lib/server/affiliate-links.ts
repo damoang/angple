@@ -642,12 +642,12 @@ function commentAffiliatePostKey(boardSlug: string, postId: number): string {
 // 집합 로드가 끝나지 않으면 singleflight 가 계속 그 약속을 돌려주므로 따로 끊는다(오류 → 미캐시 → 조회).
 export const COMMENT_AFFILIATE_POST_SET_LOAD_TIMEOUT_MS = 1_500;
 
+const COMMENT_AFFILIATE_POST_SET_SQL = `SELECT DISTINCT board_slug, post_id FROM g5_affiliate_links WHERE comment_id <> 0 AND status = 'converted'`;
+
 async function loadCommentAffiliatePostSet(): Promise<Set<string>> {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const query = pool
-        .query<RowDataPacket[]>(
-            `SELECT DISTINCT board_slug, post_id FROM g5_affiliate_links WHERE comment_id <> 0 AND status = 'converted'`
-        )
+        .query<RowDataPacket[]>(COMMENT_AFFILIATE_POST_SET_SQL)
         .then(([rows]) => {
             const set = new Set<string>();
             for (const row of rows) {
