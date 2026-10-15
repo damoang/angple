@@ -24,6 +24,7 @@
         script.src =
             'https://cdn.jsdelivr.net/npm/@scalar/api-reference@latest/dist/browser/standalone.min.js';
         script.onload = () => {
+            // @ts-expect-error - Scalar global
             if (window.Scalar) {
                 // @ts-expect-error - Scalar global
                 window.Scalar.createApiReference(container, {
