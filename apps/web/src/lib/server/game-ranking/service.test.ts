@@ -209,15 +209,19 @@ describe('기록 접수', () => {
         expect(f.saved[0].flagReason).toContain('score_mismatch');
     });
 
-    it('다른 시드로 만든 판(시드 위조)도 맞지 않는다', async () => {
+    it('다른 시드로 만든 기록이어도 점수는 발급한 시드로 다시 돌린 값으로만 판정한다', async () => {
         const f = fake([5]);
         const s = await startRun(breakout, '', 'bob', f.deps);
         if (s.kind !== 'ok') throw new Error('start');
         const play = playBreakout(999, 4000);
         f.advance(ms(play.ticks) + 500);
         const r = await finishRun(breakout, 'bob', { runId: s.runId, ...play }, f.deps);
-        expect(r).toMatchObject({ kind: 'ok', accepted: false });
-        expect(f.saved[0].flagged).toBe(true);
+        // 시드는 아이템 판정에만 쓰여 같은 입력이면 점수가 같을 수도 있다 — 판정 기준은 발급 시드 재생값
+        const expected = breakout.replay(5, play.inputs, play.ticks, '');
+        const ok = !expected.error && expected.score === play.score;
+        expect(r).toMatchObject({ kind: 'ok', accepted: ok });
+        expect(f.saved[0].seed).toBe(5);
+        expect(f.saved[0].flagged).toBe(!ok);
     });
 
     it('시뮬레이션 시간이 서버 경과보다 길면 too_fast', async () => {
