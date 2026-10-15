@@ -45,6 +45,20 @@ describe('작성자가 확정한 작품 연결', () => {
     it('작품 식별자가 있어도 앙티티 옵트인 없이는 연결하지 않는다', () => {
         expect(matchAliasFromTags(['monster-2023'], aliases)).toBeNull();
     });
+
+    it('동명 작품은 제목 자동 감지로도 임의 연결하지 않는다', () => {
+        const enabled = aliases.map((alias) => ({ ...alias, autoLink: true }));
+        expect(scanAliasesInTitle('괴물 영화 후기', enabled)).toBeNull();
+        expect(scanAliasesInTitle('괴물 영화 후기', [...enabled].reverse())).toBeNull();
+    });
+
+    it('동명 작품도 연도가 포함된 고유 별칭으로는 감지한다', () => {
+        const withYear = [
+            ...aliases,
+            { aliasNorm: '괴물 (2023)', entitySlug: 'monster-2023', autoLink: true }
+        ];
+        expect(scanAliasesInTitle('괴물 (2023) 후기', withYear)?.entitySlug).toBe('monster-2023');
+    });
 });
 
 describe('normalizeWorkTitle — 정규화 (trim + 연속 공백 1개화 + 소문자)', () => {

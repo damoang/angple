@@ -235,6 +235,15 @@ export function scanAliasesInTitle(
             const pos = norm.indexOf(key, from);
             if (pos === -1) break;
             if (isWordBoundaryMatch(norm, pos, key.length)) {
+                // 동명 작품은 제목만으로 구분할 수 없다. DB 순서로 제안/자동 연결하지 않는다.
+                if (
+                    sorted.some(
+                        (other) =>
+                            other.aliasNorm === key && other.entitySlug !== alias.entitySlug
+                    )
+                ) {
+                    return null;
+                }
                 const terms = alias.contextTerms ?? [];
                 const contextOk =
                     terms.length === 0 || terms.some((t) => norm.includes(normalizeWorkTitle(t)));
