@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { query } = vi.hoisted(() => ({ query: vi.fn() }));
-vi.mock('$lib/server/db', () => ({ default: { query } }));
+const { query, execute } = vi.hoisted(() => ({ query: vi.fn(), execute: vi.fn() }));
+vi.mock('$lib/server/db', () => ({ default: { query, execute } }));
 
 const movie = {
     id: 1,
@@ -26,6 +26,7 @@ describe('명시적 작품 URL 감지', () => {
     beforeEach(() => {
         vi.resetModules();
         query.mockReset();
+        execute.mockReset();
         query.mockResolvedValue([[movie, tv]]);
     });
 
@@ -41,6 +42,16 @@ describe('명시적 작품 URL 감지', () => {
         expect(
             await detectEntityFromSources('', ['https://themoviedb.org/movie/123'])
         ).toMatchObject({ slug: 'movie-123' });
+    });
+
+    it('한 글자 제목도 명시적으로 선택한 작품 태그를 실제 연결한다', async () => {
+        query
+            .mockResolvedValueOnce([[{ tag: '앙티티' }, { tag: 'movie-123' }]])
+            .mockResolvedValueOnce([[{ ...movie, canonical_title: '봄' }]]);
+        execute.mockResolvedValue([{ affectedRows: 1 }]);
+        const { linkEntityFromTags } = await import('./angtt-auto-link');
+        expect(await linkEntityFromTags('free', 42)).toBe('movie-123');
+        expect(execute.mock.calls[0][1]).toEqual([1, 'free', 42, 'mention']);
     });
 
     it('미등록 URL을 다른 제목의 작품으로 대체하지 않는다', async () => {
