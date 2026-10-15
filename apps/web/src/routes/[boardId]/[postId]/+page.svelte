@@ -487,6 +487,9 @@
     let streamedLikeStatus = $state<{ postId: number; viewerKnown: boolean } | null>(null);
     /** 서버 전달분의 추천 상태를 기다리는 한도 — 넘기면 지금처럼 화면이 다시 부른다 */
     const LIKE_STATUS_WAIT_MS = 4000;
+    // 이 화면에서 글 추천/비추천을 누른 횟수. 서버 전달분을 기다리는 사이 눌렀으면 그 응답의
+    // 개수가 더 새로우므로, 전달분의 개수로 덮지 않는 판정에 쓴다(반응형 상태일 필요 없음).
+    let likeClickSeq = 0;
     let trackedPostViewKey = '';
     let resetDetailUiPostId: number | null = null;
 
@@ -560,6 +563,7 @@
         }, LIKERS_PREVIEW_WAIT_MS);
         // 추천 상태도 서버 전달분을 기다린다. 끝내 안 오면 기다림을 풀어 재동기화가 다시 부르게 한다.
         likeStatusPendingPostId = effectPostId;
+        const likeClickSeqAtStart = likeClickSeq;
         const likeStatusWaitTimer = setTimeout(() => {
             if (cancelled || likeStatusPendingPostId !== effectPostId) return;
             likeStatusPendingPostId = null;
@@ -642,10 +646,11 @@
                     if (result.postLikeStatus && postStatusApplied) {
                         isLiked = result.postLikeStatus.userLiked;
                         isDisliked = result.postLikeStatus.userDisliked;
-                        // 이번 세션에서 이 글을 직접 눌렀으면 그때 받은 개수가 더 새롭다 — 덮지 않는다.
+                        // 전달분을 기다리는 사이 이 화면에서 추천/비추천을 눌렀으면 그 응답의 개수가
+                        // 더 새롭다 — 덮지 않는다.
                         if (
                             typeof result.postLikeStatus.likes === 'number' &&
-                            !postLikeStore.get(boardId, effectPostId)
+                            likeClickSeq === likeClickSeqAtStart
                         ) {
                             likeCount = result.postLikeStatus.likes;
                             dislikeCount = result.postLikeStatus.dislikes ?? 0;
@@ -1611,6 +1616,7 @@
         }
 
         if (isLiking) return;
+        likeClickSeq += 1;
 
         const prevLiked = isLiked;
         const prevDisliked = isDisliked;
@@ -1703,6 +1709,7 @@
         }
 
         if (isDisliking) return;
+        likeClickSeq += 1;
 
         const prevDislikedForReconcile = isDisliked;
         isDisliking = true;
