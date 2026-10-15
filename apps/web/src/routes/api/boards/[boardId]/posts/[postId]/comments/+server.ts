@@ -23,7 +23,7 @@ import {
 import { isLinkProcessingPluginEnabled } from '$lib/server/link-processing/runtime';
 import { isInternalAppRequest } from '$lib/server/internal-api.js';
 import { checkRateLimit, recordAttempt, resolveClientIp } from '$lib/server/rate-limit.js';
-import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
+import { fetchMemberCards } from '$lib/server/member-card.js';
 import { prefetchBlueskyDIDs } from '$lib/server/bluesky/transform.js';
 import { encodeEmails } from '$lib/utils/email-reveal.js';
 import { resolveCommentTotal } from './_comment-total';
@@ -278,25 +278,19 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
         });
         const totalPages = Math.ceil(total / limit);
 
-        // 닉네임 조회 (mb_id → mb_nick)
+        // 작성자 닉네임·사진·탈퇴 여부 — 같은 작성자 목록이라 한 번에 조회한다.
+        // 실패는 예전 닉네임 조회와 같이 아래 catch 로 가서 500 이 된다.
         const mbIds = [...new Set(rows.map((r) => r.mb_id).filter(Boolean))];
         const nickMap = new Map<string, string>();
         const imageMap = new Map<string, string>();
         const imageUpdatedMap = new Map<string, number>();
-        if (mbIds.length > 0) {
-            const [members] = await pool.query<RowDataPacket[]>(
-                `SELECT mb_id, mb_nick, mb_image_url, mb_image_updated_at FROM g5_member WHERE mb_id IN (?)`,
-                [mbIds]
-            );
-            for (const m of members) {
-                nickMap.set(m.mb_id, m.mb_nick);
-                if (m.mb_image_url) imageMap.set(m.mb_id, m.mb_image_url);
-                if (m.mb_image_updated_at)
-                    imageUpdatedMap.set(
-                        m.mb_id,
-                        Math.floor(new Date(m.mb_image_updated_at).getTime() / 1000)
-                    );
-            }
+        const withdrawnSet = new Set<string>();
+        const memberCards = await fetchMemberCards(mbIds);
+        for (const [memberId, card] of memberCards) {
+            nickMap.set(memberId, card.nick);
+            if (card.image) imageMap.set(memberId, card.image);
+            if (card.imageUpdatedAt) imageUpdatedMap.set(memberId, card.imageUpdatedAt);
+            if (card.isLeft) withdrawnSet.add(memberId);
         }
 
         // 댓글 수정 횟수/최근 수정 시각은 비정규화 컬럼(wr_edit_count·wr_last_edited_at)에서
@@ -415,12 +409,6 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
                 console.warn('[block] enrich(comments) failed:', e);
             }
         }
-
-        // 탈퇴 회원 작성자 집합 — 닉네임 취소선 표시용(배치 조회, 5분 캐시).
-        const authorIds = Array.from(new Set(rows.map((r) => String(r.mb_id)).filter(Boolean)));
-        const withdrawnSet = await fetchWithdrawnMemberIds(authorIds).catch(
-            () => new Set<string>()
-        );
 
         // 유입 소모임 이름 — 소모임 전역 공지(원본 1건을 91개 소모임이 공유)의 댓글에만 붙는다.
         // wr_1 에 이미 없어진 게시판 slug 가 남아 있을 수 있어 현재 소모임만 인정한다.
