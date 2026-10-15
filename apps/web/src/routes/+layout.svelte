@@ -50,7 +50,11 @@
     import { TmpNicknameNotice } from '$lib/components/features/tmp-nickname-notice';
     import type { MenuItem } from '$lib/api/types';
     import { readUserBasicFromCookie } from '$lib/utils/user-basic-client';
-    import { hasUserBasicCookie, shouldFetchAuthMe } from '$lib/utils/auth-me-skip';
+    import {
+        hasSsrAuthCookie,
+        hasUserBasicCookie,
+        shouldFetchAuthMe
+    } from '$lib/utils/auth-me-skip';
     import { env } from '$env/dynamic/public';
 
     // ⭐ 진짜 하이드레이션 경계 (2026-08-25 계측).
@@ -1099,11 +1103,12 @@
                 shouldFetchAuthMe({
                     isLoggedIn: data.isLoggedIn,
                     authDegraded: data.authDegraded,
-                    hasUserBasic: hasUserBasicCookie(document.cookie)
+                    hasUserBasic: hasUserBasicCookie(document.cookie),
+                    hasSsrAuth: hasSsrAuthCookie(document.cookie)
                 });
 
             if (!fastPathApplied && !needAuthMe) {
-                // SSR 이 세션 쿠키로 「비로그인 확정」을 알려줬고(장애 아님) user_basic 쿠키도 없다.
+                // SSR 이 세션 쿠키로 「비로그인 확정」을 알려줬고(장애 아님) user_basic·ssr_auth 쿠키도 없다.
                 // /api/auth/me 의 답은 { user: null } 뿐이므로 요청 없이 그 결과와 같은 처리를 한다.
                 authActions.initAuth();
                 authInitialized = true;
