@@ -4,11 +4,9 @@
  * 새 게임은 항목 하나만 더한다. replay 는 브라우저와 같은 엔진 코드를 그대로 import 해서 돌린다
  * (서버가 시드+입력 기록으로 판을 처음부터 다시 돌려 점수를 직접 계산한다).
  */
-import {
-    MAX_TICKS as BREAKOUT_MAX_TICKS,
-    replay as replayBreakout
-} from '$lib/games/breakout/engine';
+import { replay as replayBreakout } from '$lib/games/breakout/engine';
 import { decodeLog } from '$lib/games/breakout/log-codec';
+import { BREAKOUT_RANKED_MAX_TICKS } from '$lib/games/breakout/ranked';
 
 /** 재생 결과 — error 가 있으면 기록이 엔진 규칙과 맞지 않는다(점수는 의미 없음) */
 export interface ReplayOutcome {
@@ -56,7 +54,8 @@ const breakout: RankedGame = {
     variants: [''],
     higherIsBetter: true,
     engineVer: 1,
-    maxTicks: BREAKOUT_MAX_TICKS,
+    // 순위 판 길이 상한(20분) — 최악의 재생 비용을 묶는다(ranked.ts)
+    maxTicks: BREAKOUT_RANKED_MAX_TICKS,
     tickHz: 60,
     maxBodyBytes: BREAKOUT_MAX_BODY_BYTES,
     replay(seed, inputs, ticks) {

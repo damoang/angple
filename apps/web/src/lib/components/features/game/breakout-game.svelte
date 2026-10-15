@@ -40,6 +40,10 @@
     import { getGame } from '$lib/games/registry.js';
     import { encodeLog } from '$lib/games/breakout/log-codec.js';
     import {
+        BREAKOUT_RANKED_MAX_MINUTES,
+        BREAKOUT_RANKED_MAX_TICKS
+    } from '$lib/games/breakout/ranked.js';
+    import {
         RANK_START_GAP_MS,
         finishScoreRun,
         startScoreRun,
@@ -249,6 +253,12 @@
         const id = runId;
         runId = null;
         if (!id) return;
+        if (game.tick > BREAKOUT_RANKED_MAX_TICKS) {
+            // 순위 판 길이 상한을 넘긴 판 — 내지 않는다(서버 판은 만료로 사라진다)
+            record = 'local';
+            notice = `${BREAKOUT_RANKED_MAX_MINUTES}분을 넘긴 판은 랭킹에 기록되지 않습니다`;
+            return;
+        }
         const gen = startGen;
         record = 'saving';
         const body = {

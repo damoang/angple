@@ -147,61 +147,57 @@ describe('입력 기록 압축', () => {
         expect(bodyBytes).toBeLessThanOrEqual(BREAKOUT_MAX_BODY_BYTES);
     }, 180_000);
 
-    it(
-        '최악의 재생 비용 — 공 8개·최고 속력으로 1시간(시험용으로 상태를 직접 채운다)',
-        () => {
-            // 입력만으로는 공 8개를 1시간 내내 유지할 수 없어서, 매 틱 공을 8개로 다시 채우고
-            // 속력을 상한에 고정한다. step() 을 도는 비용 = 같은 상태의 재생 비용(재생도 step() 반복).
-            const g = createGame(7);
-            g.loop = 50; // 속력 상한
-            const fill = () => {
-                while (g.balls.length < MAX_BALLS) {
-                    const k = g.nextBallId++;
-                    const x = (20 + ((k * 37) % 320)) * SCALE;
-                    const y = (300 + ((k * 53) % 150)) * SCALE;
-                    g.balls.push({
-                        id: k,
-                        x,
-                        y,
-                        px: x,
-                        py: y,
-                        a: 1 + (k % MAX_ANGLE),
-                        sx: k & 1 ? 1 : -1,
-                        sy: -1,
-                        idle: 0
-                    });
-                }
-                g.attached = false;
-            };
-            fill();
-            let ballTicks = 0;
-            const t0 = performance.now();
-            for (let t = 0; t < MAX_TICKS; t++) {
-                let target: Ball | null = null;
-                for (const b of g.balls) {
-                    if (b.sy > 0 && (!target || b.y > target.y)) target = b;
-                }
-                const x = target ? Math.round(target.x / SCALE) : START_X;
-                g.slowTicks = 0;
-                ballTicks += g.balls.length;
-                step(g, { x, launch: false });
-                if (g.over && g.tick < MAX_TICKS) {
-                    g.over = false;
-                    g.reason = '';
-                    g.lives = 3;
-                }
-                if (g.attached || g.balls.length < MAX_BALLS) fill();
+    it('최악의 재생 비용 — 공 8개·최고 속력으로 1시간(시험용으로 상태를 직접 채운다)', () => {
+        // 입력만으로는 공 8개를 1시간 내내 유지할 수 없어서, 매 틱 공을 8개로 다시 채우고
+        // 속력을 상한에 고정한다. step() 을 도는 비용 = 같은 상태의 재생 비용(재생도 step() 반복).
+        const g = createGame(7);
+        g.loop = 50; // 속력 상한
+        const fill = () => {
+            while (g.balls.length < MAX_BALLS) {
+                const k = g.nextBallId++;
+                const x = (20 + ((k * 37) % 320)) * SCALE;
+                const y = (300 + ((k * 53) % 150)) * SCALE;
+                g.balls.push({
+                    id: k,
+                    x,
+                    y,
+                    px: x,
+                    py: y,
+                    a: 1 + (k % MAX_ANGLE),
+                    sx: k & 1 ? 1 : -1,
+                    sy: -1,
+                    idle: 0
+                });
             }
-            const ms = performance.now() - t0;
-            const cap = getRankedGame('breakout')!.maxTicks;
-            const line =
-                `[breakout-replay-worst] ticks=${MAX_TICKS} avgBalls=${(ballTicks / MAX_TICKS).toFixed(2)}` +
-                ` ms=${ms.toFixed(1)} usPerTick=${((ms * 1000) / MAX_TICKS).toFixed(2)}` +
-                ` rankedMaxTicks=${cap} msAtCap=${((ms * cap) / MAX_TICKS).toFixed(1)}`;
-            console.log(line);
-            process.stdout.write(`${line}\n`);
-            expect(ballTicks / MAX_TICKS).toBeGreaterThan(MAX_BALLS - 1);
-        },
-        180_000
-    );
+            g.attached = false;
+        };
+        fill();
+        let ballTicks = 0;
+        const t0 = performance.now();
+        for (let t = 0; t < MAX_TICKS; t++) {
+            let target: Ball | null = null;
+            for (const b of g.balls) {
+                if (b.sy > 0 && (!target || b.y > target.y)) target = b;
+            }
+            const x = target ? Math.round(target.x / SCALE) : START_X;
+            g.slowTicks = 0;
+            ballTicks += g.balls.length;
+            step(g, { x, launch: false });
+            if (g.over && g.tick < MAX_TICKS) {
+                g.over = false;
+                g.reason = '';
+                g.lives = 3;
+            }
+            if (g.attached || g.balls.length < MAX_BALLS) fill();
+        }
+        const ms = performance.now() - t0;
+        const cap = getRankedGame('breakout')!.maxTicks;
+        const line =
+            `[breakout-replay-worst] ticks=${MAX_TICKS} avgBalls=${(ballTicks / MAX_TICKS).toFixed(2)}` +
+            ` ms=${ms.toFixed(1)} usPerTick=${((ms * 1000) / MAX_TICKS).toFixed(2)}` +
+            ` rankedMaxTicks=${cap} msAtCap=${((ms * cap) / MAX_TICKS).toFixed(1)}`;
+        console.log(line);
+        process.stdout.write(`${line}\n`);
+        expect(ballTicks / MAX_TICKS).toBeGreaterThan(MAX_BALLS - 1);
+    }, 180_000);
 });
