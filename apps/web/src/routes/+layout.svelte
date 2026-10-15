@@ -995,10 +995,12 @@
         // no-store 인 /api/plugins/active 에서 직접 가져온다 → admin 토글 즉시 반영.
         // 이 호출은 「캐시된 페이지에 실려 온 목록이 낡았을 때 바로잡기」용이다. 로그인 응답은
         // 캐시되지 않고 같은 서버 캐시에서 목록을 읽으므로 이미 최신이다 — 부르지 않는다.
+        // 비로그인 페이지도 서버가 만든 지 얼마 안 됐으면(renderedAt) 목록이 같으므로 부르지 않는다.
         if (
             shouldRefreshActivePlugins({
                 ssrPluginCount: data.activePlugins?.length ?? 0,
-                ssrLoggedIn: data.isLoggedIn
+                ssrLoggedIn: data.isLoggedIn,
+                renderedAt: data.renderedAt
             })
         ) {
             fetch('/api/plugins/active')
