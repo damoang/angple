@@ -209,7 +209,7 @@ describe('기록 접수', () => {
         expect(f.saved[0].flagReason).toContain('score_mismatch');
     });
 
-    it('다른 시드로 만든 기록이어도 점수는 발급한 시드로 다시 돌린 값으로만 판정한다', async () => {
+    it('남의 시드로 만든 기록도 발급 시드 재생값으로 판정', async () => {
         const f = fake([5]);
         const s = await startRun(breakout, '', 'bob', f.deps);
         if (s.kind !== 'ok') throw new Error('start');
