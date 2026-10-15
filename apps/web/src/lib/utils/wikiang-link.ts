@@ -35,7 +35,7 @@ export async function enhanceWikiangLinks(container: HTMLElement): Promise<void>
                     continue;
                 }
                 anchor.dataset.wikiang = '1';
-                if (anchor.nextElementSibling?.classList.contains(BADGE_CLASS)) continue;
+                if (anchor.nextElementSibling?.classList?.contains(BADGE_CLASS)) continue;
                 const badge = document.createElement('a');
                 badge.className = BADGE_CLASS;
                 badge.href =
