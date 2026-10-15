@@ -3,6 +3,7 @@ import {
     PIPELINE_MAX_PIXELS,
     PIPELINE_MAX_WIDTH,
     fitsWithoutResize,
+    hasMarkersAfterSOS,
     prepareDirectJpeg
 } from './jpeg-direct';
 import { orientationSegment } from './jpeg-meta';
@@ -106,5 +107,42 @@ describe('prepareDirectJpeg', () => {
     it('구조가 깨졌으면 null(현행 경로)', () => {
         const broken = build(soi, app0, sof0(100, 100), new Uint8Array([0xff, 0xe1, 0xff, 0xff]));
         expect(prepareDirectJpeg(broken)).toBeNull();
+    });
+});
+
+describe('첫 SOS 뒤의 이미지·메타데이터 마커', () => {
+    const exifGps = seg(0xe1, latin1('Exif\x00\x00MM\x00\x2a\x00\x00\x00\x08GPS'));
+
+    it('SOS 뒤에 두 번째 이미지(SOI+APP1)가 붙어 있으면 null(현행 경로)', () => {
+        const input = build(jpeg(1200, 900), soi, exifGps, sof0(320, 240), scan);
+        expect(hasMarkersAfterSOS(input)).toBe(true);
+        expect(prepareDirectJpeg(input)).toBeNull();
+    });
+
+    for (const [name, marker] of [
+        ['APP1', 0xe1],
+        ['APP13', 0xed],
+        ['COM', 0xfe],
+        ['SOI', 0xd8]
+    ] as const) {
+        it(`SOS 뒤에 ${name} 마커가 있으면 null`, () => {
+            const input = build(jpeg(1200, 900), new Uint8Array([0xff, marker, 0x00, 0x04, 1, 2]));
+            expect(hasMarkersAfterSOS(input)).toBe(true);
+            expect(prepareDirectJpeg(input)).toBeNull();
+        });
+    }
+
+    it('한 장짜리 깨끗한 JPEG 는 그대로 직행한다(FF 00·EOI 는 허용)', () => {
+        const input = jpeg(1200, 900, gpsXmp);
+        expect(hasMarkersAfterSOS(input)).toBe(false);
+        const out = prepareDirectJpeg(input);
+        expect(out).not.toBeNull();
+        expect(Buffer.from(out ?? new Uint8Array(0)).includes(Buffer.from('GPSLatitude'))).toBe(
+            false
+        );
+    });
+
+    it('SOS 를 찾지 못하면 직행 불가로 본다', () => {
+        expect(hasMarkersAfterSOS(build(soi, app0, sof0(100, 100)))).toBe(true);
     });
 });

@@ -114,6 +114,29 @@ export function stripJpegMetadata(data: Uint8Array): { data: Uint8Array; changed
     return { data: r.data, changed: r.status === 'stripped' };
 }
 
+/** 첫 SOS 마커의 위치. 구조를 해석할 수 없거나 SOS 가 없으면 -1 (제거와 같은 순회 규칙) */
+export function firstSosOffset(data: Uint8Array): number {
+    if (data.length < 4 || data[0] !== 0xff || data[1] !== 0xd8) return -1;
+    let i = 2;
+    while (i < data.length) {
+        if (data[i] !== 0xff) return -1;
+        while (i + 1 < data.length && data[i + 1] === 0xff) i++;
+        if (i + 1 >= data.length) return -1;
+        const marker = data[i + 1];
+        if (marker === 0xda) return i;
+        if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd8)) {
+            i += 2;
+            continue;
+        }
+        if (i + 4 > data.length) return -1;
+        const segLen = readU16BE(data, i + 2);
+        const end = i + 2 + segLen;
+        if (segLen < 2 || end > data.length) return -1;
+        i = end;
+    }
+    return -1;
+}
+
 /**
  * JPEG 의 Exif Orientation 값. 태그가 없거나 구조를 읽을 수 없으면 1(정방향).
  * Exif 가 여럿이면 **마지막** 유효 값 — 제거 시 보존하는 값과 같은 규칙이다.
