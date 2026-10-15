@@ -72,6 +72,8 @@ const query = vi.fn(async (sql: string, params: unknown[] = []) => {
 vi.mock('$lib/server/db', () => ({
     default: { query: (...a: unknown[]) => query(...(a as [string, unknown[]])) }
 }));
+// 회원 카드 공유 캐시를 끈다 — 테스트 사이에 캐시가 남아 DB 조회를 건너뛰지 않게.
+vi.mock('$lib/server/redis', () => ({ getRedis: () => null }));
 vi.mock('$lib/server/discipline-ids', () => ({ getDisciplineIds: async () => new Set<number>() }));
 vi.mock('$lib/server/lucky-tier-names', () => ({ getLuckyTierInfo: async () => null }));
 vi.mock('$lib/server/affiliate-links', () => ({
