@@ -968,7 +968,7 @@
 
                     {#if angttSuggestion}
                         <div
-                            class="bg-muted/60 flex items-center gap-3 rounded-md border px-3 py-2"
+                            class="bg-muted/60 grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-md border px-3 py-2 sm:flex sm:items-center"
                         >
                             {#if angttSuggestion.posterUrl}
                                 <img
@@ -989,6 +989,7 @@
                                 size="sm"
                                 variant="outline"
                                 onclick={acceptAngttSuggestion}
+                                class="col-start-2 justify-self-start sm:shrink-0"
                                 disabled={isLoading}
                             >
                                 작품과 연결
@@ -998,6 +999,7 @@
                                 size="sm"
                                 variant="ghost"
                                 onclick={dismissAngttSuggestion}
+                                class="col-start-3 row-start-1 sm:shrink-0"
                                 aria-label="제안 무시"
                             >
                                 <XIcon class="h-4 w-4" />
@@ -1074,7 +1076,9 @@
 
             <!-- 앙지도 장소 확인 또는 기존 앙지도 글 연결 제안 -->
             {#if canSuggestAngmap && angmapSuggestion}
-                <div class="bg-muted/60 flex items-center gap-3 rounded-md border px-3 py-2">
+                <div
+                    class="bg-muted/60 grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-md border px-3 py-2 sm:flex sm:items-center"
+                >
                     <MapPin class="text-primary h-5 w-5 shrink-0" />
                     <p class="min-w-0 flex-1 text-sm">
                         <span class="font-medium">{angmapSuggestion.name ?? '장소'}</span>
@@ -1099,6 +1103,7 @@
                         size="sm"
                         variant="outline"
                         onclick={acceptAngmapSuggestion}
+                        class="col-start-2 justify-self-start sm:shrink-0"
                         disabled={isLoading}
                     >
                         {isAngmapBoard ? '장소 확인' : '앙지도 글 연결'}
@@ -1108,6 +1113,7 @@
                         size="sm"
                         variant="ghost"
                         onclick={dismissAngmapSuggestion}
+                        class="col-start-3 row-start-1 sm:shrink-0"
                         aria-label="장소 제안 무시"
                     >
                         <XIcon class="h-4 w-4" />
