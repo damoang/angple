@@ -9,31 +9,80 @@
     import Mail from '@lucide/svelte/icons/mail';
     import { apiClient } from '$lib/api/client';
     import { authStore } from '$lib/stores/auth.svelte.js';
+    import {
+        clearMessageUnreadCache,
+        readMessageUnreadCache,
+        writeMessageUnreadCache
+    } from '$lib/utils/message-unread-cache';
 
     // 알림 배지와 동일한 폴링 주기 (3분).
     const POLL_INTERVAL_MS = 180_000;
+    // 탭이 다시 보일 때 바로 부르지 않고 잠깐 기다린다 (알림 종과 동일). 탭을 빠르게
+    // 오가는 경우 요청이 몰리지 않게 한다.
+    const VISIBILITY_DEBOUNCE_MS = 5_000;
 
     let unreadCount = $state(0);
     let inflight: Promise<void> | null = null;
+    // 강제 갱신이 진행 중 요청을 앞지르면, 늦게 도착한 옛 응답이 새 값을 덮지 않게 한다.
+    let requestSeq = 0;
 
-    async function loadUnreadCount(): Promise<void> {
+    function currentMbId(): string | null {
+        return authStore.user?.mb_id || null;
+    }
+
+    /**
+     * 안 읽은 쪽지 수를 불러온다.
+     * - 기본: 30초 짧은 캐시(회원별)를 먼저 보고, 진행 중 요청이 있으면 합친다.
+     * - force: 캐시를 건너뛰고 새로 부른다 (쪽지 읽음 이벤트, /messages 오갈 때).
+     */
+    async function loadUnreadCount(force = false): Promise<void> {
         if (!authStore.isAuthenticated) {
             unreadCount = 0;
             return;
         }
-        if (inflight) return inflight;
+        const mbId = currentMbId();
+
+        if (force) {
+            clearMessageUnreadCache();
+        } else {
+            const cached = readMessageUnreadCache(mbId);
+            if (cached !== null) {
+                unreadCount = cached;
+                return;
+            }
+            if (inflight) return inflight;
+        }
+
+        const seq = ++requestSeq;
         inflight = (async () => {
             try {
                 const res = await apiClient.getUnreadMessageCount();
-                unreadCount = res?.count ?? 0;
+                if (seq !== requestSeq) return;
+                // 응답 사이에 계정이 바뀌었으면 버린다.
+                if (currentMbId() !== mbId) return;
+                const count = res?.count ?? 0;
+                unreadCount = count;
+                writeMessageUnreadCache(mbId, count);
             } catch {
                 // unread-count 실패 시 배지를 끄지 않고 기존 값 유지 (일시 오류로 깜박임 방지).
             } finally {
-                inflight = null;
+                // 더 새 요청(강제 갱신)이 시작됐으면 그 요청의 inflight 는 건드리지 않는다.
+                if (seq === requestSeq) inflight = null;
             }
         })();
         return inflight;
     }
+
+    // 로그인 → 로그아웃으로 바뀌면 캐시를 지운다 (처음부터 비로그인인 경우는 건드리지 않음).
+    let wasAuthenticated = false;
+    $effect(() => {
+        const authed = authStore.isAuthenticated;
+        if (wasAuthenticated && !authed) {
+            clearMessageUnreadCache();
+            unreadCount = 0;
+        }
+        wasAuthenticated = authed;
+    });
 
     onMount(() => {
         // auth 초기화(layout onMount)가 완료된 뒤 호출하도록 약간 지연 (알림 패턴과 동일).
@@ -42,6 +91,7 @@
         }
 
         let interval: ReturnType<typeof setInterval> | null = null;
+        let visibilityDebounce: ReturnType<typeof setTimeout> | null = null;
 
         function startPolling() {
             if (interval) return;
@@ -53,19 +103,30 @@
                 interval = null;
             }
         }
+        function clearVisibilityDebounce() {
+            if (visibilityDebounce) {
+                clearTimeout(visibilityDebounce);
+                visibilityDebounce = null;
+            }
+        }
 
         function handleVisibilityChange() {
             if (document.visibilityState === 'visible') {
-                void loadUnreadCount();
-                startPolling();
+                clearVisibilityDebounce();
+                visibilityDebounce = setTimeout(() => {
+                    visibilityDebounce = null;
+                    void loadUnreadCount();
+                    startPolling();
+                }, VISIBILITY_DEBOUNCE_MS);
             } else {
+                clearVisibilityDebounce();
                 stopPolling();
             }
         }
 
         // 쪽지함 다이얼로그에서 읽기 성공 시 즉시 갱신 (messages/+page.svelte 가 발행)
         function handleMessagesRead() {
-            void loadUnreadCount();
+            void loadUnreadCount(true);
         }
 
         if (document.visibilityState === 'visible') startPolling();
@@ -74,6 +135,7 @@
 
         return () => {
             stopPolling();
+            clearVisibilityDebounce();
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('angple:messages-read', handleMessagesRead);
         };
@@ -93,7 +155,7 @@
         const from = nav.from?.url?.pathname;
         const to = nav.to?.url?.pathname;
         if (from?.startsWith('/messages') || to?.startsWith('/messages')) {
-            void loadUnreadCount();
+            void loadUnreadCount(true);
         }
     });
 </script>
