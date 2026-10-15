@@ -5,6 +5,7 @@ import { resolveAffiliateCandidate } from '$plugins/affiliate-link-private/lib/r
 import type { AffiliateDecision, AffiliateSource } from '$plugins/affiliate-link-private/lib/types';
 import { resolveAffiliateRedirect as resolveAffiliateRedirectFromCache } from '$lib/server/affiliate-redirect';
 import { sendAffiliateDecisionEvents } from '$lib/server/affiliate-events';
+import { createCache } from '$lib/server/cache';
 
 export type AffiliateEntityType =
     | 'post_body'
@@ -538,6 +539,8 @@ export async function syncCommentAffiliateLinks(
             fieldRows
         );
         await conn.commit();
+        // 이 프로세스의 「변환된 댓글 링크가 있는 글」 집합을 버려 다음 댓글 조회가 새로 읽게 한다.
+        invalidateCommentAffiliatePostSet();
         void sendAffiliateDecisionEvents(
             [...bodyEntries, ...fieldEntries].map((entry) => ({
                 decision: entry.decision,
@@ -611,6 +614,64 @@ export async function fetchCommentAffiliateLinks(
     } catch {
         return [];
     }
+}
+
+/**
+ * 「변환된(converted) 댓글 제휴 링크가 있는 글」 집합 — 댓글 조회 게이트용.
+ *
+ * 댓글 렌더는 status='converted' 행만 쓰므로, 이 집합에 없는 글은 댓글 제휴 행을
+ * 조회하지 않아도 렌더 결과가 같다. 집합은 프로세스 캐시(singleflight, 오류 미캐시).
+ *
+ * 한계: syncCommentAffiliateLinks 는 커밋한 프로세스의 집합만 무효화한다. 다른 인스턴스에서는
+ * 새로 변환된 댓글 링크가 최대 TTL 동안 원래 링크로 보일 수 있다.
+ */
+export const COMMENT_AFFILIATE_POST_SET_TTL_MS = 30_000;
+
+const commentAffiliatePostSetCache = createCache<Set<string>>({
+    ttl: COMMENT_AFFILIATE_POST_SET_TTL_MS,
+    maxSize: 4
+});
+// 무효화마다 키를 바꾼다. 무효화 전에 시작된 조회가 늦게 끝나도 옛 키에 저장되어 읽히지 않는다.
+let commentAffiliatePostSetGeneration = 0;
+
+function commentAffiliatePostKey(boardSlug: string, postId: number): string {
+    return `${boardSlug}:${postId}`;
+}
+
+async function loadCommentAffiliatePostSet(): Promise<Set<string>> {
+    const [rows] = await pool.query<RowDataPacket[]>(
+        `SELECT DISTINCT board_slug, post_id FROM g5_affiliate_links WHERE comment_id <> 0 AND status = 'converted'`
+    );
+    const set = new Set<string>();
+    for (const row of rows) {
+        set.add(commentAffiliatePostKey(String(row.board_slug), Number(row.post_id)));
+    }
+    return set;
+}
+
+/**
+ * 이 글의 댓글에 변환된 제휴 링크가 있을 수 있는지.
+ * 집합을 읽지 못하면 true(= 지금처럼 조회, fail-open).
+ */
+export async function postMayHaveCommentAffiliateLinks(
+    boardId: string,
+    postId: number
+): Promise<boolean> {
+    try {
+        const set = await commentAffiliatePostSetCache.getOrSet(
+            `g${commentAffiliatePostSetGeneration}`,
+            loadCommentAffiliatePostSet
+        );
+        return set.has(commentAffiliatePostKey(sanitizeBoardId(boardId), postId));
+    } catch {
+        return true;
+    }
+}
+
+/** 이 프로세스의 댓글 제휴 글 집합을 버린다(다음 조회가 새로 읽는다). */
+export function invalidateCommentAffiliatePostSet(): void {
+    commentAffiliatePostSetGeneration += 1;
+    commentAffiliatePostSetCache.clear();
 }
 
 export function groupAffiliateLinksByCommentId(

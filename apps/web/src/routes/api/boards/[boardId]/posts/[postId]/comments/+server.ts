@@ -18,6 +18,7 @@ import {
     fetchCommentAffiliateLinks,
     findAffiliateFieldRow,
     groupAffiliateLinksByCommentId,
+    postMayHaveCommentAffiliateLinks,
     renderAffiliateContent
 } from '$lib/server/affiliate-links';
 import { isLinkProcessingPluginEnabled } from '$lib/server/link-processing/runtime';
@@ -583,7 +584,11 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
         }
 
         const affiliateEnabled = await isLinkProcessingPluginEnabled().catch(() => false);
-        const commentAffiliateRows = affiliateEnabled
+        // 변환된 댓글 링크가 있을 수 있는 글에서만 행을 조회한다. 그 밖의 글은 빈 결과와
+        // 렌더가 같다(렌더는 converted 행만 쓴다). 집합을 못 읽으면 지금처럼 조회한다.
+        const fetchCommentAffiliate =
+            affiliateEnabled && (await postMayHaveCommentAffiliateLinks(safeBoardId, safePostId));
+        const commentAffiliateRows = fetchCommentAffiliate
             ? await fetchCommentAffiliateLinks(
                   safeBoardId,
                   safePostId,

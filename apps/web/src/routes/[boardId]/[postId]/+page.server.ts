@@ -611,7 +611,15 @@ export const load: PageServerLoad = async ({
             // 제휴 변환에 필요한 plugin flag + row 를 이 스트리밍 단계에서 조회.
             // (이전에는 1단계에서 await 하여 본문 SSR 을 블로킹)
             const affiliateEnabled = await isLinkProcessingPluginEnabled().catch(() => false);
-            const postAffiliateRows = affiliateEnabled
+            // 링크 필드도, 본문에 바꿀 앵커(자동 링크될 URL 포함)도 없는 글은 행이 있어도
+            // 렌더가 바뀌지 않으므로 조회하지 않는다. 판정은 아래 렌더·지연 sync 와 같은
+            // post.content(이메일 인코딩 등 전처리 뒤)와 같은 기준(hasAffiliateCandidateLinks)을 쓴다.
+            const hasAffiliateTargets =
+                Boolean(post.link1) ||
+                Boolean(post.link2) ||
+                (typeof post.content === 'string' && hasAffiliateCandidateLinks(post.content));
+            const fetchPostAffiliate = affiliateEnabled && hasAffiliateTargets;
+            const postAffiliateRows = fetchPostAffiliate
                 ? await fetchPostAffiliateLinks(boardId, Number(postId)).catch(() => [])
                 : [];
 
@@ -624,13 +632,7 @@ export const load: PageServerLoad = async ({
             // 값싼 게이트로 링크 없는 글은 걸러 과발화를 막고, 행이 생기면 다시 발화하지 않는다.
             // 본문 판정은 sync 와 같은 기준(앵커·자동 링크될 URL)을 써서, 이미지 주소처럼
             // 속성 안에만 URL 이 있는 글은 매 조회마다 다시 처리하지 않는다.
-            if (
-                affiliateEnabled &&
-                postAffiliateRows.length === 0 &&
-                (Boolean(post.link1) ||
-                    Boolean(post.link2) ||
-                    (typeof post.content === 'string' && hasAffiliateCandidateLinks(post.content)))
-            ) {
+            if (affiliateEnabled && postAffiliateRows.length === 0 && hasAffiliateTargets) {
                 try {
                     // await 금지 — SSR 렌더/응답을 절대 블로킹·지연하지 않는다. 에러는 삼킨다.
                     // 동시 조회가 같은 글을 중복 처리하지 않도록 짧은 락을 잡는다.
