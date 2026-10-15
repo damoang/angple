@@ -642,7 +642,11 @@
                     if (result.postLikeStatus && postStatusApplied) {
                         isLiked = result.postLikeStatus.userLiked;
                         isDisliked = result.postLikeStatus.userDisliked;
-                        if (typeof result.postLikeStatus.likes === 'number') {
+                        // 이번 세션에서 이 글을 직접 눌렀으면 그때 받은 개수가 더 새롭다 — 덮지 않는다.
+                        if (
+                            typeof result.postLikeStatus.likes === 'number' &&
+                            !postLikeStore.get(boardId, effectPostId)
+                        ) {
                             likeCount = result.postLikeStatus.likes;
                             dislikeCount = result.postLikeStatus.dislikes ?? 0;
                         }

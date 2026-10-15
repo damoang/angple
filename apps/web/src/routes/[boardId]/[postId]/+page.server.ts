@@ -830,13 +830,13 @@ export const load: PageServerLoad = async ({
 
             const postLikeStatusValue =
                 postLikeStatusResult.status === 'fulfilled' ? postLikeStatusResult.value : null;
-            // 개수는 이미 읽어 둔 글의 값을 그대로 싣는다(추가 조회 없음). 화면이 재조회를
-            // 건너뛰어도 개수 표시가 글 데이터와 같게 유지된다.
+            // 개수는 추천 상태 조회가 함께 읽은 값(추천할 때마다 새로 읽힌다)을 쓰고, 없으면 글 데이터의
+            // 값을 쓴다. 화면이 재조회를 건너뛰어도 방금 누른 추천이 개수에 반영된다.
             const postLikeStatus = {
                 userLiked: postLikeStatusValue?.userLiked ?? false,
                 userDisliked: postLikeStatusValue?.userDisliked ?? false,
-                likes: Number(post.likes ?? 0),
-                dislikes: Number(post.dislikes ?? 0)
+                likes: postLikeStatusValue?.likes ?? Number(post.likes ?? 0),
+                dislikes: postLikeStatusValue?.dislikes ?? Number(post.dislikes ?? 0)
             };
 
             const scheduledDelete =
