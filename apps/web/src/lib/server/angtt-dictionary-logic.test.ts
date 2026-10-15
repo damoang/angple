@@ -12,6 +12,41 @@ import {
     type EntityAlias
 } from './angtt-dictionary-logic';
 
+describe('작성자가 확정한 작품 연결', () => {
+    const aliases: EntityAlias[] = [
+        { aliasNorm: '괴물', entitySlug: 'monster-2006', autoLink: false },
+        { aliasNorm: '괴물', entitySlug: 'monster-2023', autoLink: false },
+        { aliasNorm: '듄', entitySlug: 'dune-2021', autoLink: true }
+    ];
+
+    it('표시 제목과 다른 작성폼 slug로 정확한 작품을 연결한다', () => {
+        expect(matchAliasFromTags([ANGTT_TAG, 'monster-2023'], aliases)?.entitySlug).toBe(
+            'monster-2023'
+        );
+    });
+
+    it('다른 작품의 별칭 태그보다 명시적으로 선택한 slug를 우선한다', () => {
+        expect(matchAliasFromTags([ANGTT_TAG, '듄', 'monster-2023'], aliases)?.entitySlug).toBe(
+            'monster-2023'
+        );
+    });
+
+    it('동명 작품을 반환 순서에 따라 임의로 연결하지 않는다', () => {
+        expect(matchAliasFromTags([ANGTT_TAG, '괴물'], aliases)).toBeNull();
+        expect(matchAliasFromTags([ANGTT_TAG, '괴물'], [...aliases].reverse())).toBeNull();
+    });
+
+    it('같은 작품의 중복 별칭은 모호한 작품으로 취급하지 않는다', () => {
+        expect(matchAliasFromTags([ANGTT_TAG, '듄'], [aliases[2], aliases[2]])?.entitySlug).toBe(
+            'dune-2021'
+        );
+    });
+
+    it('작품 식별자가 있어도 앙티티 옵트인 없이는 연결하지 않는다', () => {
+        expect(matchAliasFromTags(['monster-2023'], aliases)).toBeNull();
+    });
+});
+
 describe('normalizeWorkTitle — 정규화 (trim + 연속 공백 1개화 + 소문자)', () => {
     it('앞뒤 공백을 제거한다', () => {
         expect(normalizeWorkTitle('  듄: 파트 2  ')).toBe('듄: 파트 2');

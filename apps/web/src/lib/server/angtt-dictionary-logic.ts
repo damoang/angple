@@ -265,11 +265,25 @@ export function matchAliasFromTags(
     if (!hasAngttTag(tags)) return null;
 
     const angtt = normalizeWorkTitle(ANGTT_TAG);
-    const byNorm = new Map<string, EntityAlias>();
+    const bySlug = new Map<string, EntityAlias>();
+    const byNorm = new Map<string, EntityAlias | null>();
     for (const a of aliases) {
-        if (!byNorm.has(a.aliasNorm)) byNorm.set(a.aliasNorm, a);
+        bySlug.set(normalizeWorkTitle(a.entitySlug), a);
+        if (!byNorm.has(a.aliasNorm)) {
+            byNorm.set(a.aliasNorm, a);
+        } else if (byNorm.get(a.aliasNorm)?.entitySlug !== a.entitySlug) {
+            // 동명 작품은 DB 반환 순서로 고르지 않는다. 명시적인 slug 선택이 필요하다.
+            byNorm.set(a.aliasNorm, null);
+        }
     }
 
+    // 작성폼의 [연결]은 작품명 대신 slug를 저장한다. 명시적 선택을 별칭보다 우선한다.
+    for (const t of tags) {
+        const key = normalizeWorkTitle(t);
+        if (!key || key === angtt) continue;
+        const selected = bySlug.get(key);
+        if (selected) return selected;
+    }
     for (const t of tags) {
         const key = normalizeWorkTitle(t);
         if (!key || key === angtt) continue;

@@ -370,10 +370,9 @@ async function autoLinkAngtt(path: string, response: Response): Promise<void> {
     if (!wrId) return;
 
     try {
-        await autoLinkAngttEntity(postMatch[1], wrId);
-        // 작성자가 확정한 태그(제안 칩 [연결] 또는 수동 입력) → 작품 링크.
-        // 자동 연결과 별개 경로: 태그가 있으면 role='mention' 을 추가한다(IGNORE 로 중복 무해).
-        await linkEntityFromTags(postMatch[1], wrId);
+        // 작성자가 선택한 작품을 먼저 연결한다. 제목 추측으로 다른 작품을 덧붙이지 않는다.
+        const selected = await linkEntityFromTags(postMatch[1], wrId);
+        if (!selected) await autoLinkAngttEntity(postMatch[1], wrId);
     } finally {
         // angtt 원글 → 작품 후보(pending) 등록. 위 연결이 끝난 뒤에 돌아야 이미 연결된 글을
         // 건너뛴다. 위에서 실패해도 실행되며, 이 함수 자체는 throw 하지 않는다.
