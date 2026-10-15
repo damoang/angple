@@ -80,7 +80,8 @@ export const load: LayoutServerLoad = async ({
             },
             ga4MeasurementId: '',
             widgetLayout: DEFAULT_WIDGETS,
-            sidebarWidgetLayout: DEFAULT_SIDEBAR_WIDGETS
+            sidebarWidgetLayout: DEFAULT_SIDEBAR_WIDGETS,
+            renderedAt: Date.now()
         };
 
         return hooks.applyFilters('layout_server_data', installLayoutData);
@@ -231,7 +232,11 @@ export const load: LayoutServerLoad = async ({
         // 모든 페이지에서 widgetLayoutStore 초기화 (Redis 캐시 사용, SSR 비용 미미)
         // 이전엔 +page.server.ts(홈)에서만 로드 → 글 상세/게시판 목록 등에서 사이드바 사용자 layout 미적용.
         widgetLayout,
-        sidebarWidgetLayout
+        sidebarWidgetLayout,
+        // 서버가 이 데이터를 만든 시각(epoch ms). 캐시에서 나온 비로그인 페이지가 얼마나
+        // 오래됐는지 클라이언트가 판단해, 오래된 페이지에서만 활성 플러그인 목록을 다시 받는다
+        // (shouldRefreshActivePlugins). 응답 본문에만 실리는 값이라 캐시 키에는 영향이 없다.
+        renderedAt: Date.now()
     };
 
     // 훅: 레이아웃 데이터 필터 (플러그인이 SSR 데이터를 수정/확장 가능)

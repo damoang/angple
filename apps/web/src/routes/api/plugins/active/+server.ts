@@ -11,8 +11,16 @@ import { getActivePlugins } from '$lib/server/plugins';
 /**
  * GET /api/plugins/active
  * 활성화된 플러그인 목록 조회
+ *
+ * 플러그인 설정값(settings)은 관리자 호출에만 싣는다. 공개 호출(레이아웃의 목록 재확인)은
+ * id·hooks·components 만 쓰고 설정값은 쓰지 않는다 — 레이아웃 데이터도 /admin 밖에서는
+ * settings 를 null 로 내린다(+layout.server.ts). hooks·components 는 플러그인 코드에 들어 있는
+ * manifest 값이고, 목록이 바뀌었을 때 클라이언트가 플러그인 Hook 을 등록하는 데 필요하다.
  */
-export const GET: RequestHandler = async () => {
+export const GET: RequestHandler = async ({ locals }) => {
+    // ⛔ mb_level 10 = 관리자(requireAdmin 과 같은 기준). as_level 과 혼동 금지.
+    const isAdmin = !!locals.user && locals.user.level >= 10;
+
     try {
         const activePlugins = await getActivePlugins();
 
@@ -24,7 +32,7 @@ export const GET: RequestHandler = async () => {
                     version: plugin.manifest.version,
                     hooks: plugin.manifest.hooks || [],
                     components: plugin.manifest.components || [],
-                    settings: plugin.currentSettings || {}
+                    settings: isAdmin ? plugin.currentSettings || {} : {}
                 })),
                 total: activePlugins.length
             },
