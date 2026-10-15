@@ -52,6 +52,27 @@ export function canSkipReactionsRefetch(input: ReactionsRefetchInput): boolean {
     return !input.authenticated;
 }
 
+export interface LikeResyncInput {
+    /** 지금 보고 있는 글 ID */
+    postId: number;
+    /** 서버가 흘려보낸 추천 상태가 어느 글 것인지(도착 전·실패·전달분 없음이면 null) */
+    streamedPostId: number | null;
+    /** 서버가 세션으로 확인한 회원의 추천 상태(글·댓글)를 조회에 성공해 보냈는가 */
+    streamedViewerKnown: boolean;
+}
+
+/**
+ * 인증 확립 뒤 추천 상태(글 하트·댓글 하트) 재조회를 건너뛰어도 되는지.
+ *
+ * 서버가 같은 회원의 상태를 이미 보냈으면 다시 부를 필요가 없다. 그 외에는 모두 부른다 —
+ * 전달분이 없거나(화면 안 이동·실패·대기 한도 초과), 다른 글 것이거나, 서버가 회원을 몰랐거나
+ * 조회에 실패한 경우. 전달분이 아직 오는 중인지는 호출하는 쪽이 먼저 기다린 뒤 이 함수로 판정한다.
+ */
+export function canSkipLikeResync(input: LikeResyncInput): boolean {
+    if (input.streamedPostId == null || input.streamedPostId !== input.postId) return false;
+    return input.streamedViewerKnown === true;
+}
+
 /**
  * 추천한 사람 미리보기 — 서버가 페이지와 함께 보낼지, 화면이 따로 부를지.
  *

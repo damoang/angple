@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+    canSkipLikeResync,
     canSkipReactionsRefetch,
     commentIdsForLikersPreview,
     commentLikerIdsToFetch,
@@ -93,6 +94,32 @@ describe('canSkipReactionsRefetch', () => {
         expect(
             canSkipReactionsRefetch({ ...base, streamedViewerKnown: true, authLoading: true })
         ).toBe(true);
+    });
+});
+
+describe('canSkipLikeResync', () => {
+    const base = {
+        postId: 1,
+        streamedPostId: 1,
+        streamedViewerKnown: true
+    };
+
+    it('서버가 회원을 알고 같은 글의 상태를 보냈으면 건너뛴다', () => {
+        expect(canSkipLikeResync(base)).toBe(true);
+    });
+
+    it('서버가 회원을 몰랐거나 조회에 실패했으면 다시 부른다', () => {
+        expect(canSkipLikeResync({ ...base, streamedViewerKnown: false })).toBe(false);
+    });
+
+    it('다른 글의 전달분이면 다시 부른다', () => {
+        expect(canSkipLikeResync({ ...base, streamedPostId: 2 })).toBe(false);
+    });
+
+    it('전달분이 없거나 실패했으면 다시 부른다', () => {
+        const failed = { postId: 1, streamedPostId: null, streamedViewerKnown: false };
+        expect(canSkipLikeResync({ ...base, streamedPostId: null })).toBe(false);
+        expect(canSkipLikeResync(failed)).toBe(false);
     });
 });
 

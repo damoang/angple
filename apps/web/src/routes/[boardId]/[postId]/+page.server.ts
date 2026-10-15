@@ -35,7 +35,7 @@ import { fetchHasPoll } from '$lib/server/poll-presence.js';
 import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
 
-import { fetchPostLikeStatus } from '$lib/server/post-like-status.js';
+import { fetchPostLikeStatus, type PostLikeStatus } from '$lib/server/post-like-status.js';
 import { getAuthUser } from '$lib/server/auth';
 import { fetchMemberActivity, type MemberActivity } from '$lib/server/member-activity.js';
 import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
@@ -720,12 +720,10 @@ export const load: PageServerLoad = async ({
                 // outer scope 에서 미리 시작한 공유 promise 재사용(워터마크 판정과 동일 조회).
                 postReportCountPromise,
                 // 게시글 추천/비추천 상태 (로그인 시만, DB 직접 조회)
+                // 실패는 null 로 남긴다 — 「누른 적 없음」과 구분해야 화면이 재조회 여부를 정할 수 있다.
                 likeUserId
-                    ? fetchPostLikeStatus(boardId, Number(postId), likeUserId).catch(() => ({
-                          userLiked: false,
-                          userDisliked: false
-                      }))
-                    : Promise.resolve({ userLiked: false, userDisliked: false }),
+                    ? fetchPostLikeStatus(boardId, Number(postId), likeUserId).catch(() => null)
+                    : Promise.resolve<PostLikeStatus>({ userLiked: false, userDisliked: false }),
                 // 삭제 예약 상태 — Posts API 응답에 inline 포함 (별도 fetch 제거, 백엔드 PR #430)
                 Promise.resolve(
                     post.scheduled_delete
@@ -744,11 +742,9 @@ export const load: PageServerLoad = async ({
                     // 글 단위 조회 — SSR 1페이지(10개) 밖 backfill 댓글의 하트 토글 상태
                     // 누락 방지 (economy/77128 제보: 정렬 동률로 1페이지에서 밀린 댓글의
                     // 좋아요가 새로고침 후 미표시되던 문제)
+                    // 실패는 null 로 남긴다(위 글 추천 상태와 같은 이유).
                     return fetchCommentLikeStatuses(boardId, Number(postId), likeUserId).catch(
-                        () => ({
-                            likedIds: [],
-                            dislikedIds: []
-                        })
+                        () => null
                     );
                 })(),
                 (() => {
@@ -832,18 +828,37 @@ export const load: PageServerLoad = async ({
             const postReportCount =
                 postReportCountResult.status === 'fulfilled' ? postReportCountResult.value : null;
 
-            const postLikeStatus =
-                postLikeStatusResult.status === 'fulfilled'
-                    ? postLikeStatusResult.value
-                    : { userLiked: false, userDisliked: false };
+            const postLikeStatusValue =
+                postLikeStatusResult.status === 'fulfilled' ? postLikeStatusResult.value : null;
+            // 개수는 추천 상태 조회가 함께 읽은 값(추천할 때마다 새로 읽힌다)을 쓰고, 없으면 글 데이터의
+            // 값을 쓴다. 화면이 재조회를 건너뛰어도 방금 누른 추천이 개수에 반영된다.
+            const postLikeStatus = {
+                userLiked: postLikeStatusValue?.userLiked ?? false,
+                userDisliked: postLikeStatusValue?.userDisliked ?? false,
+                likes: postLikeStatusValue?.likes ?? Number(post.likes ?? 0),
+                dislikes: postLikeStatusValue?.dislikes ?? Number(post.dislikes ?? 0)
+            };
 
             const scheduledDelete =
                 scheduledDeleteResult.status === 'fulfilled' ? scheduledDeleteResult.value : null;
 
-            const commentLikeStatuses =
+            const commentLikeStatusesValue =
                 commentLikeStatusesResult.status === 'fulfilled'
                     ? commentLikeStatusesResult.value
-                    : { likedIds: [], dislikedIds: [] };
+                    : null;
+            const commentLikeStatuses = commentLikeStatusesValue ?? {
+                likedIds: [],
+                dislikedIds: []
+            };
+
+            // 서버가 세션으로 확인한 회원의 추천 상태(글·댓글)를 둘 다 조회에 성공했는가.
+            // true 면 화면은 인증 확립 뒤 같은 상태를 다시 부르지 않는다.
+            // 세션 없이 다른 인증 쿠키로만 식별한 경우는 false — 그런 응답은 비로그인 응답처럼
+            // 캐시될 수 있으므로 「서버가 회원을 알았다」고 단정하지 않고 화면이 다시 부르게 둔다.
+            const likeViewerKnown =
+                Boolean(locals.user?.id) &&
+                postLikeStatusValue != null &&
+                commentLikeStatusesValue != null;
 
             const truthroomCommentMap =
                 truthroomCommentMapResult.status === 'fulfilled'
@@ -874,6 +889,7 @@ export const load: PageServerLoad = async ({
                 isScrapped,
                 postReportCount,
                 postLikeStatus,
+                likeViewerKnown,
                 scheduledDelete,
                 commentLikeStatuses,
                 truthroomCommentMap,
