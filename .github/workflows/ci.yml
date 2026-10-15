@@ -381,7 +381,7 @@ jobs:
           if [ "${{ matrix.app }}" = "web" ] && [ "$BACKEND_READY" = "false" ]; then
             echo "⚠️ Backend not available, skipping e2e tests"
           else
-            pnpm run test:ci:e2e
+            pnpm run test:ci:e2e --reporter=html
           fi
 
       - name: Upload coverage to Codecov
