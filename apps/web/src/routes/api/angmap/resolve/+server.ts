@@ -13,6 +13,7 @@ import type { RequestHandler } from './$types';
 import { createCache } from '$lib/server/cache.js';
 import { resolveMapUrl, type AngmapResolvedPlace } from '$lib/server/angmap-resolve.js';
 import { findMapLink } from '$lib/utils/angmap-link.js';
+import { findRelatedAngmapPost } from '$lib/server/angmap-related-post.js';
 
 const resolveCache = createCache<AngmapResolvedPlace | null>({ ttl: 600_000, maxSize: 300 });
 
@@ -31,5 +32,9 @@ export const GET: RequestHandler = async ({ url, locals }) => {
         resolveMapUrl(candidate)
     );
 
-    return json({ place }, { headers: { 'cache-control': 'private, max-age=300' } });
+    const relatedPostId = place ? await findRelatedAngmapPost(place.provider, place.placeId) : null;
+    return json(
+        { place: place ? { ...place, relatedPostId } : null },
+        { headers: { 'cache-control': 'private, max-age=60' } }
+    );
 };
