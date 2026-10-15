@@ -91,18 +91,22 @@ export function checkClaim(
         reasons.push('ticks_shape');
         return { reasons, score: 0, ticks: 0 };
     }
-    const rep = game.replay(seed, claim.inputs, ticks, variant);
-    if (rep.error) reasons.push(rep.error);
     const score = claim.score;
-    if (typeof score !== 'number' || !Number.isSafeInteger(score) || score < 0) {
-        reasons.push('score_shape');
-    } else if (!rep.error && score !== rep.score) {
-        reasons.push('score_mismatch');
-    }
+    const scoreOk = typeof score === 'number' && Number.isSafeInteger(score) && score >= 0;
+    // 시간 검사를 재생보다 먼저 — 너무 빠른 판은 재생하지 않는다(긴 판 재생 비용을 실제 경과로 묶는다)
     const elapsed = Math.max(0, elapsedMs);
     const simMs = Math.floor((ticks * 1000) / game.tickHz);
     if (simMs > elapsed + Math.floor((elapsed * TIME_SLACK_PERCENT) / 100) + TIME_SLACK_MS) {
         reasons.push('too_fast');
+        if (!scoreOk) reasons.push('score_shape');
+        return { reasons, score: 0, ticks };
+    }
+    const rep = game.replay(seed, claim.inputs, ticks, variant);
+    if (rep.error) reasons.push(rep.error);
+    if (!scoreOk) {
+        reasons.push('score_shape');
+    } else if (!rep.error && score !== rep.score) {
+        reasons.push('score_mismatch');
     }
     return { reasons, score: rep.score, ticks: rep.ticks };
 }

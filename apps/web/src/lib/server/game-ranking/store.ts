@@ -147,12 +147,12 @@ export function resetReadyCache(): void {
 }
 
 /** 저장 실패 원인이 표 없음이면 기억도 고친다 */
-function rethrow(err: unknown): never {
+function toStoreError(err: unknown): unknown {
     if (isNoSuchTable(err)) {
         readyCache = { ready: false, at: Date.now() };
-        throw new TablesMissingError();
+        return new TablesMissingError();
     }
-    throw err;
+    return err;
 }
 
 async function writeRun(
@@ -222,7 +222,7 @@ export async function saveRun(rec: RunRecord, higherIsBetter: boolean): Promise<
             return { best: null, weekBest: null };
         });
     } catch (err) {
-        rethrow(err);
+        throw toStoreError(err);
     } finally {
         conn?.release();
     }
@@ -281,7 +281,7 @@ export async function topRows(
         const args = week ? [gameId, variant, week] : [gameId, variant];
         [rows] = await readPool.query<TopRow[]>(topSql(!!week, higherIsBetter), args);
     } catch (err) {
-        rethrow(err);
+        throw toStoreError(err);
     }
     // 닉네임은 회원 카드(공유 캐시)에서 — 못 읽으면 조인한 닉네임
     let cards: Awaited<ReturnType<typeof fetchMemberCards>> = new Map();

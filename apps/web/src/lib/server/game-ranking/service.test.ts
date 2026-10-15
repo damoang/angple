@@ -232,6 +232,16 @@ describe('기록 접수', () => {
         expect(f.saved[0].flagReason).not.toContain('score_mismatch');
     });
 
+    it('너무 빠른 판은 재생하지 않는다(재생 비용을 실제 경과로 묶는다)', () => {
+        const replaySpy = vi.fn(() => ({ score: 0, ticks: 0 }));
+        const spyGame: RankedGame = { ...breakout, replay: replaySpy };
+        const fast = checkClaim(spyGame, '', 1, { score: 5, ticks: 216000, inputs: {} }, 5000);
+        expect(fast.reasons).toEqual(['too_fast']);
+        expect(replaySpy).not.toHaveBeenCalled();
+        checkClaim(spyGame, '', 1, { score: 0, ticks: 60, inputs: {} }, 5000);
+        expect(replaySpy).toHaveBeenCalledTimes(1);
+    });
+
     it('경과 × 1.05 + 2초 까지는 봐준다', () => {
         const ticks = 6000; // 100초
         const play = { score: 0, ticks, inputs: { m: '', l: '' } };

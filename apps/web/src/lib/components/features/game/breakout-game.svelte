@@ -251,7 +251,12 @@
         if (!id) return;
         const gen = startGen;
         record = 'saving';
-        const body = { runId: id, score: game.score, ticks: game.tick, inputs: encodeLog(game.log) };
+        const body = {
+            runId: id,
+            score: game.score,
+            ticks: game.tick,
+            inputs: encodeLog(game.log)
+        };
         const res = await finishScoreRun(RANK_GAME, body);
         if (gen !== startGen || destroyed) return;
         standing = res;
