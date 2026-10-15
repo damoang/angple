@@ -15,6 +15,15 @@
  */
 import { getRedis } from './redis.js';
 
+/**
+ * Redis 키 생성. CACHE_NAMESPACE 환경변수가 있으면 `{ns}:{prefix}:{key}` 로 격리,
+ * 없으면 기존 `{prefix}:{key}`. canary/prod 가 공유 Redis 를 써도 환경 간 캐시 오염 방지.
+ */
+export function redisKey(prefix: string, key: string): string {
+    const ns = process.env.CACHE_NAMESPACE;
+    return ns ? `${ns}:${prefix}:${key}` : `${prefix}:${key}`;
+}
+
 interface CacheEntry<T> {
     value: T;
     expiresAt: number;
@@ -184,13 +193,9 @@ export class TieredCache<T> {
         this.pendingMaxSize = pendingMaxSize;
     }
 
-    /**
-     * Redis(L2) 키 생성. CACHE_NAMESPACE 환경변수가 있으면 `{ns}:{prefix}:{key}` 로 격리,
-     * 없으면 기존 `{prefix}:{key}`. canary/prod 가 공유 Redis 를 써도 환경 간 캐시 오염 방지.
-     */
+    /** Redis(L2) 키 생성 — 모듈 함수 redisKey() 와 같은 규칙. */
     private redisKey(key: string): string {
-        const ns = process.env.CACHE_NAMESPACE;
-        return ns ? `${ns}:${this.prefix}:${key}` : `${this.prefix}:${key}`;
+        return redisKey(this.prefix, key);
     }
 
     /** L1 → L2 조회 */

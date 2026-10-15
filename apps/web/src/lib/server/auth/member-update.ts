@@ -8,6 +8,7 @@ import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { validateNickname } from './register.js';
 import { invalidateMemberCache } from './oauth/member.js';
+import { invalidateMemberCard } from '$lib/server/member-card.js';
 import { sendMail } from '$lib/server/mailer.js';
 import { env } from '$env/dynamic/private';
 
@@ -114,6 +115,7 @@ export async function updateNickname(
     }
 
     await invalidateMemberCache(mbId);
+    await invalidateMemberCard(mbId);
     return { success: true };
 }
 
@@ -425,5 +427,8 @@ export async function updateProfile(
     );
 
     await invalidateMemberCache(mbId);
+    if (fields.mb_image_url !== undefined) {
+        await invalidateMemberCard(mbId);
+    }
     return { success: true };
 }

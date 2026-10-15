@@ -7,10 +7,58 @@ vi.mock('$lib/server/db', () => ({
     pool: { query: mockQuery }
 }));
 
-// 비교 대상인 withdrawn-members 의 메모리 캐시가 redis 모듈을 끌어오지 않게 막는다.
+// 기본은 Redis 없음(캐시 없이 DB). 캐시 테스트에서만 가짜 클라이언트를 넣는다.
+// 비교 대상인 withdrawn-members 의 메모리 캐시도 이 모듈을 쓴다.
+let redisClient: FakeRedis | null = null;
 vi.mock('$lib/server/redis', () => ({
-    getRedis: () => null
+    getRedis: () => redisClient
 }));
+
+interface FakeRedis {
+    store: Map<string, string>;
+    mget: ReturnType<typeof vi.fn>;
+    del: ReturnType<typeof vi.fn>;
+    pipeline: ReturnType<typeof vi.fn>;
+    setex: ReturnType<typeof vi.fn>;
+}
+
+/** MGET·pipeline(SETEX)·DEL 만 흉내 내는 메모리 Redis. */
+function createFakeRedis(): FakeRedis {
+    const store = new Map<string, string>();
+    const setex = vi.fn((key: string, _ttl: number, value: string) => {
+        store.set(key, value);
+    });
+    const fake: FakeRedis = {
+        store,
+        setex,
+        mget: vi.fn(async (...keys: string[]) => keys.map((k) => store.get(k) ?? null)),
+        del: vi.fn(async (...keys: string[]) => {
+            let n = 0;
+            for (const k of keys) if (store.delete(k)) n++;
+            return n;
+        }),
+        pipeline: vi.fn(() => {
+            const ops: Array<() => void> = [];
+            const p = {
+                setex: (key: string, ttl: number, value: string) => {
+                    ops.push(() => setex(key, ttl, value));
+                    return p;
+                },
+                exec: async () => {
+                    ops.forEach((op) => op());
+                    return [];
+                }
+            };
+            return p;
+        })
+    };
+    return fake;
+}
+
+/** fire-and-forget 저장(pipeline.exec)이 끝나도록 한 틱 넘긴다. */
+async function flush() {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+}
 
 interface MemberRow {
     mb_id: string;
@@ -65,6 +113,8 @@ async function loadModule() {
 describe('fetchMemberCards', () => {
     beforeEach(() => {
         mockQuery.mockReset();
+        redisClient = null;
+        delete process.env.CACHE_NAMESPACE;
         members = [
             {
                 mb_id: 'alice',
@@ -143,13 +193,15 @@ describe('fetchMemberCards', () => {
         expect(cards.has('nobody')).toBe(false);
     });
 
-    it('결과 키는 DB 의 mb_id 그대로다(기존 조회와 같은 키 규칙)', async () => {
+    it('결과 키는 요청한 id 그대로다(캐시 키만 소문자)', async () => {
         const { fetchMemberCards } = await loadModule();
 
-        const cards = await fetchMemberCards(['ALICE']);
+        const cards = await fetchMemberCards(['alice', 'ALICE']);
 
-        expect(cards.has('alice')).toBe(true);
-        expect(cards.has('ALICE')).toBe(false);
+        expect(mockQuery).toHaveBeenCalledTimes(1);
+        expect(mockQuery.mock.calls[0][1]).toEqual([['alice']]);
+        expect(cards.get('alice')?.nick).toBe('앨리스');
+        expect(cards.get('ALICE')?.nick).toBe('앨리스');
     });
 
     it('탈퇴 판정이 기존 fetchWithdrawnMemberIds 와 같은 입력에서 같다', async () => {
@@ -188,5 +240,147 @@ describe('fetchMemberCards', () => {
         const { fetchMemberCards } = await loadModule();
 
         await expect(fetchMemberCards(['alice'])).rejects.toThrow('db down');
+    });
+
+    describe('공유 캐시', () => {
+        beforeEach(() => {
+            redisClient = createFakeRedis();
+        });
+
+        it('전부 적중하면 DB 를 부르지 않는다', async () => {
+            const { fetchMemberCards } = await loadModule();
+            await fetchMemberCards(['alice', 'bob', 'nobody']);
+            await flush();
+            mockQuery.mockClear();
+
+            const cards = await fetchMemberCards(['alice', 'bob', 'nobody']);
+
+            expect(mockQuery).not.toHaveBeenCalled();
+            expect(cards.get('alice')).toEqual({
+                nick: '앨리스',
+                image: 'https://img.example/a.webp',
+                imageUpdatedAt: Math.floor(Date.parse('2026-01-02T03:04:05Z') / 1000),
+                isLeft: false
+            });
+            expect(cards.get('bob')).toEqual({
+                nick: '밥',
+                image: '',
+                imageUpdatedAt: undefined,
+                isLeft: true
+            });
+            expect(cards.has('nobody')).toBe(false);
+        });
+
+        it('일부 미스면 미스 id 만 DB 로 읽고 SETEX 한다', async () => {
+            redisClient!.store.set(
+                'mbcard:alice',
+                JSON.stringify({ n: '캐시닉', i: '', u: null, l: 0 })
+            );
+            const { fetchMemberCards } = await loadModule();
+
+            const cards = await fetchMemberCards(['alice', 'bob']);
+            await flush();
+
+            expect(mockQuery).toHaveBeenCalledTimes(1);
+            expect(mockQuery.mock.calls[0][1]).toEqual([['bob']]);
+            expect(cards.get('alice')?.nick).toBe('캐시닉');
+            expect(cards.get('bob')?.isLeft).toBe(true);
+
+            expect(redisClient!.setex).toHaveBeenCalledTimes(1);
+            const [key, ttl, value] = redisClient!.setex.mock.calls[0];
+            expect(key).toBe('mbcard:bob');
+            expect(ttl).toBeGreaterThanOrEqual(600);
+            expect(ttl).toBeLessThan(660);
+            expect(JSON.parse(value)).toEqual({ n: '밥', i: '', u: null, l: 1 });
+        });
+
+        it('DB 에 없는 회원은 표식으로 저장해 다시 DB 를 치지 않는다', async () => {
+            const { fetchMemberCards } = await loadModule();
+
+            await fetchMemberCards(['nobody']);
+            await flush();
+            expect(redisClient!.store.get('mbcard:nobody')).toBe('-');
+
+            mockQuery.mockClear();
+            const cards = await fetchMemberCards(['nobody']);
+
+            expect(mockQuery).not.toHaveBeenCalled();
+            expect(cards.size).toBe(0);
+        });
+
+        it('MGET 오류면 전부 DB 로 읽는다', async () => {
+            redisClient!.store.set(
+                'mbcard:alice',
+                JSON.stringify({ n: '캐시닉', i: '', u: null, l: 0 })
+            );
+            redisClient!.mget.mockRejectedValueOnce(new Error('redis down'));
+            const { fetchMemberCards } = await loadModule();
+
+            const cards = await fetchMemberCards(['alice', 'bob']);
+
+            expect(mockQuery).toHaveBeenCalledTimes(1);
+            expect(mockQuery.mock.calls[0][1]).toEqual([['alice', 'bob']]);
+            expect(cards.get('alice')?.nick).toBe('앨리스');
+        });
+
+        it('MGET 이 시간 안에 끝나지 않으면 전부 DB 로 읽는다', async () => {
+            redisClient!.mget.mockImplementationOnce(() => new Promise(() => {}));
+            const { fetchMemberCards } = await loadModule();
+
+            const started = Date.now();
+            const cards = await fetchMemberCards(['alice', 'bob']);
+
+            expect(Date.now() - started).toBeLessThan(1000);
+            expect(mockQuery).toHaveBeenCalledTimes(1);
+            expect(mockQuery.mock.calls[0][1]).toEqual([['alice', 'bob']]);
+            expect(cards.get('alice')?.nick).toBe('앨리스');
+        });
+
+        it('캐시 키는 소문자이고 CACHE_NAMESPACE 를 접두한다', async () => {
+            process.env.CACHE_NAMESPACE = 'canary';
+            const { fetchMemberCards } = await loadModule();
+
+            await fetchMemberCards(['ALICE']);
+            await flush();
+
+            expect(redisClient!.mget).toHaveBeenCalledWith('canary:mbcard:alice');
+            expect(redisClient!.setex.mock.calls[0][0]).toBe('canary:mbcard:alice');
+        });
+
+        it('네임스페이스가 없으면 mbcard:{소문자 id} 다', async () => {
+            const { fetchMemberCards } = await loadModule();
+
+            await fetchMemberCards(['Alice']);
+
+            expect(redisClient!.mget).toHaveBeenCalledWith('mbcard:alice');
+        });
+
+        it('invalidateMemberCard 는 현재·없음·canary 네임스페이스 키를 지운다', async () => {
+            process.env.CACHE_NAMESPACE = 'staging';
+            const { invalidateMemberCard } = await loadModule();
+
+            await invalidateMemberCard('Alice');
+
+            expect(redisClient!.del).toHaveBeenCalledTimes(1);
+            expect(new Set(redisClient!.del.mock.calls[0])).toEqual(
+                new Set(['staging:mbcard:alice', 'mbcard:alice', 'canary:mbcard:alice'])
+            );
+        });
+
+        it('invalidateMemberCard 는 중복 키 없이 세 키 이하를 지운다', async () => {
+            process.env.CACHE_NAMESPACE = 'canary';
+            const { invalidateMemberCard } = await loadModule();
+
+            await invalidateMemberCard('bob');
+
+            expect(redisClient!.del.mock.calls[0]).toEqual(['canary:mbcard:bob', 'mbcard:bob']);
+        });
+
+        it('invalidateMemberCard 는 Redis 오류를 던지지 않는다', async () => {
+            redisClient!.del.mockRejectedValueOnce(new Error('redis down'));
+            const { invalidateMemberCard } = await loadModule();
+
+            await expect(invalidateMemberCard('alice')).resolves.toBeUndefined();
+        });
     });
 });
