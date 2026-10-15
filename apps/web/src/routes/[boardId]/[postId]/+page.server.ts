@@ -35,7 +35,7 @@ import { fetchHasPoll } from '$lib/server/poll-presence.js';
 import { fetchMemberImagesWithTimestamp } from '$lib/server/member-images.js';
 import { fetchCommentLikeStatuses } from '$lib/server/comment-likes.js';
 
-import { fetchPostLikeStatus } from '$lib/server/post-like-status.js';
+import { fetchPostLikeStatus, type PostLikeStatus } from '$lib/server/post-like-status.js';
 import { getAuthUser } from '$lib/server/auth';
 import { fetchMemberActivity, type MemberActivity } from '$lib/server/member-activity.js';
 import { fetchWithdrawnMemberIds } from '$lib/server/withdrawn-members.js';
@@ -723,7 +723,7 @@ export const load: PageServerLoad = async ({
                 // 실패는 null 로 남긴다 — 「누른 적 없음」과 구분해야 화면이 재조회 여부를 정할 수 있다.
                 likeUserId
                     ? fetchPostLikeStatus(boardId, Number(postId), likeUserId).catch(() => null)
-                    : Promise.resolve({ userLiked: false, userDisliked: false }),
+                    : Promise.resolve<PostLikeStatus>({ userLiked: false, userDisliked: false }),
                 // 삭제 예약 상태 — Posts API 응답에 inline 포함 (별도 fetch 제거, 백엔드 PR #430)
                 Promise.resolve(
                     post.scheduled_delete
