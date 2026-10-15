@@ -4,6 +4,7 @@ import pool from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import { findDisciplinedIds } from '$lib/server/discipline-mask.js';
 import { maskEmailText } from '$lib/utils/email-reveal.js';
+import { fetchRecentPosts } from './recent-posts.js';
 
 /**
  * 전체 RSS 피드 (최근 게시글)
@@ -39,21 +40,7 @@ export const GET: RequestHandler = async ({ url, request }) => {
             if (!/^[a-zA-Z0-9_]+$/.test(board.bo_table)) continue;
 
             try {
-                const [posts] = await pool.query<RowDataPacket[]>(
-                    `SELECT wr_id, wr_subject, wr_content, wr_name, wr_datetime
-					 FROM g5_write_${board.bo_table}
-					 WHERE wr_is_comment = 0
-					   AND (wr_deleted_at IS NULL OR wr_deleted_at = '0000-00-00 00:00:00')
-					 ORDER BY wr_datetime DESC LIMIT 5`
-                );
-
-                const typedPosts = posts as Array<{
-                    wr_id: number;
-                    wr_subject: string;
-                    wr_content: string;
-                    wr_name: string;
-                    wr_datetime: string;
-                }>;
+                const typedPosts = await fetchRecentPosts(pool, board.bo_table, 5);
                 // 이용제한 근거 글은 **피드에서 제외한다**(제목 치환이 아니라).
                 //
                 // ⛔ 예전에는 제목을 '[이용제한 근거 글]' 로 치환해 내보냈다. 그러면 작성자
