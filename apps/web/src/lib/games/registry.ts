@@ -9,6 +9,7 @@ import Blocks from '@lucide/svelte/icons/blocks';
 import BrickWall from '@lucide/svelte/icons/brick-wall';
 import Rocket from '@lucide/svelte/icons/rocket';
 import Crosshair from '@lucide/svelte/icons/crosshair';
+import Music from '@lucide/svelte/icons/music';
 
 export interface GameEntry {
     id: string;
@@ -87,6 +88,16 @@ export const GAMES: GameEntry[] = [
         icon: Crosshair,
         color: 'text-teal-600',
         bgColor: 'bg-teal-50 dark:bg-teal-950/30'
+    },
+    {
+        id: 'rhythm',
+        name: '리듬게임',
+        description: '네 개의 키로 즐기는 짧은 리듬 연습 · 초급부터 고급까지',
+        href: '/games/rhythm',
+        icon: Music,
+        color: 'text-emerald-600',
+        bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
+        badge: '베타'
     }
 ];
 
