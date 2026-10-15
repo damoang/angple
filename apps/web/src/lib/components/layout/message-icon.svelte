@@ -54,7 +54,7 @@
         }
 
         const seq = ++requestSeq;
-        const request = (async () => {
+        inflight = (async () => {
             try {
                 const res = await apiClient.getUnreadMessageCount();
                 if (seq !== requestSeq) return;
@@ -66,11 +66,11 @@
             } catch {
                 // unread-count 실패 시 배지를 끄지 않고 기존 값 유지 (일시 오류로 깜박임 방지).
             } finally {
-                if (inflight === request) inflight = null;
+                // 더 새 요청(강제 갱신)이 시작됐으면 그 요청의 inflight 는 건드리지 않는다.
+                if (seq === requestSeq) inflight = null;
             }
         })();
-        inflight = request;
-        return request;
+        return inflight;
     }
 
     // 로그인 → 로그아웃으로 바뀌면 캐시를 지운다 (처음부터 비로그인인 경우는 건드리지 않음).
