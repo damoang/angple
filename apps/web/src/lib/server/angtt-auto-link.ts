@@ -14,6 +14,7 @@
  *  - 실패해도 글 작성에는 영향이 없다(fire-and-forget, 호출부에서 catch).
  */
 import pool from '$lib/server/db';
+import { tmdbSourceKey } from '$lib/utils/angtt-source';
 import {
     ANGTT_TAG,
     scanAliasesInTitle,
@@ -49,6 +50,7 @@ let aliasCache: {
     at: number;
     aliases: EntityAlias[];
     slugToInfo: Map<string, EntityInfo>;
+    sourceToSlug: Map<string, string | null>;
 } | null = null;
 
 interface EntityRow {
@@ -58,6 +60,8 @@ interface EntityRow {
     aliases: unknown;
     poster_url: string | null;
     meta: unknown;
+    type: string;
+    external_ids: unknown;
 }
 
 function asArray(v: unknown): string[] {
@@ -92,15 +96,23 @@ async function loadAliases() {
     if (aliasCache && now - aliasCache.at < ALIAS_TTL_MS) return aliasCache;
 
     const [rows] = await pool.query(
-        `SELECT id, slug, canonical_title, aliases, poster_url, meta
+        `SELECT id, slug, canonical_title, aliases, poster_url, meta, type, external_ids
            FROM angple_entities
           WHERE status = 'active'`
     );
 
     const aliases: EntityAlias[] = [];
     const slugToInfo = new Map<string, EntityInfo>();
+    const sourceToSlug = new Map<string, string | null>();
 
     for (const r of rows as EntityRow[]) {
+        const external = asObject(r.external_ids);
+        const kind = external.tmdb_type ?? (r.type === 'movie' ? 'movie' : null);
+        const sourceKey = tmdbSourceKey(`https://www.themoviedb.org/${kind}/${external.tmdb}`);
+        if (sourceKey) {
+            // 잘못 중복 등록된 외부 ID는 임의로 하나를 고르지 않는다.
+            sourceToSlug.set(sourceKey, sourceToSlug.has(sourceKey) ? null : r.slug);
+        }
         slugToInfo.set(r.slug, {
             id: Number(r.id),
             title: r.canonical_title,
@@ -124,7 +136,7 @@ async function loadAliases() {
         }
     }
 
-    aliasCache = { at: now, aliases, slugToInfo };
+    aliasCache = { at: now, aliases, slugToInfo, sourceToSlug };
     return aliasCache;
 }
 
@@ -135,6 +147,21 @@ export interface AngttDetectMatch {
     posterUrl: string | null;
     /** true 면 저장 시 서버가 어차피 자동 연결한다(칩은 안내 성격) */
     canAutoLink: boolean;
+}
+
+/** 명시적 작품 URL을 우선한다. 미등록/모호한 URL을 제목 추측으로 대체하지 않는다. */
+export async function detectEntityFromSources(
+    title: string,
+    sources: string[]
+): Promise<AngttDetectMatch | null> {
+    const keys = [...new Set(sources.map(tmdbSourceKey).filter((key) => key !== null))];
+    if (keys.length === 0) return detectEntityFromTitle(title);
+    if (keys.length !== 1) return null;
+    const { sourceToSlug, slugToInfo } = await loadAliases();
+    const slug = sourceToSlug.get(keys[0]);
+    const info = slug ? slugToInfo.get(slug) : undefined;
+    if (!slug || !info) return null;
+    return { slug, title: info.title, posterUrl: info.posterUrl, canAutoLink: false };
 }
 
 /**

@@ -14,6 +14,7 @@
     import MapPin from '@lucide/svelte/icons/map-pin';
     import { stripAdminMentions } from '$lib/utils/sanitize-mentions.js';
     import { findMapLink } from '$lib/utils/angmap-link.js';
+    import { findTmdbSources } from '$lib/utils/angtt-source.js';
     import { stripBlobMedia } from '$lib/utils/strip-blob-media.js';
     import { checkContent, NUDGE_ENFORCED } from '$lib/utils/politeness-filter.js';
     import PolitenessNudgeDialog from './politeness-nudge-dialog.svelte';
@@ -107,16 +108,28 @@
 
     $effect(() => {
         const current = title.trim();
-        if (!ANGTT_SUGGEST_BOARDS.has(boardId) || isClaimBoard || current.length < 2) {
+        const sources = findTmdbSources(link1, link2, content);
+        angttSuggestion = null;
+        if (
+            !ANGTT_SUGGEST_BOARDS.has(boardId) ||
+            isClaimBoard ||
+            isSecret ||
+            (current.length < 2 && sources.length === 0)
+        ) {
             angttSeq++; // 이미 발사된 늦은 응답이 빈 제목 상태에 칩을 띄우지 않게 무효화
             angttSuggestion = null;
             return;
         }
 
         const seq = ++angttSeq;
+        const controller = new AbortController();
         const timer = setTimeout(async () => {
             try {
-                const res = await fetch(`/api/angtt/detect?title=${encodeURIComponent(current)}`);
+                const query = new URLSearchParams({ title: current });
+                for (const source of sources) query.append('source', source);
+                const res = await fetch(`/api/angtt/detect?${query}`, {
+                    signal: controller.signal
+                });
                 if (!res.ok || seq !== angttSeq) return;
                 const body = (await res.json()) as { match: AngttSuggestion | null };
                 if (seq !== angttSeq) return;
@@ -131,7 +144,10 @@
             }
         }, 600);
 
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+            controller.abort();
+        };
     });
 
     function acceptAngttSuggestion(): void {
