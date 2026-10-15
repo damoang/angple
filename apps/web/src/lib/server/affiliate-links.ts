@@ -186,6 +186,32 @@ export function linkifyPlainTextUrls(html: string): string {
         .join('');
 }
 
+/**
+ * 본문에서 제휴 처리 대상 앵커(href)를 순서대로 뽑는다.
+ * sync 의 수집과 글 보기 트리거 판정이 같은 기준을 쓰도록 한 곳에 둔다.
+ * 전역 정규식의 lastIndex 상태를 공유하지 않도록 매번 새 정규식을 쓴다.
+ */
+function extractAnchorUrls(html: string): string[] {
+    const linked = linkifyPlainTextUrls(html || '');
+    const regex = new RegExp(ANCHOR_REGEX.source, ANCHOR_REGEX.flags);
+    const urls: string[] = [];
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(linked)) !== null) {
+        urls.push(match[2]);
+    }
+    return urls;
+}
+
+/**
+ * 본문에 sync 가 행을 만들 링크(앵커 또는 자동 링크될 평문 URL)가 있는지.
+ * `<img src>`·iframe 등 속성 안에만 URL 이 있는 글은 false.
+ */
+export function hasAffiliateCandidateLinks(html: string | null | undefined): boolean {
+    if (!html) return false;
+    const regex = new RegExp(ANCHOR_REGEX.source, ANCHOR_REGEX.flags.replace('g', ''));
+    return regex.test(linkifyPlainTextUrls(html));
+}
+
 function collectAnchorDecisions(
     html: string,
     source: 'post_body' | 'comment_body',
@@ -193,16 +219,7 @@ function collectAnchorDecisions(
     postId: number,
     commentId?: number
 ): Promise<PersistAffiliateDecisionEntry[]> {
-    const linked = linkifyPlainTextUrls(html || '');
-    const matches: Array<{ index: number; url: string }> = [];
-    let match: RegExpExecArray | null;
-    let index = 0;
-    ANCHOR_REGEX.lastIndex = 0;
-
-    while ((match = ANCHOR_REGEX.exec(linked)) !== null) {
-        index += 1;
-        matches.push({ index, url: match[2] });
-    }
+    const matches = extractAnchorUrls(html).map((url, i) => ({ index: i + 1, url }));
 
     return Promise.all(
         matches.map(async ({ index: linkIndex, url }) => {
@@ -253,14 +270,45 @@ async function collectFieldDecision(input: {
     };
 }
 
-async function replaceEntityRows(
-    conn: PoolConnection,
+type AffiliateRowQueryable = Pick<PoolConnection, 'query'>;
+
+const POST_ENTITY_TYPES: AffiliateEntityType[] = ['post_body', 'post_link1', 'post_link2'];
+const COMMENT_ENTITY_TYPES: AffiliateEntityType[] = [
+    'comment_body',
+    'comment_link1',
+    'comment_link2'
+];
+
+async function hasExistingEntityRows(
+    db: AffiliateRowQueryable,
+    boardSlug: string,
+    postId: number,
+    commentId: number,
+    entityTypes: AffiliateEntityType[]
+): Promise<boolean> {
+    const [existing] = await db.query<RowDataPacket[]>(
+        `SELECT 1 FROM g5_affiliate_links WHERE board_slug = ? AND post_id = ? AND comment_id = ? AND entity_type IN (?) LIMIT 1`,
+        [boardSlug, postId, commentId, entityTypes]
+    );
+    return existing.length > 0;
+}
+
+export async function replaceEntityRows(
+    conn: AffiliateRowQueryable,
     boardSlug: string,
     postId: number,
     commentId: number,
     entityTypes: AffiliateEntityType[],
     rows: PersistAffiliateRow[]
 ): Promise<void> {
+    // 넣을 행이 없으면 지울 행이 있을 때만 DELETE 한다(빈 쓰기 생략).
+    if (
+        rows.length === 0 &&
+        !(await hasExistingEntityRows(conn, boardSlug, postId, commentId, entityTypes))
+    ) {
+        return;
+    }
+
     await conn.query(
         `DELETE FROM g5_affiliate_links WHERE board_slug = ? AND post_id = ? AND comment_id = ? AND entity_type IN (?)`,
         [boardSlug, postId, commentId, entityTypes]
@@ -352,6 +400,15 @@ export async function syncPostAffiliateLinks(boardId: string, postId: number): P
     const bodyRows = bodyEntries.map((entry) => entry.row);
     const fieldRows = fieldEntries.map((entry) => entry.row);
 
+    // 넣을 것도 지울 것도 없으면 트랜잭션을 열지 않는다.
+    if (
+        bodyRows.length === 0 &&
+        fieldRows.length === 0 &&
+        !(await hasExistingEntityRows(pool, safeBoardId, postId, 0, POST_ENTITY_TYPES))
+    ) {
+        return;
+    }
+
     const conn = await pool.getConnection();
     try {
         await conn.beginTransaction();
@@ -379,6 +436,35 @@ export async function syncPostAffiliateLinks(boardId: string, postId: number): P
     } finally {
         conn.release();
     }
+}
+
+const VIEW_SYNC_LOCK_TTL_SEC = 30;
+
+/**
+ * 글 보기 트리거 전용: 같은 글을 동시에 여러 조회가 sync 하지 않도록 짧은 락을 잡는다.
+ * Redis 오류 시에는 락 없이 그대로 실행한다(처리 누락 방지).
+ */
+export async function triggerPostAffiliateSyncOnView(
+    boardId: string,
+    postId: number,
+    sync: (boardId: string, postId: number) => Promise<void> = syncPostAffiliateLinks
+): Promise<void> {
+    let acquired = true;
+    try {
+        const { getRedis } = await import('$lib/server/redis');
+        const res = await getRedis().set(
+            `affiliate:sync:${sanitizeBoardId(boardId)}:${postId}`,
+            '1',
+            'EX',
+            VIEW_SYNC_LOCK_TTL_SEC,
+            'NX'
+        );
+        acquired = res === 'OK';
+    } catch {
+        acquired = true;
+    }
+    if (!acquired) return;
+    await sync(boardId, postId);
 }
 
 export async function syncCommentAffiliateLinks(
@@ -429,6 +515,15 @@ export async function syncCommentAffiliateLinks(
     ).filter((item): item is PersistAffiliateDecisionEntry => item !== null);
     const bodyRows = bodyEntries.map((entry) => entry.row);
     const fieldRows = fieldEntries.map((entry) => entry.row);
+
+    // 넣을 것도 지울 것도 없으면 트랜잭션을 열지 않는다.
+    if (
+        bodyRows.length === 0 &&
+        fieldRows.length === 0 &&
+        !(await hasExistingEntityRows(pool, safeBoardId, postId, commentId, COMMENT_ENTITY_TYPES))
+    ) {
+        return;
+    }
 
     const conn = await pool.getConnection();
     try {
