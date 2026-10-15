@@ -27,6 +27,7 @@ import { fetchMemberCards } from '$lib/server/member-card.js';
 import { prefetchBlueskyDIDs } from '$lib/server/bluesky/transform.js';
 import { encodeEmails } from '$lib/utils/email-reveal.js';
 import { resolveCommentTotal } from './_comment-total';
+import { luckyLookupCommentIds, shouldLookupReviewRatings } from '$lib/server/comment-enrich-gates';
 
 interface CommentRow extends RowDataPacket {
     wr_id: number;
@@ -311,9 +312,11 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
         }
 
         // 리뷰 별점(리뷰=댓글+별점): angple_post_ratings 에서 댓글 wr_id 별 평균(작성자 리뷰 점수).
-        // 초경량 테이블 + PK(bo_table,wr_id) 인덱스 seek. 비rating 보드는 결과 0(무해). 실패 무시.
+        // 초경량 테이블 + PK(bo_table,wr_id) 인덱스 seek. 실패 무시.
+        // 평점 쓰기는 features.rating 이 켜진 게시판에서만 허용되므로 그 게시판에서만 조회한다
+        // (설정 조회 실패 시엔 예전처럼 조회).
         const reviewRatingMap = new Map<number, number>();
-        if (commentIds.length > 0) {
+        if (commentIds.length > 0 && (await shouldLookupReviewRatings(safeBoardId))) {
             try {
                 const [rrRows] = await pool.query<RowDataPacket[]>(
                     `SELECT wr_id, ROUND(AVG(rating), 1) AS avg_rating
@@ -335,16 +338,19 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
         // 회차명 허용 목록 = 기본 3개 + 평소 단계 이름(base_name, 기본 「앙팡」) + lucky_config 설정 이름.
         // 「앙복타임 럭키 」 지난 문구는 현재 base_name 으로 표시한다. 설정은 30초 모듈 캐시로 읽는다
         // (실패=기본 3개 + 「앙팡」만).
+        // 댓글 럭키 지급은 지급 원장에 함께 남으므로 원장에 있는 댓글 id 로만 조회한다
+        // (원장 조회 실패 시엔 예전처럼 댓글 id 전체로 조회).
+        const luckyIds = await luckyLookupCommentIds(safeBoardId, commentIds);
         const luckyTier: LuckyTierInfo | null =
-            commentIds.length > 0 ? await getLuckyTierInfo() : null;
+            luckyIds.length > 0 ? await getLuckyTierInfo() : null;
         let luckyMap = new Map<number, LuckyHit>();
-        if (commentIds.length > 0) {
+        if (luckyIds.length > 0) {
             try {
                 const [lkRows] = await pool.query<RowDataPacket[]>(
                     `SELECT po_rel_id, po_point, po_content, po_datetime
                      FROM g5_point
                      WHERE po_rel_action = '@lucky' AND po_rel_table = ? AND po_rel_id IN (?)`,
-                    [safeBoardId, commentIds.map(String)]
+                    [safeBoardId, luckyIds.map(String)]
                 );
                 luckyMap = collectLuckyRows(
                     lkRows,
@@ -366,13 +372,13 @@ export const GET: RequestHandler = async ({ params, url, locals, request, getCli
         // xp_rel_table=슬러그, xp_rel_id=wr_id(VARCHAR) — (xp_rel_table, xp_rel_id) 인덱스 seek.
         // 문구·시각도 같은 쿼리에서. 실패는 무시(경험치 0 = 기존 포인트 배지 그대로).
         let luckyExpMap = new Map<number, LuckyHit>();
-        if (commentIds.length > 0) {
+        if (luckyIds.length > 0) {
             try {
                 const [lxRows] = await pool.query<RowDataPacket[]>(
                     `SELECT xp_rel_id, xp_point, xp_content, xp_datetime
                      FROM g5_na_xp
                      WHERE xp_rel_action = '@lucky' AND xp_rel_table = ? AND xp_rel_id IN (?)`,
-                    [safeBoardId, commentIds.map(String)]
+                    [safeBoardId, luckyIds.map(String)]
                 );
                 luckyExpMap = collectLuckyRows(
                     lxRows,
