@@ -111,6 +111,9 @@
 
     // 스크롤 상태 관리
     let isDrawerOpen = $state(false);
+    // 서랍 내용(메뉴)은 처음 열 때 그리고, 이후엔 닫아도 유지한다.
+    // 닫힌 서랍의 메뉴를 매 페이지 HTML 에 넣지 않기 위함.
+    let drawerEverOpened = $state(false);
     let themeMode = $state<'system' | 'light' | 'dark' | 'amoled'>('light');
     let isScrolled = $state(false);
 
@@ -128,6 +131,7 @@
     // 드로워 메뉴 토글
     function toggleDrawer() {
         isDrawerOpen = !isDrawerOpen;
+        if (isDrawerOpen) drawerEverOpened = true;
     }
 
     // body 스크롤 잠금 (드로워 열림 시)
@@ -544,7 +548,7 @@
     ></div>
 {/if}
 
-<!-- 드로워 메뉴 (항상 DOM에 존재, 위치만 변경) -->
+<!-- 드로워 메뉴 (틀은 항상 DOM에 존재·위치만 변경, 메뉴 내용은 처음 열 때 그림) -->
 <div
     class="bg-background fixed bottom-0 left-0 top-0 z-[70] w-[85vw] max-w-80 transform shadow-lg transition-transform duration-300 ease-in-out"
     class:-translate-x-full={!isDrawerOpen}
@@ -564,7 +568,9 @@
 
         <!-- 사이드바 메뉴 -->
         <div class="min-h-0 flex-1 overflow-y-auto">
-            <Sidebar compact />
+            {#if drawerEverOpened}
+                <Sidebar compact />
+            {/if}
         </div>
     </div>
 </div>
