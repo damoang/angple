@@ -58,6 +58,7 @@
     const MAX_REGION_CHIPS = 14;
     const regions = $derived.by(() => {
         if (!pins) return [] as Array<{ name: string; count: number }>;
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- $derived 계산 안에서만 쓰는 임시 값이라 반응형이 필요 없다
         const counts = new Map<string, number>();
         for (const p of pins) {
             if (p.region) counts.set(p.region, (counts.get(p.region) ?? 0) + 1);
@@ -196,6 +197,7 @@
         if (zoom >= CLUSTER_OFF_ZOOM) {
             for (const pin of data) addSinglePin(L, pinLayer, pin);
         } else {
+            // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 지도 핀을 그릴 때만 쓰는 임시 묶음이라 반응형이 필요 없다
             const cells = new Map<string, AngmapPin[]>();
             for (const pin of data) {
                 const pt = map.project([pin.lat, pin.lng], zoom);

@@ -1026,6 +1026,7 @@
     // ⛔ backfill 수집 루프의 `seen` 만으로는 못 막는다. 그건 **수집 시점**의 방어이고
     //    여기 문제는 **렌더 시점**의 조합이다. 방어는 조합하는 자리에 있어야 한다.
     const displayPosts = $derived.by(() => {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- $derived 계산 안에서만 쓰는 임시 값이라 반응형이 필요 없다
         const seen = new Set(filteredPosts.map((p) => p.id));
         const extra = [];
         for (const p of visibleBackfilled) {
@@ -1406,7 +1407,7 @@
                         소모임 소개
                     </summary>
                     <div class="board-intro max-w-none px-3 pb-3 text-sm">
-                        <!-- eslint-disable-next-line svelte/no-at-html-tags -- 서버 정제(sanitizeIntroHtml) 완료 -->
+                        <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
                         {@html data.boardIntroHtml}
                     </div>
                 </details>

@@ -43,7 +43,7 @@ function saveData(data: TrackerData) {
 }
 
 function createCommentTracker() {
-    let data = $state<TrackerData>(loadData());
+    const data = $state<TrackerData>(loadData());
 
     return {
         /** 게시글 열 때 호출 — 현재 댓글 수 기록 */

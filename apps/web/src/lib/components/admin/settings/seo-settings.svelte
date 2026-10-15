@@ -5,6 +5,8 @@
     import { Button } from '$lib/components/ui/button/index.js';
     import Save from '@lucide/svelte/icons/save';
     import Loader2 from '@lucide/svelte/icons/loader-2';
+
+    const robotsTxtPlaceholder = 'Disallow: /admin/\nDisallow: /api/';
 </script>
 
 <div class="space-y-6">
@@ -40,7 +42,7 @@
                 id="robots-txt"
                 class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex min-h-[120px] w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 bind:value={adminSettingsStore.settings.seo.robotsTxt}
-                placeholder={'Disallow: /admin/\nDisallow: /api/'}
+                placeholder={robotsTxtPlaceholder}
             ></textarea>
             <p class="text-muted-foreground text-xs">
                 기본 규칙 외에 추가할 크롤러 규칙을 입력하세요.

@@ -90,6 +90,7 @@
         path: string
     ): { value: string | undefined; groups: Set<number> } {
         let value: string | undefined = undefined;
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 초기 펼침 상태를 계산하는 함수 안의 임시 값 — 결과는 $state 에 담긴다
         const groups = new Set<number>();
         const traverse = (list: MenuItem[], depth: number) => {
             for (const item of list) {
@@ -120,6 +121,7 @@
     let expandedGroups = $state<Set<number>>(initialExpand.groups);
 
     function toggleSubGroup(id: number) {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 복사본을 만든 뒤 $state 에 다시 대입해 갱신을 알리는 패턴이라 반응형 컬렉션이 필요 없다
         const next = new Set(expandedGroups);
         if (next.has(id)) next.delete(id);
         else next.add(id);
@@ -146,6 +148,7 @@
             // #12645: autoExpand 로 덮어쓰면 사용자가 수동으로 펼친/접은 상태가
             // 게시판 선택 시마다 리셋된다. 합집합 병합 + 변화 시에만 할당.
             if (autoExpand.size > 0) {
+                // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 복사본을 만든 뒤 $state 에 다시 대입해 갱신을 알리는 패턴이라 반응형 컬렉션이 필요 없다
                 const merged = new Set(expandedGroups);
                 let changed = false;
                 for (const id of autoExpand) {

@@ -10,6 +10,7 @@ export interface SlashCommandItem {
     title: string;
     description: string;
     icon: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TipTap Editor·Range 를 느슨하게 받는 기존 확장 인터페이스
     command: (editor: any) => void;
 }
 
@@ -18,6 +19,7 @@ interface SlashSuggestionProps {
     clientRect?: (() => DOMRect | null) | null;
     items: SlashCommandItem[];
     command: (item: SlashCommandItem) => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TipTap Editor·Range 를 느슨하게 받는 기존 확장 인터페이스
     editor: any;
 }
 
@@ -274,7 +276,9 @@ export const SlashCommand = Extension.create({
                     range,
                     props
                 }: {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TipTap Editor·Range 를 느슨하게 받는 기존 확장 인터페이스
                     editor: any;
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- TipTap Editor·Range 를 느슨하게 받는 기존 확장 인터페이스
                     range: any;
                     props: SlashCommandItem;
                 }) => {

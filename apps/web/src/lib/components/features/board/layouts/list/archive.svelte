@@ -106,6 +106,7 @@
 
                     <span class="truncate {readClass}">
                         {#if searchQuery}
+                            <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
                             {@html highlightQuery(post.title, searchQuery)}
                         {:else}
                             {post.title}

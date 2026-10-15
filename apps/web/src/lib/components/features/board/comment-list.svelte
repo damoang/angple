@@ -1995,7 +1995,7 @@
                                           : 'leading-normal'}"
                                     style="font-size: var(--comment-font-size, 1rem);"
                                 >
-                                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                                    <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
                                     {@html processedComments.get(comment.id) ??
                                         ssrCommentHtml.get(comment.id) ??
                                         ''}
@@ -2017,7 +2017,7 @@
                                           : 'leading-normal'}"
                                     style="font-size: var(--comment-font-size, 1rem);"
                                 >
-                                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                                    <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
                                     {@html processedComments.get(comment.id) ??
                                         ssrCommentHtml.get(comment.id) ??
                                         ''}

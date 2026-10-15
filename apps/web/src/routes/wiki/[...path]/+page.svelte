@@ -39,7 +39,7 @@
 
         {#if data.contentHtml}
             <div class="wiki-content">
-                <!-- eslint-disable-next-line svelte/no-at-html-tags -- sanitizePostContentStrict() 로 정화한 위키 본문 -->
+                <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
                 {@html data.contentHtml}
             </div>
         {:else}

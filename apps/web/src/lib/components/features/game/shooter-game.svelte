@@ -199,6 +199,7 @@
     let shakeUntil = 0;
     let lastFrame = 0;
     /** 픽셀 그림을 화면 배율에 맞춰 미리 그려 둔 캔버스 (배율이 바뀌면 다시) */
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 캔버스 그리기용 스프라이트 캐시 — 반응형이 필요 없다
     const sprites = new Map<string, HTMLCanvasElement>();
     let spriteScale = 0;
 

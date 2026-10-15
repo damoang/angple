@@ -12,6 +12,7 @@
         createdAt: string;
     }
 
+    // eslint-disable-next-line svelte/no-unused-props -- 호출부가 넘기는 API 응답 전체 모양을 그대로 받는 타입이라 쓰지 않는 필드도 둔다
     let { post, variant = 'default' }: { post: PromotionPost; variant?: 'default' | 'classic' } =
         $props();
 

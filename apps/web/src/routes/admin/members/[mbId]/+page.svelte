@@ -32,7 +32,9 @@
     let loading = $state(true);
     let error = $state('');
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- API 응답 모양에 맞춘 타입이 아직 없다
     let recentPosts = $state<any[]>([]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- API 응답 모양에 맞춘 타입이 아직 없다
     let recentComments = $state<any[]>([]);
     let activityLoading = $state(true);
     let activeTab = $state<'posts' | 'comments'>('posts');

@@ -103,6 +103,7 @@ async function handleSpecialPage(pageName: string, url: URL): Promise<SpecialPag
             redirect(302, '/wiki');
         }
 
+        // eslint-disable-next-line no-fallthrough -- 위 case 는 redirect() 가 항상 throw 하므로 실제로 넘어오지 않는다
         case 'AllPages': {
             const sort = (url.searchParams.get('sort') || 'title') as 'title' | 'updated';
             const result = await getAllPages(offset, limit, sort);

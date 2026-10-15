@@ -212,9 +212,11 @@ export const INTERJECTION_WORDS: string[] = [
     '헐헐'
 ];
 
+/* eslint-disable no-misleading-character-class -- 이모지 변형 선택자(FE00-FE0F)·ZWJ(200D)를 낱개 문자로 일부러 넣었다 */
 /** 이모지/기호 픽토그램 범위. */
 const EMOJI_RE =
     /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{200D}\u{24C2}\u{1F1E6}-\u{1F1FF}]/gu;
+/* eslint-enable no-misleading-character-class */
 
 /* ──────────────────────────────────────────────────────────────────────── */
 
@@ -275,7 +277,7 @@ function tailToken(clean: string): string {
     let t = clean.replace(/\s+$/u, '');
     // 반복적으로 뒤쪽 노이즈 제거
     for (let i = 0; i < 4; i++) {
-        t = t.replace(/[\s.,!?~…·「」『』"'`)\]\}*_\-]+$/u, '').replace(/[ㅋㅎㄷㅠㅜㅗㅡ]+$/u, '');
+        t = t.replace(/[\s.,!?~…·「」『』"'`)\]}*_-]+$/u, '').replace(/[ㅋㅎㄷㅠㅜㅗㅡ]+$/u, '');
     }
     return t;
 }

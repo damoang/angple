@@ -52,7 +52,7 @@
     let prefersReducedMotion = $state(false);
 
     $effect(() => {
-        activeLogoSrc;
+        void activeLogoSrc;
         untrack(() => {
             headerLogoFailed = false;
         });
@@ -188,7 +188,9 @@
             } else {
                 localStorage.setItem('themeMode', themeMode);
             }
-        } catch {}
+        } catch {
+            // 저장소 접근 실패(비공개 모드·차단 등)는 무시한다
+        }
         if (themeMode === 'light' || themeMode === 'system') {
             document.cookie = 'angple_theme_mode=;path=/;max-age=0;SameSite=Lax';
         } else {
@@ -216,7 +218,9 @@
                 savedMode = localStorage.getItem('themeMode');
                 const legacyDark = localStorage.getItem('darkMode');
                 if (!savedMode && legacyDark === 'true') savedMode = 'dark';
-            } catch {}
+            } catch {
+                // 저장소 접근 실패(비공개 모드·차단 등)는 무시한다
+            }
         }
         // 저장값(쿠키/localStorage)이 없으면 '시스템 모드'로 본다. prefers-color-scheme 로
         // savedMode 를 'dark' 로 덮어쓰면 시스템 사용자가 dark 로 오인되어 OS 변경 추종이
@@ -248,7 +252,9 @@
             let hasLocal = false;
             try {
                 hasLocal = !!localStorage.getItem('themeMode');
-            } catch {}
+            } catch {
+                // 저장소 접근 실패(비공개 모드·차단 등)는 무시한다
+            }
             if (hasCookie || hasLocal) return;
 
             const el = document.documentElement;
@@ -540,7 +546,6 @@
 
 <!-- 드로워 메뉴 오버레이 -->
 {#if isDrawerOpen}
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
         class="bg-foreground/50 fixed inset-0 z-[60] transition-opacity duration-300 2xl:hidden"
         onclick={toggleDrawer}

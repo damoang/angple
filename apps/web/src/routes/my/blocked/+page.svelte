@@ -11,6 +11,7 @@
     let { data }: { data: PageData } = $props();
 
     // 로컬 차단 목록 상태 (차단 해제시 반응형 업데이트)
+    // eslint-disable-next-line svelte/prefer-writable-derived -- 차단 해제 시 직접 고치는 목록 — $effect 는 SSR 에서 돌지 않는다 — $derived 로 바꾸면 SSR 초기값과 갱신 시점이 달라지므로 기존 동작을 유지한다
     let blockedMembers = $state<BlockedMember[]>([]);
 
     $effect(() => {

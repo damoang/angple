@@ -95,6 +95,7 @@
             return;
         }
 
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 쿼리 문자열을 만들 때만 쓰는 임시 값이라 반응형이 필요 없다
         const params = new URLSearchParams();
         // 기본값('')은 파라미터 부재로 표현되므로 truthy 인 것만 복원한다 —
         // "전체를 골랐는데 다시 글만으로 튕기는" 되돌이가 이 조건에서 자연히 끊긴다.

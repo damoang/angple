@@ -56,7 +56,7 @@ const FILE_TLDS = new Set([
 const BLOCKED_BEFORE = /[A-Za-z0-9._%+\-/=@]/;
 const BLOCKED_AFTER = /[A-Za-z0-9@/_-]/;
 // URL 토큰 경계 — 공백류(탭·NBSP 포함)와 따옴표·괄호·꺾쇠, `&nbsp;` 의 `;`
-const TOKEN_SEP = /[\s "'()<>;]/;
+const TOKEN_SEP = /[\s\u00a0"'()<>;]/;
 
 function toHex(s: string): string {
     let out = '';

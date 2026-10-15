@@ -152,7 +152,7 @@
             </Card.Header>
             <Card.Content>
                 <div class="prose prose-sm dark:prose-invert max-w-none break-words">
-                    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                    <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
                     {@html log.legacy_content}
                 </div>
             </Card.Content>

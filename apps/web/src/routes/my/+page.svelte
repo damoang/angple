@@ -60,6 +60,7 @@
         // 삭제 필터(bug/13341 후속): 페이지 이동에선 유지, 탭 전환에선 해제.
         // 명시적 선택을 넘어 따라다니면 "글이 다 사라졌다" 오인을 만든다.
         const filter = opts.filter ?? (opts.tab === undefined ? (data.filter ?? '') : '');
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 쿼리 문자열을 만들 때만 쓰는 임시 값이라 반응형이 필요 없다
         const params = new URLSearchParams({ tab });
         // 검색어는 글·댓글 탭에서만 의미가 있다.
         if (q && (tab === 'posts' || tab === 'comments')) params.set('q', q);

@@ -69,6 +69,7 @@
         data-platform={embedInfo.platform}
         style={containerStyle}
     >
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
         {@html embedHtml}
     </div>
 {:else if url}

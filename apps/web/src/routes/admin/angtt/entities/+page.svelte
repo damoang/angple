@@ -146,6 +146,7 @@
     async function load(): Promise<void> {
         loading = true;
         try {
+            // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 쿼리 문자열을 만들 때만 쓰는 임시 값이라 반응형이 필요 없다
             const params = new URLSearchParams({
                 status: tab,
                 page: String(pageNo),
@@ -375,6 +376,7 @@
             .split('\n')
             .map((s) => s.trim())
             .filter(Boolean);
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 함수 안에서만 쓰는 일회성 임시 값이라 반응형이 필요 없다
         const lower = new Set(names.map((n) => n.toLowerCase()));
         for (const n of [r.title, r.originalTitle]) {
             if (n && !lower.has(n.toLowerCase())) {
@@ -399,6 +401,7 @@
     async function loadMergeTargets(): Promise<void> {
         const source = mergeSource;
         if (!source) return;
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 쿼리 문자열을 만들 때만 쓰는 임시 값이라 반응형이 필요 없다
         const params = new URLSearchParams({ mode: 'targets', exclude: String(source.id) });
         if (mergeFilter.trim()) params.set('q', mergeFilter.trim());
         if (source.status === 'active') params.set('activeOnly', '1');

@@ -62,6 +62,7 @@
     }
 
     function goToPage(pageNum: number): void {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 쿼리 문자열을 만들 때만 쓰는 임시 값이라 반응형이 필요 없다
         const params = new URLSearchParams();
         params.set('page', String(pageNum));
         if (data.query) params.set('q', data.query);

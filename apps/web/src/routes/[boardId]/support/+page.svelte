@@ -183,6 +183,9 @@
             saving = false;
         }
     }
+
+    const introPlaceholder =
+        '소모임 소개를 적어주세요. 예)\n<p>매주 수요일 정기 모임!</p>\n<iframe src="https://calendar.google.com/calendar/embed?src=..." width="100%" height="400"></iframe>';
 </script>
 
 <svelte:head><title>{data.subject} 돌보기</title></svelte:head>
@@ -397,11 +400,7 @@
             </Card.Description>
         </Card.Header>
         <Card.Content class="space-y-2">
-            <Textarea
-                rows={8}
-                bind:value={intro}
-                placeholder={'소모임 소개를 적어주세요. 예)\n<p>매주 수요일 정기 모임!</p>\n<iframe src="https://calendar.google.com/calendar/embed?src=..." width="100%" height="400"></iframe>'}
-            />
+            <Textarea rows={8} bind:value={intro} placeholder={introPlaceholder} />
             <div class="flex items-center gap-2">
                 <Button
                     disabled={saving || !introDirty}

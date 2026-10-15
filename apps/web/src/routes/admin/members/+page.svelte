@@ -136,6 +136,7 @@
     }
 
     function toggleSelect(memberId: string) {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 복사본을 만든 뒤 $state 에 다시 대입해 갱신을 알리는 패턴이라 반응형 컬렉션이 필요 없다
         const next = new Set(selectedIds);
         if (next.has(memberId)) {
             next.delete(memberId);
@@ -331,6 +332,10 @@
     onMount(() => {
         fetchMembers();
     });
+
+    const linksPlaceholder =
+        'https://damoang.net/free/5936618\nhttps://damoang.net/free/5915381#c_5942893';
+    const nicknamesPlaceholder = '전동운\n기타 노출 닉네임';
 </script>
 
 <svelte:head>
@@ -819,7 +824,7 @@
                     bind:value={anonymizeTargetsText}
                     disabled={anonymizing}
                     rows={8}
-                    placeholder={'https://damoang.net/free/5936618\nhttps://damoang.net/free/5915381#c_5942893'}
+                    placeholder={linksPlaceholder}
                 />
                 <p class="text-muted-foreground text-xs">
                     여러 줄 입력 가능. URL 한 줄당 1개씩 입력하세요.
@@ -833,7 +838,7 @@
                     bind:value={anonymizeSearchTextsText}
                     disabled={anonymizing}
                     rows={4}
-                    placeholder={'전동운\n기타 노출 닉네임'}
+                    placeholder={nicknamesPlaceholder}
                 />
                 <p class="text-muted-foreground text-xs">
                     여러 줄 입력 가능. 비워두면 현재 회원명이 기본 치환 대상으로 포함됩니다.

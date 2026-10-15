@@ -46,6 +46,7 @@
 
     /** 같은 사람이 여러 소모임 당주로 잡혀 있으면 눈에 띄게 한다(대량 기본값 탐지). */
     const ownerCounts = $derived.by(() => {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- $derived 계산 안에서만 쓰는 임시 값이라 반응형이 필요 없다
         const counts = new Map<string, number>();
         for (const b of groupBoards) {
             const owner = (b.admin || '').trim();
@@ -114,6 +115,7 @@
                 listMembers({ search: q, limit: 10 }),
                 listMembers({ search: q, searchField: 'id', limit: 10 })
             ]);
+            // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 함수 안에서만 쓰는 일회성 임시 값이라 반응형이 필요 없다
             const merged = new Map<string, AdminMember>();
             for (const r of [byNick, byId]) {
                 if (r.status !== 'fulfilled') continue;

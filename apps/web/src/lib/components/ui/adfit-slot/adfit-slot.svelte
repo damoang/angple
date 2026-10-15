@@ -38,9 +38,11 @@
      *
      *    → **먼저 잡은 슬롯만 렌더한다.** 중복은 어차피 애드핏이 안 그리므로 잃는 수익이 없다.
      */
+    /* eslint-disable svelte/prefer-svelte-reactivity -- 여러 슬롯이 공유하는 전역 점유 기록이라 화면 갱신과 무관하다 */
     const claimed: Set<string> = ((
         globalThis as unknown as { __adfitClaimed?: Set<string> }
     ).__adfitClaimed ??= new Set<string>());
+    /* eslint-enable svelte/prefer-svelte-reactivity */
 
     /** 실제로 잡은 유닛. ⛔ 반납할 때 이 값을 써야 한다 — prop 이 바뀌어도 잡은 것을 놓는다. */
     let claimedUnit: string | null = null;

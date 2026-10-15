@@ -13,7 +13,7 @@ export const reddit: EmbedPlatform = {
     extract(url: string): EmbedInfo | null {
         // 표준 comments 링크
         const commentsMatch = url.match(
-            /(?:www\.)?reddit\.com\/(r|user)\/([\w:.]{2,21})\/comments\/(\w{5,9})(?:\/([\w%\-]+))?/
+            /(?:www\.)?reddit\.com\/(r|user)\/([\w:.]{2,21})\/comments\/(\w{5,9})(?:\/([\w%-]+))?/
         );
         if (commentsMatch) {
             return {

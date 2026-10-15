@@ -23,7 +23,7 @@ export const GET: RequestHandler = async ({ params, locals, getClientAddress, re
         throw redirect(302, '/');
     }
 
-    let clientIp = resolveClientIp(getClientAddress, request) ?? '';
+    const clientIp = resolveClientIp(getClientAddress, request) ?? '';
 
     void logAffiliateClick({
         userId: locals.user?.id,

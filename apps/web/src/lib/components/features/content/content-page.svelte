@@ -33,7 +33,7 @@
     <h1 class="text-foreground mb-6 text-3xl font-bold">{title}</h1>
     {#if sanitizedContent}
         <div class="prose dark:prose-invert max-w-none">
-            <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+            <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
             {@html sanitizedContent}
         </div>
     {:else}

@@ -54,7 +54,7 @@
         sdkError = '';
 
         try {
-            // @ts-ignore — Toss SDK global
+            // @ts-expect-error — Toss SDK global
             const tossPayments = window.TossPayments(clientKey);
             const payment = tossPayments.payment({ customerKey: customerName });
 

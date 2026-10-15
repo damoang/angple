@@ -214,5 +214,6 @@ export async function searchAllBoards(
         `LIMIT ${maxResults}`;
 
     const [rows] = await sphinxPool.query<RowDataPacket[]>(sphinxSql);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Sphinx 검색 결과 행이라 스키마 타입이 없다
     return { rows: rows as any[], total: rows.length };
 }

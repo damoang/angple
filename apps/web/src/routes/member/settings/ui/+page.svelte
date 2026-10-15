@@ -177,7 +177,9 @@
             // OS 설정 따르기: 명시적 설정 제거
             try {
                 localStorage.removeItem('themeMode');
-            } catch {}
+            } catch {
+                // 저장소 접근 실패(비공개 모드·차단 등)는 무시한다
+            }
             document.cookie = 'angple_theme_mode=;path=/;max-age=0;SameSite=Lax';
             // OS가 다크모드면 적용
             if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -188,7 +190,9 @@
             else if (mode === 'amoled') el.classList.add('amoled');
             try {
                 localStorage.setItem('themeMode', mode);
-            } catch {}
+            } catch {
+                // 저장소 접근 실패(비공개 모드·차단 등)는 무시한다
+            }
             if (mode === 'light') {
                 document.cookie = 'angple_theme_mode=;path=/;max-age=0;SameSite=Lax';
             } else {
@@ -472,7 +476,9 @@
         if (!saved) {
             try {
                 saved = localStorage.getItem('themeMode');
-            } catch {}
+            } catch {
+                // 저장소 접근 실패(비공개 모드·차단 등)는 무시한다
+            }
         }
         if (saved === 'dark' || saved === 'amoled') {
             currentThemeMode = saved;

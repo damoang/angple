@@ -45,6 +45,7 @@
     let canvas: HTMLCanvasElement;
     let status = $state<Status>('idle');
     let score = $state(0);
+    // eslint-disable-next-line svelte/prefer-writable-derived -- 브라우저 저장값은 마운트 뒤 한 번 읽고 게임 중에도 직접 갱신한다 — SSR 에서 저장소를 읽지 않게 유지
     let highScore = $state(0);
     let record = $state<RecordState>('none');
     let standing = $state<SnakeFinishResult | null>(null);

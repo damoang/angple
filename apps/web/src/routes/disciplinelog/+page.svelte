@@ -32,6 +32,7 @@
     const totalPages = $derived(Math.max(1, Math.ceil(total / pageSize)));
 
     // 필터 입력값 (URL query 와 동기화)
+    // eslint-disable-next-line svelte/prefer-writable-derived -- 사용자가 고치는 입력값 — $effect 는 SSR 에서 돌지 않는다 — $derived 로 바꾸면 SSR 초기값과 갱신 시점이 달라지므로 기존 동작을 유지한다
     let searchInput = $state('');
     $effect(() => {
         searchInput = memberIdFilter;
@@ -46,6 +47,7 @@
 
     function applyFilter() {
         const value = searchInput.trim();
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 쿼리 문자열을 만들 때만 쓰는 임시 값이라 반응형이 필요 없다
         const params = new URLSearchParams();
         if (value) params.set('member_id', value);
         const qs = params.toString();

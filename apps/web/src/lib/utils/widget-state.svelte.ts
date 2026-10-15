@@ -93,7 +93,7 @@ export function createWidgetState<T>(opts: WidgetStateOptions<T>): WidgetStateMa
 
     // initialData 기반 초기 상태 결정.
     let initialStatus: WidgetStatus = 'idle';
-    let initialDataValue: T | null = opts.initialData ?? null;
+    const initialDataValue: T | null = opts.initialData ?? null;
     if (opts.initialData !== undefined && opts.initialData !== null) {
         initialStatus = isEmpty(opts.initialData) ? 'empty' : 'success';
     }

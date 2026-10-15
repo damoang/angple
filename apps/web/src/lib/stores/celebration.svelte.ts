@@ -197,6 +197,7 @@ export function getLink(banner: CelebrationBanner): string {
     // 절대 URL을 상대 경로로 변환 (SPA 내비게이션, 현재창)
     if (browser) {
         try {
+            // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 주소를 해석할 때만 쓰는 임시 값이라 반응형이 필요 없다
             const url = new URL(raw, window.location.origin);
             if (url.hostname === window.location.hostname || url.hostname.endsWith('damoang.net')) {
                 return url.pathname + url.search + url.hash;
