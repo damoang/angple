@@ -21,6 +21,7 @@
         {#each games as game (game.id)}
             <a
                 href={game.href}
+                data-sveltekit-reload={game.id === 'rhythm'}
                 class="border-border hover:border-primary/50 group block rounded-xl border p-6 transition-all hover:shadow-md {game.bgColor}"
             >
                 <div class="mb-3 flex items-center gap-3">
