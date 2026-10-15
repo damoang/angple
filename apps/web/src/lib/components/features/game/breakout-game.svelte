@@ -38,9 +38,32 @@
     import { bindKeys, createHeldInput } from '$lib/games/shell/input.js';
     import { fitCanvas, observeSize, prefersReducedMotion } from '$lib/games/shell/canvas.js';
     import { getGame } from '$lib/games/registry.js';
+    import { encodeLog } from '$lib/games/breakout/log-codec.js';
+    import {
+        BREAKOUT_RANKED_MAX_MINUTES,
+        BREAKOUT_RANKED_MAX_TICKS
+    } from '$lib/games/breakout/ranked.js';
+    import {
+        RANK_START_GAP_MS,
+        finishScoreRun,
+        startScoreRun,
+        type ScoreFinishResult,
+        type ScoreRun
+    } from '$lib/games/score-ranking.js';
+    import { authStore } from '$lib/stores/auth.svelte.js';
+    import GameScoreRanking from './game-score-ranking.svelte';
 
     const NAME = getGame('breakout').name;
     const BEST_KEY = 'angple_breakout_best';
+    /** 순위 API 의 게임 id */
+    const RANK_GAME = 'breakout';
+    const LOGIN_HREF = '/login?redirect=%2Fgames%2Fbreakout';
+    /** 서버 시작 간격(5초)에 더 두는 여유 */
+    const GAP_MARGIN_MS = 1000;
+    /** 첫 판이 서버 판을 기다리는 최대 시간 */
+    const FIRST_START_WAIT_MS = 3000;
+    /** 미리 받은 판을 쓰는 최대 나이 — 서버 만료(2시간)보다 넉넉히 짧게 */
+    const READY_MAX_AGE_MS = 60 * 60 * 1000;
 
     const IN_LEFT = 1;
     const IN_RIGHT = 2;
@@ -84,6 +107,8 @@
     };
 
     type Status = 'idle' | 'playing' | 'paused' | 'over';
+    /** 순위 기록 상태: local=로컬 판(기록 미등록), server=서버 판 진행 중 */
+    type RecordState = 'none' | 'local' | 'server' | 'saving' | 'saved' | 'failed';
 
     let canvasEl: HTMLCanvasElement;
     let boardEl: HTMLDivElement;
@@ -99,6 +124,45 @@
     let banner = $state('');
     let announce = $state('');
     let newBest = $state(false);
+    /** 첫 판이 서버 판을 잠깐 기다리는 중 */
+    let starting = $state(false);
+    let record = $state<RecordState>('none');
+    /** 마지막으로 낸 기록의 결과 */
+    let standing = $state<ScoreFinishResult | null>(null);
+    /** 기록 관련 짧은 안내 */
+    let notice = $state('');
+    /** 기록이 순위에 들어갈 때마다 1씩 — 순위 카드를 다시 불러온다 */
+    let rankingRefresh = $state(0);
+    /** 끝난 화면의 내 기록 한 줄 — 「이번 주 n위 · 내 최고 x점」 */
+    const standingText = $derived(
+        standing
+            ? [
+                  standing.rankWeek ? `이번 주 ${standing.rankWeek}위` : '기록 저장됨',
+                  standing.best !== null ? `내 최고 ${standing.best.toLocaleString()}점` : ''
+              ]
+                  .filter(Boolean)
+                  .join(' · ')
+            : ''
+    );
+
+    // 순위 판 (반응형 아님)
+    /** 서버가 발급한 이번 판 id (로컬 판이면 null) */
+    let runId: string | null = null;
+    /** 시작할 때마다 오른다 — 늦게 온 응답이 새 판을 덮지 않게 */
+    let startGen = 0;
+    let destroyed = false;
+    /** 이번 방문에서 한 판이라도 시작했는가 — 첫 판만 서버 판을 잠깐 기다린다 */
+    let played = false;
+    /** 순위 표가 아직 없다는 답을 받았는가 — 그러면 이번 방문 동안 서버 판을 다시 청하지 않는다 */
+    let rankNotReady = false;
+    /** 마지막으로 서버에 판 시작을 요청한 시각 */
+    let lastServerStart = 0;
+    /** 미리 받아 둔 다음 판 */
+    let ready: { run: ScoreRun; at: number } | null = null;
+    /** 다음 판을 받아 오는 중이면 그 작업 */
+    let fetching: Promise<void> | null = null;
+    /** 끝난 판 기록을 내는 중이면 그 작업 — 새 판 요청은 이게 끝난 뒤에(서버는 회원당 판 1개) */
+    let submitting: Promise<void> | null = null;
 
     // 반응형이 아닌 게임 상태
     let game: Game = createGame(1);
@@ -139,6 +203,80 @@
             return crypto.getRandomValues(new Uint32Array(1))[0];
         } catch {
             return (Math.random() * 4294967296) >>> 0;
+        }
+    }
+
+    function sleep(ms: number): Promise<void> {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    /**
+     * 다음 판을 뒤에서 미리 받아 둔다 — 로그인 회원만. 서버의 시작 간격(5초 + 여유 1초)을 지켜서 부르고,
+     * 그래도 간격 제한(429)이면 간격만큼 기다려 한 번 더 부른다. 받지 못했으면 그 판은 로컬로 바로 시작.
+     */
+    function prefetch(): Promise<void> {
+        if (fetching) return fetching;
+        if (ready || destroyed || rankNotReady || !authStore.isAuthenticated) {
+            return Promise.resolve();
+        }
+        const work = (async () => {
+            if (submitting) await submitting;
+            for (let attempt = 0; attempt < 2; attempt++) {
+                const wait = lastServerStart + RANK_START_GAP_MS + GAP_MARGIN_MS - Date.now();
+                if (wait > 0) await sleep(wait);
+                if (destroyed) return;
+                lastServerStart = Date.now();
+                const r = await startScoreRun(RANK_GAME);
+                if (destroyed) return;
+                if (r === 'rate_limited') continue;
+                if (r === 'not_ready') rankNotReady = true;
+                else if (r) ready = { run: r, at: Date.now() };
+                return;
+            }
+        })().finally(() => {
+            fetching = null;
+        });
+        fetching = work;
+        return work;
+    }
+
+    /** 미리 받은 판을 꺼낸다(한 번만). 너무 오래됐으면 버린다 */
+    function takeReady(): ScoreRun | null {
+        const r = ready;
+        ready = null;
+        if (!r || !authStore.isAuthenticated) return null;
+        return Date.now() - r.at < READY_MAX_AGE_MS ? r.run : null;
+    }
+
+    /** 서버 판이면 기록을 낸다 — 실패해도 게임 화면은 그대로 */
+    async function submitRecord() {
+        const id = runId;
+        runId = null;
+        if (!id) return;
+        if (game.tick > BREAKOUT_RANKED_MAX_TICKS) {
+            // 순위 판 길이 상한을 넘긴 판 — 내지 않는다(서버 판은 만료로 사라진다)
+            record = 'local';
+            notice = `${BREAKOUT_RANKED_MAX_MINUTES}분을 넘긴 판은 랭킹에 기록되지 않습니다`;
+            return;
+        }
+        const gen = startGen;
+        record = 'saving';
+        const body = {
+            runId: id,
+            score: game.score,
+            ticks: game.tick,
+            inputs: encodeLog(game.log)
+        };
+        const res = await finishScoreRun(RANK_GAME, body);
+        if (gen !== startGen || destroyed) return;
+        standing = res;
+        record = res ? 'saved' : 'failed';
+        if (res?.accepted) {
+            if (res.best !== null && res.best > best) {
+                best = res.best;
+                saveBest(best);
+            }
+            rankingRefresh++;
         }
     }
 
@@ -185,6 +323,10 @@
         if (dir !== 0) targetX = clampTarget(targetX + dir * KEY_SPEED);
         const ev = step(game, { x: Math.round(targetX), launch: launchQueued });
         launchQueued = false;
+        // 순위 판 길이 상한을 막 넘긴 순간 한 번 알린다(판은 그대로 계속)
+        if (runId && game.tick === BREAKOUT_RANKED_MAX_TICKS + 1) {
+            notice = `${BREAKOUT_RANKED_MAX_MINUTES}분을 넘긴 판은 랭킹에 기록되지 않습니다`;
+        }
         if (ev.length > 0) handleEvents(ev);
         syncHud();
         if (game.over) finish();
@@ -228,10 +370,41 @@
         }
     }
 
+    /** 새 판 — 로그인 회원의 첫 판만 서버 판(시드)을 잠깐(최대 3초) 기다린다 */
     function start() {
+        if (starting) return;
+        const gen = ++startGen;
         loop.stop();
         input.clear();
-        game = createGame(newSeed());
+        runId = null;
+        standing = null;
+        notice = '';
+        const run = takeReady();
+        if (!run && !played && !rankNotReady && authStore.isAuthenticated) {
+            starting = true;
+            void Promise.race([prefetch(), sleep(FIRST_START_WAIT_MS)]).then(() => {
+                starting = false;
+                if (gen !== startGen || destroyed) return;
+                begin(takeReady());
+            });
+            return;
+        }
+        begin(run);
+    }
+
+    function begin(run: ScoreRun | null) {
+        if (run) {
+            runId = run.runId;
+        } else if (authStore.isAuthenticated) {
+            notice = rankNotReady
+                ? '랭킹 준비 중이라 이번 판은 기록되지 않습니다'
+                : played
+                  ? '기록 준비 전에 시작해 이번 판은 랭킹에 기록되지 않습니다'
+                  : '기록 서버에 연결하지 못해 이번 판은 랭킹에 기록되지 않습니다';
+        }
+        played = true;
+        record = runId ? 'server' : 'local';
+        game = createGame(run ? run.seed : newSeed());
         targetX = START_X;
         launchQueued = false;
         drag = null;
@@ -249,6 +422,8 @@
         if (boardEl.getBoundingClientRect().bottom > window.innerHeight) {
             rootEl.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'auto' : 'smooth' });
         }
+        // 로컬 판이면 지금부터 다음 판을 받아 둔다(서버 판 진행 중에는 부르지 않는다 — 판이 바뀌므로)
+        if (!runId) void prefetch();
     }
 
     function pause() {
@@ -292,6 +467,11 @@
         }
         announce = `게임 끝. 점수 ${game.score}, 스테이지 ${game.stage + 1}`;
         render(1);
+        // 기록을 낸 뒤 다음 판을 받아 둔다 — 다시 시작할 때 기다리지 않게
+        submitting = submitRecord().finally(() => {
+            submitting = null;
+        });
+        void submitting.then(() => prefetch());
     }
 
     /* ── 그리기 ── */
@@ -610,7 +790,10 @@
             });
             syncHud();
             render(1);
+            // 로그인 회원이면 첫 판을 미리 받아 둔다 — 시작을 눌렀을 때 기다리지 않게
+            void prefetch();
             return () => {
+                destroyed = true;
                 loop.stop();
                 offKeys();
                 offHidden();
@@ -700,8 +883,9 @@
                     <button
                         type="button"
                         onclick={press(start)}
-                        class="bg-primary text-primary-foreground rounded-md px-5 py-2 text-sm font-medium"
-                        >시작</button
+                        disabled={starting}
+                        class="bg-primary text-primary-foreground rounded-md px-5 py-2 text-sm font-medium disabled:opacity-60"
+                        >{starting ? '준비 중…' : '시작'}</button
                     >
                 {:else if status === 'paused'}
                     <p class="text-foreground text-lg font-bold">일시정지</p>
@@ -720,11 +904,27 @@
                         스테이지 {stageNo}{round > 1 ? ` · ${round}바퀴` : ''}
                         {#if newBest}· 최고 기록!{/if}
                     </p>
+                    <p class="text-muted-foreground min-h-4 text-xs leading-4">
+                        {#if record === 'saving'}
+                            기록 저장 중…
+                        {:else if record === 'saved' && standing?.accepted}
+                            <span class="text-foreground">{standingText}</span>
+                        {:else if record === 'saved'}
+                            이번 판은 순위에 반영되지 않았습니다
+                        {:else if !authStore.isAuthenticated}
+                            <a href={LOGIN_HREF} class="text-primary underline"
+                                >로그인하면 기록이 순위에 올라갑니다</a
+                            >
+                        {:else if record === 'local' || record === 'failed'}
+                            기록 미등록
+                        {/if}
+                    </p>
                     <button
                         type="button"
                         onclick={press(start)}
-                        class="bg-primary text-primary-foreground rounded-md px-5 py-2 text-sm font-medium"
-                        >다시 하기</button
+                        disabled={starting}
+                        class="bg-primary text-primary-foreground rounded-md px-5 py-2 text-sm font-medium disabled:opacity-60"
+                        >{starting ? '준비 중…' : '다시 하기'}</button
                     >
                 {/if}
             </div>
@@ -752,6 +952,20 @@
     <p class="text-muted-foreground text-center text-xs">
         마우스 · ← → / A D 이동 · 스페이스 발사/일시정지 · 휴대폰은 좌우로 끌고 탭하면 발사
     </p>
+    <!-- 순위 기록 안내 — 한 줄 높이를 늘 잡아 둬서 아래 순위 카드가 밀리지 않게 -->
+    <p class="text-muted-foreground min-h-4 text-center text-xs leading-4" aria-live="polite">
+        {notice}
+    </p>
+</div>
+
+<div class="mt-4">
+    <GameScoreRanking
+        game={RANK_GAME}
+        title="{NAME} 랭킹"
+        refresh={rankingRefresh}
+        {standing}
+        loginHref={LOGIN_HREF}
+    />
 </div>
 
 <style>
