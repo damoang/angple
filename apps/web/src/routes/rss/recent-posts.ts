@@ -30,9 +30,11 @@ export function buildRecentPostsSql(boTable: string): string {
     if (!TABLE_RE.test(boTable)) {
         throw new Error(`invalid board table: ${boTable}`);
     }
+    // ⛔ 안쪽 단계는 기본키 역순으로만 읽게 고정한다 — 게시판마다 다른 보조
+    //    인덱스로 잡히면 전체 정렬이 된다.
     return `SELECT wr_id, wr_subject, wr_name, wr_datetime FROM (
                 SELECT wr_id, wr_subject, wr_name, wr_datetime
-                  FROM g5_write_${boTable}
+                  FROM g5_write_${boTable} FORCE INDEX (PRIMARY)
                  WHERE wr_is_comment = 0 AND wr_deleted_at IS NULL
                  ORDER BY wr_id DESC
                  LIMIT ${RECENT_POST_CANDIDATES}

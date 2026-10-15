@@ -12,8 +12,12 @@ describe('buildRecentPostsSql', () => {
 
     it('안쪽 후보 단계는 wr_id 역순으로 자른다', () => {
         expect(sql).toContain(
-            `FROM g5_write_free WHERE wr_is_comment = 0 AND wr_deleted_at IS NULL ORDER BY wr_id DESC LIMIT ${RECENT_POST_CANDIDATES} ) recent`
+            `FROM g5_write_free FORCE INDEX (PRIMARY) WHERE wr_is_comment = 0 AND wr_deleted_at IS NULL ORDER BY wr_id DESC LIMIT ${RECENT_POST_CANDIDATES} ) recent`
         );
+    });
+
+    it('안쪽 단계는 기본키 인덱스로 고정한다', () => {
+        expect(sql).toContain('FORCE INDEX (PRIMARY)');
     });
 
     it('바깥은 날짜 최신순 + LIMIT 파라미터', () => {
