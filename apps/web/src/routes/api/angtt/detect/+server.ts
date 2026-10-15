@@ -9,14 +9,18 @@
  */
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { detectEntityFromTitle } from '$lib/server/angtt-auto-link';
+import { detectEntityFromSources } from '$lib/server/angtt-auto-link';
 
 export const GET: RequestHandler = async ({ url }) => {
     const title = (url.searchParams.get('title') ?? '').slice(0, 200);
+    const sources = url.searchParams
+        .getAll('source')
+        .slice(0, 2)
+        .map((s) => s.slice(0, 1000));
 
     let match = null;
     try {
-        match = await detectEntityFromTitle(title);
+        match = await detectEntityFromSources(title, sources);
     } catch (err) {
         // 감지 실패는 기능 저하일 뿐 — 칩만 안 뜨고 작성 흐름엔 영향 없다.
         console.error('[angtt detect] error:', err);
