@@ -54,14 +54,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
                 if (source === 'gnuboard') {
                     const [m] = await conn.query(`SELECT COUNT(*) as cnt FROM ${prefix}member`);
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mysql2 쿼리 결과 행이라 스키마 타입이 없다
                     stats.members.total = (m as any)[0].cnt;
                     stats.members.migrated = stats.members.total;
 
                     const [g] = await conn.query(`SELECT COUNT(*) as cnt FROM ${prefix}\`group\``);
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mysql2 쿼리 결과 행이라 스키마 타입이 없다
                     stats.boardGroups.total = (g as any)[0].cnt;
                     stats.boardGroups.migrated = stats.boardGroups.total;
 
                     const [b] = await conn.query(`SELECT bo_table FROM ${prefix}board`);
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mysql2 쿼리 결과 행이라 스키마 타입이 없다
                     const boards = b as any[];
                     stats.boards.total = boards.length;
                     stats.boards.migrated = boards.length;
@@ -74,9 +77,13 @@ export const POST: RequestHandler = async ({ request, locals }) => {
                             const [c] = await conn.query(
                                 `SELECT COUNT(*) as cnt FROM ${prefix}write_${board.bo_table} WHERE wr_is_comment = 1`
                             );
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mysql2 쿼리 결과 행이라 스키마 타입이 없다
                             stats.posts.total += (p as any)[0].cnt;
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mysql2 쿼리 결과 행이라 스키마 타입이 없다
                             stats.posts.migrated += (p as any)[0].cnt;
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mysql2 쿼리 결과 행이라 스키마 타입이 없다
                             stats.comments.total += (c as any)[0].cnt;
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mysql2 쿼리 결과 행이라 스키마 타입이 없다
                             stats.comments.migrated += (c as any)[0].cnt;
                         } catch {
                             // 테이블 없으면 스킵
@@ -84,6 +91,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
                     }
 
                     const [pt] = await conn.query(`SELECT COUNT(*) as cnt FROM ${prefix}point`);
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mysql2 쿼리 결과 행이라 스키마 타입이 없다
                     stats.points.total = (pt as any)[0].cnt;
                     stats.points.migrated = stats.points.total;
                 } else {
@@ -100,6 +108,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
                             const [rows] = await conn.query(
                                 `SELECT COUNT(*) as cnt FROM ${table} ${where || ''}`
                             );
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mysql2 쿼리 결과 행이라 스키마 타입이 없다
                             stats[key].total = (rows as any)[0].cnt;
                             stats[key].migrated = stats[key].total;
                         } catch {

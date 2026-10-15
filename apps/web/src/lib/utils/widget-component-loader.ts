@@ -9,6 +9,7 @@ import type { Component } from 'svelte';
 import type { WidgetManifest } from '$lib/types/widget-manifest';
 import { safeValidateWidgetManifest } from '$lib/types/widget-manifest';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- 위젯마다 Props 가 달라 공통 Props 타입이 없다
 type WidgetComponent = Component<any>;
 
 export interface ScannedWidget {

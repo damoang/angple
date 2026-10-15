@@ -97,6 +97,7 @@
 
     function commitMenuList(key: string, list: TagNavMenu[]) {
         // 저장 전 정리: text 비어있는 항목 제거, key 비면 url 에서 파생, key 중복은 suffix
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 함수 안에서만 쓰는 일회성 임시 값이라 반응형이 필요 없다
         const seen = new Set<string>();
         const cleaned: TagNavMenu[] = [];
         list.forEach((m, i) => {

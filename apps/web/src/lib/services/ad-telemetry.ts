@@ -114,6 +114,7 @@ export function trackAdEvent(name: AdTelemetryEventName, props: AdTelemetryPaylo
  */
 export function isAdSdkBlocked(): boolean {
     if (typeof window === 'undefined') return false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 외부 스크립트가 window 에 붙이는 전역이라 타입 선언이 없다
     const w = window as any;
     const hasGam = !!w.googletag && typeof w.googletag.cmd !== 'undefined';
     const hasAdfit = typeof w.adfit === 'function';
@@ -181,6 +182,7 @@ export function detectAdblockOnce(
 
     // requestIdleCallback 우선 (저성능 기기 보호), fallback setTimeout
     const schedule = (cb: () => void) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 외부 스크립트가 window 에 붙이는 전역이라 타입 선언이 없다
         const w = window as any;
         if (typeof w.requestIdleCallback === 'function') {
             w.requestIdleCallback(() => setTimeout(cb, delayMs), { timeout: delayMs + 1000 });
@@ -217,6 +219,7 @@ export function detectAdblockOnce(
 
         // GA4 (gtag) — initGA4 호출 후라야 동작. ga4.ts trackEvent 임포트 시 순환 위험 없음.
         try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 외부 스크립트가 window 에 붙이는 전역이라 타입 선언이 없다
             const w = window as any;
             if (typeof w.gtag === 'function') {
                 w.gtag('event', 'ad_blocked', {

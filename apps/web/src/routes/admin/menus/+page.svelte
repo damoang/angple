@@ -41,6 +41,7 @@
     });
 
     function collectParentIds(menus: Menu[]): Set<number> {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 함수 안에서만 쓰는 일회성 임시 값이라 반응형이 필요 없다
         const ids = new Set<number>();
         for (const m of menus) {
             if (m.children && m.children.length > 0) {

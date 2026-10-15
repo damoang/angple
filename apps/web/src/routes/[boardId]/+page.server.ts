@@ -1008,7 +1008,7 @@ export const load: PageServerLoad = async ({
     // 진실의방 워터마크 데이터 (목록 페이지)
     let watermark: { nickname: string; userId: string; clientIp: string } | null = null;
     if (boardId === 'truthroom') {
-        let clientIp = resolveClientIp(getClientAddress, request) ?? '';
+        const clientIp = resolveClientIp(getClientAddress, request) ?? '';
         watermark = {
             nickname: locals.user?.nickname || '',
             userId: locals.user?.id || '',

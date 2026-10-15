@@ -170,6 +170,7 @@
     /** 마우스 왼쪽 버튼으로 발사 중인가 */
     let mouseFire = false;
     /** 화면 발사 버튼을 누르고 있는 손가락들 */
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 입력 처리용 내부 기록이라 화면 갱신과 무관하다
     const firePointers = new Set<number>();
 
     interface Particle {
@@ -199,6 +200,7 @@
     let shakeUntil = 0;
     let lastFrame = 0;
     /** 픽셀 그림을 화면 배율에 맞춰 미리 그려 둔 캔버스 (배율이 바뀌면 다시) */
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 캔버스 그리기용 스프라이트 캐시 — 반응형이 필요 없다
     const sprites = new Map<string, HTMLCanvasElement>();
     let spriteScale = 0;
 

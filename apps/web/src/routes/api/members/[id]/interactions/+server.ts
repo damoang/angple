@@ -200,7 +200,7 @@ async function queryReceivedInteractions(
 ) {
     // 공감 분석: g5_board_good에서 target의 글에 추천한 사람
     // 게시판별 개별 쿼리 + 병렬 실행 (기존 13개 테이블 UNION ALL IN 서브쿼리 → 20분+ 슬로우 쿼리 해소)
-    let likeMap = new Map<string, { count: number; name: string }>();
+    const likeMap = new Map<string, { count: number; name: string }>();
     if (type === 'like' || type === 'all') {
         const likeDateCond = dateCondition.replace(/bg_datetime/g, 'g.bg_datetime');
         await Promise.all(
@@ -234,7 +234,7 @@ async function queryReceivedInteractions(
     }
 
     // 댓글 분석: 주요 게시판에서 target의 글에 댓글 단 사람
-    let commentMap = new Map<string, { count: number; name: string }>();
+    const commentMap = new Map<string, { count: number; name: string }>();
     if (type === 'comment' || type === 'all') {
         const commentDateCond = dateCondition.replace(/bg_datetime/g, 'c.wr_datetime');
         for (const board of MAJOR_BOARDS) {
@@ -285,7 +285,7 @@ async function queryGivenInteractions(
     entries: InteractionRow[]
 ) {
     // 공감 분석: target이 추천한 글의 작성자
-    let likeMap = new Map<string, { count: number; name: string }>();
+    const likeMap = new Map<string, { count: number; name: string }>();
     if (type === 'like' || type === 'all') {
         const likeDateCond = dateCondition.replace(/bg_datetime/g, 'g.bg_datetime');
         for (const board of MAJOR_BOARDS) {
@@ -320,7 +320,7 @@ async function queryGivenInteractions(
     }
 
     // 댓글 분석: target이 댓글 단 글의 작성자
-    let commentMap = new Map<string, { count: number; name: string }>();
+    const commentMap = new Map<string, { count: number; name: string }>();
     if (type === 'comment' || type === 'all') {
         const commentDateCond = dateCondition.replace(/bg_datetime/g, 'c.wr_datetime');
         for (const board of MAJOR_BOARDS) {

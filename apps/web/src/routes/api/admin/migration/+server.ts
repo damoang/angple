@@ -57,6 +57,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
                 const [memberRows] = await conn.query(
                     `SELECT COUNT(*) as cnt FROM ${prefix}member`
                 );
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mysql2 쿼리 결과 행이라 스키마 타입이 없다
                 const memberCount = (memberRows as any)[0].cnt;
                 tables.push({
                     sourceTable: `${prefix}member`,
@@ -69,6 +70,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
                 const [groupRows] = await conn.query(
                     `SELECT COUNT(*) as cnt FROM ${prefix}\`group\``
                 );
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mysql2 쿼리 결과 행이라 스키마 타입이 없다
                 const groupCount = (groupRows as any)[0].cnt;
                 tables.push({
                     sourceTable: `${prefix}group`,
@@ -81,6 +83,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
                 const [boardRows] = await conn.query(
                     `SELECT bo_table, bo_subject, bo_count_write FROM ${prefix}board`
                 );
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mysql2 쿼리 결과 행이라 스키마 타입이 없다
                 const boards = boardRows as any[];
                 tables.push({
                     sourceTable: `${prefix}board`,
@@ -95,6 +98,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
                         const [rows] = await conn.query(
                             `SELECT COUNT(*) as cnt FROM ${prefix}write_${board.bo_table}`
                         );
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mysql2 쿼리 결과 행이라 스키마 타입이 없다
                         const count = (rows as any)[0].cnt;
                         tables.push({
                             sourceTable: `${prefix}write_${board.bo_table}`,
@@ -111,6 +115,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
                 }
 
                 const [pointRows] = await conn.query(`SELECT COUNT(*) as cnt FROM ${prefix}point`);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mysql2 쿼리 결과 행이라 스키마 타입이 없다
                 const pointCount = (pointRows as any)[0].cnt;
                 tables.push({
                     sourceTable: `${prefix}point`,
@@ -136,6 +141,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
                             query += " WHERE module = 'board'";
                         }
                         const [rows] = await conn.query(query);
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mysql2 쿼리 결과 행이라 스키마 타입이 없다
                         const count = (rows as any)[0].cnt;
                         tables.push({
                             sourceTable: `${prefix}${src}`,

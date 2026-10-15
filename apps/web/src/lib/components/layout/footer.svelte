@@ -133,6 +133,7 @@
     let openSections = $state<Set<number>>(new Set());
 
     function toggleSection(index: number) {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 복사본을 만든 뒤 $state 에 다시 대입해 갱신을 알리는 패턴이라 반응형 컬렉션이 필요 없다
         const next = new Set(openSections);
         if (next.has(index)) {
             next.delete(index);

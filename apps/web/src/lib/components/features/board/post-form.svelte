@@ -103,6 +103,7 @@
 
     let angttSuggestion = $state<AngttSuggestion | null>(null);
     /** [무시]했거나 이미 [연결]한 작품 — 같은 세션에서 다시 제안하지 않는다 */
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 같은 세션에서 다시 제안하지 않도록 기억만 하는 기록 — 바뀌어도 화면을 다시 그릴 필요가 없다
     let angttDismissed = new Set<string>();
     let angttSeq = 0;
 
@@ -125,6 +126,7 @@
         const controller = new AbortController();
         const timer = setTimeout(async () => {
             try {
+                // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 쿼리 문자열을 만들 때만 쓰는 임시 값이라 반응형이 필요 없다
                 const query = new URLSearchParams({ title: current });
                 for (const source of sources) query.append('source', source);
                 const res = await fetch(`/api/angtt/detect?${query}`, {
@@ -199,6 +201,7 @@
     let angmapSuggestion = $state<AngmapPlaceSuggestion | null>(null);
     let angmapConfirmed = $state<AngmapPlaceSuggestion | null>(null);
     /** [무시]했거나 이미 확인한 링크 — 같은 세션에서 다시 제안하지 않는다 */
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 같은 세션에서 다시 제안하지 않도록 기억만 하는 기록 — 바뀌어도 화면을 다시 그릴 필요가 없다
     let angmapDismissed = new Set<string>();
     let angmapSeq = 0;
 

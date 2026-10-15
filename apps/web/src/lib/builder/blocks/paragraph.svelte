@@ -10,7 +10,7 @@
   client/SSR 모두 @html 로 출력 — XSS 방지는 backend validateBlocks() 에서.
 -->
 {#if block.data.format === 'html'}
-    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
     <div class="builder-paragraph">{@html block.data.text}</div>
 {:else}
     <pre class="builder-paragraph builder-paragraph-md">{block.data.text}</pre>

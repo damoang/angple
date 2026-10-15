@@ -9,6 +9,7 @@
     import { type GivingMethod } from './methods.js';
     import { givingApi } from './api.js';
 
+    // eslint-disable-next-line svelte/no-unused-props -- writeFormRegistry 가 모든 글쓰기 폼에 넘기는 공통 Props(onSubmit·isLoading) 모양을 맞춘다
     let {
         boardId = 'giving',
         board,

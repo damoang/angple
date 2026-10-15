@@ -80,6 +80,7 @@
 
     type LayoutInitPayload = {
         celebration?: CelebrationBanner[];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 배너 위치마다 항목 모양이 달라 공통 타입이 없다
         banners?: Record<string, any[]>;
         activePlugins?: ActivePlugin[];
         ga4MeasurementId?: string;

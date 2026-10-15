@@ -57,7 +57,7 @@
                 </header>
                 {#if fromHtml}
                     <div class="prose dark:prose-invert max-w-none px-4 py-4">
-                        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                        <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
                         {@html fromHtml}
                     </div>
                 {:else}
@@ -82,7 +82,7 @@
                 </header>
                 {#if toHtml}
                     <div class="prose dark:prose-invert max-w-none px-4 py-4">
-                        <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                        <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
                         {@html toHtml}
                     </div>
                 {:else}

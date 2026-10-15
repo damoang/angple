@@ -405,7 +405,7 @@ export function transformEscapedMedia(html: string): string {
     if (!html || (!html.includes('&lt;video') && !html.includes('&lt;iframe'))) return html;
 
     // &lt;video ...&gt;...&lt;/video&gt; 복원
-    let result = html.replace(
+    const result = html.replace(
         /&lt;video\s([^]*?)&gt;([^]*?)&lt;\/video&gt;/gi,
         (_match, attrs: string, inner: string) => {
             // 속성에서 위험한 이벤트 핸들러 제거

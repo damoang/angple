@@ -72,7 +72,7 @@
             <div
                 class="prose prose-sm dark:prose-invert max-w-none px-5 py-4 text-sm {variantClass}"
             >
-                <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+                <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
                 {@html safeHtml}
             </div>
             <div class="border-border/60 border-t px-5 py-4">
@@ -99,7 +99,7 @@
             존댓말이 기본규칙입니다. 초성포함 욕설은 이용제한 대상입니다.
         </p>
         <div class="prose prose-sm dark:prose-invert max-w-none">
-            <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+            <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
             {@html safeHtml}
         </div>
         {#if dismissible}

@@ -175,6 +175,7 @@
         }
 
         try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 외부 스크립트가 window 에 붙이는 전역이라 타입 선언이 없다
             ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
         } catch {
             // AdSense 초기화 실패 시 무시

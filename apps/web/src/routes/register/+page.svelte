@@ -22,6 +22,7 @@
 
     let { data, form }: { data: PageData; form: ActionData } = $props();
 
+    // eslint-disable-next-line svelte/prefer-writable-derived -- 사용자가 고치는 입력값 — $effect 는 SSR 에서 돌지 않는다 — $derived 로 바꾸면 SSR 초기값과 갱신 시점이 달라지므로 기존 동작을 유지한다
     let nickname = $state('');
 
     $effect(() => {
@@ -261,6 +262,7 @@
                                 class="terms-content border-border bg-muted/30 max-h-48 overflow-y-auto rounded-md border p-3 text-xs leading-relaxed"
                                 onscroll={handleTermsScroll}
                             >
+                                <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
                                 {@html data.termsHtml}
                             </div>
                         {/if}
@@ -295,6 +297,7 @@
                                 class="terms-content border-border bg-muted/30 max-h-48 overflow-y-auto rounded-md border p-3 text-xs leading-relaxed"
                                 onscroll={handlePrivacyScroll}
                             >
+                                <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
                                 {@html data.privacyHtml}
                             </div>
                         {/if}
@@ -329,6 +332,7 @@
                                 class="terms-content border-border bg-muted/30 max-h-48 overflow-y-auto rounded-md border p-3 text-xs leading-relaxed"
                                 onscroll={handlePolicyScroll}
                             >
+                                <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
                                 {@html data.policyHtml}
                             </div>
                             <div class="flex items-center gap-3">

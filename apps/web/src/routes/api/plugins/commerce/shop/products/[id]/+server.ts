@@ -16,6 +16,7 @@ export const GET: RequestHandler = async ({ params }) => {
             [id]
         );
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- mysql2 쿼리 결과 행이라 스키마 타입이 없다
         const products = rows as any[];
         if (products.length === 0) {
             return json({ success: false, error: '상품을 찾을 수 없습니다' }, { status: 404 });

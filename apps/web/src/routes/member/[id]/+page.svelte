@@ -220,7 +220,9 @@
                     const d = await res.json();
                     if (d.success) isFollowing = d.data.is_following;
                 }
-            } catch {}
+            } catch {
+                // 조회 실패 시 기존 팔로우 상태를 유지한다
+            }
         }
     });
 
@@ -234,7 +236,9 @@
                 const d = await res.json();
                 recentPosts = d.recentPosts ?? [];
             }
-        } catch {}
+        } catch {
+            // 조회 실패 시 빈 목록으로 둔다
+        }
         loadingPosts = false;
         postsLoaded = true;
     }
@@ -248,7 +252,9 @@
                 const d = await res.json();
                 recentComments = d.recentComments ?? [];
             }
-        } catch {}
+        } catch {
+            // 조회 실패 시 빈 목록으로 둔다
+        }
         loadingComments = false;
         commentsLoaded = true;
     }
@@ -268,7 +274,9 @@
                 const d = await res.json();
                 likedPosts = d.data ?? [];
             }
-        } catch {}
+        } catch {
+            // 조회 실패 시 빈 목록으로 둔다
+        }
         loadingLiked = false;
         likedLoaded = true;
     }
@@ -306,7 +314,9 @@
                 const d = await res.json();
                 if (d.success) isFollowing = d.data.is_following;
             }
-        } catch {}
+        } catch {
+            // 조회 실패 시 기존 팔로우 상태를 유지한다
+        }
         followLoading = false;
     }
 

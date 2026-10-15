@@ -9,6 +9,7 @@
 
     /** 'YYYY-MM-DD' 의 전날 문자열 */
     function prevDay(d: string): string {
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 날짜 계산용 임시 값이라 반응형이 필요 없다
         const dt = new Date(d + 'T00:00:00Z');
         dt.setUTCDate(dt.getUTCDate() - 1);
         return dt.toISOString().slice(0, 10);

@@ -99,6 +99,7 @@ export function createAiClient(): AiClient {
         const id = ++seq;
         return new Promise<Move | null>((resolve) => {
             let done = false;
+            // eslint-disable-next-line prefer-const -- finish/giveUp 정의 뒤에 setTimeout 을 걸어야 해서 선언과 대입을 나눈다
             let timer: ReturnType<typeof setTimeout> | undefined;
             const finish = (move: Move | null) => {
                 if (done) return;

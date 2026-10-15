@@ -13,7 +13,7 @@ interface BoardPointRow extends RowDataPacket {
 }
 
 export const load: PageServerLoad = async () => {
-    let boardPoints: {
+    const boardPoints: {
         name: string;
         slug: string;
         writePoint: number;

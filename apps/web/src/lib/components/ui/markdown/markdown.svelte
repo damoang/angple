@@ -436,7 +436,7 @@
     class="prose prose-neutral dark:prose-invert max-w-none {className}"
     style="font-size: var(--content-font-size, 16px); line-height: var(--content-line-height, 1.8); overflow-wrap: break-word; word-wrap: break-word; overflow-x: hidden; contain: style;"
 >
-    <!-- eslint-disable-next-line svelte/no-at-html-tags -->
+    <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
     {@html renderedHtml}
 </div>
 

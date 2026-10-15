@@ -19,6 +19,7 @@
     let isAddingToCart = $state(false);
     let selectedImage = $state(0);
     let activeTab = $state<'desc' | 'reviews' | 'shipping' | 'refund'>('desc');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- API 응답 모양에 맞춘 타입이 아직 없다
     let reviews = $state<any[]>([]);
     let reviewsLoading = $state(false);
     let reviewsLoaded = $state(false);
@@ -323,6 +324,7 @@
                 <!-- 상품 설명 -->
                 {#if product.description}
                     <div class="prose prose-neutral dark:prose-invert max-w-none">
+                        <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
                         {@html product.description}
                     </div>
                 {/if}

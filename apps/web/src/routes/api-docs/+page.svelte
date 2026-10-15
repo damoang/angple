@@ -24,9 +24,8 @@
         script.src =
             'https://cdn.jsdelivr.net/npm/@scalar/api-reference@latest/dist/browser/standalone.min.js';
         script.onload = () => {
-            // @ts-ignore - Scalar global
             if (window.Scalar) {
-                // @ts-ignore
+                // @ts-expect-error - Scalar global
                 window.Scalar.createApiReference(container, {
                     url: '/openapi.yaml',
                     theme: 'default',

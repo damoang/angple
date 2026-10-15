@@ -142,6 +142,7 @@
         {/if}
     </div>
 
+    <!-- eslint-disable-next-line no-constant-binary-expression -- 검색 자동완성을 일부러 꺼 둔 임시 조건(아래 TEMP 주석) -->
     {#if false && isOpen}<!-- TEMP: 검색 서버 전용 인스턴스 생기면 복원 -->
         <div
             class="bg-popover border-border absolute z-50 mt-1 w-full overflow-hidden rounded-md border shadow-lg"

@@ -131,7 +131,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
         !!memberId &&
         memberId.length > 0 &&
         memberId.length <= 50 &&
-        !/[\\\/?#<>%\s\0]/.test(memberId);
+        !/[\\/?#<>%\s\0]/.test(memberId);
     if (!isValidMemberId) {
         return json({ success: false, error: '유효하지 않은 회원 ID입니다.' }, { status: 400 });
     }

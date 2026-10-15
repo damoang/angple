@@ -54,6 +54,7 @@ export function sanitizeLoginRedirect(raw: string | null | undefined, fallback =
         // `//host`·`/\host` 는 브라우저가 프로토콜 상대 주소, 즉 외부 주소로 해석한다.
         if (raw.startsWith('//') || raw.startsWith('/\\')) return fallback;
         // 제어 문자(탭·개행 등)는 브라우저가 **제거한 뒤** 해석하므로 우회로가 된다.
+        // eslint-disable-next-line no-control-regex -- 제어 문자를 찾아 차단하려는 의도된 정규식
         if (/[\u0000-\u001f\u007f]/.test(raw)) return fallback;
         // 로그인 화면으로 되돌리면 무한 루프가 된다.
         if (isLoginPath(raw)) return fallback;

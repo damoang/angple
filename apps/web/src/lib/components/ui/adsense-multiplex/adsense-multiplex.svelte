@@ -9,6 +9,7 @@
 
     /** 성인 키워드 글/차단 작가 글 상세 페이지에서는 AdSense Multiplex 광고를 숨김 */
     const suppressAds = $derived(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 페이지마다 data 모양이 달라 공통 타입이 없다(post·user 가 있을 때만 읽는다)
         !!($page as any).data?.post?.is_adult || !!($page as any).data?.post?.suppress_ads
     );
 
@@ -55,6 +56,7 @@
             if (destroyed) return;
             if (!insEl || !document.body.contains(insEl)) return;
             try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 외부 스크립트가 window 에 붙이는 전역이라 타입 선언이 없다
                 ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
             } catch {
                 // AdSense push failed silently

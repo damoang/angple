@@ -429,7 +429,7 @@ export const load: PageServerLoad = async ({
             const alreadyViewedByCookie = viewed.includes(vcKey);
 
             // 서버 사이드 IP 기반 중복 방지 (Redis — pod 간 공유)
-            let clientIp = resolveClientIp(getClientAddress, request) ?? '';
+            const clientIp = resolveClientIp(getClientAddress, request) ?? '';
             const alreadyViewedByIp = clientIp
                 ? await hasRecentlyViewed(clientIp, boardId, Number(postId))
                 : false;
@@ -929,7 +929,7 @@ export const load: PageServerLoad = async ({
         // ⛔ locals.user 가드 필수 — 익명 SSR 응답은 CDN 캐시라 워터마크에 요청자 IP 가
         //    박히면 첫 익명 방문자 IP 가 이후 모두에게 노출된다(#12920, 아래 disciplineViewer 와 동일 이유).
         if ((boardId === 'truthroom' || post.extra_7 === 'lock' || postReportLock) && locals.user) {
-            let clientIp = resolveClientIp(getClientAddress, request) ?? '';
+            const clientIp = resolveClientIp(getClientAddress, request) ?? '';
             watermark = {
                 nickname: locals.user?.nickname || '',
                 userId: locals.user?.id || '',
@@ -941,7 +941,7 @@ export const load: PageServerLoad = async ({
         // 로그인 사용자에게만 발급 — 익명 SSR/데이터 캐시 응답에 IP 가 잔존하지 않게 한다.
         let disciplineViewer: { nickname: string; userId: string; clientIp: string } | null = null;
         if (locals.user) {
-            let clientIp = resolveClientIp(getClientAddress, request) ?? '';
+            const clientIp = resolveClientIp(getClientAddress, request) ?? '';
             disciplineViewer = {
                 nickname: locals.user.nickname || '',
                 userId: locals.user.id || '',
@@ -989,7 +989,12 @@ export const load: PageServerLoad = async ({
             }
         }
 
-        let recentPosts: { items: FreePost[]; total: number; totalPages: number; page: number } = {
+        const recentPosts: {
+            items: FreePost[];
+            total: number;
+            totalPages: number;
+            page: number;
+        } = {
             items: [],
             total: 0,
             totalPages: 1,

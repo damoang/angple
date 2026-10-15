@@ -16,8 +16,8 @@ export const ssr = import.meta.env.VITE_SSR !== 'false';
 export const prerender = false;
 
 // 이전 데이터 참조 캐시 (클라이언트 전용)
-let prev: Record<string, unknown> = {};
-let prevFingerprints: Record<string, string> = {};
+const prev: Record<string, unknown> = {};
+const prevFingerprints: Record<string, string> = {};
 
 // 저비용 fingerprint: deep comparison 대신 ID/length 기반 비교
 function fingerprint(key: string, value: unknown): string {

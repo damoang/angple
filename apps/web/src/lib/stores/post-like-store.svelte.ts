@@ -16,6 +16,7 @@ interface LikeState {
     disliked: boolean;
 }
 
+// eslint-disable-next-line svelte/prefer-svelte-reactivity -- 세션 안에서 직접 토글한 상태를 기억했다가 다시 읽는 기록 — 반응형 갱신 없이 쓰는 기존 동작을 유지한다
 const map = new Map<string, LikeState>();
 
 function keyFor(boardId: string, postId: number): string {

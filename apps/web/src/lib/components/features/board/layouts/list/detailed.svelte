@@ -86,6 +86,7 @@
                                     >신고에 의해 숨겨진 게시글입니다</span
                                 >
                             {:else if searchQuery}
+                                <!-- eslint-disable-next-line svelte/no-at-html-tags -- 렌더링용 HTML -->
                                 {@html highlightQuery(post.title, searchQuery)}
                             {:else}
                                 {post.title}

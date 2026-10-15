@@ -200,7 +200,9 @@ function forceClearAllAndReload(): void {
         }
         sessionStorage.clear();
         for (const [k, v] of Object.entries(keep)) sessionStorage.setItem(k, v);
-    } catch (_) {}
+    } catch (_) {
+        // 저장소 접근 실패(비공개 모드·차단 등)는 무시한다
+    }
     // 4. 쿼리 버스팅으로 완전 새 요청
     Promise.all(tasks).finally(() => {
         const url = new URL(location.href);
@@ -258,7 +260,9 @@ function markRecoveryPending(type: 'chunk' | 'stale', reason: string, count: num
                 from: window.location.href
             })
         );
-    } catch {}
+    } catch {
+        // 저장소 접근 실패(비공개 모드·차단 등)는 무시한다
+    }
 
     guardedSend({
         type: `${type}_recovery_started`,
@@ -301,7 +305,9 @@ function flushRecoverySuccessIfNeeded(): void {
     } catch {
         try {
             sessionStorage.removeItem(RECOVERY_PENDING_KEY);
-        } catch {}
+        } catch {
+            // 저장소 접근 실패(비공개 모드·차단 등)는 무시한다
+        }
     }
 }
 
@@ -392,6 +398,7 @@ if (typeof window !== 'undefined') {
         });
     });
     window.addEventListener('angple:chunk-recovery-healthy', () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 외부 스크립트가 window 에 붙이는 전역이라 타입 선언이 없다
         const chunkError = (window as any).__angpleChunkError as
             | {
                   getState: () => {
@@ -435,6 +442,7 @@ export const handleError: HandleClientError = ({ error, event, status }) => {
 
     // 배포 후 chunk 로드 실패 → app.html 통합 핸들러에 위임
     if (isChunkLoadError(error)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 외부 스크립트가 window 에 붙이는 전역이라 타입 선언이 없다
         const chunkError = (window as any).__angpleChunkError;
         if (chunkError) {
             // ⛔ err.message 를 버리면 안 된다 — 어느 청크가 왜 실패했는지가 여기에만 있다.

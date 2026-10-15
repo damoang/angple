@@ -26,6 +26,7 @@ export function loadAdfitSDK(): Promise<AdfitLoadStatus> {
         const existing = document.querySelector(`script[src*="kas/static/ba.min.js"]`);
         if (existing) {
             // 이미 삽입된 스크립트: adfit 함수 존재 여부로 success/failed 판정
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 외부 스크립트가 window 에 붙이는 전역이라 타입 선언이 없다
             resolve(typeof (window as any).adfit === 'function' ? 'success' : 'failed');
             return;
         }
@@ -61,6 +62,7 @@ export function renderAdfitAd(containerId: string): void {
     // 애드핏 SDK가 ins 요소를 자동으로 채움
     // ba.min.js는 페이지의 kakao_ad_area 클래스를 가진 ins를 스캔
     try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 외부 스크립트가 window 에 붙이는 전역이라 타입 선언이 없다
         const adfit = (window as any).adfit;
         if (adfit && typeof adfit === 'function') {
             adfit(containerId);

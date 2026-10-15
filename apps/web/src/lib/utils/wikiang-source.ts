@@ -16,6 +16,7 @@ export function wikiSourceTitle(href: string): string | null {
 }
 
 export function wikiangDocumentUrl(path: string): string | null {
+    // eslint-disable-next-line no-control-regex -- 제어 문자를 찾아 거르려는 의도된 정규식
     if (!path.startsWith('/') || path.startsWith('//') || /[\\\x00-\x1f]/.test(path)) return null;
     try {
         const url = new URL(path, 'https://wikiang.org');
