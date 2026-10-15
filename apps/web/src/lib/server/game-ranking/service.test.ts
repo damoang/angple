@@ -239,6 +239,35 @@ describe('기록 접수', () => {
         expect(f.saved[0].flagReason).not.toContain('score_mismatch');
     });
 
+    it('너무 빠른 판·판 길이가 틀린 판은 모양이 맞는 기록이어도 저장하지 않는다', async () => {
+        const f = fake([12, 13]);
+        const ticks = breakout.maxTicks;
+        const moves: number[] = [];
+        for (let t = 0; t < ticks; t++) moves.push(t, t & 1 ? 100 : 101);
+        const inputs = encodeLog({ moves, launches: [0] });
+        expect(breakout.storableInputs(inputs, ticks)).not.toBeNull();
+
+        const a = await startRun(breakout, '', 'pat', f.deps);
+        if (a.kind !== 'ok') throw new Error('start');
+        f.advance(10_000);
+        await finishRun(breakout, 'pat', { runId: a.runId, score: 1, ticks, inputs }, f.deps);
+        expect(f.saved[0].flagReason).toBe('too_fast');
+        expect(f.saved[0].inputsJson).toBeNull();
+
+        f.advance(START_GAP_MS);
+        const b = await startRun(breakout, '', 'pat', f.deps);
+        if (b.kind !== 'ok') throw new Error('start');
+        f.advance(10_000_000);
+        await finishRun(
+            breakout,
+            'pat',
+            { runId: b.runId, score: 1, ticks: ticks + 1, inputs },
+            f.deps
+        );
+        expect(f.saved[1].flagReason).toBe('ticks_shape');
+        expect(f.saved[1].inputsJson).toBeNull();
+    });
+
     it('너무 빠른 판은 재생하지 않는다(재생 비용을 실제 경과로 묶는다)', () => {
         const replaySpy = vi.fn(() => ({ score: 0, ticks: 0 }));
         const spyGame: RankedGame = { ...breakout, replay: replaySpy };

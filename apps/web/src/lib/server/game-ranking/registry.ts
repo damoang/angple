@@ -42,10 +42,10 @@ export interface RankedGame {
 
 /**
  * 벽돌깨기 finish 본문 상한.
- * 기록은 판 길이 × 2글자 이하(log-codec.ts) → 1시간 판 = 432,000글자 + 발사·나머지 필드.
+ * 기록은 판 길이 × 2글자 이하(log-codec.ts) → 순위 판 상한(20분) = 144,000글자 + 발사·나머지 필드.
  * 서버 전체 본문 상한과 별개로 이 값에서 읽기를 끊는다(body.ts).
  */
-export const BREAKOUT_MAX_BODY_BYTES = 450 * 1024;
+export const BREAKOUT_MAX_BODY_BYTES = 160 * 1024;
 /** 저장할 기록 크기 여유(글자) — 발사 기록 몫 */
 const BREAKOUT_STORE_SLACK = 256;
 

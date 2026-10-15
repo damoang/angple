@@ -217,7 +217,9 @@ export async function finishRun(
     const { run, check, elapsedMs, now } = taken;
     const flagged = check.reasons.length > 0;
     // 모양이 맞고 판 길이에 걸맞은 기록만 남긴다 — 아니면 NULL(사유는 flag_reason 에)
-    const inputsJson = game.storableInputs(body.inputs, check.ticks);
+    // 판 길이가 틀렸거나 너무 빠른 판은 재생하지 않았으므로 기록도 남기지 않는다
+    const unreplayed = check.reasons.includes('too_fast') || check.reasons.includes('ticks_shape');
+    const inputsJson = unreplayed ? null : game.storableInputs(body.inputs, check.ticks);
     const rec: RunRecord = {
         gameId: game.gameId,
         variant: run.variant,

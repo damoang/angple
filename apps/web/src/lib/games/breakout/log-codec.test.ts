@@ -17,6 +17,7 @@ import {
     type Game
 } from './engine';
 import { decodeLog, encodeLog } from './log-codec';
+import { BREAKOUT_RANKED_MAX_TICKS } from './ranked';
 import { BREAKOUT_MAX_BODY_BYTES, getRankedGame } from '$lib/server/game-ranking/registry';
 
 /**
@@ -142,9 +143,26 @@ describe('입력 기록 압축', () => {
         expect(out.error).toBeUndefined();
         expect(out.score).toBe(g.score);
         expect(out.ticks).toBe(g.tick);
-        // 기록은 판 길이 × 2글자 이하 → 본문 상한 안
+        // 기록은 판 길이 × 2글자 이하
         expect(enc.m.length).toBeLessThanOrEqual(2 * MAX_TICKS);
-        expect(bodyBytes).toBeLessThanOrEqual(BREAKOUT_MAX_BODY_BYTES);
+
+        // 순위 판 상한(20분)까지 자른 같은 판 — 본문이 상한 안에 든다
+        const cut = BREAKOUT_RANKED_MAX_TICKS;
+        const moves: number[] = [];
+        for (let k = 0; k < g.log.moves.length && g.log.moves[k] < cut; k += 2) {
+            moves.push(g.log.moves[k], g.log.moves[k + 1]);
+        }
+        const launches = g.log.launches.filter((t) => t < cut);
+        const cutBody = JSON.stringify({
+            runId: 'g_0123456789abcdefghij',
+            score: g.score,
+            ticks: cut,
+            inputs: encodeLog({ moves, launches })
+        });
+        const cutBytes = Buffer.byteLength(cutBody, 'utf8');
+        process.stdout.write(`[breakout-ranked-body] ticks=${cut} bodyBytes=${cutBytes}\n`);
+        expect(cutBytes).toBeLessThanOrEqual(BREAKOUT_MAX_BODY_BYTES);
+        expect(2 * cut + 1024).toBeLessThanOrEqual(BREAKOUT_MAX_BODY_BYTES);
     }, 180_000);
 
     it('최악의 재생 비용 — 공 8개·최고 속력으로 1시간(시험용으로 상태를 직접 채운다)', () => {

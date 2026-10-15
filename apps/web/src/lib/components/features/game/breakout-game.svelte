@@ -323,6 +323,10 @@
         if (dir !== 0) targetX = clampTarget(targetX + dir * KEY_SPEED);
         const ev = step(game, { x: Math.round(targetX), launch: launchQueued });
         launchQueued = false;
+        // 순위 판 길이 상한을 막 넘긴 순간 한 번 알린다(판은 그대로 계속)
+        if (runId && game.tick === BREAKOUT_RANKED_MAX_TICKS + 1) {
+            notice = `${BREAKOUT_RANKED_MAX_MINUTES}분을 넘긴 판은 랭킹에 기록되지 않습니다`;
+        }
         if (ev.length > 0) handleEvents(ev);
         syncHud();
         if (game.over) finish();
