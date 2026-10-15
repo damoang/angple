@@ -60,6 +60,7 @@
     import type { ReactionItem } from '$lib/types/reaction.js';
     import { generateParentId, generateDocumentTargetId } from '$lib/types/reaction.js';
     import {
+        canSkipLikeResync,
         canSkipReactionsRefetch,
         decidePostLikers,
         isLikersPreview,
@@ -476,9 +477,16 @@
     let postReportCount = $state<number | string | null>(null);
     let syncedCommentsPostId: number | null = null;
     let syncedReactionStatePostId: number | null = null;
-    // bug/13729: 인증 확립 후 하트 재동기화가 이 글에 대해 이미 실값을 채웠는지 표시.
-    // 스트리밍(SSR strip 으로 빈값)과 재동기화의 순서 경쟁에서 재동기화가 이기게 한다.
+    // bug/13729: 인증 확립 후 하트 재동기화가 이 글에 대해 끝났는지(재조회했거나, 서버 전달분으로
+    // 충분해 건너뛰었거나) 표시. 재조회가 먼저 시작됐으면 늦게 온 스트리밍 값이 덮지 않게 한다.
     let likeStatusResyncedForPostId: number | null = null;
+    // 서버가 흘려보낸 추천 상태를 기다리는 글 ID(도착·실패·대기 한도 초과 시 null).
+    // 재동기화는 이 값이 지금 글이면 기다렸다가 도착한 뒤 판정한다.
+    let likeStatusPendingPostId = $state<number | null>(null);
+    // 서버가 보낸 추천 상태를 화면에 반영했을 때, 그것이 어느 글 것이고 서버가 회원을 알았는지.
+    let streamedLikeStatus = $state<{ postId: number; viewerKnown: boolean } | null>(null);
+    /** 서버 전달분의 추천 상태를 기다리는 한도 — 넘기면 지금처럼 화면이 다시 부른다 */
+    const LIKE_STATUS_WAIT_MS = 4000;
     let trackedPostViewKey = '';
     let resetDetailUiPostId: number | null = null;
 
@@ -525,10 +533,13 @@
         linkAffiliate = {};
         postLikersPreviewRaw = null;
         commentLikersPreview = null;
+        streamedLikeStatus = null;
 
         if (!promise) {
             // SPA 내비게이션: auxiliaryData 없음 → 리액션 직접 fetch
             // 추천한 사람 미리보기도 서버 전달분이 없으므로 화면이 직접 받는다.
+            // 추천 상태도 기다릴 것이 없다 — 인증 확립 뒤 재동기화가 지금처럼 다시 부른다.
+            likeStatusPendingPostId = null;
             likersPreviewPending = false;
             if (browser) {
                 fetchBatchReactions();
@@ -547,6 +558,12 @@
             likersPreviewPending = false;
             if (data.post.likes > 0) loadLikerAvatars();
         }, LIKERS_PREVIEW_WAIT_MS);
+        // 추천 상태도 서버 전달분을 기다린다. 끝내 안 오면 기다림을 풀어 재동기화가 다시 부르게 한다.
+        likeStatusPendingPostId = effectPostId;
+        const likeStatusWaitTimer = setTimeout(() => {
+            if (cancelled || likeStatusPendingPostId !== effectPostId) return;
+            likeStatusPendingPostId = null;
+        }, LIKE_STATUS_WAIT_MS);
         promotionPosts = [];
         revisions = [];
         isScrapped = false;
@@ -613,12 +630,22 @@
                     postReportCount = result.postReportCount;
                 }
 
-                // bug/13729: 인증 확립 후 재동기화($effect)가 이미 이 글의 실 하트값을 채웠으면,
-                // SSR strip 으로 비어 있는 스트리밍 값이 늦게 도착해도 덮어써 하트를 다시 비우지 않는다.
+                // bug/13729: 인증 확립 후 재동기화($effect)가 이미 이 글의 하트값을 다시 받기 시작했으면,
+                // 늦게 도착한 스트리밍 값(서버가 회원을 몰랐다면 비어 있다)으로 하트를 덮지 않는다.
+                clearTimeout(likeStatusWaitTimer);
                 if (likeStatusResyncedForPostId !== data.post.id) {
-                    if (result.postLikeStatus) {
+                    // 좋아요/싫어요를 누르는 중이면 그 응답이 더 새롭다 — 덮지 않고, 재동기화도
+                    // 건너뛰지 않게 전달분을 반영하지 않은 것으로 둔다.
+                    const postStatusApplied = Boolean(
+                        result.postLikeStatus && !isLiking && !isDisliking
+                    );
+                    if (result.postLikeStatus && postStatusApplied) {
                         isLiked = result.postLikeStatus.userLiked;
                         isDisliked = result.postLikeStatus.userDisliked;
+                        if (typeof result.postLikeStatus.likes === 'number') {
+                            likeCount = result.postLikeStatus.likes;
+                            dislikeCount = result.postLikeStatus.dislikes ?? 0;
+                        }
                     }
 
                     // 낙관적 오버레이: 이 세션에서 직접 누른 공감/비공감이 있으면
@@ -633,7 +660,16 @@
                         initialLikedCommentIds = result.commentLikeStatuses.likedIds || [];
                         initialDislikedCommentIds = result.commentLikeStatuses.dislikedIds || [];
                     }
+
+                    // 재동기화가 이 값으로 충분한지 판정할 수 있게 남긴다(글·댓글 둘 다 반영했을 때만).
+                    if (postStatusApplied && result.commentLikeStatuses) {
+                        streamedLikeStatus = {
+                            postId: effectPostId,
+                            viewerKnown: result.likeViewerKnown === true
+                        };
+                    }
                 }
+                if (likeStatusPendingPostId === effectPostId) likeStatusPendingPostId = null;
 
                 if (result.truthroomCommentMap) {
                     truthroomCommentMap = result.truthroomCommentMap;
@@ -680,6 +716,9 @@
             .catch(() => {
                 if (cancelled) return;
                 clearTimeout(likersWaitTimer);
+                // 실패 — 전달분 없이 기다림만 푼다. 재동기화가 지금처럼 다시 부른다.
+                clearTimeout(likeStatusWaitTimer);
+                if (likeStatusPendingPostId === effectPostId) likeStatusPendingPostId = null;
                 if (likersPreviewPending) {
                     likersPreviewPending = false;
                     if (data.post.likes > 0) loadLikerAvatars();
@@ -690,6 +729,7 @@
         return () => {
             cancelled = true;
             clearTimeout(likersWaitTimer);
+            clearTimeout(likeStatusWaitTimer);
         };
     });
 
@@ -784,9 +824,12 @@
     let isDisliking = $state(false);
     let isLikeAnimating = $state(false); // 좋아요 애니메이션
 
-    // bug/13729: 글상세는 SSR_STRIP_USER 로 서버에서 user=null → SSR/스트리밍 하트 상태가 항상 비어
-    // 있다(엣지캐시 설계). 인증은 하이드레이션 뒤 확립되므로, authStore.isAuthenticated 가 true 로
-    // 바뀌는 순간을 $effect 로 추적해 쿠키인증 엔드포인트로 실제 좋아요 상태를 다시 받아 하트를 채운다.
+    // bug/13729: 인증은 하이드레이션 뒤 확립되므로, authStore.isAuthenticated 가 true 로 바뀌는 순간을
+    // $effect 로 추적해 하트 상태를 맞춘다. 서버는 세션 회원이면 글·댓글 하트 상태를 스트리밍
+    // 전달분(auxiliaryData)에 실어 보낸다(SSR_STRIP_USER 는 레이아웃 반환값에서만 user 를 뺀다).
+    // 그 전달분이 이 글 것이고 서버가 회원을 알고 조회에 성공했으면(likeViewerKnown) 다시 부르지
+    // 않는다. 전달분을 기다리는 중이면 도착할 때까지 미루고, 그 밖의 경우(전달분 없음·실패·대기 한도
+    // 초과·서버가 회원을 몰랐음)는 쿠키인증 엔드포인트로 실제 상태를 다시 받아 하트를 채운다.
     // ⛔ onMount 게이트로 걸면 그 시점엔 아직 false 라 영원히 안 돈다(과거 read-posts 0건 함정).
     $effect(() => {
         const postId = data.post.id;
@@ -800,6 +843,20 @@
         const isAuth = authStore.isAuthenticated; // 추적 대상 — 인증 확립 시 발화
         if (!browser || !isAuth || !bid) return;
         if (likeStatusResyncedForPostId === postId) return;
+        // 서버 전달분이 오는 중이면 기다린다 — 도착·실패·대기 한도 초과 시 이 값이 바뀌어 다시 돈다.
+        // (재조회를 시작한 뒤에는 이 값과 아래 전달분 표식이 이 글에 대해 다시 바뀌지 않으므로
+        //  재실행으로 진행 중인 재조회가 취소되지 않는다.)
+        if (likeStatusPendingPostId === postId) return;
+        const streamed = streamedLikeStatus;
+        const skipResync = canSkipLikeResync({
+            postId,
+            streamedPostId: streamed?.postId ?? null,
+            streamedViewerKnown: streamed?.viewerKnown ?? false
+        });
+        if (skipResync) {
+            likeStatusResyncedForPostId = postId;
+            return;
+        }
         likeStatusResyncedForPostId = postId;
         // ⛔ cleanup 이 없으면 라우트를 떠난 뒤에도 응답이 도착해 죽은 상태에 쓴다.
         let cancelled = false;
