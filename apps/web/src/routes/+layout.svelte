@@ -1,6 +1,5 @@
 <script lang="ts">
     import '../app.css';
-    import favicon from '$lib/assets/favicon.png';
     import { onMount, untrack } from 'svelte';
     import PluginSlot from '$lib/components/plugin/plugin-slot.svelte';
     import type { Component } from 'svelte';
@@ -1185,11 +1184,10 @@
 
 <svelte:head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Phase 1 (Path D′): data.site 가 있으면 site-resolver 의 SEO 메타 사용. 없으면 기본 favicon. -->
+    <!-- Phase 1 (Path D′): data.site 가 있으면 site-resolver 의 SEO 메타 사용.
+         없으면 app.html 의 정적 파비콘(96/32/16/.ico)을 그대로 쓴다(인라인 data URI 중복 방지). -->
     {#if data.site?.favicon_url}
         <link rel="icon" href={data.site.favicon_url} />
-    {:else}
-        <link rel="icon" href={favicon} />
     {/if}
     <!--
         og:title / og:description / og:image 는 페이지별 <SeoHead> (lib/seo) 가 단독 emit 한다.
