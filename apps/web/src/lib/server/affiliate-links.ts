@@ -646,15 +646,13 @@ const COMMENT_AFFILIATE_POST_SET_SQL = `SELECT DISTINCT board_slug, post_id FROM
 
 async function loadCommentAffiliatePostSet(): Promise<Set<string>> {
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const query = pool
-        .query<RowDataPacket[]>(COMMENT_AFFILIATE_POST_SET_SQL)
-        .then(([rows]) => {
-            const set = new Set<string>();
-            for (const row of rows) {
-                set.add(commentAffiliatePostKey(String(row.board_slug), Number(row.post_id)));
-            }
-            return set;
-        });
+    const query = pool.query<RowDataPacket[]>(COMMENT_AFFILIATE_POST_SET_SQL).then(([rows]) => {
+        const set = new Set<string>();
+        for (const row of rows) {
+            set.add(commentAffiliatePostKey(String(row.board_slug), Number(row.post_id)));
+        }
+        return set;
+    });
     query.catch(() => {});
     const timeout = new Promise<never>((_, reject) => {
         timer = setTimeout(
