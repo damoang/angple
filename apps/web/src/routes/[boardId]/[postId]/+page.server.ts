@@ -587,28 +587,19 @@ export const load: PageServerLoad = async ({
 
             const comments = commentsResult;
 
-            // 프로필 이미지 배치 조회 (DB mb_image_url)
-            try {
-                const imgIds = new Set<string>();
-                if (post.author_id) imgIds.add(post.author_id);
-                for (const c of comments.items || []) {
-                    if (c.author_id) imgIds.add(c.author_id);
-                }
-                if (imgIds.size > 0) {
-                    const imageMap = await fetchMemberImagesWithTimestamp([...imgIds]);
-                    if (post.author_id && imageMap[post.author_id]) {
+            // 댓글 작성자 사진은 다시 조회하지 않는다 — 댓글 API 가 같은 DB 값(author_image·
+            // author_image_updated_at)을 삭제·익명 마스킹까지 적용해 이미 돌려준다.
+            // 글쓴이 사진은 위 1단계와 같은 조건(아직 없을 때)에서만 조회한다.
+            if (post.author_id && !post.author_image) {
+                try {
+                    const imageMap = await fetchMemberImagesWithTimestamp([post.author_id]);
+                    if (imageMap[post.author_id]) {
                         post.author_image = imageMap[post.author_id].url;
                         post.author_image_updated_at = imageMap[post.author_id].updated_at;
                     }
-                    for (const c of comments.items || []) {
-                        if (c.author_id && imageMap[c.author_id]) {
-                            c.author_image = imageMap[c.author_id].url;
-                            c.author_image_updated_at = imageMap[c.author_id].updated_at;
-                        }
-                    }
+                } catch {
+                    // 이미지 조회 실패해도 정상 진행
                 }
-            } catch {
-                // 이미지 조회 실패해도 정상 진행
             }
 
             return {
