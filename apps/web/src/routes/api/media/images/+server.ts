@@ -7,8 +7,15 @@
  * - AWS (기본): raw/ 에 올리면 Lambda 가 data/ 로 변환 + 썸네일 생성 + R2 dual-write
  * - 직접 업로드 (AWS 가 아닌 S3_ENDPOINT 지정 또는 S3_DIRECT_UPLOAD=true, 예: Cloudflare R2 단독 사이트):
  *   Lambda 가 없으므로 data/ 최종 키에 바로 저장하고 변환 대기를 건너뛴다
+ *
+ * AWS 모드의 JPEG 직행($lib/server/media/jpeg-direct 참고):
+ *   해상도를 줄일 필요가 없는 JPEG 는 웹이 메타데이터 구획을 지워 data/ 에 바로 쓰고,
+ *   원본은 raw/ 에도 올려 Lambda 가 지금처럼 같은 결과로 덮어쓰고 썸네일·R2 를 처리하게 한다.
+ *   판정 불가·상한 초과·실패 시에는 현행 경로(raw/ 업로드 + 변환 대기)로 간다.
+ *   MEDIA_JPEG_DIRECT=0 이면 끈다.
  */
 import { json, error } from '@sveltejs/kit';
+import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
 import { PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getAuthUser, verifyToken } from '$lib/server/auth/index.js';
@@ -25,6 +32,7 @@ import {
     processWaitMs,
     rawKeyToFinalKey
 } from '$lib/server/media/final-key.js';
+import { prepareDirectJpeg } from '$lib/server/media/jpeg-direct.js';
 
 const ALLOWED_EXTENSIONS = new Set([
     '.jpg',
@@ -137,6 +145,19 @@ function generateKey(ext: string): string {
         .slice(0, 7);
     // raw/ 경로로 업로드 → Lambda S3 이벤트 트리거 → data/ 경로로 변환 + 썸네일 생성
     return `raw/editor/${yy}${mm}/${hash}${ext}`;
+}
+
+const CACHE_CONTROL = 'public, max-age=31536000, immutable';
+
+/** JPEG 직행 — 프로세스당 동시 처리 상한. 넘치면 현행 경로로 보낸다 */
+const JPEG_DIRECT_MAX_CONCURRENCY = 4;
+/** JPEG 직행 — 크기 상한. 넘으면 현행 경로로 보낸다 */
+const JPEG_DIRECT_MAX_BYTES = 15 * 1024 * 1024;
+let jpegDirectInFlight = 0;
+
+/** 끄기 스위치 — MEDIA_JPEG_DIRECT=0 이면 직행하지 않는다(기본 켜짐) */
+function jpegDirectEnabled(): boolean {
+    return (env.MEDIA_JPEG_DIRECT ?? '').trim() !== '0';
 }
 
 /** 조회 한 번의 한도 — 걸린 조회가 전체 대기를 끌고 가지 않게 한다 */
@@ -253,16 +274,64 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 
     try {
         const buffer = Buffer.from(await file.arrayBuffer());
+        const putUpload = () =>
+            s3.send(
+                new PutObjectCommand({
+                    Bucket: S3_BUCKET,
+                    Key: uploadKey,
+                    Body: buffer,
+                    ContentType: contentType,
+                    CacheControl: CACHE_CONTROL
+                })
+            );
 
-        await s3.send(
-            new PutObjectCommand({
-                Bucket: S3_BUCKET,
-                Key: uploadKey,
-                Body: buffer,
-                ContentType: contentType,
-                CacheControl: 'public, max-age=31536000, immutable'
-            })
-        );
+        // JPEG 직행: 최종 키(메타데이터 제거본)와 raw/(원본)를 함께 올리고 변환을 기다리지 않는다
+        let uploaded = false;
+        let directReady = false;
+        if (
+            !S3_DIRECT_UPLOAD &&
+            (ext === '.jpg' || ext === '.jpeg') &&
+            buffer.length <= JPEG_DIRECT_MAX_BYTES &&
+            jpegDirectInFlight < JPEG_DIRECT_MAX_CONCURRENCY &&
+            jpegDirectEnabled()
+        ) {
+            jpegDirectInFlight++;
+            try {
+                const cleaned = prepareDirectJpeg(buffer);
+                if (cleaned) {
+                    const [finalPut, rawPut] = await Promise.allSettled([
+                        s3.send(
+                            new PutObjectCommand({
+                                Bucket: S3_BUCKET,
+                                Key: finalKey,
+                                Body: cleaned,
+                                // 변환 파이프라인이 덮어쓸 때와 같은 헤더
+                                ContentType: 'image/jpeg',
+                                ContentDisposition: 'inline',
+                                CacheControl: CACHE_CONTROL
+                            })
+                        ),
+                        putUpload().catch(() => putUpload()) // 한 번 다시 시도
+                    ]);
+                    // raw/ 가 없으면 썸네일·사본이 생기지 않는다 — 현행과 같이 실패로 처리
+                    if (rawPut.status === 'rejected') throw rawPut.reason;
+                    uploaded = true;
+                    if (finalPut.status === 'fulfilled') {
+                        directReady = true;
+                    } else {
+                        const name =
+                            finalPut.reason instanceof Error ? finalPut.reason.name : 'Error';
+                        console.warn(
+                            `[media/images] direct write failed (${name}), waiting for pipeline: ${finalKey}`
+                        );
+                    }
+                }
+            } finally {
+                jpegDirectInFlight--;
+            }
+        }
+
+        if (!uploaded) await putUpload();
 
         if (hasPoster && posterUploadKey) {
             const posterBuffer = Buffer.from(await (poster as File).arrayBuffer());
@@ -272,7 +341,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
                     Key: posterUploadKey,
                     Body: posterBuffer,
                     ContentType: 'image/jpeg',
-                    CacheControl: 'public, max-age=31536000, immutable'
+                    CacheControl: CACHE_CONTROL
                 })
             );
         }
@@ -281,11 +350,13 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
         // 직접 업로드 모드는 이미 최종 키에 저장됐으므로 대기하지 않는다
         const [isReady, posterReady] = S3_DIRECT_UPLOAD
             ? [true, Boolean(hasPoster && posterFinalKey)]
-            : await Promise.all([
-                  // 재인코딩되는 영상은 더 오래 기다린다 — 아직 없는 주소를 돌려주지 않기 위함
-                  waitForProcessed(finalKey, processWaitMs(rawKey, keyOptions)),
-                  posterFinalKey ? waitForProcessed(posterFinalKey) : Promise.resolve(false)
-              ]);
+            : directReady
+              ? [true, false]
+              : await Promise.all([
+                    // 재인코딩되는 영상은 더 오래 기다린다 — 아직 없는 주소를 돌려주지 않기 위함
+                    waitForProcessed(finalKey, processWaitMs(rawKey, keyOptions)),
+                    posterFinalKey ? waitForProcessed(posterFinalKey) : Promise.resolve(false)
+                ]);
         if (!isReady) {
             console.warn(
                 `[media/images] Lambda processing not confirmed within timeout: ${finalKey}`
