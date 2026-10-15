@@ -170,6 +170,7 @@
     /** 마우스 왼쪽 버튼으로 발사 중인가 */
     let mouseFire = false;
     /** 화면 발사 버튼을 누르고 있는 손가락들 */
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 입력 처리용 내부 기록이라 화면 갱신과 무관하다
     const firePointers = new Set<number>();
 
     interface Particle {

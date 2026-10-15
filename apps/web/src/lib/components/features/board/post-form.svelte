@@ -126,6 +126,7 @@
         const controller = new AbortController();
         const timer = setTimeout(async () => {
             try {
+                // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 쿼리 문자열을 만들 때만 쓰는 임시 값이라 반응형이 필요 없다
                 const query = new URLSearchParams({ title: current });
                 for (const source of sources) query.append('source', source);
                 const res = await fetch(`/api/angtt/detect?${query}`, {
