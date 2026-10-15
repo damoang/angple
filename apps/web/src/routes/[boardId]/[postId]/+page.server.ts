@@ -7,8 +7,9 @@ import {
     applyAffiliateField,
     fetchPostAffiliateLinks,
     findAffiliateFieldRow,
+    hasAffiliateCandidateLinks,
     renderAffiliateContent,
-    syncPostAffiliateLinks
+    triggerPostAffiliateSyncOnView
 } from '$lib/server/affiliate-links.js';
 import { isLinkProcessingPluginEnabled } from '$lib/server/link-processing/runtime.js';
 import { boardHasPostStatusFeature } from '$lib/server/post-status';
@@ -630,16 +631,19 @@ export const load: PageServerLoad = async ({
             // syncPostAffiliateLinks 를 fire-and-forget 로 호출한다. 트리거가 web 이미지
             // 안에 살아 배포에 견디며, 다음 조회부터 변환 링크가 노출된다.
             // 값싼 게이트로 링크 없는 글은 걸러 과발화를 막고, 행이 생기면 다시 발화하지 않는다.
+            // 본문 판정은 sync 와 같은 기준(앵커·자동 링크될 URL)을 써서, 이미지 주소처럼
+            // 속성 안에만 URL 이 있는 글은 매 조회마다 다시 처리하지 않는다.
             if (
                 affiliateEnabled &&
                 postAffiliateRows.length === 0 &&
                 (Boolean(post.link1) ||
                     Boolean(post.link2) ||
-                    (typeof post.content === 'string' && post.content.includes('http')))
+                    (typeof post.content === 'string' && hasAffiliateCandidateLinks(post.content)))
             ) {
                 try {
                     // await 금지 — SSR 렌더/응답을 절대 블로킹·지연하지 않는다. 에러는 삼킨다.
-                    void syncPostAffiliateLinks(boardId, Number(postId)).catch(() => {});
+                    // 동시 조회가 같은 글을 중복 처리하지 않도록 짧은 락을 잡는다.
+                    void triggerPostAffiliateSyncOnView(boardId, Number(postId)).catch(() => {});
                 } catch {
                     // 트리거 실패해도 페이지는 오늘과 동일하게 렌더된다.
                 }
