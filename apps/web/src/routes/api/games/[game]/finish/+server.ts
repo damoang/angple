@@ -3,15 +3,16 @@
  *   inputs 는 게임별 입력 기록(벽돌깨기: { m, l } — lib/games/breakout/log-codec.ts).
  *   → 200 { accepted, best, weekBest, rankWeek? }   accepted=false 면 기록만 남고 순위에는 들어가지 않았다
  *   → 200 { ready: false }                         순위 준비 중(표 없음)
- *   → 401 로그인 필요 · 404 모르는 게임 · 400 본문 모양 오류 · 413 본문이 너무 큼
+ *   → 401 로그인 필요 · 404 모르는 게임 · 400 본문 모양 오류 · 413 본문이 너무 큼 · 415 JSON 아님
  *   → 409 { error: 'unknown_run' }                 없음·만료·이미 낸 판·남의 판·새 판으로 바뀐 판
- *   → 429 속도 제한 · 503 저장소 장애
+ *   → 429 속도 제한 · 503 { error: 'busy' } 재생 중(판은 남아 있음 — 잠시 뒤 다시) · 503 저장소 장애
  */
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getAuthUser } from '$lib/server/auth';
 import { finishRun, resolveGame, type FinishBody } from '$lib/server/game-ranking/service';
 import { hitLimit } from '$lib/server/game-ranking/limits';
+import { readJsonBody } from '$lib/server/game-ranking/body';
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
@@ -34,18 +35,12 @@ export const POST: RequestHandler = async ({ params, request, cookies }) => {
         );
     }
 
-    // 본문 크기 상한 — 선언된 길이로 먼저, 읽은 뒤 실제 길이로 한 번 더
-    const declared = Number(request.headers.get('content-length'));
-    if (Number.isFinite(declared) && declared > game.maxBodyBytes) {
-        return json({ error: 'too_large' }, { status: 413, headers: NO_STORE });
-    }
+    // 본문은 상한까지만 읽는다(넘으면 그 자리에서 끊고 413)
+    const read = await readJsonBody(request, game.maxBodyBytes);
+    if (!read.ok) return json({ error: read.error }, { status: read.status, headers: NO_STORE });
     let body: FinishBody;
     try {
-        const text = await request.text();
-        if (Buffer.byteLength(text, 'utf8') > game.maxBodyBytes) {
-            return json({ error: 'too_large' }, { status: 413, headers: NO_STORE });
-        }
-        const parsed = JSON.parse(text) as Record<string, unknown> | null;
+        const parsed = JSON.parse(read.text) as Record<string, unknown> | null;
         if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error();
         body = {
             runId: parsed.runId,
@@ -75,6 +70,12 @@ export const POST: RequestHandler = async ({ params, request, cookies }) => {
             );
         case 'not_ready':
             return json({ ready: false, accepted: false }, { headers: NO_STORE });
+        case 'busy':
+            // 다른 판을 재생하는 중 — 판은 그대로 남아 있으니 잠시 뒤 다시 내면 된다
+            return json(
+                { accepted: false, error: 'busy' },
+                { status: 503, headers: { ...NO_STORE, 'Retry-After': '2' } }
+            );
         default:
             return json(
                 { accepted: false, error: 'unavailable' },

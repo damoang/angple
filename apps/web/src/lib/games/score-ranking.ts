@@ -17,6 +17,19 @@ export const RANK_START_GAP_MS = 5000;
 export const RANK_FINISH_TIMEOUT_MS = 10000;
 /** 순위표 줄 수 */
 export const RANK_BOARD_SIZE = 10;
+/** 서버가 바쁘다고(503 busy) 하면 다시 내는 횟수·간격 */
+const FINISH_BUSY_RETRIES = 2;
+const FINISH_BUSY_WAIT_MS = 2000;
+
+function isBusy(r: { status: number; data: unknown } | null): boolean {
+    return (
+        !!r &&
+        r.status === 503 &&
+        !!r.data &&
+        typeof r.data === 'object' &&
+        (r.data as Record<string, unknown>).error === 'busy'
+    );
+}
 
 export interface ScoreRun {
     runId: string;
@@ -118,12 +131,13 @@ export async function finishScoreRun(
     body: { runId: string; score: number; ticks: number; inputs: unknown },
     fetchFn: FetchFn = fetch
 ): Promise<ScoreFinishResult | null> {
-    const r = await postJSON(
-        `/api/games/${encodeURIComponent(game)}/finish`,
-        body,
-        RANK_FINISH_TIMEOUT_MS,
-        fetchFn
-    );
+    const url = `/api/games/${encodeURIComponent(game)}/finish`;
+    let r = await postJSON(url, body, RANK_FINISH_TIMEOUT_MS, fetchFn);
+    // 서버가 다른 판을 재생하는 중(busy)이면 판은 그대로 남아 있다 — 잠시 뒤 한 번 더 낸다
+    for (let k = 0; k < FINISH_BUSY_RETRIES && isBusy(r); k++) {
+        await new Promise((resolve) => setTimeout(resolve, FINISH_BUSY_WAIT_MS));
+        r = await postJSON(url, body, RANK_FINISH_TIMEOUT_MS, fetchFn);
+    }
     if (!r || r.status !== 200 || !r.data || typeof r.data !== 'object') return null;
     const d = r.data as Record<string, unknown>;
     if (d.ready === false) return null;

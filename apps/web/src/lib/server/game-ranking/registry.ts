@@ -35,14 +35,21 @@ export interface RankedGame {
     maxBodyBytes: number;
     /** 시드·입력 기록으로 판을 다시 돌린다. inputs 는 요청 본문 그대로(모양 검사는 여기서) */
     replay(seed: number, inputs: unknown, ticks: number, variant: string): ReplayOutcome;
+    /**
+     * runs.inputs_json 에 남길 값 — 모양이 맞고 판 길이에 걸맞은 크기일 때만 JSON 문자열, 아니면 null.
+     * (위조·쓰레기 본문이 DB 에 그대로 쌓이지 않게)
+     */
+    storableInputs(inputs: unknown, ticks: number): string | null;
 }
 
 /**
  * 벽돌깨기 finish 본문 상한.
  * 기록은 판 길이 × 2글자 이하(log-codec.ts) → 1시간 판 = 432,000글자 + 발사·나머지 필드.
- * 서버 기본 요청 본문 상한(512KB)보다 작게 둔다.
+ * 서버 전체 본문 상한과 별개로 이 값에서 읽기를 끊는다(body.ts).
  */
 export const BREAKOUT_MAX_BODY_BYTES = 450 * 1024;
+/** 저장할 기록 크기 여유(글자) — 발사 기록 몫 */
+const BREAKOUT_STORE_SLACK = 256;
 
 const breakout: RankedGame = {
     gameId: 'breakout',
@@ -59,6 +66,14 @@ const breakout: RankedGame = {
         if (!res.ok)
             return { score: res.game.score, ticks: res.game.tick, error: `replay_${res.error}` };
         return { score: res.game.score, ticks: res.game.tick };
+    },
+    storableInputs(inputs, ticks) {
+        if (!Number.isSafeInteger(ticks) || ticks < 0) return null;
+        if (!decodeLog(inputs, ticks)) return null;
+        const { m, l } = inputs as { m: string; l: string };
+        // 엔진이 만든 기록은 판 길이 × 2글자를 넘지 않는다(발사는 판마다 몇 번뿐)
+        if (m.length + l.length > 2 * ticks + BREAKOUT_STORE_SLACK) return null;
+        return JSON.stringify({ m, l });
     }
 };
 

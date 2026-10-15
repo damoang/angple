@@ -163,9 +163,39 @@ export type FinishResult =
     | { kind: 'ok'; accepted: boolean; standing: Standing }
     | { kind: 'unknown_run' }
     | { kind: 'not_ready' }
+    | { kind: 'busy' }
     | { kind: 'unavailable' };
 
 const RUN_ID_RE = /^[A-Za-z0-9_-]{1,32}$/;
+
+interface Taken {
+    run: IssuedRun;
+    check: ClaimCheck;
+    elapsedMs: number;
+    now: number;
+}
+
+/** 판을 꺼내(1회) 검사한다 — 재생 자리를 잡은 채로 부른다 */
+async function takeAndCheck(
+    game: RankedGame,
+    mbId: string,
+    runId: string,
+    body: FinishBody,
+    deps: RankingDeps
+): Promise<Taken | FinishResult> {
+    let run: IssuedRun | null;
+    try {
+        run = await deps.runs.take(game.gameId, mbId, runId);
+    } catch (err) {
+        console.error('[game-ranking] take failed:', (err as Error)?.message);
+        return { kind: 'unavailable' };
+    }
+    if (!run || run.mbId !== mbId || run.gameId !== game.gameId) return { kind: 'unknown_run' };
+    const now = deps.now();
+    const elapsedMs = Math.min(ELAPSED_MAX, Math.max(0, now - run.startedAt));
+    const check = checkClaim(game, run.variant, run.seed, body, elapsedMs);
+    return { run, check, elapsedMs, now };
+}
 
 export async function finishRun(
     game: RankedGame,
@@ -175,25 +205,19 @@ export async function finishRun(
 ): Promise<FinishResult> {
     const runId = body.runId;
     if (typeof runId !== 'string' || !RUN_ID_RE.test(runId)) return { kind: 'unknown_run' };
-    let run: IssuedRun | null;
+    // 재생은 프로세스마다 한 번에 하나 — 자리가 없으면 판을 꺼내지 않고 「잠시 뒤 다시」
+    if (!(await acquireReplaySlot(REPLAY_WAIT_MS))) return { kind: 'busy' };
+    let taken: Taken | FinishResult;
     try {
-        run = await deps.runs.take(game.gameId, mbId, runId);
-    } catch (err) {
-        console.error('[game-ranking] take failed:', (err as Error)?.message);
-        return { kind: 'unavailable' };
+        taken = await takeAndCheck(game, mbId, runId, body, deps);
+    } finally {
+        releaseReplaySlot();
     }
-    if (!run || run.mbId !== mbId || run.gameId !== game.gameId) return { kind: 'unknown_run' };
-
-    const now = deps.now();
-    const elapsedMs = Math.min(ELAPSED_MAX, Math.max(0, now - run.startedAt));
-    const check = checkClaim(game, run.variant, run.seed, body, elapsedMs);
+    if (!('run' in taken)) return taken;
+    const { run, check, elapsedMs, now } = taken;
     const flagged = check.reasons.length > 0;
-    let inputsJson = '';
-    try {
-        inputsJson = JSON.stringify(body.inputs ?? null) ?? '';
-    } catch {
-        inputsJson = '';
-    }
+    // 모양이 맞고 판 길이에 걸맞은 기록만 남긴다 — 아니면 NULL(사유는 flag_reason 에)
+    const inputsJson = game.storableInputs(body.inputs, check.ticks);
     const rec: RunRecord = {
         gameId: game.gameId,
         variant: run.variant,
@@ -221,6 +245,40 @@ export async function finishRun(
         console.error('[game-ranking] save failed:', (err as Error)?.message);
         return { kind: 'unavailable' };
     }
+}
+
+/* ── 재생 자리(프로세스당 1개) ── */
+
+/** 재생 자리를 기다리는 최대 시간 */
+export const REPLAY_WAIT_MS = 2000;
+let replayBusy = false;
+const replayWaiters: Array<() => void> = [];
+
+/** 재생 자리를 잡는다 — waitMs 안에 못 잡으면 false */
+export function acquireReplaySlot(waitMs: number): Promise<boolean> {
+    if (!replayBusy) {
+        replayBusy = true;
+        return Promise.resolve(true);
+    }
+    return new Promise((resolve) => {
+        const grant = () => {
+            clearTimeout(timer);
+            resolve(true);
+        };
+        const timer = setTimeout(() => {
+            const i = replayWaiters.indexOf(grant);
+            if (i >= 0) replayWaiters.splice(i, 1);
+            resolve(false);
+        }, waitMs);
+        replayWaiters.push(grant);
+    });
+}
+
+/** 재생 자리를 돌려준다 — 기다리는 요청이 있으면 그대로 넘긴다 */
+export function releaseReplaySlot(): void {
+    const next = replayWaiters.shift();
+    if (next) next();
+    else replayBusy = false;
 }
 
 /* ── leaderboard ── */
@@ -257,6 +315,8 @@ export async function leaderboard(
     if (hit && now - hit.at < BOARD_CACHE_MS) {
         return { kind: 'ok', rows: hit.rows, ...(week ? { weekStart: week } : {}) };
     }
+    // 표가 없으면(짧게 기억한 답) 쿼리를 보내지 않는다
+    if (!(await deps.store.tablesReady())) return { kind: 'not_ready' };
     try {
         const rows = await deps.store.topRows(game.gameId, variant, week, game.higherIsBetter);
         boardCache.set(key, { at: now, rows });

@@ -15,6 +15,8 @@ import { wallToRfc3339 } from './kst';
 
 /** 순위표 줄 수 */
 export const BOARD_SIZE = 10;
+/** 가져오는 줄 수 — 회원 카드로 탈퇴를 한 번 더 거른 뒤 BOARD_SIZE 줄만 쓴다 */
+export const BOARD_FETCH = 20;
 
 export class TablesMissingError extends Error {
     constructor() {
@@ -37,7 +39,8 @@ export interface RunRecord {
     seed: number;
     score: number;
     ticks: number;
-    inputsJson: string;
+    /** 입력 기록 JSON — 모양이 틀리거나 너무 크면 null(저장 안 함) */
+    inputsJson: string | null;
     engineVer: number;
     elapsedMs: number;
     flagged: boolean;
@@ -101,7 +104,7 @@ export function topSql(week: boolean, higherIsBetter: boolean): string {
         "SELECT t.mb_id, m.mb_nick, t.score, COALESCE(DATE_FORMAT(t.achieved_at, '%Y-%m-%d %H:%i:%s'), '') AS achieved_raw" +
         ` FROM ${table} t JOIN g5_member m ON m.mb_id = t.mb_id` +
         ` WHERE t.game_id = ? AND t.variant = ?${weekCond} AND ${MEMBER_OK}` +
-        ` ORDER BY t.score ${dir}, t.achieved_at ASC LIMIT ${BOARD_SIZE}`
+        ` ORDER BY t.score ${dir}, t.achieved_at ASC LIMIT ${BOARD_FETCH}`
     );
 }
 
@@ -294,6 +297,7 @@ export async function topRows(
     for (const r of rows) {
         const card = cards.get(r.mb_id);
         if (card?.isLeft) continue;
+        if (out.length >= BOARD_SIZE) break;
         out.push({
             rank: out.length + 1,
             nickname: card?.nick || r.mb_nick || '',

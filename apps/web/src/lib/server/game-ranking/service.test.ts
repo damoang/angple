@@ -36,8 +36,11 @@ import {
 } from './store';
 import {
     checkClaim,
+    REPLAY_WAIT_MS,
+    acquireReplaySlot,
     clearBoardCache,
     finishRun,
+    releaseReplaySlot,
     leaderboard,
     resolveGame,
     startRun,
@@ -188,7 +191,7 @@ describe('기록 접수', () => {
         expect(rec.seed).toBe(777);
         expect(rec.gameId).toBe('breakout');
         expect(rec.engineVer).toBe(breakout.engineVer);
-        expect(JSON.parse(rec.inputsJson)).toEqual(play.inputs);
+        expect(JSON.parse(rec.inputsJson ?? 'null')).toEqual(play.inputs);
         expect(rec.weekStart).toBe('2026-10-12');
     });
 
@@ -340,6 +343,76 @@ describe('기록 접수', () => {
     });
 });
 
+describe('저장하는 입력 기록', () => {
+    it('모양이 틀리거나 판 길이에 비해 너무 큰 기록은 NULL 로 남긴다(사유는 그대로)', async () => {
+        const f = fake([4]);
+        const s = await startRun(breakout, '', 'nina', f.deps);
+        if (s.kind !== 'ok') throw new Error('start');
+        f.advance(60_000);
+        await finishRun(
+            breakout,
+            'nina',
+            { runId: s.runId, score: 0, ticks: 60, inputs: { junk: 'x'.repeat(5000) } },
+            f.deps
+        );
+        expect(f.saved[0].inputsJson).toBeNull();
+        expect(f.saved[0].flagReason).toBe('bad_log');
+    });
+
+    it('판 길이 × 2글자를 넘는 기록은 저장하지 않는다', () => {
+        const ok = encodeLog({ moves: [0, 10, 1, 11], launches: [0] });
+        expect(breakout.storableInputs(ok, 10)).toBe(JSON.stringify(ok));
+        // 모양은 맞지만 판 길이에 비해 긴 발사 기록(가짜로 부풀림)
+        const big = { m: '', l: 'A'.repeat(400) };
+        expect(breakout.storableInputs(big, 1000)).not.toBeNull();
+        expect(breakout.storableInputs(big, 10)).toBeNull();
+        expect(breakout.storableInputs({ m: 'A!', l: '' }, 10)).toBeNull();
+        expect(breakout.storableInputs(null, 10)).toBeNull();
+    });
+});
+
+describe('재생 자리(프로세스당 1개)', () => {
+    it('자리가 차 있으면 기다렸다가, 끝내 못 잡으면 busy — 판은 꺼내지 않는다', async () => {
+        vi.useFakeTimers();
+        try {
+            const f = fake([6]);
+            const s = await startRun(breakout, '', 'omar', f.deps);
+            if (s.kind !== 'ok') throw new Error('start');
+            expect(await acquireReplaySlot(0)).toBe(true);
+            const p = finishRun(
+                breakout,
+                'omar',
+                { runId: s.runId, score: 0, ticks: 0, inputs: { m: '', l: '' } },
+                f.deps
+            );
+            await vi.advanceTimersByTimeAsync(REPLAY_WAIT_MS);
+            expect((await p).kind).toBe('busy');
+            expect(f.runs.runs.has(s.runId)).toBe(true);
+            // 자리를 돌려주면 다음 요청은 바로 처리된다
+            releaseReplaySlot();
+            const r = await finishRun(
+                breakout,
+                'omar',
+                { runId: s.runId, score: 0, ticks: 0, inputs: { m: '', l: '' } },
+                f.deps
+            );
+            expect(r.kind).toBe('ok');
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('기다리던 요청은 자리가 나면 차례로 받는다', async () => {
+        expect(await acquireReplaySlot(0)).toBe(true);
+        const waiting = acquireReplaySlot(1000);
+        releaseReplaySlot();
+        expect(await waiting).toBe(true);
+        releaseReplaySlot();
+        expect(await acquireReplaySlot(0)).toBe(true);
+        releaseReplaySlot();
+    });
+});
+
 describe('표가 없을 때', () => {
     it('start 는 준비 중 — 판을 발급하지 않는다', async () => {
         const f = fake();
@@ -360,6 +433,13 @@ describe('표가 없을 때', () => {
         );
         expect((await leaderboard(breakout, '', 'week', f.deps)).kind).toBe('not_ready');
         expect((await leaderboard(breakout, '', 'all', f.deps)).kind).toBe('not_ready');
+    });
+
+    it('leaderboard 는 표 확인(기억한 답)이 false 면 쿼리를 보내지 않는다', async () => {
+        const f = fake();
+        f.store.ready = false;
+        expect((await leaderboard(breakout, '', 'week', f.deps)).kind).toBe('not_ready');
+        expect(f.store.topCalls).toHaveLength(0);
     });
 });
 
@@ -388,7 +468,8 @@ describe('낮을수록 좋은 게임(정렬 방향)', () => {
         maxTicks: 1000,
         tickHz: 60,
         maxBodyBytes: 1024,
-        replay: (_seed, inputs) => ({ score: Number(inputs) || 0, ticks: 0 })
+        replay: (_seed, inputs) => ({ score: Number(inputs) || 0, ticks: 0 }),
+        storableInputs: () => null
     };
 
     it('저장·순위표 조회에 방향이 그대로 넘어간다', async () => {
