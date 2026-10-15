@@ -4,6 +4,7 @@ import pool from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 import { findDisciplinedIds } from '$lib/server/discipline-mask.js';
 import { maskEmailText } from '$lib/utils/email-reveal.js';
+import { fetchRecentPosts } from '../recent-posts.js';
 
 /**
  * 게스트에게 공개된 보드의 경계.
@@ -68,21 +69,7 @@ export const GET: RequestHandler = async ({ url, params, request }) => {
     let items = '';
 
     try {
-        const [posts] = await pool.query<RowDataPacket[]>(
-            `SELECT wr_id, wr_subject, wr_content, wr_name, wr_datetime
-			 FROM g5_write_${boardId}
-			 WHERE wr_is_comment = 0
-			   AND (wr_deleted_at IS NULL OR wr_deleted_at = '0000-00-00 00:00:00')
-			 ORDER BY wr_datetime DESC LIMIT 20`
-        );
-
-        const rows = posts as Array<{
-            wr_id: number;
-            wr_subject: string;
-            wr_content: string;
-            wr_name: string;
-            wr_datetime: string;
-        }>;
+        const rows = await fetchRecentPosts(pool, boardId, 20);
 
         // 이용제한 근거 글은 **피드에서 제외한다**(제목 치환이 아니라).
         //
