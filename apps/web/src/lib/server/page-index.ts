@@ -130,14 +130,9 @@ async function getPrior(boardId: string, postId: number): Promise<number> {
         // Redis 장애 시 DB fallback
     }
 
-    // 해당 글보다 최신인 정상 글 개수 (1페이지에 최신 글이 옴)
-    const tableName = `g5_write_${boardId}`;
-    const [countRows] = await pool.query<RowDataPacket[]>(
-        `SELECT COUNT(*) AS c FROM \`${tableName}\`
-         WHERE wr_is_comment = 0 AND wr_id > ? AND wr_deleted_at IS NULL`,
-        [postId]
-    );
-    const prior = (countRows[0]?.c as number) ?? 0;
+    // 구간 합계로 계산하고, 쓸 수 없으면 기존 단일 COUNT 로 간다
+    let prior = await getPriorByBuckets(boardId, postId);
+    if (prior === null) prior = await countPriorDirect(boardId, postId);
 
     try {
         await getRedis().setex(key, ttlForPrior(prior), String(prior));
@@ -145,4 +140,140 @@ async function getPrior(boardId: string, postId: number): Promise<number> {
         // Redis 장애 무시
     }
     return prior;
+}
+
+/** 해당 글보다 최신인 정상 글 개수를 한 번에 센다 (기존 경로) */
+async function countPriorDirect(boardId: string, postId: number): Promise<number> {
+    const tableName = `g5_write_${boardId}`;
+    const [countRows] = await pool.query<RowDataPacket[]>(
+        `SELECT COUNT(*) AS c FROM \`${tableName}\`
+         WHERE wr_is_comment = 0 AND wr_id > ? AND wr_deleted_at IS NULL`,
+        [postId]
+    );
+    return Number(countRows[0]?.c ?? 0) || 0;
+}
+
+/**
+ * ## 구간 합계
+ *
+ * 앞선 글 수를 wr_id 구간별 합계로 계산해 매번 처음부터 세지 않게 한다.
+ *
+ * - 구간 k = `[k*B, (k+1)*B)`. 봉인 경계 S(B 의 배수) 아래 구간의 정상 글 수만
+ *   게시판별 해시 `pi:bk:{board}` 에 둔다(필드 `sealed` = S, 필드 `k` = 개수, 없으면 0).
+ * - target >= S: `COUNT(wr_id > target)` — 기존과 같은 쿼리.
+ * - target <  S: `COUNT(target < wr_id < 구간끝)` + Σ 해시[구간끝/B … S/B-1] + `COUNT(wr_id >= S)`.
+ *
+ * 정확도: 봉인 위(최근 글)는 항상 정확하다. 봉인 아래 구간의 삭제·복구는
+ * 해시 TTL 만큼 늦게 반영된다(아카이브 글의 per-post TTL 과 같은 수준).
+ *
+ * 해시가 없으면 락을 잡은 요청 하나만 채운다. 락을 못 잡거나 Redis 오류면
+ * null 을 돌려 기존 단일 COUNT 로 간다.
+ */
+export const PRIOR_BUCKET_SIZE = 10_000;
+const BUCKET_HASH_TTL_SEC = 3_600;
+const BUCKET_LOCK_TTL_SEC = 30;
+
+interface BucketState {
+    sealed: number;
+    counts: Map<number, number>;
+}
+
+async function getPriorByBuckets(boardId: string, postId: number): Promise<number | null> {
+    let state: BucketState | null;
+    try {
+        state = await loadBuckets(boardId);
+        if (!state) state = await fillBuckets(boardId);
+    } catch {
+        return null;
+    }
+    if (!state) return null;
+
+    const B = PRIOR_BUCKET_SIZE;
+    const S = state.sealed;
+    if (postId >= S) return countPriorDirect(boardId, postId);
+
+    const k0 = Math.floor(postId / B);
+    const bucketEnd = (k0 + 1) * B;
+    let sum = 0;
+    for (let k = k0 + 1; k < S / B; k++) sum += state.counts.get(k) ?? 0;
+
+    // 두 범위를 각각의 서브쿼리로 세서 범위가 섞이지 않게 한다
+    const tableName = `g5_write_${boardId}`;
+    const [rows] = await pool.query<RowDataPacket[]>(
+        `SELECT
+           (SELECT COUNT(*) FROM \`${tableName}\`
+             WHERE wr_is_comment = 0 AND wr_id > ? AND wr_id < ? AND wr_deleted_at IS NULL)
+         + (SELECT COUNT(*) FROM \`${tableName}\`
+             WHERE wr_is_comment = 0 AND wr_id >= ? AND wr_deleted_at IS NULL) AS c`,
+        [postId, bucketEnd, S]
+    );
+    return (Number(rows[0]?.c ?? 0) || 0) + sum;
+}
+
+/** 해시를 읽는다. 없거나 형식이 틀리면 null. Redis 오류는 던진다. */
+async function loadBuckets(boardId: string): Promise<BucketState | null> {
+    const raw = await getRedis().hgetall(`pi:bk:${boardId}`);
+    if (!raw || raw.sealed === undefined) return null;
+    const sealed = Number(raw.sealed);
+    if (!Number.isInteger(sealed) || sealed < 0 || sealed % PRIOR_BUCKET_SIZE !== 0) return null;
+
+    const counts = new Map<number, number>();
+    for (const [field, value] of Object.entries(raw)) {
+        if (field === 'sealed') continue;
+        const k = Number(field);
+        const c = Number(value);
+        if (Number.isInteger(k) && k >= 0 && Number.isFinite(c) && c > 0) counts.set(k, c);
+    }
+    return { sealed, counts };
+}
+
+/**
+ * 락을 잡고 해시를 채운다. 락을 못 잡으면 null.
+ * 임시 키에 다 쓴 뒤 RENAME 해서 반쯤 채워진 해시가 보이지 않게 한다.
+ */
+async function fillBuckets(boardId: string): Promise<BucketState | null> {
+    const redis = getRedis();
+    const key = `pi:bk:${boardId}`;
+    const locked = await redis.set(`${key}:lock`, '1', 'EX', BUCKET_LOCK_TTL_SEC, 'NX');
+    if (locked !== 'OK') return null;
+
+    const B = PRIOR_BUCKET_SIZE;
+    const tableName = `g5_write_${boardId}`;
+    const [maxRows] = await pool.query<RowDataPacket[]>(
+        `SELECT MAX(wr_id) AS m FROM \`${tableName}\``
+    );
+    const maxId = Number(maxRows[0]?.m ?? 0) || 0;
+    const sealed = Math.max(0, Math.floor(maxId / B) * B - B);
+
+    const counts = new Map<number, number>();
+    if (sealed > 0) {
+        const [groupRows] = await pool.query<RowDataPacket[]>(
+            `SELECT wr_id DIV ${B} AS k, COUNT(*) AS c FROM \`${tableName}\`
+             WHERE wr_is_comment = 0 AND wr_deleted_at IS NULL AND wr_id < ?
+             GROUP BY k`,
+            [sealed]
+        );
+        for (const row of groupRows) {
+            const k = Number(row.k);
+            const c = Number(row.c);
+            if (Number.isInteger(k) && k >= 0 && c > 0) counts.set(k, c);
+        }
+    }
+
+    const fields: Record<string, string> = { sealed: String(sealed) };
+    for (const [k, c] of counts) fields[String(k)] = String(c);
+
+    const tmpKey = `${key}:tmp:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+    try {
+        await redis
+            .multi()
+            .hset(tmpKey, fields)
+            .expire(tmpKey, BUCKET_HASH_TTL_SEC)
+            .rename(tmpKey, key)
+            .expire(key, BUCKET_HASH_TTL_SEC)
+            .exec();
+    } catch {
+        // 저장 실패해도 이번 계산에는 방금 읽은 값을 쓴다
+    }
+    return { sealed, counts };
 }
