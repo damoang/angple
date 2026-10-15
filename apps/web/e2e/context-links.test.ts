@@ -1,6 +1,47 @@
 import { expect, test } from '@playwright/test';
 
 for (const width of [375, 768]) {
+    test(`일반 글에서 기존 앙지도 글 연결 (${width}px)`, async ({ page }, testInfo) => {
+        test.skip(!process.env.CI, 'Disposable fixture is created in CI only');
+        await page.setViewportSize({ width, height: 900 });
+        await page.route('**/api/angmap/resolve?**', (route) =>
+            route.fulfill({
+                json: {
+                    place: {
+                        provider: 'naver',
+                        placeId: '123',
+                        name: '테스트 식당 서울점',
+                        roadAddress: '서울 테스트로 123',
+                        lat: 37.5,
+                        lng: 127,
+                        sourceUrl: 'https://map.naver.com/p/entry/place/123',
+                        status: 'ok',
+                        relatedPostId: 42
+                    }
+                }
+            })
+        );
+        await page.goto('/__qa/context-links');
+        const source = 'https://map.naver.com/p/entry/place/123';
+        await page.locator('#link1').fill(source);
+        const connect = page.getByRole('button', { name: '앙지도 글 연결' });
+        await expect(connect).toBeVisible();
+        const box = await connect.boundingBox();
+        expect(box).not.toBeNull();
+        expect(box!.x).toBeGreaterThanOrEqual(0);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+        await testInfo.attach(`place-suggestion-${width}`, {
+            body: await page.screenshot({ fullPage: true }),
+            contentType: 'image/png'
+        });
+        await connect.click();
+        await expect(
+            page.locator('[contenteditable="true"] a[href="https://damoang.net/angmap/42"]')
+        ).toHaveText('앙지도에서 이 장소 보기');
+        await expect(page.locator('#link1')).toHaveValue(source);
+        await expect(connect).not.toBeVisible();
+    });
+
     test(`작품 링크 제안과 입력 변경 (${width}px)`, async ({ page }, testInfo) => {
         test.skip(!process.env.CI, 'Disposable fixture is created in CI only');
         await page.setViewportSize({ width, height: 900 });

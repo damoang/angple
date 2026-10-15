@@ -10,7 +10,7 @@ await writeFile(
     import PostForm from '$lib/components/features/board/post-form.svelte';
 </script>
 <div class="mx-auto max-w-3xl p-3">
-    <PostForm boardId="free" onSubmit={async () => {}} />
+    <PostForm mode="create" boardId="free" onSubmit={async () => {}} />
 </div>
 `
 );

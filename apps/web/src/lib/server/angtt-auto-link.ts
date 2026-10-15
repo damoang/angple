@@ -126,7 +126,8 @@ async function loadAliases() {
         const names = new Set<string>([r.canonical_title, ...asArray(r.aliases)]);
         for (const name of names) {
             const aliasNorm = normalizeWorkTitle(name);
-            if (aliasNorm.length < 2) continue;
+            // 한 글자 제목도 URL/태그로 명시 선택할 수 있다. 제목 자동 스캔의 2글자 제한은 유지한다.
+            if (!aliasNorm) continue;
             aliases.push({
                 aliasNorm,
                 entitySlug: r.slug,

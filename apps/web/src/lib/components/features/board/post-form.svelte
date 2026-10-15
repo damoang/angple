@@ -182,8 +182,10 @@
     // 서버 프록시(/api/angmap/resolve)로 좌표·상호·주소를 해소해 "이 장소 맞나요?"
     // 확인 칩을 띄운다. 자동 부착이 아니라 작성자 확인(클릭)을 거친다.
     const isAngmapBoard = $derived(boardId === 'angmap');
+    const canSuggestAngmap = $derived(isAngmapBoard || boardId === 'free');
 
     interface AngmapPlaceSuggestion {
+        relatedPostId?: number | null;
         provider: string;
         placeId: string | null;
         name: string | null;
@@ -201,25 +203,28 @@
     let angmapSeq = 0;
 
     $effect(() => {
-        if (!isAngmapBoard) return;
-        const candidate = findMapLink(link1) ?? findMapLink(link2) ?? findMapLink(content);
-        if (!candidate) {
-            angmapSeq++; // 늦은 응답이 링크 제거 후 칩을 띄우지 않게 무효화
-            angmapSuggestion = null;
+        const seq = ++angmapSeq;
+        angmapSuggestion = null;
+        if (!canSuggestAngmap || isSecret) {
+            angmapConfirmed = null;
             return;
         }
-        if (
-            angmapDismissed.has(candidate) ||
-            angmapSuggestion?.sourceUrl === candidate ||
-            angmapConfirmed?.sourceUrl === candidate
-        ) {
+        const candidate = findMapLink(link1) ?? findMapLink(link2) ?? findMapLink(content);
+        const needsRelatedPost = !isAngmapBoard;
+        if (angmapConfirmed?.sourceUrl !== candidate) angmapConfirmed = null;
+        if (!candidate || angmapDismissed.has(candidate)) {
             return;
         }
 
-        const seq = ++angmapSeq;
+        const controller = new AbortController();
         const timer = setTimeout(async () => {
             try {
-                const res = await fetch(`/api/angmap/resolve?url=${encodeURIComponent(candidate)}`);
+                const res = await fetch(
+                    `/api/angmap/resolve?url=${encodeURIComponent(candidate)}`,
+                    {
+                        signal: controller.signal
+                    }
+                );
                 if (!res.ok || seq !== angmapSeq) return;
                 const body = (await res.json()) as { place: AngmapPlaceSuggestion | null };
                 if (seq !== angmapSeq) return;
@@ -227,6 +232,7 @@
                 // 상호 또는 좌표 중 하나는 있어야 칩을 띄운다 (dead_link 등은 무표시)
                 if (
                     place &&
+                    (!needsRelatedPost || (place.relatedPostId && place.relatedPostId > 0)) &&
                     (place.name || (place.lat != null && place.lng != null)) &&
                     !angmapDismissed.has(candidate)
                 ) {
@@ -237,11 +243,25 @@
             }
         }, 800);
 
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+            controller.abort();
+        };
     });
 
     function acceptAngmapSuggestion(): void {
         if (!angmapSuggestion) return;
+        if (!isAngmapBoard) {
+            const id = angmapSuggestion.relatedPostId;
+            if (!id || !Number.isSafeInteger(id) || id <= 0 || !editorRef) return;
+            // 다른 게시판 번호를 angmap_places에 쓰지 않고, 작성자가 확인한 참조만 넣는다.
+            editorRef.insertContent(
+                `<p><a href="https://damoang.net/angmap/${id}">앙지도에서 이 장소 보기</a></p>`
+            );
+            angmapDismissed.add(angmapSuggestion.sourceUrl);
+            angmapSuggestion = null;
+            return;
+        }
         // 링크 필드가 비어 있으면 감지된 지도 링크를 채워 준다
         // (백필/신규글 resolver 트랙이 wr_link 를 우선 스캔 — 좌표 확보율을 높인다)
         if (!link1.trim()) {
@@ -948,7 +968,7 @@
 
                     {#if angttSuggestion}
                         <div
-                            class="bg-muted/60 flex items-center gap-3 rounded-md border px-3 py-2"
+                            class="bg-muted/60 grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-md border px-3 py-2 sm:flex sm:items-center"
                         >
                             {#if angttSuggestion.posterUrl}
                                 <img
@@ -969,6 +989,7 @@
                                 size="sm"
                                 variant="outline"
                                 onclick={acceptAngttSuggestion}
+                                class="col-start-2 justify-self-start sm:shrink-0"
                                 disabled={isLoading}
                             >
                                 작품과 연결
@@ -978,6 +999,7 @@
                                 size="sm"
                                 variant="ghost"
                                 onclick={dismissAngttSuggestion}
+                                class="col-start-3 row-start-1 sm:shrink-0"
                                 aria-label="제안 무시"
                             >
                                 <XIcon class="h-4 w-4" />
@@ -1052,9 +1074,11 @@
                 />
             </div>
 
-            <!-- 앙지도 장소 확인 칩 (angmap 게시판 전용) -->
-            {#if isAngmapBoard && angmapSuggestion}
-                <div class="bg-muted/60 flex items-center gap-3 rounded-md border px-3 py-2">
+            <!-- 앙지도 장소 확인 또는 기존 앙지도 글 연결 제안 -->
+            {#if canSuggestAngmap && angmapSuggestion}
+                <div
+                    class="bg-muted/60 grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 rounded-md border px-3 py-2 sm:flex sm:items-center"
+                >
                     <MapPin class="text-primary h-5 w-5 shrink-0" />
                     <p class="min-w-0 flex-1 text-sm">
                         <span class="font-medium">{angmapSuggestion.name ?? '장소'}</span>
@@ -1063,7 +1087,11 @@
                                 · {angmapSuggestion.roadAddress}</span
                             >
                         {/if}
-                        — 이 장소가 맞나요?
+                        {#if isAngmapBoard}
+                            — 이 장소가 맞나요?
+                        {:else}
+                            — 같은 장소의 앙지도 글을 연결할 수 있어요
+                        {/if}
                         {#if angmapSuggestion.status === 'no_coords'}
                             <span class="text-muted-foreground block text-xs">
                                 좌표는 아직 확인하지 못했어요
@@ -1075,15 +1103,17 @@
                         size="sm"
                         variant="outline"
                         onclick={acceptAngmapSuggestion}
+                        class="col-start-2 justify-self-start sm:shrink-0"
                         disabled={isLoading}
                     >
-                        장소 확인
+                        {isAngmapBoard ? '장소 확인' : '앙지도 글 연결'}
                     </Button>
                     <Button
                         type="button"
                         size="sm"
                         variant="ghost"
                         onclick={dismissAngmapSuggestion}
+                        class="col-start-3 row-start-1 sm:shrink-0"
                         aria-label="장소 제안 무시"
                     >
                         <XIcon class="h-4 w-4" />
