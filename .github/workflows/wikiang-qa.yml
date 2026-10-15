@@ -74,6 +74,8 @@ jobs:
                   exit 1
             - name: Real editor create, update, conflict and revert
               run: node scripts/wikiang/editing-qa.cjs
+            - name: Public document lookup and private content exclusion
+              run: node scripts/wikiang/lookup-qa.cjs
             - name: Independent Wikiang login and session QA
               run: node scripts/wikiang/auth-qa.cjs
             - name: Four skins, persistent preferences and independent branding
