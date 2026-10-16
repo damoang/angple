@@ -2,7 +2,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import pool from '$lib/server/db';
 import type { RowDataPacket } from 'mysql2';
-import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api';
+import { internalOnlyErrorResponse, isInternalSecretRequest } from '$lib/server/internal-api';
 
 interface StatusRow extends RowDataPacket {
     status: string;
@@ -16,7 +16,7 @@ interface AggregateRow extends RowDataPacket {
 }
 
 export const GET: RequestHandler = async ({ request }) => {
-    if (!isInternalAppRequest(request)) {
+    if (!isInternalSecretRequest(request)) {
         return internalOnlyErrorResponse();
     }
 

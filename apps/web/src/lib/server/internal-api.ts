@@ -46,29 +46,82 @@ export function hasValidInternalSecret(headerSecret: string | null): boolean {
     return matched;
 }
 
+/**
+ * 서버 간 내부 호출 전용 판정 — 공유 비밀 헤더만 본다.
+ * /api/internal/* 처럼 로그인 없이 호출되는 서버 전용 라우트는 이것만 쓴다.
+ */
+export function isInternalSecretRequest(request: Request): boolean {
+    return hasValidInternalSecret(request.headers.get('x-internal-secret'));
+}
+
+// --- 헤더 기반 판정 관측 ---
+// isInternalAppRequest 가 비밀값이 아니라 Origin·Referer·Sec-Fetch-Site·User-Agent 로
+// 통과시킨 요청을 경로·사유별로 센다. 판정 자체는 바꾸지 않는다(관측 전용).
+// 이후 단계에서 이 판정을 세션·CSRF 검사로 바꿀 때 영향받는 호출을 먼저 보기 위함이다.
+type HeaderPassReason = 'origin' | 'referer' | 'sec-fetch-site' | 'user-agent';
+
+const SHADOW_FLUSH_MS = 10 * 60_000;
+const SHADOW_MAX_KEYS = 500;
+const headerPassCounts = new Map<string, number>();
+
+function routeShape(pathname: string): string {
+    return pathname.replace(/\/\d+(?=\/|$)/g, '/:n');
+}
+
+function recordHeaderPass(request: Request, reason: HeaderPassReason): void {
+    try {
+        const path = routeShape(new URL(request.url).pathname);
+        const cookie = request.headers.has('cookie') ? 'cookie' : 'no-cookie';
+        const key = `${request.method} ${path} ${reason} ${cookie}`;
+        if (!headerPassCounts.has(key) && headerPassCounts.size >= SHADOW_MAX_KEYS) return;
+        headerPassCounts.set(key, (headerPassCounts.get(key) ?? 0) + 1);
+    } catch {
+        // 관측 실패가 요청 처리에 영향을 주면 안 된다.
+    }
+}
+
+/** 테스트 전용: 관측 카운터를 꺼내고 비운다. */
+export function drainHeaderPassCounts(): Record<string, number> {
+    const out = Object.fromEntries(headerPassCounts);
+    headerPassCounts.clear();
+    return out;
+}
+
+const shadowFlushTimer = setInterval(() => {
+    if (headerPassCounts.size === 0) return;
+    console.log(`[internal-gate-shadow] ${JSON.stringify(drainHeaderPassCounts())}`);
+}, SHADOW_FLUSH_MS);
+shadowFlushTimer.unref?.();
+
 export function isInternalAppRequest(request: Request): boolean {
-    if (hasValidInternalSecret(request.headers.get('x-internal-secret'))) {
+    if (isInternalSecretRequest(request)) {
         return true;
     }
 
     const requestOrigin = new URL(request.url).origin;
     const origin = request.headers.get('origin');
     if (origin) {
-        return isTrustedAppOrigin(origin, requestOrigin);
+        const trusted = isTrustedAppOrigin(origin, requestOrigin);
+        if (trusted) recordHeaderPass(request, 'origin');
+        return trusted;
     }
 
     const referer = request.headers.get('referer');
     if (referer) {
-        return isTrustedAppOrigin(referer, requestOrigin);
+        const trusted = isTrustedAppOrigin(referer, requestOrigin);
+        if (trusted) recordHeaderPass(request, 'referer');
+        return trusted;
     }
 
     const secFetchSite = request.headers.get('sec-fetch-site');
     if (secFetchSite === 'same-origin' || secFetchSite === 'same-site' || secFetchSite === 'none') {
+        recordHeaderPass(request, 'sec-fetch-site');
         return true;
     }
 
     const userAgent = request.headers.get('user-agent') || '';
     if (userAgent.includes('undici') || userAgent.includes('node')) {
+        recordHeaderPass(request, 'user-agent');
         return true;
     }
 

@@ -4,7 +4,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const mockEnv = vi.hoisted(() => ({}) as Record<string, string | undefined>);
 vi.mock('$env/dynamic/private', () => ({ env: mockEnv }));
 
-import { hasValidInternalSecret, isInternalAppRequest } from './internal-api.js';
+import {
+    drainHeaderPassCounts,
+    hasValidInternalSecret,
+    isInternalAppRequest,
+    isInternalSecretRequest
+} from './internal-api.js';
 
 function setSecrets(current?: string, previous?: string): void {
     mockEnv.INTERNAL_SECRET = current;
@@ -84,5 +89,66 @@ describe('isInternalAppRequest — 비밀값 경로', () => {
         setSecrets('cur-secret', 'old-secret');
         expect(isInternalAppRequest(requestWithSecret('wrong'))).toBe(false);
         expect(isInternalAppRequest(requestWithSecret())).toBe(false);
+    });
+});
+
+describe('isInternalSecretRequest — 서버 간 호출 전용', () => {
+    function req(headers: Record<string, string>): Request {
+        return new Request('https://example.test/api/internal/affiliate/sync', {
+            method: 'POST',
+            headers
+        });
+    }
+
+    it('비밀값이 맞으면 통과한다(현재 값·이전 값)', () => {
+        setSecrets('cur-secret', 'old-secret');
+        expect(isInternalSecretRequest(req({ 'x-internal-secret': 'cur-secret' }))).toBe(true);
+        expect(isInternalSecretRequest(req({ 'x-internal-secret': 'old-secret' }))).toBe(true);
+    });
+
+    it('Origin·Referer·Sec-Fetch-Site·User-Agent 만으로는 통과하지 않는다', () => {
+        setSecrets('cur-secret');
+        expect(isInternalSecretRequest(req({ origin: 'https://example.test' }))).toBe(false);
+        expect(isInternalSecretRequest(req({ referer: 'https://example.test/x' }))).toBe(false);
+        expect(isInternalSecretRequest(req({ 'sec-fetch-site': 'same-origin' }))).toBe(false);
+        expect(isInternalSecretRequest(req({ 'user-agent': 'node' }))).toBe(false);
+        expect(isInternalSecretRequest(req({ 'user-agent': 'undici' }))).toBe(false);
+    });
+
+    it('틀린 비밀값은 거부한다', () => {
+        setSecrets('cur-secret');
+        expect(isInternalSecretRequest(req({ 'x-internal-secret': 'wrong' }))).toBe(false);
+    });
+});
+
+describe('isInternalAppRequest — 헤더 판정 관측(동작은 그대로)', () => {
+    function req(path: string, headers: Record<string, string>): Request {
+        return new Request(`https://example.test${path}`, { headers });
+    }
+
+    it('헤더로 통과한 요청은 경로 모양·사유별로 센다', () => {
+        setSecrets('cur-secret');
+        drainHeaderPassCounts();
+        expect(
+            isInternalAppRequest(req('/api/my/following', { referer: 'https://example.test/a' }))
+        ).toBe(true);
+        expect(isInternalAppRequest(req('/api/boards/free/posts/12/comments', { 'user-agent': 'node' }))).toBe(
+            true
+        );
+        const counts = drainHeaderPassCounts();
+        expect(counts['GET /api/my/following referer no-cookie']).toBe(1);
+        expect(counts['GET /api/boards/free/posts/:n/comments user-agent no-cookie']).toBe(1);
+    });
+
+    it('비밀값으로 통과하거나 거부된 요청은 세지 않는다', () => {
+        setSecrets('cur-secret');
+        drainHeaderPassCounts();
+        expect(
+            isInternalAppRequest(req('/api/widgets', { 'x-internal-secret': 'cur-secret' }))
+        ).toBe(true);
+        expect(
+            isInternalAppRequest(req('/api/widgets', { origin: 'https://evil.example' }))
+        ).toBe(false);
+        expect(drainHeaderPassCounts()).toEqual({});
     });
 });

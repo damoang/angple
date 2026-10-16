@@ -6,10 +6,10 @@ import {
     syncCommentAffiliateLinks,
     syncPostAffiliateLinks
 } from '$lib/server/affiliate-links';
-import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api';
+import { internalOnlyErrorResponse, isInternalSecretRequest } from '$lib/server/internal-api';
 
 export const POST: RequestHandler = async ({ request }) => {
-    if (!isInternalAppRequest(request)) {
+    if (!isInternalSecretRequest(request)) {
         return internalOnlyErrorResponse();
     }
 
