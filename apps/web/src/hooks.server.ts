@@ -74,6 +74,12 @@ void siteResolver.resolve('').catch(() => {}); // warm-up: load() 강제 실행
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
 import { resolveClientIp } from '$lib/server/rate-limit.js';
+import {
+    boardIdForReadGuard,
+    checkBoardReadAccess,
+    decodePathForGuard,
+    type BoardReadDecision
+} from '$lib/server/board-read-level.js';
 
 // --- 환경별 접근 제어 (hostname → 환경변수 매핑) ---
 // 각 환경변수가 설정된 경우에만 해당 호스트에서 접근 제어 활성화
@@ -976,6 +982,45 @@ const handleInner: Handle = async ({ event, resolve }) => {
     // SSR 인증
     await authenticateSSR(event);
 
+    // --- /api/boards/{boardId}/* 게시판 읽기 레벨 가드 ---
+    //
+    // 이 아래 라우트(글 목록·댓글·추천자 등)는 g5_write_* 를 직접 읽는다. 게시판 읽기
+    // 레벨 확인을 라우트마다 넣으면 새로 만들 때 빠뜨리므로 /api/admin 가드와 같은
+    // 이유로 여기서 한 번에 확인한다.
+    // 대상 판정은 SvelteKit 이 실제로 고른 라우트(event.route.id) 기준이다.
+    // 비회원 = 레벨 1(그누보드 규약). 읽기 레벨은 메모리 캐시라 요청마다 DB 를 보지 않는다.
+    // ⛔ fail-closed — 레벨을 알 수 없으면 통과시키지 않는다.
+    const readGuardBoardId = boardIdForReadGuard(event.route.id, event.params, pathname);
+    if (readGuardBoardId !== null) {
+        const deny = (status: number, error: string) =>
+            new Response(JSON.stringify({ success: false, error }), {
+                status,
+                headers: {
+                    'content-type': 'application/json',
+                    // 권한 응답은 절대 캐시되면 안 된다.
+                    'cache-control': 'private, no-store',
+                    ...(status === 503 ? { 'retry-after': '1' } : {})
+                }
+            });
+        let decision: BoardReadDecision;
+        try {
+            decision = await checkBoardReadAccess(readGuardBoardId, event.locals.user?.level ?? 1);
+        } catch (error) {
+            console.error('[board-read-guard] read level unavailable:', error);
+            return deny(503, 'Service Unavailable');
+        }
+        if (decision === 'not_found') {
+            return deny(404, 'Not Found');
+        }
+        if (decision === 'deny') {
+            // 세션 확인이 일시적으로 실패한 경우(authDegraded)엔 권한 없음이 아니라
+            // 재시도 대상으로 돌려준다 — 관리자가 잠깐 403 을 보는 일을 막는다.
+            return event.locals.authDegraded
+                ? deny(503, 'Service Unavailable')
+                : deny(403, 'Forbidden');
+        }
+    }
+
     // --- /api/admin/* 계층 가드 ---
     //
     // 2026-07-29 실측: /api/admin 하위 11개 라우트 중 4개에 인증 코드가 한 줄도 없었다.
@@ -990,7 +1035,14 @@ const handleInner: Handle = async ({ event, resolve }) => {
     // ⛔ 여기에 DB 조회를 추가하지 말 것. 전체 요청의 74.8% 가 /api/* 다.
     //    지금은 문자열 접두사 비교 + 이미 채워진 locals.user 참조뿐이라 비용이 없다.
     // ⛔ mb_level 10 = 관리자. as_level(XP 레벨)과 혼동하지 말 것.
-    if (pathname === '/api/admin' || pathname.startsWith('/api/admin/')) {
+    // 판정은 SvelteKit 이 실제로 고른 라우트와, 라우트와 같은 기준으로 디코딩한 경로 둘 다로 한다.
+    const adminGuardPath = decodePathForGuard(pathname);
+    if (
+        event.route.id === '/api/admin' ||
+        event.route.id?.startsWith('/api/admin/') ||
+        adminGuardPath === '/api/admin' ||
+        adminGuardPath.startsWith('/api/admin/')
+    ) {
         if (!event.locals.user || event.locals.user.level < 10) {
             return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
                 status: 403,
@@ -1016,7 +1068,7 @@ const handleInner: Handle = async ({ event, resolve }) => {
     //     2. /api/plugins/{id}/{...} — 플러그인이 정의한 자체 라우트 디스패처.
     //        나눔 게시판 등 회원 기능이 여기로 온다(POST 포함)
     //    그래서 "상태를 바꾸는 관리 동작"만 골라 막는다.
-    if (isExtensionAdminRequest(pathname, event.request.method)) {
+    if (isExtensionAdminRequest(adminGuardPath, event.request.method)) {
         if (!event.locals.user || event.locals.user.level < 10) {
             return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
                 status: 403,
