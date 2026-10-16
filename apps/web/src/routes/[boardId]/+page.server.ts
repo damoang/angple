@@ -807,9 +807,13 @@ export const load: PageServerLoad = async ({
             }
         };
 
+        // 게시판 정보를 못 읽었으면 목록 권한을 확인하지 못한 상태다 — 권한 검사 없는
+        // Sphinx·DB 직조회 대신 자체 권한 검사가 있는 백엔드 검색으로 보낸다.
+        const fetchSearchPosts = board ? fetchPostsViaSphinx : fetchPostsViaGoBackend;
+
         const [postsResult, noticesResult] = await Promise.allSettled([
             isSearching
-                ? fetchPostsViaSphinx()
+                ? fetchSearchPosts()
                 : bFetch(buildPostsUrl(), {
                       headers,
                       timeout: isHotBoard ? HOT_BOARD_POSTS_TIMEOUT_MS : DEFAULT_POSTS_TIMEOUT_MS,
