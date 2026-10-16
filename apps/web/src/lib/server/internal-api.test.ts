@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const mockEnv: Record<string, string | undefined> = {};
+// vi.mock 팩토리는 파일 맨 위로 끌어올려지므로, 팩토리가 읽는 객체도 vi.hoisted 로 먼저 만든다.
+const mockEnv = vi.hoisted(() => ({}) as Record<string, string | undefined>);
 vi.mock('$env/dynamic/private', () => ({ env: mockEnv }));
 
 import { hasValidInternalSecret, isInternalAppRequest } from './internal-api.js';
