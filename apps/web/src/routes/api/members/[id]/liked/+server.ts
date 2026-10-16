@@ -116,8 +116,9 @@ export const GET: RequestHandler = async ({ params, url }) => {
         const boardSubjects = new Map<string, string>();
         if (tables.length > 0) {
             const placeholders = tables.map(() => '?').join(', ');
+            // 공개 프로필이므로 비회원도 보고 읽을 수 있는 공개 게시판(목록·읽기 레벨 1)만 남긴다.
             const [boardRows] = await pool.query<BoardRow[]>(
-                `SELECT bo_table, bo_subject FROM g5_board WHERE bo_table IN (${placeholders}) AND bo_use_search = 1`,
+                `SELECT bo_table, bo_subject FROM g5_board WHERE bo_table IN (${placeholders}) AND bo_use_search = 1 AND bo_read_level <= 1 AND bo_list_level <= 1`,
                 tables
             );
             for (const b of boardRows) {

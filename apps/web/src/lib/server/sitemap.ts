@@ -1,7 +1,7 @@
 /**
  * 사이트맵 공용 로직 (SSR 전용).
  *
- * 게시글 sitemap 을 전 게시판(bo_use_search=1) 실제 글 수 기준으로 40,000개씩
+ * 게시글 sitemap 을 검색 사용·비회원 공개 게시판(bo_use_search=1, 목록·읽기 레벨 1) 실제 글 수 기준으로 40,000개씩
  * 페이지 분할한다. index(sitemap.xml)와 각 페이지(sitemap-posts-N.xml)가 이
  * 매니페스트를 공유해 페이지 수·경계가 항상 일치한다.
  *
@@ -30,11 +30,11 @@ const boardCountCache = new TieredCache<BoardPostCount[]>(
     1
 );
 
-/** bo_use_search=1 전 게시판의 실제 글 수(wr_is_comment=0). 캐시. */
+/** 검색 사용·비회원 공개 게시판의 실제 글 수(wr_is_comment=0). 캐시. */
 export async function getSitemapBoardCounts(): Promise<BoardPostCount[]> {
     return boardCountCache.getOrFetch('all', async () => {
         const [boards] = await pool.query<RowDataPacket[]>(
-            'SELECT bo_table FROM g5_board WHERE bo_use_search = 1 ORDER BY bo_order'
+            'SELECT bo_table FROM g5_board WHERE bo_use_search = 1 AND bo_list_level <= 1 AND bo_read_level <= 1 ORDER BY bo_order'
         );
         const result: BoardPostCount[] = [];
         for (const b of boards as Array<{ bo_table: string }>) {
