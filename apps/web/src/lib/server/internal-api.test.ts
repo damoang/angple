@@ -132,12 +132,25 @@ describe('isInternalAppRequest — 헤더 판정 관측(동작은 그대로)', (
         expect(
             isInternalAppRequest(req('/api/my/following', { referer: 'https://example.test/a' }))
         ).toBe(true);
-        expect(isInternalAppRequest(req('/api/boards/free/posts/12/comments', { 'user-agent': 'node' }))).toBe(
-            true
-        );
+        expect(
+            isInternalAppRequest(
+                req('/api/boards/free/posts/12/comments', { 'user-agent': 'node' })
+            )
+        ).toBe(true);
         const counts = drainHeaderPassCounts();
         expect(counts['GET /api/my/following referer no-cookie']).toBe(1);
         expect(counts['GET /api/boards/free/posts/:n/comments user-agent no-cookie']).toBe(1);
+    });
+
+    it('v1 프록시 경로는 첫 구간까지만 남겨 식별자가 로그에 남지 않는다', () => {
+        setSecrets('cur-secret');
+        drainHeaderPassCounts();
+        isInternalAppRequest(
+            req('/api/v1/members/someone_id/memo', { 'sec-fetch-site': 'same-origin' })
+        );
+        const counts = drainHeaderPassCounts();
+        expect(counts['GET /api/v1/members/* sec-fetch-site no-cookie']).toBe(1);
+        expect(Object.keys(counts).some((k) => k.includes('someone_id'))).toBe(false);
     });
 
     it('비밀값으로 통과하거나 거부된 요청은 세지 않는다', () => {
@@ -146,9 +159,9 @@ describe('isInternalAppRequest — 헤더 판정 관측(동작은 그대로)', (
         expect(
             isInternalAppRequest(req('/api/widgets', { 'x-internal-secret': 'cur-secret' }))
         ).toBe(true);
-        expect(
-            isInternalAppRequest(req('/api/widgets', { origin: 'https://evil.example' }))
-        ).toBe(false);
+        expect(isInternalAppRequest(req('/api/widgets', { origin: 'https://evil.example' }))).toBe(
+            false
+        );
         expect(drainHeaderPassCounts()).toEqual({});
     });
 });

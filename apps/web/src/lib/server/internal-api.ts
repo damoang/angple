@@ -64,7 +64,11 @@ const SHADOW_FLUSH_MS = 10 * 60_000;
 const SHADOW_MAX_KEYS = 500;
 const headerPassCounts = new Map<string, number>();
 
+// 로그에 회원 아이디 같은 식별자가 남지 않도록 경로를 모양만 남긴다.
+// v1 프록시(/api/v1/*)는 뒤 구간에 식별자가 오므로 첫 구간까지만 남긴다.
 function routeShape(pathname: string): string {
+    const v1 = /^\/api\/v1\/([^/]+)/.exec(pathname);
+    if (v1) return `/api/v1/${v1[1]}/*`;
     return pathname.replace(/\/\d+(?=\/|$)/g, '/:n');
 }
 
@@ -80,7 +84,7 @@ function recordHeaderPass(request: Request, reason: HeaderPassReason): void {
     }
 }
 
-/** 테스트 전용: 관측 카운터를 꺼내고 비운다. */
+/** 관측 카운터를 꺼내고 비운다(주기 로그와 테스트에서 쓴다). */
 export function drainHeaderPassCounts(): Record<string, number> {
     const out = Object.fromEntries(headerPassCounts);
     headerPassCounts.clear();
