@@ -1,7 +1,11 @@
 import type { RequestHandler } from './$types';
 import pool from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
-import { getSitemapPageSegments } from '$lib/server/sitemap.js';
+import {
+    getSitemapPageSegments,
+    segmentPaging,
+    SITEMAP_POST_WHERE
+} from '$lib/server/sitemap.js';
 import { isSecretOption } from '$lib/server/secret-option.js';
 
 /**
@@ -36,15 +40,17 @@ export const GET: RequestHandler = async ({ params, url }) => {
                 //    (wr_is_comment, wr_id) 인덱스는 Backward index scan 으로 filesort 없이
                 //    ORDER BY wr_id DESC 를 소화한다 — 동일 페이지 실측 200s+ → 1.8s.
                 //    인덱스가 없는 테이블(165개 중 4개)은 catch 에서 힌트 없이 재시도한다.
+                //    깊은 세그먼트는 매니페스트가 캐시한 커서로 `wr_id < ?` 범위만 읽는다(키셋).
+                //    커서가 없으면 예전처럼 OFFSET 으로 읽는다(segmentPaging).
+                const paging = segmentPaging(seg);
                 const sitemapQuery = (forceIndex: boolean) =>
                     pool.query<RowDataPacket[]>(
                         `SELECT wr_id, wr_datetime, wr_last, wr_7, wr_option, LEFT(wr_content, 1000) AS content_head
                          FROM g5_write_${seg.board}${forceIndex ? ' FORCE INDEX (wr_is_comment)' : ''}
-					     WHERE wr_is_comment = 0
-					       AND (wr_deleted_at IS NULL OR wr_deleted_at = '0000-00-00 00:00:00')
-					     ORDER BY wr_id DESC
-					     LIMIT ? OFFSET ?`,
-                        [seg.limit, seg.offset]
+                         WHERE ${SITEMAP_POST_WHERE}${paging.where}
+                         ORDER BY wr_id DESC
+                         ${paging.limit}`,
+                        paging.params
                     );
                 let posts: RowDataPacket[];
                 try {
