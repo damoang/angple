@@ -1,13 +1,36 @@
 <script lang="ts">
     /**
-     * AdSense Multiplex (autorelaxed) 광고 컴포넌트
-     * 댓글 인피드 등에서 사용하는 추천 콘텐츠형 광고
+     * AdSense 글 상세 하단 광고 — 포맷 A/B 실험
+     *
+     * 배경(2026-10-16 조사):
+     *   pub-6922 는 2026-08-08 부터 노출이 0 이다. 페이지뷰는 하루 25~35만으로 그대로인데
+     *   노출만 끊겼다. 정책 위반·사이트 미승인·CSP·컨테이너 높이·JS 오류는 전부 배제했고,
+     *   `/pagead/ads` 응답 바이트를 재 보면 요청은 정상인데 **응답이 비어 온다**.
+     *     pub-2456 259x600  → 51,365 bytes (광고 있음)
+     *     pub-6922 810x486  →    507 bytes (빈 응답)
+     *   즉 구글이 이 퍼블리셔의 이 슬롯에 채울 광고를 주지 않는다.
+     *
+     *   후보가 두 개 남았다. ① ads.txt 누락(2026-10-16 10:51 수정됨, 재크롤 1일+ 소요)
+     *   ② 멀티플렉스(autorelaxed) 포맷 자체의 낮은 fill.
+     *   ②를 가르기 위해 **같은 자리에서 포맷만 바꿔** 응답을 비교한다.
+     *
+     * 실험 설계:
+     *   한 번의 페이지 뷰마다 A(멀티플렉스) 또는 B(반응형 디스플레이)를 50:50 으로 고른다.
+     *   슬롯 ID 가 다르므로 애드센스 보고서('광고 단위 기준')에서 자동으로 분리 집계된다.
+     *   **광고 개수는 늘리지 않는다** — 둘 중 하나만 뜬다.
+     *
+     * 판정:
+     *   B 만 채워지면 → 멀티플렉스 포맷 문제. 디스플레이로 교체한다.
+     *   둘 다 안 채워지면 → 포맷 문제가 아니다. 계정/수요 쪽을 본다.
+     *   둘 다 채워지면 → ads.txt 가 원인이었다(실험 기간 중 재크롤이 반영된 것). RPM 으로 승자를 고른다.
+     *
+     * 수동 확인: `?adab=multiplex` / `?adab=display` 로 변이를 고정할 수 있다.
      */
     import { onMount, onDestroy } from 'svelte';
     import { browser } from '$app/environment';
     import { page } from '$app/stores';
 
-    /** 성인 키워드 글/차단 작가 글 상세 페이지에서는 AdSense Multiplex 광고를 숨김 */
+    /** 성인 키워드 글/차단 작가 글 상세 페이지에서는 광고를 숨김 */
     const suppressAds = $derived(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 페이지마다 data 모양이 달라 공통 타입이 없다(post·user 가 있을 때만 읽는다)
         !!($page as any).data?.post?.is_adult || !!($page as any).data?.post?.suppress_ads
@@ -20,14 +43,29 @@
     let { class: className = '' }: Props = $props();
 
     const ADSENSE_CLIENT = 'ca-pub-6922133409882969';
-    const ADSENSE_SLOT = '3037103743';
+
+    /** A: 기존 멀티플렉스(추천 콘텐츠형). 2026-06-18 생성 */
+    const SLOT_MULTIPLEX = '3037103743';
+    /** B: 반응형 디스플레이. 계정에 이미 있던 휴면 단위('수직형-반응형', 2024-07-26) 라 귀속이 깨끗하다 */
+    const SLOT_DISPLAY = '3869864457';
+
+    type Variant = 'multiplex' | 'display';
 
     let ready = $state(false);
+    let variant = $state<Variant>('multiplex');
     let insEl: HTMLElement | null = null;
     let destroyed = false;
 
+    function pickVariant(): Variant {
+        const forced = $page.url.searchParams.get('adab');
+        if (forced === 'multiplex' || forced === 'display') return forced;
+        return Math.random() < 0.5 ? 'multiplex' : 'display';
+    }
+
     onMount(() => {
         if (!browser) return;
+
+        variant = pickVariant();
 
         const existingScript = document.querySelector('script[src*="adsbygoogle.js"]');
         if (!existingScript) {
@@ -81,17 +119,31 @@
 
   ⛔ 자리예약은 이 div 가 SSR 에 없으므로 **부모가 진다** —
      `[postId]/+page.svelte` 의 `.dm-mplex-reserve`. 여기로 되돌리지 마라.
+     그 규칙의 미충전 해제 셀렉터는 `ins[data-ad-status='unfilled']` 를 보므로
+     A/B 두 변이 모두에 그대로 적용된다(둘 다 `ins.adsbygoogle` 이다).
 -->
 {#if ready && !suppressAds}
-    <div class="dm-mplex-frame {className}">
-        <ins
-            bind:this={insEl}
-            class="adsbygoogle"
-            style="display:block"
-            data-ad-format="autorelaxed"
-            data-ad-client={ADSENSE_CLIENT}
-            data-ad-slot={ADSENSE_SLOT}
-        ></ins>
+    <div class="dm-mplex-frame {className}" data-ad-variant={variant}>
+        {#if variant === 'multiplex'}
+            <ins
+                bind:this={insEl}
+                class="adsbygoogle"
+                style="display:block"
+                data-ad-format="autorelaxed"
+                data-ad-client={ADSENSE_CLIENT}
+                data-ad-slot={SLOT_MULTIPLEX}
+            ></ins>
+        {:else}
+            <ins
+                bind:this={insEl}
+                class="adsbygoogle"
+                style="display:block"
+                data-ad-client={ADSENSE_CLIENT}
+                data-ad-slot={SLOT_DISPLAY}
+                data-ad-format="auto"
+                data-full-width-responsive="true"
+            ></ins>
+        {/if}
     </div>
 {/if}
 
