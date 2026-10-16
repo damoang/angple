@@ -18,7 +18,7 @@ import type { RowDataPacket } from 'mysql2';
  *
  * 제외 기준은 두 가지다.
  *   - `bo_use_search = 0` (검색 사용 안 함)
- *   - `bo_read_level > 사용자 레벨` (그 사용자가 읽을 수 없는 게시판). 「검색 사용」 설정만으로는
+ *   - `bo_read_level`·`bo_list_level` 중 큰 값 > 사용자 레벨 (그 사용자가 보거나 읽을 수 없는 게시판). 「검색 사용」 설정만으로는
  *     읽기 권한을 대신할 수 없다 — 비공개 게시판의 검색이 켜져 있어도 읽을 수 없는 사람에게는 나오면 안 된다.
  *
  * 값은 자주 바뀌지 않으므로 캐시하되, 운영자가 설정을 바꾸면 몇 분 안에 반영되게 한다.
@@ -29,6 +29,8 @@ export interface SearchBoardSetting {
     bo_table: string;
     bo_use_search: number;
     bo_read_level: number;
+    /** 목록 레벨. 없으면 1 로 본다. 그누보드 검색은 목록 레벨로 대상을 거른다. */
+    bo_list_level?: number;
 }
 
 let boardSettingsCache: { rows: SearchBoardSetting[]; at: number } | null = null;
@@ -39,7 +41,7 @@ async function getSearchBoardSettings(): Promise<SearchBoardSetting[]> {
         return boardSettingsCache.rows;
     }
     const [rows] = await pool.query<RowDataPacket[]>(
-        'SELECT bo_table, bo_use_search, bo_read_level FROM g5_board'
+        'SELECT bo_table, bo_use_search, bo_read_level, bo_list_level FROM g5_board'
     );
     if (!rows.length) {
         // 게시판이 0개일 수는 없다 — 제외 목록을 모르는 채 검색하지 않는다(fail-closed).
@@ -48,7 +50,8 @@ async function getSearchBoardSettings(): Promise<SearchBoardSetting[]> {
     const settings = rows.map((r) => ({
         bo_table: String(r.bo_table),
         bo_use_search: Number(r.bo_use_search),
-        bo_read_level: Number(r.bo_read_level) || 1
+        bo_read_level: Number(r.bo_read_level) || 1,
+        bo_list_level: Number(r.bo_list_level) || 1
     }));
     boardSettingsCache = { rows: settings, at: now };
     return settings;
@@ -60,7 +63,11 @@ export function computeSearchExcludedBoards(
     userLevel: number
 ): string[] {
     return settings
-        .filter((b) => b.bo_use_search !== 1 || b.bo_read_level > userLevel)
+        .filter(
+            (b) =>
+                b.bo_use_search !== 1 ||
+                Math.max(b.bo_read_level, b.bo_list_level ?? 1) > userLevel
+        )
         .map((b) => b.bo_table)
         .filter((t) => /^[a-zA-Z0-9_-]+$/.test(t));
 }

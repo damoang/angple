@@ -34,7 +34,7 @@ const boardCountCache = new TieredCache<BoardPostCount[]>(
 export async function getSitemapBoardCounts(): Promise<BoardPostCount[]> {
     return boardCountCache.getOrFetch('all', async () => {
         const [boards] = await pool.query<RowDataPacket[]>(
-            'SELECT bo_table FROM g5_board WHERE bo_use_search = 1 ORDER BY bo_order'
+            'SELECT bo_table FROM g5_board WHERE bo_use_search = 1 AND bo_list_level <= 1 AND bo_read_level <= 1 ORDER BY bo_order'
         );
         const result: BoardPostCount[] = [];
         for (const b of boards as Array<{ bo_table: string }>) {

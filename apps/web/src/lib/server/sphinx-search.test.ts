@@ -105,9 +105,20 @@ describe('computeSearchExcludedBoards — 검색 제외 게시판', () => {
         ]);
     });
 
+    it('읽기 레벨이 낮아도 목록 레벨이 사용자보다 높으면 뺀다', () => {
+        const listGated = [
+            { bo_table: 'list_gated', bo_use_search: 1, bo_read_level: 1, bo_list_level: 5 }
+        ];
+        expect(computeSearchExcludedBoards(listGated, 2)).toEqual(['list_gated']);
+        expect(computeSearchExcludedBoards(listGated, 5)).toEqual([]);
+    });
+
     it('SQL 에 넣을 수 없는 이름은 걸러낸다', () => {
         expect(
-            computeSearchExcludedBoards([{ bo_table: "x'y", bo_use_search: 0, bo_read_level: 1 }], 1)
+            computeSearchExcludedBoards(
+                [{ bo_table: "x'y", bo_use_search: 0, bo_read_level: 1 }],
+                1
+            )
         ).toEqual([]);
     });
 });
