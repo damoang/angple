@@ -74,6 +74,11 @@ void siteResolver.resolve('').catch(() => {}); // warm-up: load() 강제 실행
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
 import { resolveClientIp } from '$lib/server/rate-limit.js';
+import {
+    boardIdFromApiPath,
+    checkBoardReadAccess,
+    type BoardReadDecision
+} from '$lib/server/board-read-level.js';
 
 // --- 환경별 접근 제어 (hostname → 환경변수 매핑) ---
 // 각 환경변수가 설정된 경우에만 해당 호스트에서 접근 제어 활성화
@@ -975,6 +980,44 @@ const handleInner: Handle = async ({ event, resolve }) => {
 
     // SSR 인증
     await authenticateSSR(event);
+
+    // --- /api/boards/{boardId}/* 게시판 읽기 레벨 가드 ---
+    //
+    // 이 아래 라우트(글 목록·댓글·추천자 등)는 g5_write_* 를 직접 읽는데, 라우트에
+    // 게시판 읽기 레벨 확인이 없었다. 라우트마다 넣으면 새로 만들 때 빠뜨리므로
+    // /api/admin 가드와 같은 이유로 경로 접두사에서 한 번에 막는다.
+    // 비회원 = 레벨 1(그누보드 규약). 읽기 레벨은 메모리 캐시라 요청마다 DB 를 보지 않는다.
+    // ⛔ fail-closed — 레벨을 알 수 없으면 통과시키지 않는다.
+    const readGuardBoardId = boardIdFromApiPath(pathname);
+    if (readGuardBoardId !== null) {
+        const deny = (status: number, error: string) =>
+            new Response(JSON.stringify({ success: false, error }), {
+                status,
+                headers: {
+                    'content-type': 'application/json',
+                    // 권한 응답은 절대 캐시되면 안 된다.
+                    'cache-control': 'private, no-store',
+                    ...(status === 503 ? { 'retry-after': '1' } : {})
+                }
+            });
+        let decision: BoardReadDecision;
+        try {
+            decision = await checkBoardReadAccess(readGuardBoardId, event.locals.user?.level ?? 1);
+        } catch (error) {
+            console.error('[board-read-guard] read level unavailable:', error);
+            return deny(503, 'Service Unavailable');
+        }
+        if (decision === 'not_found') {
+            return deny(404, 'Not Found');
+        }
+        if (decision === 'deny') {
+            // 세션 확인이 일시적으로 실패한 경우(authDegraded)엔 권한 없음이 아니라
+            // 재시도 대상으로 돌려준다 — 관리자가 잠깐 403 을 보는 일을 막는다.
+            return event.locals.authDegraded
+                ? deny(503, 'Service Unavailable')
+                : deny(403, 'Forbidden');
+        }
+    }
 
     // --- /api/admin/* 계층 가드 ---
     //
