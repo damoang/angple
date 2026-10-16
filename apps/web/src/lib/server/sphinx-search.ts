@@ -65,8 +65,7 @@ export function computeSearchExcludedBoards(
     return settings
         .filter(
             (b) =>
-                b.bo_use_search !== 1 ||
-                Math.max(b.bo_read_level, b.bo_list_level ?? 1) > userLevel
+                b.bo_use_search !== 1 || Math.max(b.bo_read_level, b.bo_list_level ?? 1) > userLevel
         )
         .map((b) => b.bo_table)
         .filter((t) => /^[a-zA-Z0-9_-]+$/.test(t));
