@@ -33,6 +33,7 @@ import {
 } from '$lib/server/board-support';
 import { resolveClientIp } from '$lib/server/rate-limit.js';
 import { isSecretOption, SECRET_COMMENT_PLACEHOLDER } from '$lib/server/secret-option.js';
+import { enqueueWriteChangedEvent } from '$lib/server/write-after-event.js';
 
 const REASON_MAX = 200;
 /** 보드당 동시 잠금 상한 — 남용(무더기 잠금) 1차 방어선 */
@@ -139,6 +140,18 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
         return json({ success: true, data: summary });
     }
 
+    // 잠금·해제 뒤 백엔드 후처리(캐시·활동 피드) 이벤트 대상. wr_7 을 직접 바꾸므로
+    // 이벤트를 남기지 않으면 회원 활동 캐시가 TTL 동안 잠기기 전 내용을 보여준다.
+    const changedTarget = {
+        boardId,
+        wrId: target.wr_id,
+        postId: parsed.postId,
+        isComment,
+        mbId: target.mb_id,
+        author: target.wr_name,
+        subject: target.wr_subject
+    };
+
     const auditInsert = `INSERT INTO audit_logs
         (created_at, user_id, action, resource, resource_id, details, client_ip)
         VALUES (NOW(3), ?, ?, ?, ?, ?, ?)`;
@@ -198,6 +211,8 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
                 /* 목록 표식 실패가 조치를 되돌리지 않는다 */
             }
         }
+        // 활동 패널·프로필 최근 글/댓글에서도 바로 가려지도록 후처리 워커에 알린다(best-effort).
+        await enqueueWriteChangedEvent(changedTarget);
         return json({ success: true, data: { ...summary, locked: true } });
     }
 
@@ -262,5 +277,6 @@ export const POST: RequestHandler = async ({ params, request, cookies, getClient
             /* best-effort */
         }
     }
+    await enqueueWriteChangedEvent(changedTarget);
     return json({ success: true, data: { ...summary, locked: false } });
 };
