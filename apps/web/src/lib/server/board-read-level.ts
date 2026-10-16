@@ -89,7 +89,7 @@ export async function checkBoardReadAccess(
 
 /**
  * 접두사 가드용 경로. SvelteKit 은 라우트를 퍼센트 디코딩한 경로로 찾으므로
- * 가드도 같은 기준으로 봐야 한다(인코딩된 경로가 가드만 비켜 가지 않게).
+ * 가드도 라우트 매칭과 같은 기준으로 판정한다.
  * SvelteKit 의 decode_pathname 과 같게 %25 는 보존한다.
  */
 export function decodePathForGuard(pathname: string): string {
@@ -111,7 +111,7 @@ export function boardIdForReadGuard(
     pathname: string
 ): string | null {
     if (routeId === '/api/boards/[boardId]' || routeId?.startsWith('/api/boards/[boardId]/')) {
-        return params.boardId ?? null;
+        return params.boardId ?? '';
     }
     return boardIdFromApiPath(decodePathForGuard(pathname));
 }
