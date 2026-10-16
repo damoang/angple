@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { buildMatchExpr, escapeSphinxMatch, containsCJK } from './sphinx-search.js';
+import {
+    buildMatchExpr,
+    computeSearchExcludedBoards,
+    containsCJK,
+    escapeSphinxMatch
+} from './sphinx-search.js';
 
 describe('escapeSphinxMatch', () => {
     it('escapes Sphinx special characters', () => {
@@ -61,5 +66,48 @@ describe('buildMatchExpr — sfl 4-split (작성자/댓글 닉네임/아이디 �
         // 와일드카드("*한글*")가 아닌 strict phrase("한글") — "산불"이 "생산 불가"에 오매칭되지 않도록
         expect(buildMatchExpr('한글', 'author_nick')).toBe('@wr_name "한글"');
         expect(buildMatchExpr('한글', 'author_id')).toBe('@mb_id "한글"');
+    });
+});
+
+describe('computeSearchExcludedBoards — 검색 제외 게시판', () => {
+    const settings = [
+        { bo_table: 'free', bo_use_search: 1, bo_read_level: 1 },
+        { bo_table: 'hidden', bo_use_search: 0, bo_read_level: 1 },
+        { bo_table: 'members_only', bo_use_search: 1, bo_read_level: 2 },
+        { bo_table: 'staff_only', bo_use_search: 1, bo_read_level: 5 },
+        { bo_table: 'admin_only', bo_use_search: 1, bo_read_level: 10 }
+    ];
+
+    it('검색 사용 안 함 게시판은 레벨과 무관하게 뺀다', () => {
+        expect(computeSearchExcludedBoards(settings, 10)).toEqual(['hidden']);
+    });
+
+    it('검색이 켜져 있어도 읽을 수 없는 게시판은 뺀다', () => {
+        expect(computeSearchExcludedBoards(settings, 2)).toEqual([
+            'hidden',
+            'staff_only',
+            'admin_only'
+        ]);
+        expect(computeSearchExcludedBoards(settings, 4)).toEqual([
+            'hidden',
+            'staff_only',
+            'admin_only'
+        ]);
+        expect(computeSearchExcludedBoards(settings, 5)).toEqual(['hidden', 'admin_only']);
+    });
+
+    it('비회원 레벨(1)이면 회원 전용 게시판도 뺀다', () => {
+        expect(computeSearchExcludedBoards(settings, 1)).toEqual([
+            'hidden',
+            'members_only',
+            'staff_only',
+            'admin_only'
+        ]);
+    });
+
+    it('SQL 에 넣을 수 없는 이름은 걸러낸다', () => {
+        expect(
+            computeSearchExcludedBoards([{ bo_table: "x'y", bo_use_search: 0, bo_read_level: 1 }], 1)
+        ).toEqual([]);
     });
 });

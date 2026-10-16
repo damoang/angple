@@ -9,29 +9,64 @@ import pool from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
 
 /**
- * 검색에서 제외할 게시판 목록 (`g5_board.bo_use_search = 0`).
+ * 검색에서 제외할 게시판 목록.
  *
  * 통합 인덱스(all_boards_unified_dist)에는 운영자가 "검색 사용 안 함" 으로 설정한 게시판도
  * 일부 섞여 들어가 있다. RSS·사이트맵·포인트 랭킹은 모두 `bo_use_search = 1` 을 지키는데
  * 전체검색만 이 설정을 보지 않아, 소명·익명 게시판 글이 검색 결과에 노출됐다.
  * 인덱스 구성과 무관하게 **설정이 최종 판단 기준**이 되도록 쿼리 단계에서 막는다.
  *
+ * 제외 기준은 두 가지다.
+ *   - `bo_use_search = 0` (검색 사용 안 함)
+ *   - `bo_read_level > 사용자 레벨` (그 사용자가 읽을 수 없는 게시판). 「검색 사용」 설정만으로는
+ *     읽기 권한을 대신할 수 없다 — 비공개 게시판의 검색이 켜져 있어도 읽을 수 없는 사람에게는 나오면 안 된다.
+ *
  * 값은 자주 바뀌지 않으므로 캐시하되, 운영자가 설정을 바꾸면 몇 분 안에 반영되게 한다.
  */
 const EXCLUDED_BOARDS_TTL_MS = 5 * 60 * 1000;
-let excludedBoardsCache: { list: string[]; at: number } | null = null;
 
-async function getSearchExcludedBoards(): Promise<string[]> {
+export interface SearchBoardSetting {
+    bo_table: string;
+    bo_use_search: number;
+    bo_read_level: number;
+}
+
+let boardSettingsCache: { rows: SearchBoardSetting[]; at: number } | null = null;
+
+async function getSearchBoardSettings(): Promise<SearchBoardSetting[]> {
     const now = Date.now();
-    if (excludedBoardsCache && now - excludedBoardsCache.at < EXCLUDED_BOARDS_TTL_MS) {
-        return excludedBoardsCache.list;
+    if (boardSettingsCache && now - boardSettingsCache.at < EXCLUDED_BOARDS_TTL_MS) {
+        return boardSettingsCache.rows;
     }
     const [rows] = await pool.query<RowDataPacket[]>(
-        'SELECT bo_table FROM g5_board WHERE bo_use_search = 0'
+        'SELECT bo_table, bo_use_search, bo_read_level FROM g5_board'
     );
-    const list = rows.map((r) => String(r.bo_table)).filter((t) => /^[a-zA-Z0-9_-]+$/.test(t));
-    excludedBoardsCache = { list, at: now };
-    return list;
+    if (!rows.length) {
+        // 게시판이 0개일 수는 없다 — 제외 목록을 모르는 채 검색하지 않는다(fail-closed).
+        throw new Error('search board settings: empty board list');
+    }
+    const settings = rows.map((r) => ({
+        bo_table: String(r.bo_table),
+        bo_use_search: Number(r.bo_use_search),
+        bo_read_level: Number(r.bo_read_level) || 1
+    }));
+    boardSettingsCache = { rows: settings, at: now };
+    return settings;
+}
+
+/** userLevel(비회원 1)이 검색에서 볼 수 없는 게시판 목록. */
+export function computeSearchExcludedBoards(
+    settings: SearchBoardSetting[],
+    userLevel: number
+): string[] {
+    return settings
+        .filter((b) => b.bo_use_search !== 1 || b.bo_read_level > userLevel)
+        .map((b) => b.bo_table)
+        .filter((t) => /^[a-zA-Z0-9_-]+$/.test(t));
+}
+
+async function getSearchExcludedBoards(userLevel: number): Promise<string[]> {
+    return computeSearchExcludedBoards(await getSearchBoardSettings(), userLevel);
 }
 
 interface SphinxSearchRow extends RowDataPacket {
@@ -175,7 +210,9 @@ export async function searchByBoard(
 export async function searchAllBoards(
     field: string,
     query: string,
-    maxResults: number = 200
+    maxResults: number = 200,
+    /** 검색하는 사용자의 레벨(mb_level, 비회원 1). 읽을 수 없는 게시판은 제외한다. */
+    userLevel: number = 1
 ): Promise<{
     rows: Array<{
         id: number;
@@ -199,7 +236,7 @@ export async function searchAllBoards(
     // 검색 제외 게시판을 쿼리에서 배제한다.
     // 조회에 실패하면 예외를 그대로 올려 검색을 중단시킨다(fail-closed) — 제외 목록을 모르는 채
     // 검색하면 비공개 게시판이 노출되기 때문이다. 어차피 결과 렌더링에도 이 DB 가 필요하다.
-    const excluded = await getSearchExcludedBoards();
+    const excluded = await getSearchExcludedBoards(userLevel);
     const excludeClause = excluded.length
         ? ` AND bo_table NOT IN (${excluded.map((t) => `'${t}'`).join(',')})`
         : '';

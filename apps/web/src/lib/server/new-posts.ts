@@ -79,7 +79,7 @@ async function getSearchableBoards(): Promise<{ bo_table: string; gr_id: string 
         return searchableBoardsCache.data;
     }
     const [rows] = await readPool.query<RowDataPacket[]>(
-        'SELECT bo_table, gr_id FROM g5_board WHERE bo_use_search = 1'
+        'SELECT bo_table, gr_id FROM g5_board WHERE bo_use_search = 1 AND bo_read_level <= 1'
     );
     const data = rows as { bo_table: string; gr_id: string }[];
     searchableBoardsCache = { data, expiry: Date.now() + SEARCHABLE_BOARDS_CACHE_TTL };
@@ -113,8 +113,11 @@ async function buildFeedWhere(opts: {
     scope: string;
     cursor?: number;
 }): Promise<FeedWhere> {
+    // 피드는 사용자와 무관하게 공용 캐시를 쓰므로 비회원도 읽을 수 있는(bo_read_level <= 1)
+    // 공개 게시판만 담는다. 「검색 사용」 설정만으로는 읽기 권한을 대신할 수 없다.
     const conditions: string[] = [
         'b.bo_use_search = 1',
+        'b.bo_read_level <= 1',
         'bn.bn_datetime > DATE_SUB(NOW(), INTERVAL 7 DAY)'
     ];
     const params: FeedParam[] = [];
@@ -417,7 +420,7 @@ export async function getBoardGroups(): Promise<{ gr_id: string; gr_subject: str
 		   FROM g5_group g
 		  WHERE EXISTS (
 		        SELECT 1 FROM g5_board b
-		         WHERE b.gr_id = g.gr_id AND b.bo_use_search = 1
+		         WHERE b.gr_id = g.gr_id AND b.bo_use_search = 1 AND b.bo_read_level <= 1
 		           AND EXISTS (
 		               SELECT 1 FROM g5_board_new bn
 		                WHERE bn.bo_table = b.bo_table

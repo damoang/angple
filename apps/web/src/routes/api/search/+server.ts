@@ -110,7 +110,8 @@ export const GET: RequestHandler = async ({ url, locals }) => {
         }
 
         // 1) Sphinx에서 검색 (최대 200건)
-        const { rows: sphinxRows } = await searchAllBoards(field, query, 200);
+        // 읽기 레벨이 사용자 레벨보다 높은 게시판은 검색에서 뺀다.
+        const { rows: sphinxRows } = await searchAllBoards(field, query, 200, locals.user.level);
 
         if (!sphinxRows.length) {
             return json({
