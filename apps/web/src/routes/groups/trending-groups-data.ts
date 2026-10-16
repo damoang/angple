@@ -67,7 +67,7 @@ async function computeTrendingGroups(n: number): Promise<TrendingGroup[]> {
              WHERE bn_datetime >= CURDATE()
              GROUP BY bo_table
          ) t ON t.bo_table = b.bo_table
-         WHERE b.gr_id = 'group'`
+         WHERE b.gr_id = 'group' AND b.bo_list_level <= 1 AND b.bo_read_level <= 1`
     );
 
     const ranked = rankTrendingGroups(
@@ -95,7 +95,7 @@ async function computeTrendingGroups(n: number): Promise<TrendingGroup[]> {
         const [refRows] = await readPool.query<RowDataPacket[]>(
             `SELECT n.bo_table, n.wr_id, n.bn_datetime
              FROM g5_board_new n
-             JOIN g5_board b ON b.bo_table = n.bo_table AND b.gr_id = 'group'
+             JOIN g5_board b ON b.bo_table = n.bo_table AND b.gr_id = 'group' AND b.bo_list_level <= 1 AND b.bo_read_level <= 1
              WHERE n.bo_table IN (?) AND n.wr_parent = n.wr_id
              ORDER BY n.bn_datetime DESC`,
             [topTables]

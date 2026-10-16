@@ -1,6 +1,9 @@
 /**
  * 소모임 데이터 조회 공통 모듈
  * +page.server.ts와 API 라우트에서 공유
+ *
+ * 결과 캐시가 사용자 공통이므로 공개 게시판(bo_list_level·bo_read_level 1)만 다룬다.
+ * 등급 제한이 걸린 소모임이 생겨도 제목이 모두에게 노출되지 않게 한다(+page.server.ts·trending-groups-data.ts 동일).
  */
 import { readPool } from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
@@ -38,7 +41,7 @@ async function getLatestCount(): Promise<number> {
     const [rows] = await readPool.query<RowDataPacket[]>(
         `SELECT COUNT(*) AS cnt
 		 FROM g5_board_new n
-		 JOIN g5_board b ON b.bo_table = n.bo_table AND b.gr_id = 'group'
+		 JOIN g5_board b ON b.bo_table = n.bo_table AND b.gr_id = 'group' AND b.bo_list_level <= 1 AND b.bo_read_level <= 1
 		 WHERE n.wr_parent = n.wr_id`
     );
     const count = (rows[0]?.cnt as number) || 0;
@@ -142,7 +145,7 @@ export async function loadLatestPostsPaginated(
                 IFNULL(m.mb_nick, n.mb_id) AS mb_nick,
                 n.bn_datetime
 		 FROM g5_board_new n
-		 JOIN g5_board b ON b.bo_table = n.bo_table AND b.gr_id = 'group'
+		 JOIN g5_board b ON b.bo_table = n.bo_table AND b.gr_id = 'group' AND b.bo_list_level <= 1 AND b.bo_read_level <= 1
 		 LEFT JOIN g5_member m ON m.mb_id = n.mb_id
 		 WHERE n.wr_parent = n.wr_id
 		 ORDER BY n.bn_datetime DESC

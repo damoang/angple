@@ -101,7 +101,7 @@ async function loadGroupBoards(cacheKey: string): Promise<GroupBoard[]> {
     		     FROM g5_board_subscribe
     		     GROUP BY bo_table
     		 ) s ON s.bo_table = b.bo_table
-    		 WHERE b.gr_id = 'group'
+    		 WHERE b.gr_id = 'group' AND b.bo_list_level <= 1 AND b.bo_read_level <= 1
     		 ORDER BY b.bo_order, b.bo_table`
         );
         boards = rows as GroupBoard[];
@@ -125,7 +125,7 @@ async function loadGroupBoards(cacheKey: string): Promise<GroupBoard[]> {
     		     WHERE bn_datetime >= DATE_SUB(NOW(), INTERVAL 7 DAY)
     		     GROUP BY bo_table
     		 ) w ON w.bo_table = b.bo_table
-    		 WHERE b.gr_id = 'group'
+    		 WHERE b.gr_id = 'group' AND b.bo_list_level <= 1 AND b.bo_read_level <= 1
     		 ORDER BY b.bo_order, b.bo_table`
         );
         boards = fallbackRows as GroupBoard[];
@@ -150,7 +150,7 @@ async function loadLatestPosts(): Promise<GroupLatestPost[]> {
                 IFNULL(m.mb_nick, n.mb_id) AS mb_nick,
                 n.bn_datetime
 		 FROM g5_board_new n
-		 JOIN g5_board b ON b.bo_table = n.bo_table AND b.gr_id = 'group'
+		 JOIN g5_board b ON b.bo_table = n.bo_table AND b.gr_id = 'group' AND b.bo_list_level <= 1 AND b.bo_read_level <= 1
 		 LEFT JOIN g5_member m ON m.mb_id = n.mb_id
 		 WHERE n.wr_parent = n.wr_id
 		 ORDER BY n.bn_datetime DESC
@@ -195,7 +195,7 @@ async function loadPopularPosts(): Promise<GroupLatestPost[]> {
                 IFNULL(m.mb_nick, n.mb_id) AS mb_nick,
                 n.bn_datetime
 		 FROM g5_board_new n
-		 JOIN g5_board b ON b.bo_table = n.bo_table AND b.gr_id = 'group'
+		 JOIN g5_board b ON b.bo_table = n.bo_table AND b.gr_id = 'group' AND b.bo_list_level <= 1 AND b.bo_read_level <= 1
 		 LEFT JOIN g5_member m ON m.mb_id = n.mb_id
 		 WHERE n.wr_parent = n.wr_id
 		   AND n.bn_datetime >= DATE_SUB(NOW(), INTERVAL 7 DAY)
@@ -246,7 +246,7 @@ async function loadLatestCount(): Promise<number> {
     const [rows] = await readPool.query<RowDataPacket[]>(
         `SELECT COUNT(*) AS cnt
 		 FROM g5_board_new n
-		 JOIN g5_board b ON b.bo_table = n.bo_table AND b.gr_id = 'group'
+		 JOIN g5_board b ON b.bo_table = n.bo_table AND b.gr_id = 'group' AND b.bo_list_level <= 1 AND b.bo_read_level <= 1
 		 WHERE n.wr_parent = n.wr_id`
     );
     const count = (rows[0]?.cnt as number) || 0;
