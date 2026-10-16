@@ -12,10 +12,10 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { syncAngttCatalog } from '$lib/server/angtt-catalog-sync';
-import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api';
+import { internalOnlyErrorResponse, isInternalSecretRequest } from '$lib/server/internal-api';
 
 export const POST: RequestHandler = async ({ request }) => {
-    if (!isInternalAppRequest(request)) {
+    if (!isInternalSecretRequest(request)) {
         return internalOnlyErrorResponse();
     }
 

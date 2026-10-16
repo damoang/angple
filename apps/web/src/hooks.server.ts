@@ -74,6 +74,7 @@ void siteResolver.resolve('').catch(() => {}); // warm-up: load() 강제 실행
 import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
 import { resolveClientIp } from '$lib/server/rate-limit.js';
+import { isInternalSecretRequest } from '$lib/server/internal-api.js';
 import {
     boardIdForReadGuard,
     checkBoardReadAccess,
@@ -1037,6 +1038,28 @@ const handleInner: Handle = async ({ event, resolve }) => {
     // ⛔ mb_level 10 = 관리자. as_level(XP 레벨)과 혼동하지 말 것.
     // 판정은 SvelteKit 이 실제로 고른 라우트와, 라우트와 같은 기준으로 디코딩한 경로 둘 다로 한다.
     const adminGuardPath = decodePathForGuard(pathname);
+
+    // --- /api/internal/* 서버 간 호출 가드 ---
+    // 이 아래는 다른 서버(백엔드 워커·운영 스크립트)만 부르는 라우트다. 로그인이 없으므로
+    // 공유 비밀 헤더 일치만 통과시킨다. 라우트마다 같은 검사가 있지만, 새로 만드는
+    // 내부 라우트가 검사를 빠뜨려도 열리지 않도록 접두사에서 한 번 더 막는다.
+    if (
+        event.route.id === '/api/internal' ||
+        event.route.id?.startsWith('/api/internal/') ||
+        adminGuardPath === '/api/internal' ||
+        adminGuardPath.startsWith('/api/internal/')
+    ) {
+        if (!isInternalSecretRequest(event.request)) {
+            return new Response(JSON.stringify({ success: false, error: 'Forbidden' }), {
+                status: 403,
+                headers: {
+                    'content-type': 'application/json',
+                    'cache-control': 'private, no-store'
+                }
+            });
+        }
+    }
+
     if (
         event.route.id === '/api/admin' ||
         event.route.id?.startsWith('/api/admin/') ||
