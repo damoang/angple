@@ -75,8 +75,9 @@ import { checkRateLimit, recordAttempt } from '$lib/server/rate-limit.js';
 import { mapGnuboardUrl, mapRhymixUrl } from '$lib/server/url-compat.js';
 import { resolveClientIp } from '$lib/server/rate-limit.js';
 import {
-    boardIdFromApiPath,
+    boardIdForReadGuard,
     checkBoardReadAccess,
+    decodePathForGuard,
     type BoardReadDecision
 } from '$lib/server/board-read-level.js';
 
@@ -983,12 +984,13 @@ const handleInner: Handle = async ({ event, resolve }) => {
 
     // --- /api/boards/{boardId}/* 게시판 읽기 레벨 가드 ---
     //
-    // 이 아래 라우트(글 목록·댓글·추천자 등)는 g5_write_* 를 직접 읽는데, 라우트에
-    // 게시판 읽기 레벨 확인이 없었다. 라우트마다 넣으면 새로 만들 때 빠뜨리므로
-    // /api/admin 가드와 같은 이유로 경로 접두사에서 한 번에 막는다.
+    // 이 아래 라우트(글 목록·댓글·추천자 등)는 g5_write_* 를 직접 읽는다. 게시판 읽기
+    // 레벨 확인을 라우트마다 넣으면 새로 만들 때 빠뜨리므로 /api/admin 가드와 같은
+    // 이유로 여기서 한 번에 확인한다.
+    // 대상 판정은 SvelteKit 이 실제로 고른 라우트(event.route.id) 기준이다.
     // 비회원 = 레벨 1(그누보드 규약). 읽기 레벨은 메모리 캐시라 요청마다 DB 를 보지 않는다.
     // ⛔ fail-closed — 레벨을 알 수 없으면 통과시키지 않는다.
-    const readGuardBoardId = boardIdFromApiPath(pathname);
+    const readGuardBoardId = boardIdForReadGuard(event.route.id, event.params, pathname);
     if (readGuardBoardId !== null) {
         const deny = (status: number, error: string) =>
             new Response(JSON.stringify({ success: false, error }), {
@@ -1033,7 +1035,14 @@ const handleInner: Handle = async ({ event, resolve }) => {
     // ⛔ 여기에 DB 조회를 추가하지 말 것. 전체 요청의 74.8% 가 /api/* 다.
     //    지금은 문자열 접두사 비교 + 이미 채워진 locals.user 참조뿐이라 비용이 없다.
     // ⛔ mb_level 10 = 관리자. as_level(XP 레벨)과 혼동하지 말 것.
-    if (pathname === '/api/admin' || pathname.startsWith('/api/admin/')) {
+    // 판정은 SvelteKit 이 실제로 고른 라우트와, 라우트와 같은 기준으로 디코딩한 경로 둘 다로 한다.
+    const adminGuardPath = decodePathForGuard(pathname);
+    if (
+        event.route.id === '/api/admin' ||
+        event.route.id?.startsWith('/api/admin/') ||
+        adminGuardPath === '/api/admin' ||
+        adminGuardPath.startsWith('/api/admin/')
+    ) {
         if (!event.locals.user || event.locals.user.level < 10) {
             return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
                 status: 403,
@@ -1059,7 +1068,7 @@ const handleInner: Handle = async ({ event, resolve }) => {
     //     2. /api/plugins/{id}/{...} — 플러그인이 정의한 자체 라우트 디스패처.
     //        나눔 게시판 등 회원 기능이 여기로 온다(POST 포함)
     //    그래서 "상태를 바꾸는 관리 동작"만 골라 막는다.
-    if (isExtensionAdminRequest(pathname, event.request.method)) {
+    if (isExtensionAdminRequest(adminGuardPath, event.request.method)) {
         if (!event.locals.user || event.locals.user.level < 10) {
             return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), {
                 status: 403,

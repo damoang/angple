@@ -87,6 +87,35 @@ export async function checkBoardReadAccess(
     return userLevel >= required ? 'allow' : 'deny';
 }
 
+/**
+ * 접두사 가드용 경로. SvelteKit 은 라우트를 퍼센트 디코딩한 경로로 찾으므로
+ * 가드도 같은 기준으로 봐야 한다(인코딩된 경로가 가드만 비켜 가지 않게).
+ * SvelteKit 의 decode_pathname 과 같게 %25 는 보존한다.
+ */
+export function decodePathForGuard(pathname: string): string {
+    try {
+        return pathname.split('%25').map(decodeURI).join('%25');
+    } catch {
+        return pathname;
+    }
+}
+
+/**
+ * 읽기 레벨 가드 대상이면 boardId 를, 아니면 null 을 돌려준다.
+ * 1순위는 SvelteKit 이 실제로 고른 라우트(route.id·params)이고,
+ * 라우트가 없을 때(404 등)만 디코딩한 경로로 판정한다.
+ */
+export function boardIdForReadGuard(
+    routeId: string | null | undefined,
+    params: Partial<Record<string, string>>,
+    pathname: string
+): string | null {
+    if (routeId === '/api/boards/[boardId]' || routeId?.startsWith('/api/boards/[boardId]/')) {
+        return params.boardId ?? null;
+    }
+    return boardIdFromApiPath(decodePathForGuard(pathname));
+}
+
 /** /api/boards/{boardId}/... 경로에서 boardId 를 꺼낸다. 해당 경로가 아니면 null. */
 export function boardIdFromApiPath(pathname: string): string | null {
     const match = /^\/api\/boards\/([^/]+)(?:\/|$)/.exec(pathname);
