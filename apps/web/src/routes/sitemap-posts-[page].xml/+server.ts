@@ -1,11 +1,7 @@
 import type { RequestHandler } from './$types';
 import pool from '$lib/server/db.js';
 import type { RowDataPacket } from 'mysql2';
-import {
-    getSitemapPageSegments,
-    segmentPaging,
-    SITEMAP_POST_WHERE
-} from '$lib/server/sitemap.js';
+import { getSitemapPageSegments, segmentPaging, SITEMAP_POST_WHERE } from '$lib/server/sitemap.js';
 import { isSecretOption } from '$lib/server/secret-option.js';
 
 /**
