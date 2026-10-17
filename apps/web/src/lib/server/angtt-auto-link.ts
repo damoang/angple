@@ -5,6 +5,8 @@
  *    읽기는 최고 트래픽에 곱해져 수백~수천 배가 되며, 저장된 링크만 읽으면 충분하다.
  *
  * 안전 설계:
+ *  - 게시판별 방식(angtt-link-mode): 제목 자동 연결은 auto/review 게시판만,
+ *    작성자 태그 연결은 off 가 아닌 게시판만. 비밀글은 연결하지 않는다.
  *  - 작품별 옵트인: angple_entities.meta.auto_link === true 인 작품만 자동 연결.
  *    「참교육」처럼 일반어와 겹치는 이름은 옵트인하지 않으면 절대 자동 연결되지 않는다.
  *  - 문맥어 요구: meta.context_terms 가 있으면 제목에 그중 하나가 있어야 한다.
@@ -19,12 +21,17 @@ import {
     ANGTT_TAG,
     scanAliasesInTitle,
     matchAliasFromTags,
+    mergeExcludeTerms,
     normalizeWorkTitle,
     type EntityAlias
 } from './angtt-dictionary-logic';
-
-/** 자동 연결을 적용할 게시판 */
-const AUTO_LINK_BOARDS = new Set(['free', 'angtt']);
+import {
+    allowsConfirmedLink,
+    allowsTitleAutoLink,
+    getAngttLinkMode,
+    type AngttLinkMode
+} from './angtt-link-mode';
+import { isSecretOption } from './secret-option';
 
 /**
  * 후기 게시판 — 이 게시판의 글은 그 자체가 작품 후기(review)다.
@@ -122,6 +129,7 @@ async function loadAliases() {
         // 기본은 false — 작품별로 명시 옵트인해야만 자동 연결된다
         const autoLink = meta.auto_link === true;
         const contextTerms = asArray(meta.context_terms);
+        const excludeTerms = mergeExcludeTerms(r.slug, asArray(meta.exclude_terms));
 
         const names = new Set<string>([r.canonical_title, ...asArray(r.aliases)]);
         for (const name of names) {
@@ -132,7 +140,8 @@ async function loadAliases() {
                 aliasNorm,
                 entitySlug: r.slug,
                 autoLink,
-                contextTerms: contextTerms.length ? contextTerms : undefined
+                contextTerms: contextTerms.length ? contextTerms : undefined,
+                excludeTerms: excludeTerms.length ? excludeTerms : undefined
             });
         }
     }
@@ -148,6 +157,21 @@ export interface AngttDetectMatch {
     posterUrl: string | null;
     /** true 면 저장 시 서버가 어차피 자동 연결한다(칩은 안내 성격) */
     canAutoLink: boolean;
+}
+
+/**
+ * 게시판 방식에 맞춰 작성폼 감지 결과를 정리한다.
+ * off 면 감지하지 않고, suggest 면 저장 때 자동 연결이 없으므로 canAutoLink 를 끈다.
+ */
+export async function detectEntityForBoard(
+    mode: AngttLinkMode,
+    title: string,
+    sources: string[]
+): Promise<AngttDetectMatch | null> {
+    if (!allowsConfirmedLink(mode)) return null;
+    const match = await detectEntityFromSources(title, sources);
+    if (!match) return null;
+    return allowsTitleAutoLink(mode) ? match : { ...match, canAutoLink: false };
 }
 
 /** 명시적 작품 URL을 우선한다. 미등록/모호한 URL을 제목 추측으로 대체하지 않는다. */
@@ -198,7 +222,7 @@ export async function detectEntityFromTitle(title: string): Promise<AngttDetectM
  *   이미 auto/mention 으로 잘못 링크된 행이 있으면 review 로 **승격**한다
  *   (ON DUPLICATE KEY UPDATE). 후기가 auto/mention 으로 남아 작품 페이지에서
  *   「후기」로 안 뜨던 회귀를 여기서 바로잡는다.
- * - free 등: 기존과 동일하게 `otherRole`(auto/mention)로 INSERT IGNORE —
+ * - 그 밖의 게시판(free 등): 기존과 동일하게 `otherRole`(auto/mention)로 INSERT IGNORE —
  *   이미 어떤 행이든 있으면 무변화(PK: bo_table, wr_id, entity_id). 언급 경로는 그대로다.
  *
  * ⛔ review 승격은 angtt 게시판에만 적용된다. free 글의 auto/mention 은 절대 덮지 않는다.
@@ -236,8 +260,8 @@ async function upsertEntityLink(
  * @returns 링크한 작품 slug, 대상 아니면 null
  */
 export async function linkEntityFromTags(boardId: string, wrId: number): Promise<string | null> {
-    if (!AUTO_LINK_BOARDS.has(boardId)) return null;
     if (!/^[a-zA-Z0-9_-]+$/.test(boardId)) return null;
+    if (!allowsConfirmedLink(await getAngttLinkMode(boardId))) return null;
 
     const [tagRows] = await pool.query(
         `SELECT tag FROM g5_na_tag_log WHERE bo_table = ? AND wr_id = ?`,
@@ -254,6 +278,10 @@ export async function linkEntityFromTags(boardId: string, wrId: number): Promise
 
     const info = slugToInfo.get(hit.entitySlug);
     if (!info) return null;
+
+    // 비밀글은 작품 페이지에 노출하지 않는다
+    const post = await fetchPost(boardId, wrId);
+    if (!post || isSecretOption(post.wr_option)) return null;
 
     await upsertEntityLink(info.id, boardId, wrId, 'mention');
 
@@ -296,14 +324,18 @@ async function attachTag(boardId: string, wrId: number, tag: string): Promise<vo
     );
 }
 
-/** 글 제목 조회 (동적 테이블 — boardId 는 호출부에서 화이트리스트 검증됨) */
-async function fetchTitle(boardId: string, wrId: number): Promise<string> {
-    const [rows] = await pool.query(`SELECT wr_subject FROM ?? WHERE wr_id = ? LIMIT 1`, [
-        `g5_write_${boardId}`,
-        wrId
-    ]);
-    const list = rows as { wr_subject?: string }[];
-    return list[0]?.wr_subject ?? '';
+/** 글 제목·옵션 조회 (동적 테이블 — boardId 는 호출부에서 형식 검증됨) */
+async function fetchPost(
+    boardId: string,
+    wrId: number
+): Promise<{ wr_subject: string; wr_option: string } | null> {
+    const [rows] = await pool.query(
+        `SELECT wr_subject, wr_option FROM ?? WHERE wr_id = ? LIMIT 1`,
+        [`g5_write_${boardId}`, wrId]
+    );
+    const row = (rows as { wr_subject?: string; wr_option?: string }[])[0];
+    if (!row) return null;
+    return { wr_subject: row.wr_subject ?? '', wr_option: row.wr_option ?? '' };
 }
 
 /**
@@ -363,14 +395,17 @@ export async function autoLinkAngttEntity(
     wrId: number,
     titleArg?: string
 ): Promise<string | null> {
-    if (!AUTO_LINK_BOARDS.has(boardId)) return null;
     if (!/^[a-zA-Z0-9_-]+$/.test(boardId)) return null;
+    // 제목 자동 연결은 auto/review 게시판만. suggest 게시판은 작성자 확인을 거친 태그로만 연결한다.
+    if (!allowsTitleAutoLink(await getAngttLinkMode(boardId))) return null;
 
     // 킬 스위치: 최근 자동 태그의 해제율이 임계를 넘으면 자동 부착을 멈춘다.
     // "오탐 0"은 검증 시점 표본의 사실일 뿐 미래 보장이 아니므로, 실사용 신호로 스스로 멈춘다.
     if (await isAutoLinkSuspended()) return null;
 
-    const title = titleArg ?? (await fetchTitle(boardId, wrId));
+    const post = await fetchPost(boardId, wrId);
+    if (!post || isSecretOption(post.wr_option)) return null;
+    const title = titleArg ?? post.wr_subject;
     if (!title?.trim()) return null;
 
     const { aliases, slugToInfo } = await loadAliases();

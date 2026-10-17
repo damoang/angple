@@ -9,6 +9,8 @@ import {
     matchAliasFromTags,
     pickEntityFallback,
     decideAngttCard,
+    mergeExcludeTerms,
+    DEFAULT_EXCLUDE_TERMS,
     type EntityAlias
 } from './angtt-dictionary-logic';
 
@@ -442,5 +444,97 @@ describe('pickEntityFallback — 엔티티 폴백은 { query } 결과에서만 �
     it('「앙티티」 태그 자신은 엔티티 키로 보지 않는다', () => {
         const withAngttKey = new Map([[normalizeWorkTitle(ANGTT_TAG), 'wrong']]);
         expect(pickEntityFallback({ query: 'x' }, [ANGTT_TAG, 'x'], withAngttKey)).toBeNull();
+    });
+});
+
+describe('scanAliasesInTitle — 부정 문맥어(exclude_terms)', () => {
+    const odyssey: EntityAlias = {
+        aliasNorm: '오디세이',
+        entitySlug: '오디세이',
+        autoLink: true,
+        contextTerms: ['후기', '영화'],
+        excludeTerms: mergeExcludeTerms('오디세이', [])
+    };
+    const spider: EntityAlias = {
+        aliasNorm: '스파이더맨',
+        entitySlug: '스파이더맨-브랜드뉴데이',
+        autoLink: true,
+        contextTerms: ['후기', '영화'],
+        excludeTerms: mergeExcludeTerms('스파이더맨-브랜드뉴데이', [])
+    };
+
+    it('코드 기본값이 두 작품에 들어 있다', () => {
+        expect(DEFAULT_EXCLUDE_TERMS['오디세이']).toEqual(['모니터', '삼성', '게이밍', 'G8']);
+        expect(DEFAULT_EXCLUDE_TERMS['스파이더맨-브랜드뉴데이']).toEqual([
+            '스팀',
+            '게임',
+            '플레이',
+            'PS5'
+        ]);
+    });
+
+    it('작품 meta 의 값을 합치고 중복·빈 값을 뺀다', () => {
+        expect(mergeExcludeTerms('오디세이', ['모니터', '노트북', ' '])).toEqual([
+            '모니터',
+            '삼성',
+            '게이밍',
+            'G8',
+            '노트북'
+        ]);
+        expect(mergeExcludeTerms('없는-작품', ['굿즈'])).toEqual(['굿즈']);
+        expect(mergeExcludeTerms('constructor', [])).toEqual([]);
+    });
+
+    it('제품·게임 글은 제안도 자동 연결도 하지 않는다', () => {
+        expect(scanAliasesInTitle('삼성전자 오디세이 G8 모니터 사용 후기', [odyssey])).toBeNull();
+        expect(scanAliasesInTitle('오디세이 게이밍 모니터 할인', [odyssey])).toBeNull();
+        expect(scanAliasesInTitle('스팀 스파이더맨 2 플레이 후기', [spider])).toBeNull();
+        expect(scanAliasesInTitle('PS5 스파이더맨 후기', [spider])).toBeNull();
+    });
+
+    it('부정 문맥어는 대소문자를 가리지 않는다', () => {
+        expect(scanAliasesInTitle('오디세이 g8 후기', [odyssey])).toBeNull();
+    });
+
+    it('영화 글은 그대로 잡힌다', () => {
+        expect(scanAliasesInTitle('오디세이 아이맥스 관람 후기', [odyssey])).toMatchObject({
+            entitySlug: '오디세이',
+            canAutoLink: true
+        });
+        expect(scanAliasesInTitle('스파이더맨 영화 후기', [spider])?.canAutoLink).toBe(true);
+    });
+});
+
+describe('scanAliasesInTitle — 영문 별칭 앞 하이픈·아포스트로피', () => {
+    const hope: EntityAlias[] = [
+        { aliasNorm: 'hope', entitySlug: '호프', autoLink: true, contextTerms: ['영화'] }
+    ];
+
+    it('J-Hope 처럼 이름 안에 붙은 영문은 잡지 않는다', () => {
+        expect(scanAliasesInTitle('J-Hope 솔로 무대 영상', hope)).toBeNull();
+        expect(scanAliasesInTitle("o'hope 영화", hope)).toBeNull();
+        expect(scanAliasesInTitle('o\u2019hope 영화', hope)).toBeNull();
+    });
+
+    it('따옴표로 감싸거나 앞말이 영문·숫자가 아니면 잡힌다', () => {
+        expect(scanAliasesInTitle('\u2018Hope\u2019 영화 후기', hope)?.entitySlug).toBe('호프');
+        expect(scanAliasesInTitle("영화 'Hope' 후기", hope)?.entitySlug).toBe('호프');
+        expect(scanAliasesInTitle('영화 \u2019Hope\u2019 후기', hope)?.entitySlug).toBe('호프');
+        expect(scanAliasesInTitle('영화 -Hope- 후기', hope)?.entitySlug).toBe('호프');
+        expect(scanAliasesInTitle('`Hope` 영화', hope)?.entitySlug).toBe('호프');
+    });
+
+    it('숫자 뒤 하이픈도 이어진 이름으로 본다', () => {
+        expect(scanAliasesInTitle('2-hope 영화', hope)).toBeNull();
+    });
+
+    it('독립된 영문 별칭은 그대로 잡힌다', () => {
+        expect(scanAliasesInTitle('영화 Hope 봤어요', hope)?.entitySlug).toBe('호프');
+        expect(scanAliasesInTitle('영화 (Hope) 후기', hope)?.entitySlug).toBe('호프');
+    });
+
+    it('한글 별칭은 이 규칙과 무관하다', () => {
+        const dg: EntityAlias[] = [{ aliasNorm: '동궁', entitySlug: 'dg', autoLink: true }];
+        expect(scanAliasesInTitle('넷플-동궁 후기', dg)?.entitySlug).toBe('dg');
     });
 });

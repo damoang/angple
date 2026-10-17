@@ -194,6 +194,11 @@
     let formHideNickname = $state(false);
     let formRating = $state(false);
     let formTags = $state(false);
+    let formAngttLink = $state<'off' | 'suggest' | 'auto'>('off');
+    /** free·angtt 는 앙티티 연결 방식이 코드로 고정돼 이 화면에서 바꾸지 않는다 */
+    const angttLinkFixedLabel = $derived(
+        boardId === 'angtt' ? '후기 고정' : boardId === 'free' ? '자동' : null
+    );
     let formNotificationEnabled = $state(false);
     let formNotificationReceivers = $state('');
 
@@ -294,6 +299,7 @@
             formHideNickname,
             formRating,
             formTags,
+            formAngttLink,
             formNotificationEnabled,
             formNotificationReceivers,
             formCommentImageLimit,
@@ -410,6 +416,9 @@
         formExternalImageSave = es.features?.externalImageSave ?? false;
         formHideNickname = es.features?.hideNickname ?? false;
         formRating = es.features?.rating ?? false;
+        const savedAngttLink = es.features?.angttLink;
+        formAngttLink =
+            savedAngttLink === 'auto' || savedAngttLink === 'suggest' ? savedAngttLink : 'off';
         formTags = es.features?.tags ?? (es.features?.tagLevel ?? 0) > 0;
         formNotificationEnabled = es.notification?.enabled ?? false;
         formNotificationReceivers = es.notification?.newPostReceivers ?? '';
@@ -583,6 +592,8 @@
                     externalImageSave: formExternalImageSave,
                     hideNickname: formHideNickname,
                     rating: formRating,
+                    // free·angtt 는 저장하지 않는다(코드 기본값을 쓴다)
+                    angttLink: angttLinkFixedLabel ? undefined : formAngttLink,
                     tags: formTags,
                     tagLevel: formTagLevel,
                     categoryMovePermit: formCategoryMovePermit,
@@ -1614,6 +1625,32 @@
                                         checked={formRating}
                                         onCheckedChange={(v: boolean) => (formRating = v)}
                                     />
+                                </div>
+                                <div class="flex items-center justify-between gap-4">
+                                    <div>
+                                        <p class="text-sm font-medium">앙티티 작품 연결</p>
+                                        <p class="text-muted-foreground text-xs">
+                                            {#if angttLinkFixedLabel}
+                                                이 게시판은 연결 방식이 코드로 고정돼 있습니다.
+                                            {:else}
+                                                자동=제목으로 연결, 제안만=작성자 확인 뒤 연결
+                                            {/if}
+                                        </p>
+                                    </div>
+                                    {#if angttLinkFixedLabel}
+                                        <span class="text-sm">{angttLinkFixedLabel}</span>
+                                    {:else}
+                                        <select
+                                            id="angtt-link"
+                                            aria-label="앙티티 작품 연결"
+                                            bind:value={formAngttLink}
+                                            class="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                                        >
+                                            <option value="off">끔</option>
+                                            <option value="suggest">제안만</option>
+                                            <option value="auto">자동</option>
+                                        </select>
+                                    {/if}
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <div>

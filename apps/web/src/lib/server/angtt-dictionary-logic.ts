@@ -116,6 +116,13 @@ export function buildDictionary(
 
 /** 별칭 앞뒤에 붙어 있으면 다른 단어의 일부로 보는 문자 */
 const WORD_CHAR = /[0-9a-z가-힣]/;
+const LATIN_START = /[a-z]/;
+const LATIN_OR_DIGIT = /[0-9a-z]/;
+/**
+ * 영문 이름 안에서 단어를 잇는 문자. 앞이 영문·숫자일 때만 잇는 것으로 본다
+ * (J-Hope, O'Hope 는 막고, 따옴표로 감싼 'Hope' 는 통과).
+ */
+const NAME_JOINERS: ReadonlySet<string> = new Set(['-', "'", '\u2019']);
 
 /**
  * 별칭 바로 뒤에 붙을 수 있는 한국어 조사.
@@ -178,6 +185,28 @@ export interface EntityAlias {
      * 예: 「호프」는 생맥주집을 뜻하기도 하므로 영화 문맥어를 요구한다.
      */
     contextTerms?: readonly string[];
+    /**
+     * 제목에 하나라도 있으면 이 작품으로 보지 않는 부정 문맥어(제안·자동 연결 모두).
+     * 예: 「오디세이」 모니터, 「스파이더맨」 게임.
+     */
+    excludeTerms?: readonly string[];
+}
+
+/**
+ * 작품별 기본 부정 문맥어(slug 기준). 작품 meta.exclude_terms 가 있으면 합친다.
+ * 같은 이름의 제품·게임 글이 작품으로 잡히던 사례를 막는다.
+ */
+export const DEFAULT_EXCLUDE_TERMS: Readonly<Record<string, readonly string[]>> = {
+    오디세이: ['모니터', '삼성', '게이밍', 'G8'],
+    '스파이더맨-브랜드뉴데이': ['스팀', '게임', '플레이', 'PS5']
+};
+
+/** 코드 기본 부정 문맥어 + 작품 meta 값 (중복 제거) */
+export function mergeExcludeTerms(slug: string, metaTerms: readonly string[]): string[] {
+    const base = Object.prototype.hasOwnProperty.call(DEFAULT_EXCLUDE_TERMS, slug)
+        ? DEFAULT_EXCLUDE_TERMS[slug]
+        : [];
+    return [...new Set([...base, ...metaTerms].filter((t) => normalizeWorkTitle(t).length > 0))];
 }
 
 /** 제목 스캔 결과 */
@@ -197,6 +226,15 @@ export interface TitleScanHit {
 function isWordBoundaryMatch(haystack: string, pos: number, len: number): boolean {
     const before = pos > 0 ? haystack[pos - 1] : '';
     if (before && WORD_CHAR.test(before)) return false;
+    // 영문 별칭이 영문·숫자 + 하이픈·아포스트로피 뒤에 오면 앞말과 이어진 이름이다(J-Hope 의 hope).
+    if (
+        LATIN_START.test(haystack[pos]) &&
+        NAME_JOINERS.has(before) &&
+        pos >= 2 &&
+        LATIN_OR_DIGIT.test(haystack[pos - 2])
+    ) {
+        return false;
+    }
 
     let j = pos + len;
     if (j >= haystack.length) return true;
@@ -244,6 +282,11 @@ export function scanAliasesInTitle(
                 ) {
                     return null;
                 }
+                const excluded = (alias.excludeTerms ?? []).some((t) => {
+                    const term = normalizeWorkTitle(t);
+                    return term.length > 0 && norm.includes(term);
+                });
+                if (excluded) break; // 이 별칭은 버리고 다음(더 짧은) 별칭을 본다
                 const terms = alias.contextTerms ?? [];
                 const contextOk =
                     terms.length === 0 || terms.some((t) => norm.includes(normalizeWorkTitle(t)));

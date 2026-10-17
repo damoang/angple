@@ -14,6 +14,7 @@
  *    수정 저장 때 되살아나는 것을 막는다(angtt-auto-link 의 수정 경로 규약과 같은 이유).
  */
 import pool from '$lib/server/db';
+import { isSecretOption } from './secret-option';
 import {
     appendSourcePost,
     asMetaObject,
@@ -206,7 +207,7 @@ export async function registerAngttCandidate(
         if (!Number.isInteger(wrId) || wrId <= 0) return 'skipped';
 
         const [rows] = await pool.query(
-            `SELECT wr_subject, ca_name, wr_is_comment, wr_deleted_at
+            `SELECT wr_subject, ca_name, wr_option, wr_is_comment, wr_deleted_at
                FROM g5_write_angtt WHERE wr_id = ? LIMIT 1`,
             [wrId]
         );
@@ -214,11 +215,14 @@ export async function registerAngttCandidate(
             rows as {
                 wr_subject?: string;
                 ca_name?: string;
+                wr_option?: string;
                 wr_is_comment?: number;
                 wr_deleted_at?: unknown;
             }[]
         )[0];
         if (!post || Number(post.wr_is_comment) !== 0 || post.wr_deleted_at) return 'skipped';
+        // 비밀글은 작품 후보·연결에 쓰지 않는다
+        if (isSecretOption(post.wr_option)) return 'skipped';
 
         // 수정 시에도 「후보가 없으면 1회」 — 이미 연결·근거 등록된 글은 다시 보지 않는다
         if (await isAlreadyHandled(wrId)) return 'skipped';

@@ -18,13 +18,7 @@ export const PROMOTE_THRESHOLD = 2;
 /** 회원당 일(24시간) 제안 상한 — idx_member_recent 인덱스 시크로 카운트 */
 export const DAILY_SUGGEST_LIMIT = 10;
 
-/** 제안을 받는 게시판 — angtt-auto-link 의 AUTO_LINK_BOARDS 와 동일 범위 */
-const SUGGEST_BOARDS = new Set(['free', 'angtt']);
-
-/** 이 게시판 글에 작품 연결 제안을 받을 수 있는가 */
-export function isSuggestableBoard(boardId: string): boolean {
-    return SUGGEST_BOARDS.has(boardId);
-}
+// 제안을 받는 게시판은 서버의 게시판별 연결 방식(lib/server/angtt-link-mode)이 정한다.
 
 /** 서로 다른 제안자 수가 승격 임계에 도달했는가 */
 export function shouldPromote(distinctVoters: number): boolean {
