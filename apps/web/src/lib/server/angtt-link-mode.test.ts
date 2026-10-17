@@ -52,9 +52,25 @@ describe('getAngttLinkMode — 게시판별 연결 방식', () => {
     });
 
     it('설정 행이 없으면 off', async () => {
-        readQuery.mockResolvedValue([[]]);
+        readQuery.mockResolvedValue([[{ settings: null }]]);
         const { getAngttLinkMode } = await import('./angtt-link-mode');
         expect(await getAngttLinkMode('hello')).toBe('off');
+    });
+
+    it('없는 게시판은 off 이고 캐시에 담지 않는다', async () => {
+        readQuery.mockResolvedValue([[]]);
+        const { getAngttLinkMode, angttLinkModeCacheSize } = await import('./angtt-link-mode');
+        expect(await getAngttLinkMode('nosuchboard')).toBe('off');
+        expect(angttLinkModeCacheSize()).toBe(0);
+    });
+
+    it('캐시는 상한을 넘으면 비운다', async () => {
+        readQuery.mockResolvedValue([[{ settings: null }]]);
+        const { getAngttLinkMode, angttLinkModeCacheSize } = await import('./angtt-link-mode');
+        for (let i = 0; i < 500; i++) await getAngttLinkMode(`b${i}`);
+        expect(angttLinkModeCacheSize()).toBe(500);
+        await getAngttLinkMode('b500');
+        expect(angttLinkModeCacheSize()).toBe(1);
     });
 
     it('읽기 실패는 off — free·angtt 는 그대로', async () => {
@@ -77,6 +93,7 @@ describe('getAngttLinkMode — 게시판별 연결 방식', () => {
     it('형식이 잘못된 게시판 이름은 읽지 않고 off', async () => {
         const { getAngttLinkMode } = await import('./angtt-link-mode');
         expect(await getAngttLinkMode('movie; DROP')).toBe('off');
+        expect(await getAngttLinkMode('a'.repeat(51))).toBe('off');
         expect(readQuery).not.toHaveBeenCalled();
     });
 });

@@ -29,9 +29,17 @@ const CODE_DEFAULT_MODES: ReadonlyMap<string, AngttLinkMode> = new Map<string, A
 const CACHE_TTL_MS = 60_000;
 /** 읽기 실패는 짧게만 기억한다(곧 다시 읽어 복구) */
 const FAILURE_TTL_MS = 10_000;
-const BOARD_ID_RE = /^[a-zA-Z0-9_-]+$/;
+const BOARD_ID_RE = /^[a-zA-Z0-9_-]{1,50}$/;
+/** 캐시 상한 — 넘으면 비운다(실제 게시판 수보다 넉넉하게) */
+const CACHE_MAX_ENTRIES = 500;
 
+/** 실제로 있는 게시판만 담는다(없는 이름은 담지 않는다) */
 const cache = new Map<string, { at: number; ttl: number; mode: AngttLinkMode }>();
+
+/** 테스트용 — 캐시 항목 수 */
+export function angttLinkModeCacheSize(): number {
+    return cache.size;
+}
 
 /** 설정 원본값 → 허용 값. 모르는 값은 'off' */
 export function parseAngttLinkSetting(raw: unknown): AngttLinkSetting {
@@ -72,17 +80,23 @@ export async function getAngttLinkMode(boardId: string): Promise<AngttLinkMode> 
     let mode: AngttLinkMode = 'off';
     let ttl = CACHE_TTL_MS;
     try {
+        // 게시판이 있을 때만 행이 나온다. 두 표의 정렬 규칙이 달라 JOIN 대신 각각 값으로 비교한다.
         const [rows] = await readPool.query(
-            `SELECT settings FROM v2_board_extended_settings WHERE board_id = ? LIMIT 1`,
-            [boardId]
+            `SELECT (SELECT settings FROM v2_board_extended_settings WHERE board_id = ? LIMIT 1)
+                    AS settings
+               FROM g5_board WHERE bo_table = ? LIMIT 1`,
+            [boardId, boardId]
         );
         const row = (rows as { settings?: unknown }[])[0];
-        mode = readAngttLinkFromSettings(row?.settings);
+        // 없는 게시판 — 캐시에 담지 않는다(아무 이름이나 보내 메모리를 키우지 못하게)
+        if (!row) return 'off';
+        mode = readAngttLinkFromSettings(row.settings);
     } catch {
         mode = 'off';
         ttl = FAILURE_TTL_MS;
     }
 
+    if (cache.size >= CACHE_MAX_ENTRIES) cache.clear();
     cache.set(boardId, { at: now, ttl, mode });
     return mode;
 }

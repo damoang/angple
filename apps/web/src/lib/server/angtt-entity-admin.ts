@@ -20,6 +20,7 @@ import {
     uniqueSlug
 } from './angtt-candidate-logic';
 import { CANDIDATE_BOARD } from './angtt-candidates';
+import { isSecretOption } from './secret-option';
 import { refreshEntityAggregates } from '$plugins/angtt-review/lib/entities.server';
 
 /** 작품 단위 별점·항목 평점의 bo_table 규약 (entities.server 의 ENTITY_RATING_BO_TABLE 과 같다) */
@@ -99,15 +100,17 @@ function stamp(
     };
 }
 
-/** 근거 원글 중 실제로 살아 있는 angtt 원글만 */
+/** 근거 원글 중 실제로 살아 있는 angtt 공개 원글만(비밀글 제외) */
 async function liveSourcePosts(conn: Conn, wrIds: number[]): Promise<number[]> {
     if (wrIds.length === 0) return [];
     const [rows] = await conn.query(
-        `SELECT wr_id FROM g5_write_angtt
+        `SELECT wr_id, wr_option FROM g5_write_angtt
           WHERE wr_id IN (?) AND wr_is_comment = 0 AND wr_deleted_at IS NULL`,
         [wrIds]
     );
-    return (rows as { wr_id: number }[]).map((r) => Number(r.wr_id));
+    return (rows as { wr_id: number; wr_option?: string }[])
+        .filter((r) => !isSecretOption(r.wr_option))
+        .map((r) => Number(r.wr_id));
 }
 
 async function linkReviews(conn: Conn, entityId: number, wrIds: number[]): Promise<number> {

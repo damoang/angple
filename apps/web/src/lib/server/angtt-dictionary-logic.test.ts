@@ -516,6 +516,18 @@ describe('scanAliasesInTitle — 영문 별칭 앞 하이픈·아포스트로피
         expect(scanAliasesInTitle('o\u2019hope 영화', hope)).toBeNull();
     });
 
+    it('따옴표로 감싸거나 앞말이 영문·숫자가 아니면 잡힌다', () => {
+        expect(scanAliasesInTitle('\u2018Hope\u2019 영화 후기', hope)?.entitySlug).toBe('호프');
+        expect(scanAliasesInTitle("영화 'Hope' 후기", hope)?.entitySlug).toBe('호프');
+        expect(scanAliasesInTitle('영화 \u2019Hope\u2019 후기', hope)?.entitySlug).toBe('호프');
+        expect(scanAliasesInTitle('영화 -Hope- 후기', hope)?.entitySlug).toBe('호프');
+        expect(scanAliasesInTitle('`Hope` 영화', hope)?.entitySlug).toBe('호프');
+    });
+
+    it('숫자 뒤 하이픈도 이어진 이름으로 본다', () => {
+        expect(scanAliasesInTitle('2-hope 영화', hope)).toBeNull();
+    });
+
     it('독립된 영문 별칭은 그대로 잡힌다', () => {
         expect(scanAliasesInTitle('영화 Hope 봤어요', hope)?.entitySlug).toBe('호프');
         expect(scanAliasesInTitle('영화 (Hope) 후기', hope)?.entitySlug).toBe('호프');

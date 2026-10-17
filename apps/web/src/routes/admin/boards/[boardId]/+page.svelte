@@ -196,7 +196,9 @@
     let formTags = $state(false);
     let formAngttLink = $state<'off' | 'suggest' | 'auto'>('off');
     /** free·angtt 는 앙티티 연결 방식이 코드로 고정돼 이 화면에서 바꾸지 않는다 */
-    const angttLinkFixed = $derived(boardId === 'free' || boardId === 'angtt');
+    const angttLinkFixedLabel = $derived(
+        boardId === 'angtt' ? '후기 고정' : boardId === 'free' ? '자동' : null
+    );
     let formNotificationEnabled = $state(false);
     let formNotificationReceivers = $state('');
 
@@ -591,7 +593,7 @@
                     hideNickname: formHideNickname,
                     rating: formRating,
                     // free·angtt 는 저장하지 않는다(코드 기본값을 쓴다)
-                    angttLink: angttLinkFixed ? undefined : formAngttLink,
+                    angttLink: angttLinkFixedLabel ? undefined : formAngttLink,
                     tags: formTags,
                     tagLevel: formTagLevel,
                     categoryMovePermit: formCategoryMovePermit,
@@ -1628,24 +1630,27 @@
                                     <div>
                                         <p class="text-sm font-medium">앙티티 작품 연결</p>
                                         <p class="text-muted-foreground text-xs">
-                                            {#if angttLinkFixed}
-                                                이 게시판은 연결 방식이 고정돼 있습니다.
+                                            {#if angttLinkFixedLabel}
+                                                이 게시판은 연결 방식이 코드로 고정돼 있습니다.
                                             {:else}
                                                 자동=제목으로 연결, 제안만=작성자 확인 뒤 연결
                                             {/if}
                                         </p>
                                     </div>
-                                    <select
-                                        id="angtt-link"
-                                        aria-label="앙티티 작품 연결"
-                                        bind:value={formAngttLink}
-                                        disabled={angttLinkFixed}
-                                        class="border-input bg-background h-9 rounded-md border px-3 text-sm"
-                                    >
-                                        <option value="off">끔</option>
-                                        <option value="suggest">제안만</option>
-                                        <option value="auto">자동</option>
-                                    </select>
+                                    {#if angttLinkFixedLabel}
+                                        <span class="text-sm">{angttLinkFixedLabel}</span>
+                                    {:else}
+                                        <select
+                                            id="angtt-link"
+                                            aria-label="앙티티 작품 연결"
+                                            bind:value={formAngttLink}
+                                            class="border-input bg-background h-9 rounded-md border px-3 text-sm"
+                                        >
+                                            <option value="off">끔</option>
+                                            <option value="suggest">제안만</option>
+                                            <option value="auto">자동</option>
+                                        </select>
+                                    {/if}
                                 </div>
                                 <div class="flex items-center justify-between">
                                     <div>
