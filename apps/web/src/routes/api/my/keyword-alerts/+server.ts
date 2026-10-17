@@ -12,7 +12,7 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
-import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api.js';
+import { crossOriginErrorResponse, isSameOriginRequest } from '$lib/server/internal-api.js';
 import {
     KEYWORD_ALERT_MAX_COUNT,
     keywordAlertErrorMessage,
@@ -56,9 +56,7 @@ function isDeadlock(error: unknown): boolean {
 }
 
 /** GET: 내 키워드 목록 */
-export const GET: RequestHandler = async ({ cookies, request }) => {
-    if (!isInternalAppRequest(request)) return internalOnlyErrorResponse();
-
+export const GET: RequestHandler = async ({ cookies }) => {
     const user = await getAuthUser(cookies);
     if (!user) return unauthorized();
 
@@ -75,7 +73,7 @@ export const GET: RequestHandler = async ({ cookies, request }) => {
 
 /** POST: 키워드 추가 */
 export const POST: RequestHandler = async ({ cookies, request }) => {
-    if (!isInternalAppRequest(request)) return internalOnlyErrorResponse();
+    if (!isSameOriginRequest(request)) return crossOriginErrorResponse();
 
     const user = await getAuthUser(cookies);
     if (!user) return unauthorized();
@@ -153,7 +151,7 @@ export const POST: RequestHandler = async ({ cookies, request }) => {
 
 /** DELETE: 키워드 삭제 — 내 행만 지운다 */
 export const DELETE: RequestHandler = async ({ cookies, request, url }) => {
-    if (!isInternalAppRequest(request)) return internalOnlyErrorResponse();
+    if (!isSameOriginRequest(request)) return crossOriginErrorResponse();
 
     const user = await getAuthUser(cookies);
     if (!user) return unauthorized();

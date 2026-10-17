@@ -15,7 +15,7 @@ interface Row {
 let rows: Row[] = [];
 let nextId = 1;
 let authUser: { mb_id: string } | null = null;
-let internal = true;
+let sameOrigin = true;
 let forceInsertNoop = false;
 
 const query = vi.fn(async (sql: string, params: unknown[] = []) => {
@@ -48,8 +48,8 @@ vi.mock('$lib/server/db', () => ({
 }));
 vi.mock('$lib/server/auth', () => ({ getAuthUser: async () => authUser }));
 vi.mock('$lib/server/internal-api.js', () => ({
-    isInternalAppRequest: () => internal,
-    internalOnlyErrorResponse: () =>
+    isSameOriginRequest: () => sameOrigin,
+    crossOriginErrorResponse: () =>
         new Response(JSON.stringify({ success: false }), { status: 403 })
 }));
 
@@ -77,7 +77,7 @@ beforeEach(() => {
     rows = [];
     nextId = 1;
     authUser = { mb_id: 'member_a' };
-    internal = true;
+    sameOrigin = true;
     forceInsertNoop = false;
     query.mockClear();
 });
@@ -91,12 +91,16 @@ describe('인증', () => {
         expect(query).not.toHaveBeenCalled();
     });
 
-    it('외부 출처 요청은 403', async () => {
-        internal = false;
-        expect((await GET(event('GET'))).status).toBe(403);
+    it('다른 출처의 쓰기 요청(POST·DELETE)은 403 이고 DB 를 건드리지 않는다', async () => {
+        sameOrigin = false;
         expect((await POST(event('POST', { body: { keyword: '맥북' } }))).status).toBe(403);
         expect((await DELETE(event('DELETE', { search: '?id=1' }))).status).toBe(403);
         expect(query).not.toHaveBeenCalled();
+    });
+
+    it('읽기(GET)는 출처 헤더와 무관하게 로그인으로만 결정한다', async () => {
+        sameOrigin = false;
+        expect((await GET(event('GET'))).status).toBe(200);
     });
 });
 

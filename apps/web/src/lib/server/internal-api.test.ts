@@ -8,7 +8,8 @@ import {
     drainHeaderPassCounts,
     hasValidInternalSecret,
     isInternalAppRequest,
-    isInternalSecretRequest
+    isInternalSecretRequest,
+    isSameOriginRequest
 } from './internal-api.js';
 
 function setSecrets(current?: string, previous?: string): void {
@@ -163,5 +164,67 @@ describe('isInternalAppRequest — 헤더 판정 관측(동작은 그대로)', (
             false
         );
         expect(drainHeaderPassCounts()).toEqual({});
+    });
+});
+
+describe('isSameOriginRequest — 쿠키 인증 쓰기 요청의 출처 검사', () => {
+    // 앱 출처(ORIGIN)는 https://app.test, 브라우저가 접속한 호스트는 Host 헤더로 온다.
+    function mutation(headers: Record<string, string>): Request {
+        return new Request('https://app.test/api/my/ui-settings', {
+            method: 'PUT',
+            headers: new Headers(headers)
+        });
+    }
+
+    it('Origin 이 앱 출처와 같으면 통과한다(서버 fetch 하위 요청 포함)', () => {
+        expect(isSameOriginRequest(mutation({ origin: 'https://app.test' }))).toBe(true);
+    });
+
+    it('Origin host 가 Host 헤더와 같으면 통과한다(다른 호스트 이름으로 서비스되는 경우)', () => {
+        expect(
+            isSameOriginRequest(
+                mutation({ origin: 'https://beta.app.test', host: 'beta.app.test' })
+            )
+        ).toBe(true);
+    });
+
+    it('다른 사이트의 Origin 은 거부한다', () => {
+        expect(
+            isSameOriginRequest(mutation({ origin: 'https://evil.example', host: 'app.test' }))
+        ).toBe(false);
+    });
+
+    it('Host 와 다른 하위 도메인 Origin 은 거부한다', () => {
+        expect(
+            isSameOriginRequest(mutation({ origin: 'https://other.app.test', host: 'app.test' }))
+        ).toBe(false);
+    });
+
+    it('Origin 이 null 이거나 깨져 있으면 거부한다', () => {
+        expect(isSameOriginRequest(mutation({ origin: 'null', host: 'app.test' }))).toBe(false);
+        expect(isSameOriginRequest(mutation({ origin: 'not a url', host: 'app.test' }))).toBe(
+            false
+        );
+    });
+
+    it('Referer·User-Agent 는 판단에 쓰지 않는다', () => {
+        expect(
+            isSameOriginRequest(
+                mutation({
+                    origin: 'https://evil.example',
+                    host: 'app.test',
+                    referer: 'https://app.test/free',
+                    'user-agent': 'node'
+                })
+            )
+        ).toBe(false);
+    });
+
+    it('Origin 이 없으면 Sec-Fetch-Site 로 판단한다', () => {
+        expect(isSameOriginRequest(mutation({}))).toBe(true);
+        expect(isSameOriginRequest(mutation({ 'sec-fetch-site': 'same-origin' }))).toBe(true);
+        expect(isSameOriginRequest(mutation({ 'sec-fetch-site': 'none' }))).toBe(true);
+        expect(isSameOriginRequest(mutation({ 'sec-fetch-site': 'cross-site' }))).toBe(false);
+        expect(isSameOriginRequest(mutation({ 'sec-fetch-site': 'same-site' }))).toBe(false);
     });
 });
