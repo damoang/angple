@@ -1,7 +1,7 @@
 /**
  * 앙티티 크라우드 제안 API — 독자가 미연결 글을 작품에 연결 제안한다.
  *
- * POST   제안 등록: 로그인 + 앙님💛(mb_level 3) 이상, free/angtt 글 한정.
+ * POST   제안 등록: 로그인 + 앙님💛(mb_level 3) 이상, 작품 연결을 켠 게시판의 공개 글 한정.
  *        서로 다른 회원 PROMOTE_THRESHOLD(2)명이 같은 작품을 제안하면
  *        angple_entity_posts 에 role='mention' INSERT IGNORE 로 자동 승격
  *        (7/22 라이브된 태그→링크와 동일 경로 — read 경로 무접촉).
@@ -23,9 +23,10 @@ import { getEntityBySlug } from '$plugins/angtt-review/lib/entities.server';
 import {
     DAILY_SUGGEST_LIMIT,
     SUGGEST_MIN_LEVEL,
-    isSuggestableBoard,
     shouldPromote
 } from '$lib/components/features/board/angtt-suggest-logic.js';
+import { allowsConfirmedLink, getAngttLinkMode } from '$lib/server/angtt-link-mode';
+import { isSecretOption } from '$lib/server/secret-option';
 import { buildGradeDeniedMessage } from '$lib/utils/board-permissions.js';
 
 interface SuggestTarget {
@@ -72,7 +73,7 @@ export const POST: RequestHandler = async ({ request, locals, setHeaders }) => {
 
     const target = await parseTarget(request);
     if (!target) return json({ error: '잘못된 요청입니다.' }, { status: 400 });
-    if (!isSuggestableBoard(target.boardId)) {
+    if (!allowsConfirmedLink(await getAngttLinkMode(target.boardId))) {
         return json({ error: '이 게시판 글에는 연결을 제안할 수 없어요.' }, { status: 400 });
     }
 
@@ -88,13 +89,14 @@ export const POST: RequestHandler = async ({ request, locals, setHeaders }) => {
         );
     }
 
-    // 글 존재 확인 — 삭제글·댓글 거부 (동적 테이블, boardId 는 위에서 화이트리스트 검증됨)
+    // 글 존재 확인 — 삭제글·댓글·비밀글 거부 (동적 테이블, boardId 는 위에서 형식 검증됨)
     const [postRows] = await pool.query(
-        `SELECT wr_id FROM ??
+        `SELECT wr_id, wr_option FROM ??
           WHERE wr_id = ? AND wr_is_comment = 0 AND wr_deleted_at IS NULL LIMIT 1`,
         [`g5_write_${target.boardId}`, target.wrId]
     );
-    if ((postRows as unknown[]).length === 0) {
+    const postRow = (postRows as { wr_option?: string }[])[0];
+    if (!postRow || isSecretOption(postRow.wr_option)) {
         return json({ error: '글을 찾을 수 없습니다.' }, { status: 404 });
     }
 

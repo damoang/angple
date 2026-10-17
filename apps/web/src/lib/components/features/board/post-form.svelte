@@ -92,7 +92,8 @@
     // ── 앙티티 작품 제안 칩 ──────────────────────────────────────────────
     // 제목에서 작품명이 감지되면 태그 연결을 "제안"한다. 자동 부착이 아니라
     // 작성자 확인(클릭)을 거치므로 참교육류 일반어 오탐이 커뮤니티를 오염시키지 않는다.
-    const ANGTT_SUGGEST_BOARDS = new Set(['free', 'angtt']);
+    // 어느 게시판에서 켤지는 서버가 정한다(/api/angtt/detect 응답의 mode). 'off' 를 받으면
+    // 이 작성폼에서는 더 부르지 않는다.
     const ANGTT_TAG_NAME = '앙티티';
 
     interface AngttSuggestion {
@@ -106,13 +107,15 @@
     // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 같은 세션에서 다시 제안하지 않도록 기억만 하는 기록 — 바뀌어도 화면을 다시 그릴 필요가 없다
     let angttDismissed = new Set<string>();
     let angttSeq = 0;
+    /** 서버가 이 게시판은 연결 대상이 아니라고 답한 게시판 */
+    let angttOffBoard = $state<string | null>(null);
 
     $effect(() => {
         const current = title.trim();
         const sources = findTmdbSources(link1, link2, content);
         angttSuggestion = null;
         if (
-            !ANGTT_SUGGEST_BOARDS.has(boardId) ||
+            angttOffBoard === boardId ||
             isClaimBoard ||
             isSecret ||
             (current.length < 2 && sources.length === 0)
@@ -127,14 +130,19 @@
         const timer = setTimeout(async () => {
             try {
                 // eslint-disable-next-line svelte/prefer-svelte-reactivity -- 쿼리 문자열을 만들 때만 쓰는 임시 값이라 반응형이 필요 없다
-                const query = new URLSearchParams({ title: current });
+                const query = new URLSearchParams({ title: current, board: boardId });
                 for (const source of sources) query.append('source', source);
                 const res = await fetch(`/api/angtt/detect?${query}`, {
                     signal: controller.signal
                 });
                 if (!res.ok || seq !== angttSeq) return;
-                const body = (await res.json()) as { match: AngttSuggestion | null };
+                const body = (await res.json()) as { match: AngttSuggestion | null; mode?: string };
                 if (seq !== angttSeq) return;
+                if (body.mode === 'off') {
+                    angttOffBoard = boardId;
+                    angttSuggestion = null;
+                    return;
+                }
                 const match = body.match;
                 if (match && !angttDismissed.has(match.slug) && !tags.includes(match.slug)) {
                     angttSuggestion = match;

@@ -3,7 +3,6 @@ import {
     SUGGEST_MIN_LEVEL,
     PROMOTE_THRESHOLD,
     DAILY_SUGGEST_LIMIT,
-    isSuggestableBoard,
     shouldPromote,
     remainingToPromote,
     buildSuggestStatusText
@@ -22,20 +21,6 @@ describe('상수 — 스펙 값과 단일 소스 유지', () => {
 
     it('레이트리밋은 회원당 일 10건', () => {
         expect(DAILY_SUGGEST_LIMIT).toBe(10);
-    });
-});
-
-describe('isSuggestableBoard — free/angtt 한정', () => {
-    it('free, angtt 는 허용', () => {
-        expect(isSuggestableBoard('free')).toBe(true);
-        expect(isSuggestableBoard('angtt')).toBe(true);
-    });
-
-    it('그 외 게시판은 거부', () => {
-        expect(isSuggestableBoard('hello')).toBe(false);
-        expect(isSuggestableBoard('bug')).toBe(false);
-        expect(isSuggestableBoard('')).toBe(false);
-        expect(isSuggestableBoard('FREE')).toBe(false); // 대소문자 정확 일치만
     });
 });
 

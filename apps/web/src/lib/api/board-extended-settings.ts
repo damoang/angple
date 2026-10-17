@@ -51,6 +51,8 @@ export interface FeatureSettings {
     externalImageSave?: boolean;
     hideNickname?: boolean;
     rating?: boolean;
+    /** 앙티티 작품 연결: off=끔, suggest=제안만(작성자 확인), auto=제목 자동 연결 포함 */
+    angttLink?: 'off' | 'suggest' | 'auto';
     categoryMove?: boolean;
     tags?: boolean;
     tagLevel?: number;

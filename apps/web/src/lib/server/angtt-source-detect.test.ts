@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { query, execute } = vi.hoisted(() => ({ query: vi.fn(), execute: vi.fn() }));
-vi.mock('$lib/server/db', () => ({ default: { query, execute } }));
+vi.mock('$lib/server/db', () => ({
+    default: { query, execute },
+    readPool: { query, execute }
+}));
 
 const movie = {
     id: 1,
@@ -47,7 +50,8 @@ describe('명시적 작품 URL 감지', () => {
     it('한 글자 제목도 명시적으로 선택한 작품 태그를 실제 연결한다', async () => {
         query
             .mockResolvedValueOnce([[{ tag: '앙티티' }, { tag: 'movie-123' }]])
-            .mockResolvedValueOnce([[{ ...movie, canonical_title: '봄' }]]);
+            .mockResolvedValueOnce([[{ ...movie, canonical_title: '봄' }]])
+            .mockResolvedValueOnce([[{ wr_subject: '봄', wr_option: 'html1' }]]);
         execute.mockResolvedValue([{ affectedRows: 1 }]);
         const { linkEntityFromTags } = await import('./angtt-auto-link');
         expect(await linkEntityFromTags('free', 42)).toBe('movie-123');
