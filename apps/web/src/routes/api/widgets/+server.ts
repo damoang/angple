@@ -4,21 +4,24 @@
  * GET /api/widgets
  * - 설치된 모든 위젯 목록 반환
  * - 공식/커스텀 구분 포함
+ * - 관리자 전용
  */
 
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { scanWidgets } from '$lib/server/widgets';
-import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api.js';
 
 /**
  * GET /api/widgets
  *
  * 설치된 위젯 목록 조회
  */
-export const GET: RequestHandler = async ({ request }) => {
-    if (!isInternalAppRequest(request)) {
-        return internalOnlyErrorResponse();
+export const GET: RequestHandler = async ({ locals }) => {
+    if (!locals.user) {
+        return json({ success: false, error: '인증이 필요합니다.' }, { status: 401 });
+    }
+    if ((locals.user.level ?? 0) < 10) {
+        return json({ success: false, error: '관리자 권한이 필요합니다.' }, { status: 403 });
     }
 
     try {

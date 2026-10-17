@@ -16,7 +16,7 @@ import AdmZip from 'adm-zip';
 import { safeValidateWidgetManifest } from '$lib/types/widget-manifest';
 import { sanitizePath } from '$lib/server/path-utils';
 import { scanWidgets, getCustomWidgetsDir } from '$lib/server/widgets';
-import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api.js';
+import { crossOriginErrorResponse, isSameOriginRequest } from '$lib/server/internal-api.js';
 
 /** 커스텀 위젯 디렉터리 */
 const CUSTOM_WIDGETS_DIR = getCustomWidgetsDir();
@@ -30,8 +30,8 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
  * 위젯 ZIP 파일 업로드 처리
  */
 export const POST: RequestHandler = async ({ request, locals }) => {
-    if (!isInternalAppRequest(request)) {
-        return internalOnlyErrorResponse();
+    if (!isSameOriginRequest(request)) {
+        return crossOriginErrorResponse();
     }
 
     // 관리자 권한 검증
