@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "net.damoang.community",
+      "sha256_cert_fingerprints": [
+        "9D:9D:6E:ED:8D:81:D6:17:B6:CD:8F:91:25:6C:CA:84:A4:30:B8:43:2F:DB:6E:12:1B:72:AC:B6:A2:DD:96:2E"
+      ]
+    }
+  }
+]
