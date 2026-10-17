@@ -165,11 +165,26 @@ jobs:
           VITE_GAM_SITE_NAME: 'damoang'
           VITE_S3_URL: ${{ env.MEDIA_CDN_BASE }}
           ASSET_BASE_URL: ${{ env.STATIC_ASSET_BASE_ROOT }}/${{ needs.resolve-release.outputs.sha_tag }}
+          # Prebid/GAM canary — 리포지토리 Variables 에서 조절한다(Settings → Variables).
+          # 미설정이면 아래 `:-0` 기본값이 적용돼 현재와 동일하게 OFF 다.
+          PUBLIC_PHASE_B1_CANARY_PCT: ${{ vars.PUBLIC_PHASE_B1_CANARY_PCT }}
+          PUBLIC_GAM_PRELOAD_CANARY_PCT: ${{ vars.PUBLIC_GAM_PRELOAD_CANARY_PCT }}
+          PUBLIC_CRITEO_NETWORK_ID: ${{ vars.PUBLIC_CRITEO_NETWORK_ID }}
+          PUBLIC_APPNEXUS_PLACEMENT_ID: ${{ vars.PUBLIC_APPNEXUS_PLACEMENT_ID }}
         run: |
           pnpm --filter "./packages/*" build
           echo "VITE_GAM_NETWORK_CODE=23338387889" > apps/web/.env
           echo "VITE_GAM_SITE_NAME=damoang" >> apps/web/.env
           echo "VITE_S3_URL=${VITE_S3_URL}" >> apps/web/.env
+          # Prebid Phase B-1 canary — 빌드 타임 변수다(import.meta.env). 런타임 변경 불가.
+          # 현재 전부 0/OFF. 올리기 전 선결 조건은 prebid-config.ts 주석과
+          # ~/Documents/damoang-programmatic-enablement-guide.md 참고.
+          #   (A) PREBID_CDN 을 프로덕션 빌드로 교체 (현재 not-for-prod 데모 빌드)
+          #   (B) Criteo/AppNexus ID 발급  (C) GAM 에 Prebid 라인아이템·키값 생성
+          echo "PUBLIC_PHASE_B1_CANARY_PCT=${PUBLIC_PHASE_B1_CANARY_PCT:-0}" >> apps/web/.env
+          echo "PUBLIC_GAM_PRELOAD_CANARY_PCT=${PUBLIC_GAM_PRELOAD_CANARY_PCT:-0}" >> apps/web/.env
+          echo "PUBLIC_CRITEO_NETWORK_ID=${PUBLIC_CRITEO_NETWORK_ID:-0}" >> apps/web/.env
+          echo "PUBLIC_APPNEXUS_PLACEMENT_ID=${PUBLIC_APPNEXUS_PLACEMENT_ID:-0}" >> apps/web/.env
           pnpm --filter web build
 
       - name: Upload immutable assets to R2
