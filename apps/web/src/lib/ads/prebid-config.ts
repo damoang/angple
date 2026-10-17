@@ -8,9 +8,33 @@
  * 1차 SSP: Criteo + AppNexus. 환경변수로 publisher ID 주입.
  */
 
+/**
+ * ⛔ 이 URL 은 Prebid.js 의 **`not-for-prod` 데모 빌드**다.
+ *    전 어댑터가 포함돼 용량이 크고, Prebid 측이 프로덕션 사용을 명시적으로 금지한다.
+ *
+ *    `PUBLIC_PHASE_B1_CANARY_PCT` 를 0 보다 크게 올리기 **전에** 반드시 교체할 것:
+ *      1. docs.prebid.org/download.html 에서 필요한 어댑터만 골라 커스텀 빌드
+ *         (현재 설정 기준: criteoBidAdapter, appnexusBidAdapter, gptPreAuction, consentManagementTcf)
+ *      2. static.damoang.net 에 자체 호스팅 (서드파티 CDN 의존 제거)
+ *      3. 이 상수 교체 + CSP script-src 확인
+ *
+ *    교체 전에 canary 를 켜면 프로덕션에 데모 빌드가 나간다.
+ */
 export const PREBID_CDN =
     'https://cdn.jsdelivr.net/npm/prebid.js@9.31.0/dist/not-for-prod/prebid.min.js';
 
+/**
+ * ⚠️ 2026-10-17 현재 **0 (OFF)** 이다. deploy.yml 에도 이 env 주입이 없어
+ *    빌드 결과물의 `import.meta.env` 가 빈 객체이고, 아무도 canary 에 들어가지 않는다.
+ *
+ *    켜기 전 선결 조건 3가지 (하나라도 빠지면 수익이 0 이다):
+ *      (A) PREBID_CDN 을 프로덕션 빌드로 교체 (위 주석 참고)
+ *      (B) PUBLIC_CRITEO_NETWORK_ID / PUBLIC_APPNEXUS_PLACEMENT_ID 발급 — 현재 둘 다 0
+ *      (C) GAM 에 Prebid 라인아이템·키값(hb_pb, hb_adid, hb_size) 생성
+ *          — 현재 페이지 타게팅 키는 site/theme/hour/device 뿐이라 낙찰돼도 게재되지 않는다
+ *
+ *    상세 절차: ~/Documents/damoang-programmatic-enablement-guide.md
+ */
 export const CANARY_PCT = Number(
     (import.meta as ImportMeta & { env?: Record<string, string> }).env
         ?.PUBLIC_PHASE_B1_CANARY_PCT ?? '0'
@@ -41,6 +65,11 @@ export type PrebidBidder = {
     params: Record<string, unknown>;
 };
 
+/**
+ * ⚠️ 두 ID 모두 env 미설정 상태라 현재 **0** 이다. SSP 계약 후 주입해야 한다.
+ *    AppNexus 는 placementId 가 지면별로 다른 것이 보통이므로, 계약 후 슬롯별 매핑이
+ *    필요하면 이 상수를 함수형(position → bidders)으로 바꿀 것.
+ */
 export const PREBID_BIDDERS_DEFAULT: PrebidBidder[] = [
     {
         bidder: 'criteo',
