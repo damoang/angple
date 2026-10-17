@@ -7,18 +7,13 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket } from 'mysql2';
 import { readPool } from '$lib/server/db.js';
 import { getAuthUser } from '$lib/server/auth';
-import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api.js';
 
 interface FollowMemberRow extends RowDataPacket {
     mb_id: string;
     mb_nick: string;
 }
 
-export const GET: RequestHandler = async ({ cookies, request }) => {
-    if (!isInternalAppRequest(request)) {
-        return internalOnlyErrorResponse();
-    }
-
+export const GET: RequestHandler = async ({ cookies }) => {
     const user = await getAuthUser(cookies);
     if (!user) {
         return json({ success: false, message: '로그인이 필요합니다.' }, { status: 401 });

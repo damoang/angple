@@ -54,6 +54,39 @@ export function isInternalSecretRequest(request: Request): boolean {
     return hasValidInternalSecret(request.headers.get('x-internal-secret'));
 }
 
+/**
+ * 쿠키로 인증하는 쓰기 요청(POST·PUT·PATCH·DELETE)이 같은 출처에서 왔는지 본다(CSRF 방어).
+ *
+ * - Origin 이 있으면 앱 출처와 같거나, 그 host 가 요청의 Host 헤더와 정확히 같아야 한다. 하위 도메인·localhost 는
+ *   따로 허용하지 않는다. 앱 ORIGIN 설정 대신 Host 와 비교하는 이유는 같은 앱이 여러 호스트
+ *   이름으로 서비스될 수 있어서다.
+ * - Origin 이 없으면 Sec-Fetch-Site 가 없거나 same-origin·none 일 때만 통과한다.
+ *
+ * 다른 사이트의 페이지가 브라우저에 보내게 한 요청은 Origin 을 우리 Host 와 맞출 수 없다.
+ * 헤더를 마음대로 꾸미는 클라이언트는 브라우저가 아니라서 다른 회원의 쿠키를 실을 수 없다.
+ * 그래서 이 검사는 로그인 확인과 함께 쓸 때만 의미가 있다.
+ */
+export function isSameOriginRequest(request: Request): boolean {
+    const origin = request.headers.get('origin');
+    if (origin !== null) {
+        try {
+            const originUrl = new URL(origin);
+            // SvelteKit 서버 fetch 하위 요청은 Host 헤더 없이 Origin 을 앱 출처로 채운다.
+            if (originUrl.origin === new URL(request.url).origin) return true;
+            const host = request.headers.get('host');
+            return !!host && originUrl.host === host;
+        } catch {
+            return false;
+        }
+    }
+    const secFetchSite = request.headers.get('sec-fetch-site');
+    return secFetchSite === null || secFetchSite === 'same-origin' || secFetchSite === 'none';
+}
+
+export function crossOriginErrorResponse(): Response {
+    return json({ success: false, message: '허용되지 않은 요청입니다.' }, { status: 403 });
+}
+
 // --- 헤더 기반 판정 관측 ---
 // isInternalAppRequest 가 비밀값이 아니라 Origin·Referer·Sec-Fetch-Site·User-Agent 로
 // 통과시킨 요청을 경로·사유별로 센다. 판정 자체는 바꾸지 않는다(관측 전용).

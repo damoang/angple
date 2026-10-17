@@ -9,7 +9,7 @@ import type { RequestHandler } from './$types';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2';
 import pool from '$lib/server/db';
 import { getAuthUser } from '$lib/server/auth';
-import { isInternalAppRequest } from '$lib/server/internal-api.js';
+import { crossOriginErrorResponse, isSameOriginRequest } from '$lib/server/internal-api.js';
 
 interface SubRow extends RowDataPacket {
     id: number;
@@ -55,15 +55,14 @@ async function isBusyBoard(board: string): Promise<boolean> {
 }
 
 /** GET: 구독 상태 + 구독자 수 */
-export const GET: RequestHandler = async ({ params, cookies, request }) => {
+export const GET: RequestHandler = async ({ params, cookies }) => {
     const boardId = params.boardId?.replace(/[^a-zA-Z0-9_-]/g, '');
     if (!boardId) {
         return json({ success: false, message: 'boardId가 필요합니다.' }, { status: 400 });
     }
 
     try {
-        const isInternalRequest = isInternalAppRequest(request);
-        const user = isInternalRequest ? await getAuthUser(cookies) : null;
+        const user = await getAuthUser(cookies);
         let isSubscribed = false;
         let level: 1 | 2 | 3 | null = null;
 
@@ -99,6 +98,7 @@ export const GET: RequestHandler = async ({ params, cookies, request }) => {
 
 /** POST: 구독 / 구독 단계 변경 (body: { level?: 1 | 2 }) */
 export const POST: RequestHandler = async ({ params, cookies, request }) => {
+    if (!isSameOriginRequest(request)) return crossOriginErrorResponse();
     const boardId = params.boardId?.replace(/[^a-zA-Z0-9_-]/g, '');
     const user = await getAuthUser(cookies);
     if (!user) {
@@ -170,7 +170,8 @@ export const POST: RequestHandler = async ({ params, cookies, request }) => {
 };
 
 /** DELETE: 구독 해제 */
-export const DELETE: RequestHandler = async ({ params, cookies }) => {
+export const DELETE: RequestHandler = async ({ params, cookies, request }) => {
+    if (!isSameOriginRequest(request)) return crossOriginErrorResponse();
     const boardId = params.boardId?.replace(/[^a-zA-Z0-9_-]/g, '');
     const user = await getAuthUser(cookies);
     if (!user) {

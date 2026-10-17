@@ -5,12 +5,12 @@
  * - GET: 로그인 회원의 서버 저장 설정을 반환(없으면 settings=null).
  * - PUT: 클라이언트의 UiSettings 전체 blob 을 검증·상한 후 upsert(디바운스 write-through).
  *
- * per-user 응답이므로 `private, no-store`(공유 캐시 누출 방지). 내부 앱 전용.
+ * per-user 응답이므로 `private, no-store`(공유 캐시 누출 방지). 저장(PUT)은 같은 출처 요청만 받는다.
  */
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getAuthUser } from '$lib/server/auth';
-import { internalOnlyErrorResponse, isInternalAppRequest } from '$lib/server/internal-api.js';
+import { crossOriginErrorResponse, isSameOriginRequest } from '$lib/server/internal-api.js';
 import { getMemberUiSettings, putMemberUiSettings } from '$lib/server/ui-settings-store';
 import { UI_SETTINGS_ALLOWED_KEYS } from '$lib/server/ui-settings-keys';
 
@@ -21,11 +21,7 @@ const MAX_JSON_BYTES = 16384;
 const MAX_MUTE_KEYWORDS = 200;
 const MAX_MUTE_KEYWORD_LEN = 50;
 
-export const GET: RequestHandler = async ({ cookies, request, setHeaders }) => {
-    if (!isInternalAppRequest(request)) {
-        return internalOnlyErrorResponse();
-    }
-
+export const GET: RequestHandler = async ({ cookies, setHeaders }) => {
     const user = await getAuthUser(cookies);
     if (!user) {
         return json({ success: false, message: '로그인이 필요합니다.' }, { status: 401 });
@@ -39,8 +35,8 @@ export const GET: RequestHandler = async ({ cookies, request, setHeaders }) => {
 };
 
 export const PUT: RequestHandler = async ({ cookies, request, setHeaders }) => {
-    if (!isInternalAppRequest(request)) {
-        return internalOnlyErrorResponse();
+    if (!isSameOriginRequest(request)) {
+        return crossOriginErrorResponse();
     }
 
     const user = await getAuthUser(cookies);
